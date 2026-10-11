@@ -20,5 +20,5 @@ description: "Task list for the task card node type"
 - [x] T004 [P] [US1] Web app: `task_card` in the board schema, the node registry, search, timers and modules; `TaskCardNode.tsx`; a card under the old name in a live document shows as a task card. Tests
 - [x] T005 [US1] `scripts/smoke.py`, `scripts/bench_board.py`, fixtures shared by both projections
 - [x] T006 [US1] Check on a copy of a real database of schema 11 (spec, Independent Test)
-- [ ] T007 [US1] Check on the compose stack: boards open, a new card is added, live edits in two tabs. `make check`, `make smoke`
+- [x] T007 [US1] Check on the compose stack: boards open, a new card is added, live edits in two tabs. `make check`, `make smoke`
 - [x] T008 [US1] Guide ("Data, backups and upgrades"), `CHANGELOG.md`, data models of specs 009 and 013, `DESIGN.md`
