@@ -145,12 +145,25 @@ A person enters their GitHub token in Settings → My tracker, next to their Jir
 2. `feat/github-labels` (US2): chips and extra rows in the mini-card.
 3. `feat/github-token` (US3): the personal token and private repositories.
 
+## Open points for slice `feat/github-token` (2026-10-11)
+
+Raised by the owner before the slice; each is answered in the slice, in code or in the guide.
+
+1. **A person with a token leaves the shared queue.** All their GitHub reads, public and private, go through their own provider, on their own limit and into their own cache. The shared budget is not spent on them.
+2. **The personal provider has no pacing rule yet.** The turn-by-turn budget of decision 9 is written for the shared reader only. The limit belongs to the person's GitHub account, and their other tools spend it too, so the personal provider must obey `x-ratelimit-remaining` and `x-ratelimit-reset` and slow down before it runs dry. Decide whether it reuses the shared reader's rule.
+3. **GitHub counts the limit per user, not per token.** A classic token, a fine-grained token and a token from a later sign-in share one 5000 an hour. Two tokens of one person do not add up; the guide says so.
+4. **Access follows the token, not membership.** A fine-grained token reads only the repositories picked for it. A member of an organization whose token leaves a repository out sees the key and the hint, like a person with no token. The hint and the guide must not promise that a token alone is enough.
+5. **Sharing private tasks with a team.** Everyone adds their own token with access to that repository; one token is never handed to the whole board. The guide gets a section for a person who asks how their team sees private issues and pull requests (T023).
+6. **Which token the guide recommends.** Fine-grained, on picked repositories, with "Issues: Read-only" and "Pull requests: Read-only" ("Metadata: Read-only" comes with them). A classic token needs the `repo` scope, which is full write access to every private repository: the guide names it as a fallback with that warning.
+7. **The server token stays.** `GITHUB_TOKEN` keeps serving people without a token, demo visitors and guests of a public link, with or without personal tokens around.
+8. **The shared reader lives in the memory of the one API process**, as live boards do. It needs no store while there is one process. Several API processes would each keep their own queue and spend the same limit several times over: a shared store for the reader's state belongs to the work that adds a second process, not to this slice.
+
 ## Out of scope
 
 - Adding many tasks by a GitHub search query, and query suggestions.
 - GitHub Projects fields (a status column of a project), milestones, linked pull requests of an issue, comment counts, reactions, every assignee beyond the first.
 - GitHub Enterprise Server.
-- Sign-in with GitHub. It will hand tiko a person's token with no pasting; the personal token of slice 3 is stored per person whatever way it came, so sign-in later fills the same place. Whether that is an OAuth app or a GitHub App is decided with that spec.
+- Sign-in with GitHub. It will hand tiko a person's token with no pasting; the personal token of slice 3 is stored per person whatever way it came, so sign-in later fills the same place. Whether that is an OAuth app or a GitHub App is decided with that spec. Known ahead of it: an OAuth app reads private repositories only with the `repo` scope (full write access), a GitHub App can ask for read-only issues and pull requests; a token from sign-in shares the person's 5000 an hour with their other tokens, and a person who signed in needs no token of their own.
 - Renaming the stored node type `jira_card`: its own slice right after this spec, with a database backup and a migration of stored boards.
 - Webhooks; writing to GitHub.
 - A label-to-status list per board or per instance.

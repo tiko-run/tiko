@@ -48,4 +48,4 @@ description: "Task list for GitHub Issues"
 - [ ] T020 [US3] `api/public.py` and `domain/public.py`: a guest gets `private` for what the shared reader cannot read. The byte test of spec 012 on a board with a private GitHub task (SC-005)
 - [ ] T021 [P] [US3] Settings → My tracker: the GitHub token block. Tests
 - [ ] T022 [US3] Check on the compose stack: owner, a second person and a guest on one board with a private task. `make check`, `make smoke` green
-- [ ] T023 [US3] Guide (which token to create and with what access), `CHANGELOG.md`
+- [ ] T023 [US3] Guide (which token to create and with what access); how a team shares private tasks; one limit per GitHub user), `CHANGELOG.md`. See "Open points" in the spec
