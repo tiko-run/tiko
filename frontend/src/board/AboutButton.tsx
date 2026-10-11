@@ -112,7 +112,7 @@ export function AboutButton() {
           <AboutLink href={DOCS} icon={<BookOpen strokeWidth={1.75} />}>
             Documentation
           </AboutLink>
-          <AboutLink href={`${REPO}/issues`} icon={<Bug strokeWidth={1.75} />}>
+          <AboutLink href={`${REPO}/issues/new/choose`} icon={<Bug strokeWidth={1.75} />}>
             Report a bug or idea
           </AboutLink>
         </nav>
