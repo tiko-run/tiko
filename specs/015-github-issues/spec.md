@@ -158,6 +158,8 @@ Raised by the owner before the slice; each is answered in the slice, in code or 
 7. **The server token stays.** `GITHUB_TOKEN` keeps serving people without a token, demo visitors and guests of a public link, with or without personal tokens around.
 8. **The shared reader lives in the memory of the one API process**, as live boards do. It needs no store while there is one process. Several API processes would each keep their own queue and spend the same limit several times over: a shared store for the reader's state belongs to the work that adds a second process, not to this slice.
 
+How the slice answered them: the personal reader is the shared reader's code without the "is it still public" check, so it paces itself by the same turn rule (point 2), and it stops when a tenth of the person's limit is left. A task comes back `no_token` only when the shared reader was refused the repository itself; a number missing from a readable repository stays `not_found`. While GitHub rejects a person's token, their public tasks come from the shared reader and the sync list says so. tiko keeps one GitHub token per person: repositories of several owners need a classic token (the guide says so, several tokens are in "Not yet").
+
 ## Out of scope
 
 - Adding many tasks by a GitHub search query, and query suggestions.

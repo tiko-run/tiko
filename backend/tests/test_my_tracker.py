@@ -110,6 +110,7 @@ def test_my_tracker_token(team):
         "provider": "jira",
         "base_url": "https://jira.example.com",
         "token_state": "set",
+        "github_token_state": "none",
     }
     assert carl.post("/api/settings/jira/test", json={}).json()["user"] == "Alex Rivera"
     assert T_BOB not in carl.get("/api/settings").text

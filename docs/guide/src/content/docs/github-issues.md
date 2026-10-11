@@ -1,9 +1,9 @@
 ---
 title: GitHub Issues
-description: Put issues and pull requests of public GitHub repositories on a board, with no token and no setup.
+description: Put issues and pull requests of GitHub repositories on a board. Public ones need no token and no setup, private ones your own token.
 ---
 
-Issues and pull requests of public repositories on github.com become live cards on any tiko. There is nothing to connect: public repositories are read without a token.
+Issues and pull requests of public repositories on github.com become live cards on any tiko. There is nothing to connect: public repositories are read without a token. For private repositories each person adds [their own token](#your-own-token).
 
 ## Add a card
 
@@ -57,12 +57,60 @@ The token is shared by everyone on the instance, so tiko never shows a private r
 
 If the limit does run out, the GitHub row turns red and says when the next try is. Cards keep their last data, and other trackers sync as usual.
 
+## Your own token
+
+A person adds their own GitHub token in Settings → My tracker. From then on:
+
+- issues and pull requests of private repositories the token can read are live cards, added by link or key like any other;
+- all their GitHub cards, public ones too, refresh at the board's pace on the request limit of their own GitHub account, not on the one the instance shares.
+
+The token is stored encrypted, is sent to api.github.com only and is never shown again. tiko asks GitHub about a token before it stores it, and does not keep one GitHub refuses.
+
+### Which token to create
+
+Create a fine-grained token, so that it can only read:
+
+1. Open [New fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) on GitHub.
+2. Name it, for example `tiko – read issues`, and choose an expiration.
+3. In **Resource owner** choose the account or the organization that owns the repositories. An organization may have to approve the token first.
+4. In **Repository access** choose "Only select repositories" and pick the ones you want on your boards.
+5. In **Permissions → Repository permissions** set **Issues** and **Pull requests** to "Read-only". GitHub adds "Metadata: Read-only" itself.
+6. Press **Generate token**, copy it and paste it into Settings → My tracker.
+
+A fine-grained token covers the repositories of one owner, and tiko keeps one GitHub token per person. Pick the owner whose repositories you need on your boards.
+
+A classic token works too and covers every owner at once, but it needs the `repo` scope, which is full read and write access to every private repository you can reach. Use it only if you need repositories of several owners, or your organization does not allow fine-grained tokens.
+
+### What others see
+
+A private task shows in full only to a person whose own token can read it. On the same board:
+
+| Who | What the card shows |
+|---|---|
+| A person whose token reads the repository | The task in full |
+| A person with no GitHub token | The key and "Connect your GitHub token to see this task" |
+| A person whose token does not cover the repository | The key and "Not found or no access" |
+| A guest of the public link | The key only |
+
+Access follows the token, not membership: a member of the organization whose fine-grained token leaves the repository out sees the key only.
+
+### Sharing private tasks with a team
+
+Everyone on the team adds their own token that reads the repository. There is no token for a whole board: tiko never shows one person's private tasks through another person's token, so a board with private cards is safe to share with people outside the team.
+
+### Limits
+
+GitHub counts requests per account, not per token: a second token of yours does not add to the 5000 an hour, and your other tools spend the same limit. tiko stops asking when a tenth of your limit is left and starts again when GitHub resets it; the GitHub row of the sync indicator says so, and cards keep their last data meanwhile.
+
+If GitHub rejects your token (it expired or you revoked it), public cards keep updating without it, private ones show the key, and the GitHub row says "GitHub rejected your token". Enter a new one in Settings → My tracker.
+
 ## Public links
 
-A guest of a board's public link sees GitHub cards of public repositories in full: they are public anyway.
+A guest of a board's public link sees GitHub cards of public repositories in full: they are public anyway. A card of a private repository shows a guest its key only, whoever's token reads it.
 
 ## Not yet
 
-- Private repositories, with a personal token per person.
+- Sign-in with GitHub in place of a pasted token.
+- Several GitHub tokens for one person.
 - Adding many issues by a search query.
 - GitHub Enterprise Server.

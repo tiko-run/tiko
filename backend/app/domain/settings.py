@@ -12,6 +12,8 @@ Provider = Literal["demo", "jira"]
 TokenState = Literal["none", "set", "unreadable"]
 
 DEFAULT_INTERVAL_S = 30
+# A person's GitHub token is stored for this address and is only ever sent there.
+GITHUB_API_URL = "https://api.github.com"
 
 
 def normalize_base_url(value: str) -> str:
@@ -104,8 +106,10 @@ class SettingsService:
         # Guests already on a board must go when public links are switched off.
         self._on_public_off = on_public_off
 
-    def _token(self, user_id: str, base_url: str | None) -> tuple[TokenState, SecretStr | None]:
-        stored = self._credentials.get(user_id, "jira")
+    def _token(
+        self, user_id: str, base_url: str | None, kind: str = "jira"
+    ) -> tuple[TokenState, SecretStr | None]:
+        stored = self._credentials.get(user_id, kind)
         if stored is None:
             return "none", None
         encrypted, token_url = stored
@@ -194,6 +198,26 @@ class SettingsService:
 
     def remove_token(self, user_id: str) -> None:
         self._credentials.delete(user_id, "jira")
+        self._on_change()
+
+    def github_token_state(self, user_id: str) -> TokenState:
+        return self._token(user_id, GITHUB_API_URL, "github")[0]
+
+    def github_token(self, user_id: str) -> SecretStr | None:
+        """The person's own GitHub token, or None when they have none that can be read."""
+        return self._token(user_id, GITHUB_API_URL, "github")[1]
+
+    def set_github_token(self, user_id: str, token: SecretStr) -> TokenState:
+        plain = _clean(token)
+        if plain is None:
+            raise ValidationFailed("token: enter your personal access token")
+        self._credentials.set(user_id, "github", self._box.encrypt(plain), GITHUB_API_URL)
+        self._on_token(plain)
+        self._on_change()
+        return self.github_token_state(user_id)
+
+    def remove_github_token(self, user_id: str) -> None:
+        self._credentials.delete(user_id, "github")
         self._on_change()
 
     def jira_credentials(

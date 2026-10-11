@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.adapters.tasks import github as github_adapter
-from app.adapters.tasks.github import GitHubApi, SharedGitHub, to_task
+from app.adapters.tasks.github import GitHubApi, GitHubReaders, SharedGitHub, to_task
 from app.config import Settings
 from app.domain.boards import BoardDoc
 from app.domain.errors import (
@@ -16,7 +16,7 @@ from app.domain.errors import (
 from app.domain.tasks import github_key, valid_key
 from app.main import create_app
 from tests.conftest import signed_in
-from tests.github_fake import REPO, TOKEN, FakeGitHub, issue
+from tests.github_fake import REPO, T_ANN, T_BOB, TOKEN, FakeGitHub, issue
 
 
 class Clock:
@@ -282,7 +282,7 @@ def test_the_server_token_never_opens_a_private_repository(fake, clock):
     github = reader(fake, clock, TOKEN)
     with pytest.raises(TaskNotFound):
         github.resolve(f"{REPO}#1")
-    assert [t.state for t in github.poll([f"{REPO}#1"])] == ["not_found"]
+    assert [t.state for t in github.poll([f"{REPO}#1"])] == ["no_token"]
     assert f"/repos/{REPO}/issues" not in fake.paths()
 
 
@@ -293,7 +293,7 @@ def test_a_repository_made_private_stops_being_served_at_once(fake, clock):
     fake.private.add(REPO)
     clock.now += 60
     hidden = github.poll([f"{REPO}#1"])[0]
-    assert (hidden.state, hidden.summary) == ("not_found", "")
+    assert (hidden.state, hidden.summary) == ("no_token", "")
     with pytest.raises(TaskNotFound):
         github.resolve(f"{REPO}#2")
     fake.private.clear()
@@ -459,3 +459,172 @@ def test_a_guest_gets_no_labels_of_a_task_it_cannot_read(app_client, fake):
     task = TestClient(app_client.app).get(f"/api/public/{link['public_token']}").json()["tasks"]
     assert task["github:octo-org/secret#1"]["labels"] == []
     assert task["github:octo-org/secret#1"]["rows"] == []
+
+
+SECRET = "octo-org/secret"
+HIDDEN = "Title of #7"
+
+
+def readers(fake: FakeGitHub, clock: Clock, server_token: str | None = None) -> GitHubReaders:
+    client = httpx.Client(transport=httpx.MockTransport(fake), follow_redirects=True)
+    return GitHubReaders(client, server_token, clock)
+
+
+@pytest.fixture
+def private(fake) -> FakeGitHub:
+    fake.limit = fake.remaining = 5000
+    fake.repos[SECRET] = {7: issue(7, SECRET)}
+    fake.private.add(SECRET)
+    fake.tokens = {T_ANN: {SECRET}, T_BOB: set()}
+    return fake
+
+
+def test_a_persons_token_reads_what_it_is_given(private, clock):
+    github = readers(private, clock)
+    ann, bob = github.of("ann", T_ANN), github.of("bob", T_BOB)
+    assert ann.resolve(f"{SECRET}#7").summary == HIDDEN
+    assert ann.poll([f"{SECRET}#7"])[0].summary == HIDDEN
+    # A token that leaves the repository out is told what GitHub tells it: nothing is there.
+    assert [t.state for t in bob.poll([f"{SECRET}#7"])] == ["not_found"]
+    with pytest.raises(TaskNotFound):
+        bob.resolve(f"{SECRET}#7")
+    # Nobody's token fills the shared reader.
+    assert [t.state for t in github.shared.poll([f"{SECRET}#7"])] == ["no_token"]
+    assert ann.source_note is None
+
+
+def test_a_persons_reader_is_kept_between_requests_and_asks_on_its_own_limit(private, clock):
+    github = readers(private, clock)
+    github.of("ann", T_ANN).poll([f"{REPO}#1"])
+    asked = len(private.requests)
+    assert github.of("ann", T_ANN).poll([f"{REPO}#1"])[0].state == "ok"
+    assert len(private.requests) == asked
+    # A new token starts a new reader; an unused one is dropped after an hour.
+    assert github.of("ann", T_BOB) is not github.of("ann", T_ANN)
+    clock.now += 3700
+    kept = github.of("bob", T_BOB)
+    assert list(github._own) == ["bob"] and github.of("bob", T_BOB) is kept
+    # The shared reader was never asked: a person with a token spends their own limit.
+    assert all(r.headers.get("authorization") for r in private.requests)
+
+
+def test_a_persons_token_leaves_a_tenth_of_the_limit_alone(private, clock):
+    private.remaining = 501
+    private.reset = int(clock.now) + 600
+    ann = readers(private, clock).of("ann", T_ANN)
+    assert ann.resolve(f"{REPO}#1").state == "ok"
+    asked = len(private.requests)
+    with pytest.raises(TrackerRateLimited) as limited:
+        ann.resolve(f"{REPO}#2")
+    assert limited.value.retry_after == 600
+    assert len(private.requests) == asked
+    clock.now += 601
+    private.remaining = 5000
+    assert ann.resolve(f"{REPO}#2").state == "ok"
+
+
+def test_a_rejected_token_leaves_public_tasks_working(private, clock):
+    github = readers(private, clock)
+    ann = github.of("ann", T_ANN)
+    assert ann.poll([f"{REPO}#1", f"{SECRET}#7"])[1].summary == HIDDEN
+    private.revoked.add(T_ANN)
+    clock.now += 60
+    states = {t.key: t.state for t in ann.poll([f"{REPO}#1", f"{SECRET}#7"])}
+    assert states == {f"{REPO}#1": "ok", f"{SECRET}#7": "no_token"}
+    assert "rejected your token" in ann.source_note
+    # The token is left alone for a while, then tried again.
+    asked = [r for r in private.requests if r.headers.get("authorization") == f"Bearer {T_ANN}"]
+    clock.now += 60
+    ann.poll([f"{REPO}#1"])
+    assert asked == [
+        r for r in private.requests if r.headers.get("authorization") == f"Bearer {T_ANN}"
+    ]
+    private.revoked.clear()
+    clock.now += 300
+    assert ann.poll([f"{SECRET}#7"])[0].summary == HIDDEN
+    assert ann.source_note is None
+
+
+@pytest.fixture
+def team(private):
+    settings = Settings(db_path=":memory:", tiko_secret_key="test-secret-key")
+    app = create_app(settings, github_transport=httpx.MockTransport(private))
+    admin = signed_in(app)
+    people = {}
+    for name in ("ann", "bob"):
+        url = admin.post("/api/invites", json={"role": "member"}).json()["url"]
+        client = TestClient(app)
+        accepted = client.post(
+            f"/api/invites/{url.split('=', 1)[1]}/accept",
+            json={"username": name, "name": name.title(), "password": "long-enough-password"},
+        )
+        assert accepted.is_success
+        people[name] = client
+    return people
+
+
+def test_my_github_token(team, private):
+    ann = team["ann"]
+    assert ann.get("/api/me/tracker").json()["github_token_state"] == "none"
+    private.revoked.add("made-up")
+    refused = ann.put("/api/me/tracker", json={"token": "made-up", "source": "github"})
+    assert (refused.status_code, refused.json()["error"]["code"]) == (422, "validation_failed")
+    assert ann.get("/api/me/tracker").json()["github_token_state"] == "none"
+    saved = ann.put("/api/me/tracker", json={"token": f" {T_ANN}\n", "source": "github"})
+    assert saved.json() == {
+        "provider": "demo",
+        "base_url": None,
+        "token_state": "none",
+        "github_token_state": "set",
+    }
+    assert T_ANN not in ann.get("/api/me/tracker").text + ann.get("/api/settings").text
+    assert ann.delete("/api/me/tracker").status_code == 204
+    assert ann.get("/api/me/tracker").json()["github_token_state"] == "set"
+    assert ann.delete("/api/me/tracker", params={"source": "github"}).status_code == 204
+    assert ann.get("/api/me/tracker").json()["github_token_state"] == "none"
+
+
+def test_a_private_task_is_seen_by_its_tokens_owner_only(team, private):
+    """SC-005: the title of a private task never reaches a person without a token or a guest."""
+    ann, bob = team["ann"], team["bob"]
+    assert ann.put("/api/me/tracker", json={"token": T_ANN, "source": "github"}).is_success
+    link = f"https://github.com/{SECRET}/issues/7"
+    assert ann.post("/api/tasks/resolve", json={"ref": link}).json()["task"]["summary"] == HIDDEN
+    refused = bob.post("/api/tasks/resolve", json={"ref": link})
+    assert (refused.status_code, refused.json()["error"]["code"]) == (404, "task_not_found")
+    board_id = board_with(ann, f"{REPO}#1", f"{SECRET}#7")
+    assert ann.put(f"/api/boards/{board_id}/everyone", json={"role": "viewer"}).is_success
+    token = ann.put(f"/api/boards/{board_id}/public", json={"public": True}).json()["public_token"]
+    mine = ann.post(f"/api/boards/{board_id}/refresh").json()["tasks"]
+    assert mine[f"github:{SECRET}#7"]["summary"] == HIDDEN
+
+    def states(response) -> dict[str, str]:
+        return {task["key"]: task["state"] for task in response.json()["tasks"].values()}
+
+    guest = TestClient(ann.app)
+    seen = {
+        "bob": [bob.post(f"/api/boards/{board_id}/refresh"), bob.get(f"/api/boards/{board_id}")],
+        "guest": [guest.get(f"/api/public/{token}"), guest.post(f"/api/public/{token}/refresh")],
+    }
+    assert states(seen["bob"][0]) == {f"{REPO}#1": "ok", f"{SECRET}#7": "no_token"}
+    assert states(seen["guest"][0]) == {f"{REPO}#1": "ok", f"{SECRET}#7": "private"}
+    for responses in seen.values():
+        for response in responses:
+            assert response.is_success
+            assert HIDDEN.encode() not in response.content
+    # With a token that leaves the repository out, bob is told there is no such task.
+    assert bob.put("/api/me/tracker", json={"token": T_BOB, "source": "github"}).is_success
+    assert states(bob.post(f"/api/boards/{board_id}/refresh")) == {
+        f"{REPO}#1": "ok",
+        f"{SECRET}#7": "not_found",
+    }
+
+
+def test_a_demo_visitor_cannot_keep_a_token(private):
+    settings = Settings(db_path=":memory:", tiko_secret_key="test-secret-key", tiko_demo=True)
+    app = create_app(settings, github_transport=httpx.MockTransport(private))
+    visitor = TestClient(app)
+    assert visitor.post("/api/auth/demo").is_success
+    refused = visitor.put("/api/me/tracker", json={"token": T_ANN, "source": "github"})
+    assert refused.status_code == 403
+    assert visitor.get("/api/me/tracker").json()["github_token_state"] == "none"

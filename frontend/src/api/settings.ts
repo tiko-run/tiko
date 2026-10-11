@@ -47,6 +47,7 @@ const trackerSchema = z.object({
   provider: z.enum(['demo', 'jira']),
   base_url: z.string().nullable(),
   token_state: z.enum(['none', 'set', 'unreadable']),
+  github_token_state: z.enum(['none', 'set', 'unreadable']),
 })
 export type Tracker = z.infer<typeof trackerSchema>
 
@@ -55,13 +56,15 @@ export function getTracker() {
   return fetchJson('/api/me/tracker', trackerSchema)
 }
 
-export function saveTrackerToken(token: string) {
+export type TokenSource = 'jira' | 'github'
+
+export function saveTrackerToken(token: string, source: TokenSource = 'jira') {
   return fetchJson('/api/me/tracker', trackerSchema, {
     method: 'PUT',
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, source }),
   })
 }
 
-export function removeTrackerToken() {
-  return fetchJson('/api/me/tracker', z.null(), { method: 'DELETE' })
+export function removeTrackerToken(source: TokenSource = 'jira') {
+  return fetchJson(`/api/me/tracker?source=${source}`, z.null(), { method: 'DELETE' })
 }

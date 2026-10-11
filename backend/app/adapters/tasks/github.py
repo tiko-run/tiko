@@ -1,9 +1,11 @@
+import hashlib
 import math
 import re
 import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -35,6 +37,11 @@ RECHECK_S = 6 * 3600
 # A long list of due repositories is spread over several refreshes.
 REPOS_PER_POLL = 10
 DEFAULT_RETRY_AFTER_S = 60
+# The share of a person's hourly limit their own token leaves alone: their other tools spend
+# the same limit.
+PERSONAL_KEEP = 0.1
+# How long a token GitHub rejected is left alone before it is tried again.
+REJECTED_RETRY_S = 300
 
 # Labels that projects use as a status, compared without case; the label's name is shown.
 _LABEL_STATUS: dict[str, StatusCategory] = {
@@ -110,6 +117,10 @@ def _split(key: str) -> tuple[str, int]:
     return repo, int(number)
 
 
+class TokenRejected(TrackerUnavailable):
+    pass
+
+
 class GitHubApi:
     """GET requests to the GitHub REST API, with the limit GitHub reports for them."""
 
@@ -118,10 +129,13 @@ class GitHubApi:
         client: httpx.Client,
         token: str | None = None,
         clock: Callable[[], float] = time.time,
+        personal: bool = False,
     ) -> None:
         self._client = client
         self._token = token
         self._clock = clock
+        # Whether the token is a person's own and not the server's.
+        self._personal = personal
         self.limit = LIMIT_WITH_TOKEN if token else LIMIT_WITHOUT_TOKEN
         # Requests that counted against the limit.
         self.spent = 0
@@ -132,6 +146,10 @@ class GitHubApi:
         return self._token is not None
 
     def _limited(self, wait: float) -> TrackerRateLimited:
+        if self._personal:
+            return TrackerRateLimited(
+                "The request limit of your GitHub account is nearly used up.", math.ceil(wait)
+            )
         hint = "" if self._token else " Set GITHUB_TOKEN on the server to raise it."
         return TrackerRateLimited(f"GitHub's request limit is used up.{hint}", math.ceil(wait))
 
@@ -157,10 +175,11 @@ class GitHubApi:
         # GitHub does not count an unchanged answer to a request that carries a token.
         if not (status == 304 and self._token):
             self.spent += 1
-        used_up = response.headers.get("x-ratelimit-remaining") == "0"
+        remaining = response.headers.get("x-ratelimit-remaining", "")
+        used_up = remaining == "0"
         retry_after = response.headers.get("retry-after", "")
+        reset = response.headers.get("x-ratelimit-reset", "")
         if status == 429 or (status == 403 and (used_up or retry_after)):
-            reset = response.headers.get("x-ratelimit-reset", "")
             if retry_after.isdigit():
                 wait = float(retry_after)
             elif used_up and reset.isdigit():
@@ -170,7 +189,13 @@ class GitHubApi:
             self._blocked_until = now + wait
             raise self._limited(wait)
         if status == 401:
+            if self._personal:
+                raise TokenRejected("GitHub rejected your token.")
             raise TrackerUnavailable("GitHub rejected the token in GITHUB_TOKEN.")
+        nearly_out = remaining.isdigit() and int(remaining) <= self.limit * PERSONAL_KEEP
+        if self._personal and nearly_out and reset.isdigit():
+            # This answer is still served; the next request waits for the reset.
+            self._blocked_until = max(self._blocked_until, float(reset))
         if status >= 500:
             raise TrackerUnavailable(f"GitHub returned {status}")
         return response
@@ -197,6 +222,8 @@ def _task(key: str, issue: dict) -> Task:
 class _Repo:
     name: str
     asked_at: float
+    # Whether the reader was refused the repository itself, not one number in it.
+    unreadable: bool = False
     polled_at: float | None = None
     etag: str | None = None
     # The newest change seen; a later page that reaches back to it has missed nothing.
@@ -214,8 +241,12 @@ class _Repo:
     stale: set[int] = field(default_factory=set)
 
 
-class SharedGitHub:
-    """Public issues and pull requests, read once for everyone on the instance."""
+def _no_query(*_: object):
+    raise ValidationFailed("GitHub tasks are added by their link or by owner/repo#number.")
+
+
+class GitHubReader:
+    """Issues and pull requests read with one token and kept in memory: a person's own reader."""
 
     # A board asks on every refresh and is answered from memory; GitHub is asked only for a
     # repository whose turn has come. The hourly limit is spread over the tracked repositories,
@@ -224,6 +255,10 @@ class SharedGitHub:
     source_id = GITHUB
     source_name = "GitHub"
     base_host = "github.com"
+    source_note: str | None = None
+    # What a task of a repository the reader was refused comes back as.
+    _refused_state: Literal["not_found", "no_token"] = "not_found"
+    _refused = "or your token cannot read its repository"
 
     def __init__(self, api: GitHubApi, clock: Callable[[], float] = time.time) -> None:
         self._api = api
@@ -233,17 +268,12 @@ class SharedGitHub:
         self._lock = threading.Lock()
         self._singles_per_turn = 30 if api.has_token else 3
 
-    @property
-    def source_note(self) -> str | None:
-        return None if self._api.has_token else "Updates every few minutes without a token"
-
     def _slot(self) -> float:
         """Seconds one request takes out of the hourly limit, less the reserve."""
         return 3600 / (self._api.limit * (1 - RESERVE))
 
     def _turn_cost(self) -> int:
-        # With a token every turn also asks whether the repository is still public.
-        return 2 if self._api.has_token else 1
+        return 1
 
     def _interval(self) -> float:
         return max(MIN_POLL_S, len(self._repos) * self._turn_cost() * self._slot())
@@ -263,29 +293,8 @@ class SharedGitHub:
         return repo
 
     def _visible(self, repo: _Repo) -> bool:
-        was_hidden = repo.hidden
-        if not self._api.has_token:
-            # Without a token GitHub itself answers 404 for a private repository.
-            repo.hidden = False
-        else:
-            # Asked before every read: a repository made private must stop being served at
-            # once, and the token may still open it.
-            response = self._api.get(f"/repos/{repo.name}", etag=repo.visibility_etag)
-            if response.status_code != 304:
-                public = response.status_code == 200 and not _json(response, dict).get(
-                    "private", True
-                )
-                repo.hidden = not public
-                repo.visibility_etag = response.headers.get("etag") if public else None
-        if repo.hidden:
-            repo.tasks = dict.fromkeys(repo.wanted)
-            repo.stale.clear()
-            repo.etag = None
-            repo.since = ""
-        elif was_hidden:
-            repo.tasks.clear()
-            repo.stale = set(repo.wanted)
-        return not repo.hidden
+        """Whether the repository may be served; a person's token decides that by itself."""
+        return True
 
     def _single(self, repo: _Repo, number: int) -> Task | None:
         response = self._api.get(f"/repos/{repo.name}/issues/{number}")
@@ -302,6 +311,7 @@ class SharedGitHub:
     def _refresh(self, repo: _Repo, now: float) -> None:
         spent = self._api.spent
         if not self._visible(repo):
+            repo.unreadable = True
             repo.polled_at = now
             return
         response = self._api.get(
@@ -310,9 +320,11 @@ class SharedGitHub:
             etag=repo.etag,
         )
         if response.status_code == 404:
+            repo.unreadable = True
             repo.tasks = dict.fromkeys(repo.wanted)
             repo.stale.clear()
         elif response.status_code == 200:
+            repo.unreadable = False
             page = [issue for issue in _json(response, list) if isinstance(issue, dict)]
             listed: set[int] = set()
             for issue in page:
@@ -358,7 +370,7 @@ class SharedGitHub:
             return Task(
                 source=GITHUB,
                 key=key,
-                state="not_found",
+                state=self._refused_state if repo.unreadable else "not_found",
                 url=f"{WEB_URL}/{name}/issues/{number}",
                 fetched_at=now_iso(),
             )
@@ -401,7 +413,7 @@ class SharedGitHub:
                 )
             task = self._single(repo, number) if self._visible(repo) else None
             if task is None:
-                raise TaskNotFound(f"{key} was not found on GitHub, or its repository is private")
+                raise TaskNotFound(f"{key} was not found on GitHub, {self._refused}")
             repo.wanted.add(number)
             # A new card takes the name GitHub uses for the repository, read from the link.
             canonical = "/".join(urlparse(task.url).path.split("/")[1:3]) or name
@@ -415,7 +427,130 @@ class SharedGitHub:
             raise TrackerUnavailable(f"GitHub returned {response.status_code}")
         return str(_json(response, dict).get("login") or "unknown user")
 
-    def _no_query(self, *_: object):
-        raise ValidationFailed("GitHub tasks are added by their link or by owner/repo#number.")
+    search = jql_vocabulary = jql_values = _no_query
+
+
+class SharedGitHub(GitHubReader):
+    """Public issues and pull requests, read once for everyone without a token of their own."""
+
+    _refused_state = "no_token"
+    _refused = "or its repository is private"
+
+    @property
+    def source_note(self) -> str | None:
+        return None if self._api.has_token else "Updates every few minutes without a token"
+
+    def _turn_cost(self) -> int:
+        # With a token every turn also asks whether the repository is still public.
+        return 2 if self._api.has_token else 1
+
+    def _visible(self, repo: _Repo) -> bool:
+        was_hidden = repo.hidden
+        if not self._api.has_token:
+            # Without a token GitHub itself answers 404 for a private repository.
+            repo.hidden = False
+        else:
+            # Asked before every read: a repository made private must stop being served at
+            # once, and the token may still open it.
+            response = self._api.get(f"/repos/{repo.name}", etag=repo.visibility_etag)
+            if response.status_code != 304:
+                public = response.status_code == 200 and not _json(response, dict).get(
+                    "private", True
+                )
+                repo.hidden = not public
+                repo.visibility_etag = response.headers.get("etag") if public else None
+        if repo.hidden:
+            repo.tasks = dict.fromkeys(repo.wanted)
+            repo.stale.clear()
+            repo.etag = None
+            repo.since = ""
+        elif was_hidden:
+            repo.tasks.clear()
+            repo.stale = set(repo.wanted)
+        return not repo.hidden
+
+
+class PersonalGitHub:
+    """A person's own reader. While GitHub rejects their token, public tasks come from the
+    shared reader, so a revoked token does not empty the board."""
+
+    source_id = GITHUB
+    source_name = "GitHub"
+    base_host = "github.com"
+
+    def __init__(
+        self, own: GitHubReader, shared: SharedGitHub, clock: Callable[[], float] = time.time
+    ) -> None:
+        self._own = own
+        self._shared = shared
+        self._clock = clock
+        self._rejected_until = 0.0
+
+    @property
+    def source_note(self) -> str | None:
+        if self._clock() < self._rejected_until:
+            return "GitHub rejected your token. Enter a new one in Settings → My tracker"
+        return self._own.source_note
+
+    def _reader(self) -> GitHubReader:
+        return self._shared if self._clock() < self._rejected_until else self._own
+
+    def poll(self, keys: list[str]) -> list[Task]:
+        try:
+            return self._reader().poll(keys)
+        except TokenRejected:
+            self._rejected_until = self._clock() + REJECTED_RETRY_S
+            return self._shared.poll(keys)
+
+    def resolve(self, key: str) -> Task:
+        try:
+            return self._reader().resolve(key)
+        except TokenRejected:
+            self._rejected_until = self._clock() + REJECTED_RETRY_S
+            return self._shared.resolve(key)
+
+    def check(self) -> str:
+        return self._own.check()
 
     search = jql_vocabulary = jql_values = _no_query
+
+
+class GitHubReaders:
+    """The shared reader and one reader for each person with a token of their own."""
+
+    def __init__(
+        self,
+        client: httpx.Client,
+        server_token: str | None = None,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
+        self._client = client
+        self._clock = clock
+        self.shared = SharedGitHub(GitHubApi(client, server_token, clock), clock)
+        # By person: the digest of the token the reader was made for, the reader, its last use.
+        self._own: dict[str, tuple[bytes, PersonalGitHub, float]] = {}
+        self._lock = threading.Lock()
+
+    def _api(self, token: str) -> GitHubApi:
+        return GitHubApi(self._client, token, self._clock, personal=True)
+
+    def of(self, user_id: str, token: str) -> PersonalGitHub:
+        """The person's reader, kept between requests so its pace and memory last."""
+        digest = hashlib.sha256(token.encode()).digest()
+        now = self._clock()
+        with self._lock:
+            for idle in [u for u, (_, _, used) in self._own.items() if now - used > IDLE_S]:
+                del self._own[idle]
+            kept = self._own.get(user_id)
+            if kept is None or kept[0] != digest:
+                own = GitHubReader(self._api(token), self._clock)
+                kept = (digest, PersonalGitHub(own, self.shared, self._clock), now)
+            self._own[user_id] = (kept[0], kept[1], now)
+            return kept[1]
+
+    def login(self, token: str) -> str:
+        """Whose token this is, asked before it is saved."""
+        try:
+            return GitHubReader(self._api(token), self._clock).check()
+        except TokenRejected as exc:
+            raise ValidationFailed("token: GitHub did not accept this token") from exc
