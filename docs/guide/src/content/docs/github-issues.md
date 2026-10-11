@@ -37,7 +37,23 @@ Without a token GitHub allows 60 requests an hour for the whole tiko. tiko spend
 
 To get the board's pace back, whoever runs tiko sets `GITHUB_TOKEN` in the environment (see [Configuration](../configuration/)). The limit becomes 5000 an hour, and a repository where nothing changed costs nothing.
 
-Create the token for this as a fine-grained personal access token with "Public repositories (read-only)" access and no permissions. It is shared by everyone on the instance, so tiko never shows a private repository through it, even if the token could read one.
+The token needs no access at all: any token raises the limit, and public repositories are readable without permissions. To create one:
+
+1. Open [New personal access token (classic)](https://github.com/settings/tokens/new) on GitHub.
+2. Name it in **Note**, for example `tiko – public read-only`.
+3. Set **Expiration** to "No expiration", or pick a date and replace the token before it.
+4. Leave every scope unchecked.
+5. Press **Generate token** and copy it: GitHub shows it once.
+
+A fine-grained token with "Public repositories (read-only)" access and no permissions works the same way.
+
+To check the token before you set it, ask GitHub for the limit; the answer is `5000`:
+
+```bash
+curl -s -H "Authorization: Bearer <token>" https://api.github.com/rate_limit | jq .rate.limit
+```
+
+The token is shared by everyone on the instance, so tiko never shows a private repository through it, even if the token could read one.
 
 If the limit does run out, the GitHub row turns red and says when the next try is. Cards keep their last data, and other trackers sync as usual.
 
