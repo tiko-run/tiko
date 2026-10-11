@@ -31,6 +31,24 @@ Many projects keep the state of an open issue in a label. An open issue with one
 
 A closed issue is always closed, whatever its labels.
 
+## Tokens at a glance
+
+GitHub cards work with no token at all. There are two tokens you may add, for two different jobs:
+
+| | No token | Instance token | Your own token |
+|---|---|---|---|
+| Who sets it | Nobody | Whoever runs tiko | Each person, for themselves |
+| Where | | `GITHUB_TOKEN` in the environment | Settings → My tracker |
+| Public repositories | Yes | Yes | Yes |
+| Private repositories | No | No, never | The ones the token reads, shown to you only |
+| How often cards update | Every few minutes | At the board's pace | At the board's pace |
+| Whose request limit | 60 an hour for the whole instance | 5000 an hour for the whole instance | 5000 an hour of your own GitHub account |
+| Token to create | | Classic, no scopes | Fine-grained, read-only |
+| You need it when | You are trying tiko out | The instance has more than a few GitHub cards, or is open to many people | You want private issues and pull requests on a board |
+| How to create | | [Instance token](#how-fresh-the-cards-are) | [Your own token](#your-own-token) |
+
+A token is one person's key. Nobody else is added to it, and tiko never shows a private task to one person through another person's token. For a teammate to see your private cards, they add a token of their own.
+
 ## How fresh the cards are
 
 Without a token GitHub allows 60 requests an hour for the whole tiko. tiko spends them one repository at a time, the longest-waiting first: one repository updates about every minute, five about every six minutes. The more repositories on your boards, the less often each one updates. The sync indicator says "Updates every few minutes without a token" on the GitHub row.
@@ -77,9 +95,15 @@ Create a fine-grained token, so that it can only read:
 5. In **Permissions → Repository permissions** set **Issues** and **Pull requests** to "Read-only". GitHub adds "Metadata: Read-only" itself.
 6. Press **Generate token**, copy it and paste it into Settings → My tracker.
 
-A fine-grained token covers the repositories of one owner, and tiko keeps one GitHub token per person. Pick the owner whose repositories you need on your boards.
+tiko takes a classic token too. The two kinds differ in how much they open, not in who sees your cards:
 
-A classic token works too and covers every owner at once, but it needs the `repo` scope, which is full read and write access to every private repository you can reach. Use it only if you need repositories of several owners, or your organization does not allow fine-grained tokens.
+| | Fine-grained (recommended) | Classic |
+|---|---|---|
+| Repositories | The ones you pick, of one owner | Every repository you can reach, of every owner |
+| Access | Read-only issues and pull requests | The `repo` scope: full read and write |
+| Use it | By default | For repositories of several owners at once, or when your organization does not allow fine-grained tokens |
+
+tiko keeps one GitHub token per person, so with a fine-grained token pick the owner whose repositories you need on your boards.
 
 ### What others see
 
