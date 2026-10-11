@@ -5,11 +5,6 @@ description: What is planned for tiko, roughly in order.
 
 What we plan next, roughly in order. To ask for something sooner or suggest what is missing, start a thread in [Discussions](https://github.com/tiko-run/tiko/discussions).
 
-## Working together
-
-- Presence on a live board: who is here, their cursors and selections
-- Changes kept through a dropped connection and merged when it comes back
-
 ## More trackers
 
 - Jira Cloud, private GitHub repositories, Linear, Plane, Todoist, TickTick, Windshift. The current list is in [Task trackers](../trackers/).
