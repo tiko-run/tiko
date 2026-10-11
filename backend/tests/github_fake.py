@@ -10,6 +10,9 @@ REPO = "octo-org/widgets"
 _ISSUE = re.compile(r"^/repos/([^/]+/[^/]+)/issues/(\d+)$")
 _LIST = re.compile(r"^/repos/([^/]+/[^/]+)/issues$")
 _REPO = re.compile(r"^/repos/([^/]+/[^/]+)$")
+# Tokens of two made-up people, for tests of private repositories.
+T_ANN = "-".join(["ann", "github", "token", "for", "tests"])
+T_BOB = "-".join(["bob", "github", "token", "for", "tests"])
 
 
 def issue(number: int, repo: str = REPO, **fields) -> dict:
@@ -29,11 +32,15 @@ def issue(number: int, repo: str = REPO, **fields) -> dict:
 
 
 class FakeGitHub:
-    """Serves the issues of public repositories; `private` ones only to a request with TOKEN."""
+    """Serves the issues of public repositories; `private` ones only to a request with TOKEN,
+    or with a token that `tokens` gives that repository."""
 
     def __init__(self) -> None:
         self.repos: dict[str, dict[int, dict]] = {REPO: {1: issue(1), 2: issue(2)}}
         self.private: set[str] = set()
+        # Private repositories a person's token reads, and tokens GitHub no longer accepts.
+        self.tokens: dict[str, set[str]] = {}
+        self.revoked: set[str] = set()
         self.limit = 60
         self.remaining = 60
         self.reset = 2_000_000_000
@@ -52,20 +59,25 @@ class FakeGitHub:
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
-        authorized = request.headers.get("authorization") == f"Bearer {TOKEN}"
+        bearer = request.headers.get("authorization", "").removeprefix("Bearer ")
         if self.fail:
             return httpx.Response(self.fail, json={"message": "nope"})
+        if bearer in self.revoked:
+            return httpx.Response(401, json={"message": "Bad credentials"})
         if self.remaining <= 0:
             return httpx.Response(403, json={"message": "rate limit"}, headers=self._headers())
         self.remaining -= 1
         path = request.url.path
+        if path == "/user" and bearer:
+            return httpx.Response(200, json={"login": "octo-user"}, headers=self._headers())
         for pattern in (_ISSUE, _LIST, _REPO):
             if match := pattern.match(path):
                 break
         else:
             return httpx.Response(404, json={"message": "Not Found"})
         name = next((repo for repo in self.repos if repo.lower() == match.group(1).lower()), None)
-        if name is None or (name in self.private and not authorized):
+        opened = bearer == TOKEN or name in self.tokens.get(bearer, set())
+        if name is None or (name in self.private and not opened):
             return httpx.Response(404, json={"message": "Not Found"}, headers=self._headers())
         issues = self.repos[name]
         if pattern is _REPO:

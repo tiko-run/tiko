@@ -130,6 +130,7 @@ def test_a_visitor_works_on_the_demo_tasks_next_to_a_tracker(jira_app):
         "provider": "demo",
         "base_url": None,
         "token_state": "none",
+        "github_token_state": "none",
     }
     assert JIRA_URL not in ann.get("/api/settings").text
     assert resolve(ann, "DEMO-1").json()["task"]["source"] == "demo"

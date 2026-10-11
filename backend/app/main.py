@@ -27,7 +27,7 @@ from app.adapters.storage.sqlite import (
     SqliteUserRepo,
 )
 from app.adapters.tasks.demo import DemoTaskProvider
-from app.adapters.tasks.github import GitHubApi, SharedGitHub
+from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_dc import JiraDcProvider
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
@@ -167,6 +167,7 @@ def create_app(
         on_token=register_secret,
         on_change=app.state.refresher.reset,
         on_public_off=app.state.live.end_public,
+        on_github_token=lambda user_id: app.state.snapshots.scoped(user_id).forget("github"),
         env=_tracker_env(settings),
     )
     app.state.settings = service
@@ -183,7 +184,9 @@ def create_app(
     github_client = httpx.Client(
         timeout=httpx.Timeout(15.0, connect=5.0), transport=github_transport, follow_redirects=True
     )
-    app.state.github = SharedGitHub(GitHubApi(github_client, github_token or None))
+    app.state.github_readers = GitHubReaders(github_client, github_token or None)
+    # The reader of public repositories: guests and people without a token of their own.
+    app.state.github = app.state.github_readers.shared
     if release_feed is None and settings.update_check:
         release_feed = GitHubReleaseFeed("tiko-run/tiko", httpx.Client(timeout=5.0))
     app.state.updates = UpdateService(VERSION, release_feed if settings.update_check else None)

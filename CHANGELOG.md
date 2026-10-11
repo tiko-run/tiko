@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- GitHub private repositories: add your own GitHub token in Settings → My tracker, and issues and pull requests of the private repositories it reads become live cards. Your GitHub cards then refresh at the board's pace on your own request limit. A private task shows in full only to a person whose own token reads it: others on the board see its key with a hint to connect a token, a guest of the public link sees the key only. See "Your own token" in the guide's GitHub Issues page.
+
 ### Changed
 
 - About: "Report a bug or idea" opens the form chooser for a bug, an idea or a question instead of the list of issues.

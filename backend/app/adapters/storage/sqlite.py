@@ -285,6 +285,13 @@ class SqliteSnapshotRepo:
                 ],
             )
 
+    def forget(self, source: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "DELETE FROM task_snapshots_v3 WHERE user_id = ? AND source = ?",
+                (self._owner, source),
+            )
+
 
 class SqliteCredentialRepo:
     def __init__(self, db: Database) -> None:

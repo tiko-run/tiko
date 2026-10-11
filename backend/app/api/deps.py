@@ -52,17 +52,21 @@ def settings(request: Request) -> SettingsService:
 
 
 def providers(request: Request) -> dict[str, TaskProvider]:
-    """Every tracker this request can read, by source id: the demo tasks and public GitHub
-    always, and Jira with the signed-in person's own token when the instance is set to it. A
-    demo visitor has no token and reads the demo tasks and public GitHub only."""
+    """Every tracker this request can read, by source id: the demo tasks and GitHub always,
+    and Jira with the signed-in person's own token when the instance is set to it. GitHub is
+    read with the person's own token when they have one, and by the shared reader of public
+    repositories otherwise. A demo visitor has no token."""
     state = request.app.state
+    settings: SettingsService = state.settings
+    person = current_person(request)
     demo_tasks: TaskProvider = state.demo.scoped(_statuses_owner(request))
     github: TaskProvider = state.github
+    if not is_visitor(request) and (token := settings.github_token(person.id)):
+        github = state.github_readers.of(person.id, token.get_secret_value())
     found = {demo_tasks.source_id: demo_tasks, github.source_id: github}
-    settings: SettingsService = state.settings
     if tracker(request) == "jira":
         try:
-            jira = state.jira(settings.jira_credentials(current_person(request).id))
+            jira = state.jira(settings.jira_credentials(person.id))
         except JiraNotConfigured as exc:
             jira = NoTokenProvider(settings.base_url(), exc)
         found[jira.source_id] = jira

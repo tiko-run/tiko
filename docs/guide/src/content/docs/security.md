@@ -32,7 +32,7 @@ Every page and API route except `/health` and `/ready` asks you to sign in with 
 - Each new person gets their own welcome board once.
 - Shared boards are live ([Working together](../working-together/)). The live connection uses the same sign-in as the pages, checks the role on the server for every change, accepts only pages served from tiko's own address, and closes at once when a person is disabled, signs out everywhere or loses access to the board.
 - A board is private until its owner turns on a public link ([Public link](../working-together/#public-link)). A link shows that one board view-only, without its people and without task data from a tracker, and opens no other route. An admin can switch public links off in Settings → Sharing.
-- Each person connects their own tracker token in Settings → My tracker, and task data is fetched and cached per person: a shared board never shows you a task your own Jira access does not allow.
+- Each person connects their own tracker token in Settings → My tracker, and task data is fetched and cached per person: a shared board never shows you a task your own Jira or GitHub access does not allow.
 
 ## What tiko stores
 
