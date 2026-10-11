@@ -9,6 +9,7 @@ All data is one SQLite file in `./data`, which survives rebuilds and upgrades.
 
 - **Back up:** copy `data/app.db` while the stack is stopped. From a source checkout, `make backup` copies it to `data/backups/` with a timestamp and keeps the newest 20; `make up` runs it before every rebuild.
 - **Restore:** stop the stack and copy a backup over `data/app.db`.
+- **Before an upgrade that rewrites boards**, tiko copies the database itself to `data/backups/before-v<number>-<time>.db`, where the number is the version of the data format it moves to. It makes the copy once, on the first start of the new version, and never deletes it: remove it when you are sure of the upgrade. To go back, restore it and start the previous version.
 
 ## Upgrade
 

@@ -6,7 +6,7 @@ from app.domain.errors import ValidationFailed
 
 
 def card(node_id, key, parent=None):
-    node = {"id": node_id, "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": key}}
+    node = {"id": node_id, "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": key}}
     if parent:
         node["parentId"] = parent
     return node
@@ -141,3 +141,8 @@ def test_a_malformed_source_is_refused():
     bad["data"]["source"] = "Jira:1"
     with pytest.raises(ValidationError):
         doc([bad])
+
+
+def test_the_old_name_of_a_card_is_read_as_the_new_one():
+    old = card("a", "DEV-1") | {"type": "jira_card"}
+    assert doc([old]).nodes[0].type == "task_card"

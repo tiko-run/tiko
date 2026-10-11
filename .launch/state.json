@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/015-github-issues",
+  "feature": "specs/017-task-card",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -61,7 +61,8 @@
     "toasts",
     "github-issues",
     "github-labels",
-    "github-token"
+    "github-token",
+    "task-card"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -149,7 +150,9 @@
     "G2_github-issues": "approved",
     "G3_github-issues": "approved",
     "G3_github-labels": "approved",
-    "G3_github-token": "approved"
+    "G3_github-token": "approved",
+    "G1_task-card": "approved",
+    "G3_task-card": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -211,6 +214,7 @@
     "2026-10-11 GitHub Issues: the spec is 015 (014 went to demo-visitor while it was drafted). Feature stays on the spec in work, slices github-labels and github-token are next.",
     "2026-10-11 GitHub Issues: slice github-issues merged (PR 114) after a review that found a real leak: a repository made private was still served through the server token; visibility is now asked before every read. Slice github-labels built on feat/github-labels, awaits G3: the mini-card shows labels as chips in their GitHub colors, and, at the owner's request, the Author row (a Repository row was dropped at G3: the full key already names the repository); a task without a priority has no Priority row. Task gained labels and rows, empty for the other trackers.",
     "2026-10-11 GitHub Issues: slice github-labels approved at G3 after the owner's look at the mini-card on the stand. Left in spec 015: slice github-token (a personal token and private repositories).",
-    "2026-10-11 GitHub Issues: slice github-token approved at G3 after the owner added an issue of a private repository on the stand with a fine-grained token; spec 015 done. A person's own GitHub token in Settings → My tracker opens private issues and pull requests to them alone and moves their GitHub cards to their own request limit; others on the board see the key and a prompt to connect a token, a guest the key only. Review found two things, both fixed: a changed or removed token left the old token's tasks in the cache, and access given back did not bring cards back. The owner's first token had the repository picked but no permissions, and GitHub answered 404: the guide's steps, the hint in Settings and the error text now name the Issues and Pull requests access. Not checked: the block in the dark theme. Issue 130: the Jira token has the same stale cache on change. Next: the node type jira_card renamed with a backup, then sign-in with GitHub."
+    "2026-10-11 GitHub Issues: slice github-token approved at G3 after the owner added an issue of a private repository on the stand with a fine-grained token; spec 015 done. A person's own GitHub token in Settings → My tracker opens private issues and pull requests to them alone and moves their GitHub cards to their own request limit; others on the board see the key and a prompt to connect a token, a guest the key only. Review found two things, both fixed: a changed or removed token left the old token's tasks in the cache, and access given back did not bring cards back. The owner's first token had the repository picked but no permissions, and GitHub answered 404: the guide's steps, the hint in Settings and the error text now name the Issues and Pull requests access. Not checked: the block in the dark theme. Issue 130: the Jira token has the same stale cache on change. Next: the node type jira_card renamed with a backup, then sign-in with GitHub.",
+    "2026-10-11 task card: owner asked for the rename spec 015 had put off and chose a full rewrite of stored boards over reading both names; short spec 017, no G2. Slice task-card approved at G3 after the owner's look at the boards on the stand; spec 017 done. The node type is task_card in the API, the web app, stored boards and their CRDT state. Migrations take a step written as code, and the server copies the database to backups/before-v12-<time>.db before one; the live state is edited in place, so a board keeps its history. jira_card is still read from the API and from a live update. Checked on a copy of a real database of schema 11: only the type of card nodes changed. A database moved to schema 12 does not open with an older version: going back means restoring the copy. Next: sign-in with GitHub."
   ]
 }

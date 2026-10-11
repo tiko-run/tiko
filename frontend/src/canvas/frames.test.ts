@@ -14,7 +14,7 @@ const frame: AppNode = {
 function card(id: string, x: number, y: number, parentId?: string): AppNode {
   return {
     id,
-    type: 'jira_card',
+    type: 'task_card',
     position: { x, y },
     measured: { width: 100, height: 40 },
     ...(parentId && { parentId }),

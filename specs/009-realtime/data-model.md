@@ -16,7 +16,7 @@ One `Y.Doc` per board with two root maps. Every leaf is a plain value replaced a
 
 ```text
 nodes: Y.Map<id, Y.Map>
-  type    "jira_card" | "frame" | "sticky" | "text" | "module" | "anchor" | "timer"   set once
+  type    "task_card" | "frame" | "sticky" | "text" | "module" | "anchor" | "timer"   set once
   place   {x, y, parentId?}      one value, so a move into a frame never mixes with another move
   size    {width?, height?}      one value
   order   number                 stacking; a new or raised node takes max + 1

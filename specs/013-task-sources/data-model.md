@@ -12,7 +12,7 @@ No migration. Three places gain an optional `source`:
 
 | Where | Field |
 |---|---|
-| card node (`jira_card`) | `data.source` |
+| card node (`task_card`, `jira_card` before spec 017) | `data.source` |
 | timer | `data.watch.source` |
 | Gantt task row | `source` next to `key` |
 

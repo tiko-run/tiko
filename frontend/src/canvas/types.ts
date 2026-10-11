@@ -1,8 +1,8 @@
 import type { Edge, Node } from '@xyflow/react'
 
 // `source` is the tracker of `key`; cards saved before trackers could be mixed have none.
-export type JiraCardData = { key: string; source?: string; collapsed?: boolean }
-export type JiraCardNode = Node<JiraCardData, 'jira_card'>
+export type TaskCardData = { key: string; source?: string; collapsed?: boolean }
+export type TaskCardNode = Node<TaskCardData, 'task_card'>
 
 export type FrameData = { title: string }
 export type FrameNode = Node<FrameData, 'frame'>
@@ -36,5 +36,5 @@ export type TimerData = {
 export type TimerNode = Node<TimerData, 'timer'>
 
 export type AppNode =
-  JiraCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode
+  TaskCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode
 export type AppEdge = Edge

@@ -23,7 +23,7 @@ export function toDoc(nodes: AppNode[], edges: AppEdge[]): Pick<BoardDoc, 'nodes
   return {
     nodes: nodes.map(({ id, type, position, width, height, parentId, data }) => ({
       id,
-      type: type ?? 'jira_card',
+      type: type ?? 'task_card',
       position: { x: position.x, y: position.y },
       ...(width !== undefined && { width }),
       ...(height !== undefined && { height }),
@@ -71,10 +71,14 @@ export function storedEdge({
   }
 }
 
+// What a card was called before trackers could be mixed. A tab left open over the upgrade
+// still adds cards under it, until the server renames them.
+const LEGACY_CARD = 'jira_card'
+
 export function jsonNode(id: string, node: StoredNode): DocNode {
   return {
     id,
-    type: node.type as DocNode['type'],
+    type: (node.type === LEGACY_CARD ? 'task_card' : node.type) as DocNode['type'],
     position: { x: node.place.x, y: node.place.y },
     data: node.data,
     ...(node.place.parentId !== undefined && { parentId: node.place.parentId }),

@@ -93,7 +93,7 @@ export function buildIndex(nodes: AppNode[], tasks: Record<string, Task>): Entry
       case 'frame':
         push({ ...base, kind: 'frame', text: node.data.title || UNTITLED_FRAME })
         break
-      case 'jira_card': {
+      case 'task_card': {
         const task = tasks[taskRef(node.data)]
         const live = task?.state === 'ok' ? task : undefined
         push({

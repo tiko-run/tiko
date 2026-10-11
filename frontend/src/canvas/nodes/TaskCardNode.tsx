@@ -3,7 +3,7 @@ import { memo, useRef, useState, type MouseEvent, type PointerEvent } from 'reac
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useTask } from '@/canvas/tasks-context'
-import type { JiraCardNode as JiraCardNodeType } from '@/canvas/types'
+import type { TaskCardNode as TaskCardNodeType } from '@/canvas/types'
 import { CardDetails } from '@/canvas/nodes/CardDetails'
 import { Handles } from '@/canvas/nodes/Handles'
 import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
@@ -20,7 +20,7 @@ function clip(text: string) {
   return text.length > SUMMARY_LIMIT ? `${text.slice(0, SUMMARY_LIMIT).trimEnd()}…` : text
 }
 
-function JiraCardNodeView({ id, data, selected }: NodeProps<JiraCardNodeType>) {
+function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
   const task = useTask(data)
   const { updateNodeData } = useReactFlow()
   const [open, setOpen] = useState(false)
@@ -132,4 +132,4 @@ function JiraCardNodeView({ id, data, selected }: NodeProps<JiraCardNodeType>) {
   )
 }
 
-export const JiraCardNode = memo(JiraCardNodeView)
+export const TaskCardNode = memo(TaskCardNodeView)

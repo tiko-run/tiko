@@ -3,9 +3,9 @@ import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
 import { beforeAll, expect, test } from 'vitest'
 import type { Task } from '@/api/tasks'
 import { TasksContext } from '@/canvas/tasks-context'
-import { JiraCardNode } from '@/canvas/nodes/JiraCardNode'
+import { TaskCardNode } from '@/canvas/nodes/TaskCardNode'
 import { BoardSourcesContext } from '@/sources/board-sources'
-import type { JiraCardNode as JiraCardNodeType } from '@/canvas/types'
+import type { TaskCardNode as TaskCardNodeType } from '@/canvas/types'
 
 const task: Task = {
   source: 'jira',
@@ -22,7 +22,7 @@ const task: Task = {
   fetched_at: '2026-10-05T07:00:00Z',
 }
 
-const nodeTypes = { jira_card: JiraCardNode }
+const nodeTypes = { task_card: TaskCardNode }
 
 beforeAll(() => {
   // xyflow measures nodes; jsdom has no layout.
@@ -33,8 +33,8 @@ beforeAll(() => {
   }
 })
 
-function renderCard(data: JiraCardNodeType['data'], tasks: Record<string, Task>, mixed = false) {
-  const node: JiraCardNodeType = { id: 'n1', type: 'jira_card', position: { x: 0, y: 0 }, data }
+function renderCard(data: TaskCardNodeType['data'], tasks: Record<string, Task>, mixed = false) {
+  const node: TaskCardNodeType = { id: 'n1', type: 'task_card', position: { x: 0, y: 0 }, data }
   render(
     <div style={{ width: 800, height: 600 }}>
       <ReactFlowProvider>

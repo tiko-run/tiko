@@ -30,7 +30,7 @@ const quiet = { tasks: {}, onOpen: () => {}, onChange: () => {} }
 
 const card: AppNode = {
   id: 'a',
-  type: 'jira_card',
+  type: 'task_card',
   position: { x: 0, y: 0 },
   data: { key: 'DEMO-1' },
 }

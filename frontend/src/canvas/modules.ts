@@ -23,7 +23,7 @@ export function absorbCards(nodes: AppNode[], droppedIds: string[]) {
   const contents = new Map<string, unknown>()
 
   for (const card of nodes) {
-    if (card.type !== 'jira_card' || !dropped.has(card.id)) continue
+    if (card.type !== 'task_card' || !dropped.has(card.id)) continue
     const position = absolute(card, byId)
     const box = size(card)
     const center = { x: position.x + box.width / 2, y: position.y + box.height / 2 }

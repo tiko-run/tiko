@@ -38,7 +38,7 @@ EVERY_TYPE = board(
         frame("frame"),
         {
             "id": "card",
-            "type": "jira_card",
+            "type": "task_card",
             "parentId": "frame",
             "position": {"x": 1, "y": 2},
             "data": {"key": "DEV-1", "collapsed": True},
@@ -187,7 +187,7 @@ def test_an_arrow_to_a_missing_node_disappears_with_its_anchor():
         stored_node(
             {
                 "id": "x",
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 0, "y": 0},
                 "data": {"key": "not a key"},
             },
@@ -246,3 +246,17 @@ def test_concurrent_edits_always_merge_into_a_valid_board():
         check_doc(merged)
         again, notes = server.repair(merged)
         assert notes == [] and as_json(again) == as_json(merged)
+
+
+def test_a_card_under_its_old_type_name_is_kept_and_renamed():
+    old = {
+        "id": "card",
+        "type": "jira_card",
+        "position": {"x": 1, "y": 2},
+        "data": {"key": "DEMO-1"},
+    }
+    live = LiveDoc()
+    live.write({"card": stored_node(old, 0)}, {})
+    repaired_board, notes = live.repair(board([]))
+    assert (repaired_board.nodes[0].type, notes) == ("task_card", [])
+    assert live.read()[0]["card"]["type"] == "task_card"

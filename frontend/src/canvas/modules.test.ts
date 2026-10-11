@@ -23,7 +23,7 @@ const gantt: AppNode = {
 function card(id: string, key: string, x: number, y: number): AppNode {
   return {
     id,
-    type: 'jira_card',
+    type: 'task_card',
     position: { x, y },
     measured: { width: 100, height: 20 },
     data: { key, collapsed: false },

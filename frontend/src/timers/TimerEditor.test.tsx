@@ -5,7 +5,7 @@ import { TimerEditor } from './TimerEditor'
 
 const data: TimerData = { note: 'Ping QA', dueAt: '2099-01-01T10:00:00.000Z' }
 
-test('a timer on a Jira card can wait for its status instead of the clock', () => {
+test('a timer on a task card can wait for its status instead of the clock', () => {
   const onChange = vi.fn()
   render(
     <TimerEditor

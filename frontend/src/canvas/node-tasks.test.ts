@@ -4,7 +4,7 @@ import type { AppNode } from '@/canvas/types'
 
 const card = (id: string, source?: string): AppNode => ({
   id,
-  type: 'jira_card',
+  type: 'task_card',
   position: { x: 0, y: 0 },
   data: { key: 'DEMO-1', ...(source && { source }) },
 })

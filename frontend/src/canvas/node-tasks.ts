@@ -8,7 +8,7 @@ const cache = new WeakMap<object, TaskLink[]>()
 
 /** The live tasks a node holds: a card's own, or the ones inside a module. */
 export function nodeTasks(node: AppNode): TaskLink[] {
-  if (node.type === 'jira_card') return [node.data]
+  if (node.type === 'task_card') return [node.data]
   if (node.type !== 'module') return []
   const cached = cache.get(node.data)
   if (cached) return cached

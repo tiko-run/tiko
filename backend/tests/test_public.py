@@ -13,7 +13,7 @@ JIRA = {"base_url": "https://jira.example.com", "token": TOKEN}
 
 
 def card(key: str) -> dict:
-    return {"id": key, "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": key}}
+    return {"id": key, "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": key}}
 
 
 def publish(client: TestClient, board_id: str) -> str:

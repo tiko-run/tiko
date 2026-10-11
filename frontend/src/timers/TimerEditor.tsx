@@ -27,7 +27,7 @@ type Props = {
   data: TimerData
   /** The element the timer is attached to, as the timer names it. */
   holder?: string
-  /** The Jira card the timer is attached to and its current status, when it is loaded. */
+  /** The task card the timer is attached to and its current status, when it is loaded. */
   task?: TaskLink & { status: string }
   onChange: (data: TimerData) => void
   onDelete: () => void
