@@ -38,7 +38,7 @@ import { gridPositions } from '@/canvas/layout'
 import { absorbCards } from '@/canvas/modules'
 import { AnchorNode } from '@/canvas/nodes/AnchorNode'
 import { FrameNode } from '@/canvas/nodes/FrameNode'
-import { JiraCardNode } from '@/canvas/nodes/JiraCardNode'
+import { TaskCardNode } from '@/canvas/nodes/TaskCardNode'
 import { ModuleNode } from '@/canvas/nodes/ModuleNode'
 import { StickyNode } from '@/canvas/nodes/StickyNode'
 import { TextNode } from '@/canvas/nodes/TextNode'
@@ -60,7 +60,7 @@ import { useLiveBoard, type LiveStatus } from '@/live/useLiveBoard'
 import { toast } from 'sonner'
 import { ERROR_MS } from '@/lib/toast'
 import { readViewport, saveViewport } from '@/live/viewport'
-import type { AppEdge, AppNode, JiraCardNode as JiraCardNodeType, TimerData } from '@/canvas/types'
+import type { AppEdge, AppNode, TaskCardNode as TaskCardNodeType, TimerData } from '@/canvas/types'
 import { newId } from '@/lib/id'
 import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { ReadOnlyContext } from '@/canvas/readonly'
@@ -81,7 +81,7 @@ import { TimerNode } from '@/timers/TimerNode'
 import { useTheme } from '@/lib/theme'
 
 const nodeTypes = {
-  jira_card: withPresence(JiraCardNode),
+  task_card: withPresence(TaskCardNode),
   frame: withPresence(FrameNode),
   sticky: withPresence(StickyNode),
   text: withPresence(TextNode),
@@ -245,7 +245,7 @@ export function BoardCanvas({
               ]
         const fresh: AppNode[] = list.map((task, i) => ({
           id: newId(),
-          type: 'jira_card',
+          type: 'task_card',
           position: positions[i],
           data: { key: task.key, source: task.source, collapsed: false },
         }))
@@ -437,7 +437,7 @@ export function BoardCanvas({
       ejectCard: (task, screen) => {
         const node: AppNode = {
           id: newId(),
-          type: 'jira_card',
+          type: 'task_card',
           position: screenToFlowPosition(screen),
           data: { ...task, collapsed: false },
         }
@@ -521,7 +521,7 @@ export function BoardCanvas({
   }
 
   const selectedCards = nodes.filter(
-    (n): n is JiraCardNodeType => n.selected === true && n.type === 'jira_card',
+    (n): n is TaskCardNodeType => n.selected === true && n.type === 'task_card',
   )
   const collapsedCount = selectedCards.filter((n) => n.data.collapsed).length
   const cardCounts = {
@@ -531,7 +531,7 @@ export function BoardCanvas({
   const setCollapsed = (collapsed: boolean) =>
     setNodes((current) =>
       current.map((n) =>
-        n.selected && n.type === 'jira_card' ? { ...n, data: { ...n.data, collapsed } } : n,
+        n.selected && n.type === 'task_card' ? { ...n, data: { ...n.data, collapsed } } : n,
       ),
     )
 

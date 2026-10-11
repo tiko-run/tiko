@@ -13,7 +13,7 @@ const frame: AppNode = {
 }
 
 function card(id: string, x: number, y: number, extra: Partial<AppNode> = {}): AppNode {
-  return { id, type: 'jira_card', position: { x, y }, data: { key: 'DEMO-1' }, ...extra } as AppNode
+  return { id, type: 'task_card', position: { x, y }, data: { key: 'DEMO-1' }, ...extra } as AppNode
 }
 
 const edges: AppEdge[] = [

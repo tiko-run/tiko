@@ -4,7 +4,7 @@ import { memo, useContext, useRef, useState, type MouseEvent, type PointerEvent 
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { takeFresh } from '@/canvas/editing'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
-import type { JiraCardData, TimerData, TimerNode as TimerNodeType } from '@/canvas/types'
+import type { TaskCardData, TimerData, TimerNode as TimerNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { holderLabel } from './attach'
 import { useNow } from './clock'
@@ -47,7 +47,7 @@ function TimerNodeView({ id, data, parentId, selected, dragging }: NodeProps<Tim
   // The ref of the card the timer sits on: a string, so the store hands back a stable value.
   const cardRef = useStore((s) => {
     const parent = parentId ? s.nodeLookup.get(parentId) : undefined
-    return parent?.type === 'jira_card' ? taskRef(parent.data as JiraCardData) : ''
+    return parent?.type === 'task_card' ? taskRef(parent.data as TaskCardData) : ''
   })
   const task = useContext(TasksContext)[cardRef]
   const flashing = useFlashing(id)

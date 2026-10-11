@@ -81,7 +81,7 @@ def test_a_key_is_checked_by_its_tracker():
 
 
 def node(data: dict) -> dict:
-    return {"id": "a", "type": "jira_card", "position": {"x": 0, "y": 0}, "data": data}
+    return {"id": "a", "type": "task_card", "position": {"x": 0, "y": 0}, "data": data}
 
 
 def test_a_board_takes_github_keys_on_github_cards_only():
@@ -359,7 +359,7 @@ def board_with(client, *keys: str) -> str:
     nodes = [
         {
             "id": f"n{i}",
-            "type": "jira_card",
+            "type": "task_card",
             "position": {"x": 0, "y": 0},
             "data": {"key": key, "source": "github" if "#" in key else "demo"},
         }

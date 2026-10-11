@@ -63,7 +63,7 @@ def test_module_cannot_be_nested_or_a_parent():
         check_doc(doc([frame, module("m", parent="f")]))
     card = {
         "id": "c",
-        "type": "jira_card",
+        "type": "task_card",
         "position": {"x": 0, "y": 0},
         "data": {"key": "DEV-1"},
         "parentId": "m",
@@ -77,6 +77,6 @@ def test_task_refs_include_module_rows():
         {"id": "r1", "key": "DEV-3", "start": "2026-10-01", "end": "2026-10-02"},
         {"id": "r2", "title": "Plain", "start": "2026-10-01", "end": "2026-10-02"},
     ]
-    card = {"id": "c", "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": "DEV-1"}}
+    card = {"id": "c", "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": "DEV-1"}}
     board = doc([card, module("m", content=GANTT | {"rows": rows}), module("u", "x", {"rows": 1})])
     assert task_refs(board, "jira") == ["jira:DEV-1", "jira:DEV-3"]

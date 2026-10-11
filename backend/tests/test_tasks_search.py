@@ -13,7 +13,7 @@ def test_search_limit_and_snapshots(client):
         "nodes": [
             {
                 "id": "a",
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 0, "y": 0},
                 "data": {"key": "DEMO-1"},
             }

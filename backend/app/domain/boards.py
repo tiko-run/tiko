@@ -19,6 +19,10 @@ from app.domain.tasks import SOURCE_PATTERN, Task, task_ref, valid_key
 from app.domain.welcome import WELCOME_NAME, welcome_doc
 
 MAX_NODES = 2000
+CARD = "task_card"
+# What a card was called before trackers could be mixed. A tab left open over the upgrade and
+# a script written for the old API still send it.
+LEGACY_CARD = "jira_card"
 
 BoardName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
@@ -33,14 +37,14 @@ class Position(_Strict):
     y: float
 
 
-class JiraCardData(_Strict):
+class TaskCardData(_Strict):
     key: str
     # The tracker of `key`; absent on cards saved before trackers could be mixed.
     source: str | None = Field(default=None, pattern=SOURCE_PATTERN)
     collapsed: bool = False
 
     @model_validator(mode="after")
-    def _key(self) -> "JiraCardData":
+    def _key(self) -> "TaskCardData":
         if not valid_key(self.source, self.key):
             raise ValueError("invalid issue key")
         return self
@@ -78,9 +82,9 @@ class _NodeBase(_Strict):
     parentId: str | None = Field(default=None, max_length=100)  # noqa: N815 - mirrors xyflow
 
 
-class JiraCardNode(_NodeBase):
-    type: Literal["jira_card"]
-    data: JiraCardData
+class TaskCardNode(_NodeBase):
+    type: Literal["task_card"]
+    data: TaskCardData
 
 
 class FrameNode(_NodeBase):
@@ -144,7 +148,7 @@ class TimerNode(_NodeBase):
 
 
 Node = Annotated[
-    JiraCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode,
+    TaskCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode,
     Field(discriminator="type"),
 ]
 
@@ -167,6 +171,19 @@ class BoardDoc(_Strict):
     nodes: list[Node] = Field(default_factory=list, max_length=MAX_NODES)
     edges: list[Edge] = Field(default_factory=list, max_length=MAX_NODES * 2)
     viewport: Viewport = Field(default_factory=Viewport)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_cards(cls, value: Any) -> Any:
+        if not isinstance(value, dict) or not isinstance(value.get("nodes"), list):
+            return value
+        nodes = [
+            {**node, "type": CARD}
+            if isinstance(node, dict) and node.get("type") == LEGACY_CARD
+            else node
+            for node in value["nodes"]
+        ]
+        return {**value, "nodes": nodes}
 
 
 class BoardOwner(BaseModel):
@@ -244,7 +261,7 @@ def task_refs(doc: BoardDoc, default_source: str) -> list[str]:
     names no source belongs to `default_source`, the tracker the instance is set to."""
     tasks: set[tuple[str | None, str]] = set()
     for node in doc.nodes:
-        if isinstance(node, JiraCardNode):
+        if isinstance(node, TaskCardNode):
             tasks.add((node.data.source, node.data.key))
         elif isinstance(node, ModuleNode):
             tasks |= module_keys(node.data.kind, node.data.content)

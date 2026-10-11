@@ -15,7 +15,7 @@ _NOTES = [
         "yellow",
         "This board is a playground. Move, edit or delete anything: the cards are demo tasks.",
     ),
-    ("blue", "Add a task with the Jira card tool (C): type DEMO-5, or a query like project = DEMO"),
+    ("blue", "Add a task with the Task card tool (C): type DEMO-5, or a query like project = DEMO"),
     ("green", "Drag cards in and out of frames. Press ⌘K to search the board, ? for shortcuts"),
     (
         "pink",
@@ -98,7 +98,7 @@ def welcome_doc(now: datetime, demo: bool = False) -> dict[str, Any]:
         nodes.append(
             {
                 "id": cards[key],
-                "type": "jira_card",
+                "type": "task_card",
                 "parentId": sprint,
                 "position": {"x": _PAD + (i % 2) * _CELL_W, "y": _TITLE + (i // 2) * _CELL_H},
                 "data": {"key": key, "source": "demo", "collapsed": key == _CARDS[-1]},

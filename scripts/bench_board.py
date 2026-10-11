@@ -49,7 +49,7 @@ for f in range(FRAMES):
         nodes.append(
             {
                 "id": f"card-{f}-{c}",
-                "type": "jira_card",
+                "type": "task_card",
                 "parentId": frame_id,
                 "position": {
                     "x": GAP + (c % COLUMNS) * (CARD_W + GAP),

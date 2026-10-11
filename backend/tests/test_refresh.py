@@ -15,7 +15,7 @@ from app.domain.refresh import RefreshService
 DOC = BoardDoc.model_validate(
     {
         "nodes": [
-            {"id": "a", "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": k}}
+            {"id": "a", "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": k}}
             for k in ("DEMO-1", "DEMO-2")
         ]
     }
@@ -194,7 +194,7 @@ def mixed_board(repos):
         "nodes": [
             {
                 "id": node_id,
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 0, "y": 0},
                 "data": {"key": "DEMO-1"} | ({"source": source} if source else {}),
             }

@@ -33,8 +33,8 @@ const nodes: AppNode[] = [
     data: { text: 'Ping QA after deploy', color: 'yellow' },
   },
   { id: 'e', type: 'sticky', position: at, data: { text: '  ', color: 'yellow' } },
-  { id: 'c', type: 'jira_card', position: at, parentId: 'f', data: { key: 'DEMO-1' } },
-  { id: 'n', type: 'jira_card', position: at, data: { key: 'DEMO-9' } },
+  { id: 'c', type: 'task_card', position: at, parentId: 'f', data: { key: 'DEMO-1' } },
+  { id: 'n', type: 'task_card', position: at, data: { key: 'DEMO-9' } },
   {
     id: 't',
     type: 'timer',
@@ -99,8 +99,8 @@ test('filters narrow to tasks; values of one field are alternatives, fields add 
   const index = buildIndex(
     [
       ...nodes,
-      { id: 'd', type: 'jira_card', position: at, data: { key: 'DEMO-2' } },
-      { id: 'x', type: 'jira_card', position: at, data: { key: 'DEMO-3' } },
+      { id: 'd', type: 'task_card', position: at, data: { key: 'DEMO-2' } },
+      { id: 'x', type: 'task_card', position: at, data: { key: 'DEMO-3' } },
     ],
     {
       ...tasks,
@@ -129,7 +129,7 @@ test('suggests values while a filter is typed, one per task', () => {
 
 test('suggestions count only tasks that pass the chips', () => {
   const index = buildIndex(
-    nodes.concat({ id: 'd', type: 'jira_card', position: at, data: { key: 'DEMO-2' } }),
+    nodes.concat({ id: 'd', type: 'task_card', position: at, data: { key: 'DEMO-2' } }),
     {
       ...tasks,
       'DEMO-2': task('DEMO-2', 'Ship docs', { assignee_name: 'Oleg Smirnov', type_name: 'Task' }),

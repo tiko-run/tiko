@@ -10,14 +10,14 @@ DOC = {
         },
         {
             "id": "a",
-            "type": "jira_card",
+            "type": "task_card",
             "position": {"x": 20, "y": 40},
             "parentId": "f",
             "data": {"key": "DEMO-1", "collapsed": False},
         },
         {
             "id": "b",
-            "type": "jira_card",
+            "type": "task_card",
             "position": {"x": 600, "y": 40},
             "data": {"key": "DEMO-2", "collapsed": True},
         },

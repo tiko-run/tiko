@@ -16,7 +16,7 @@ const sticky = (id: string, text: string): AppNode => ({
 })
 const card = (id: string, key: string): AppNode => ({
   id,
-  type: 'jira_card',
+  type: 'task_card',
   position: at,
   data: { key },
 })

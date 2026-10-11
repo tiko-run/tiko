@@ -119,14 +119,14 @@ try:
             },
             {
                 "id": "a",
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 40, "y": 40},
                 "parentId": "f",
                 "data": {"key": "DEMO-1", "collapsed": False},
             },
             {
                 "id": "b",
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 300, "y": 0},
                 "data": {"key": "DEMO-2", "collapsed": False},
             },
@@ -191,7 +191,7 @@ try:
         "nodes": [
             {
                 "id": "c",
-                "type": "jira_card",
+                "type": "task_card",
                 "position": {"x": 0, "y": 0},
                 "data": {"key": "DEMO-5"},
             }

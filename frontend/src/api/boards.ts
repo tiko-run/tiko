@@ -27,7 +27,7 @@ const xy = z.object({ x: z.number(), y: z.number() })
 // The doc mirrors xyflow's node and edge shapes; the backend validates the details.
 const docNodeSchema = z.object({
   id: z.string(),
-  type: z.enum(['jira_card', 'frame', 'sticky', 'text', 'module', 'anchor', 'timer']),
+  type: z.enum(['task_card', 'frame', 'sticky', 'text', 'module', 'anchor', 'timer']),
   position: xy,
   width: z.number().optional(),
   height: z.number().optional(),

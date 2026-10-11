@@ -4,7 +4,7 @@ from tests.jira_fake import TOKEN, issue
 def board_with(client, *keys, name="b"):
     board = client.post("/api/boards", json={"name": name}).json()
     nodes = [
-        {"id": f"n{i}", "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": k}}
+        {"id": f"n{i}", "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": k}}
         for i, k in enumerate(keys)
     ]
     client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": {"nodes": nodes}})
@@ -90,10 +90,10 @@ def mixed_board(client):
     """One key in two trackers: a card of the instance's Jira and a demo card."""
     board = client.post("/api/boards", json={"name": "mixed"}).json()
     nodes = [
-        {"id": "a", "type": "jira_card", "position": {"x": 0, "y": 0}, "data": {"key": "DEMO-1"}},
+        {"id": "a", "type": "task_card", "position": {"x": 0, "y": 0}, "data": {"key": "DEMO-1"}},
         {
             "id": "b",
-            "type": "jira_card",
+            "type": "task_card",
             "position": {"x": 0, "y": 0},
             "data": {"key": "DEMO-1", "source": "demo"},
         },

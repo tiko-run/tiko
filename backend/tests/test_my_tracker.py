@@ -46,7 +46,7 @@ def team():
 
 def card(key: str) -> dict:
     data = {"key": key, "collapsed": False}
-    return {"id": key, "type": "jira_card", "position": {"x": 0, "y": 0}, "data": data}
+    return {"id": key, "type": "task_card", "position": {"x": 0, "y": 0}, "data": data}
 
 
 def shared_board(ann: TestClient) -> str:

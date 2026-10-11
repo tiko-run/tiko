@@ -23,9 +23,9 @@ def test_welcome_doc_is_a_valid_board_with_every_kind():
     doc = BoardDoc.model_validate(welcome_doc(NOW))
     check_doc(doc)
     kinds = {node.type for node in doc.nodes}
-    assert kinds == {"text", "frame", "sticky", "jira_card", "timer", "module"}
+    assert kinds == {"text", "frame", "sticky", "task_card", "timer", "module"}
     assert len(doc.edges) == 2
-    assert any(n.type == "jira_card" and n.data.collapsed for n in doc.nodes)
+    assert any(n.type == "task_card" and n.data.collapsed for n in doc.nodes)
 
 
 def test_welcome_doc_uses_only_demo_tasks():

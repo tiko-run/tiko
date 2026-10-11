@@ -87,7 +87,7 @@
     "name": "children follow their frame",
     "nodes": {
       "card": {
-        "type": "jira_card",
+        "type": "task_card",
         "place": {
           "x": 10,
           "y": 20,
@@ -129,7 +129,7 @@
         }
       },
       "card2": {
-        "type": "jira_card",
+        "type": "task_card",
         "place": {
           "x": 30,
           "y": 40,
@@ -173,7 +173,7 @@
         },
         {
           "id": "card",
-          "type": "jira_card",
+          "type": "task_card",
           "position": {
             "x": 10,
             "y": 20
@@ -186,7 +186,7 @@
         },
         {
           "id": "card2",
-          "type": "jira_card",
+          "type": "task_card",
           "position": {
             "x": 30,
             "y": 40
@@ -219,7 +219,7 @@
         }
       },
       "card": {
-        "type": "jira_card",
+        "type": "task_card",
         "place": {
           "x": 10,
           "y": 20,
@@ -261,7 +261,7 @@
         },
         {
           "id": "card",
-          "type": "jira_card",
+          "type": "task_card",
           "position": {
             "x": 10,
             "y": 20

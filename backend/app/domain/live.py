@@ -10,7 +10,7 @@ from typing import Any
 from pycrdt import Doc, Map
 from pydantic import TypeAdapter, ValidationError
 
-from app.domain.boards import MAX_NODES, BoardDoc, Edge, Node, check_doc
+from app.domain.boards import CARD, LEGACY_CARD, MAX_NODES, BoardDoc, Edge, Node, check_doc
 
 # Origin of the server's own writes (repairs, REST saves); never in anyone's undo history.
 SERVER = "server"
@@ -136,6 +136,8 @@ def repaired(
     notes: list[str] = []
     good: Stored = {}
     for node_id, node in nodes.items():
+        if _well_formed(node) and node["type"] == LEGACY_CARD:
+            node = {**node, "type": CARD}
         if _well_formed(node) and _valid(_NODE, json_node(node_id, node)):
             good[node_id] = node
         elif node_id in previous:
@@ -250,6 +252,15 @@ class LiveDoc:
 
     def _put_node(self, node_id: str, node: dict[str, Any]) -> None:
         self._nodes[node_id] = Map({**node, "data": Map(node["data"])})
+
+    def rename_type(self, old: str, new: str) -> bool:
+        """Gives every node of the type `old` the type `new`, whatever else the node holds."""
+        stale = [n for n in self._nodes.values() if isinstance(n, Map) and n.get("type") == old]
+        if stale:
+            with self.doc.transaction(origin=SERVER):
+                for node in stale:
+                    node.update({"type": new})
+        return bool(stale)
 
     def apply_json(self, board: BoardDoc, origin: Any = SERVER) -> None:
         self.write(*from_board(board), origin=origin)

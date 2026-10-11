@@ -1,20 +1,63 @@
+import json
+import logging
 import sqlite3
 import threading
 import uuid
-from contextlib import contextmanager
+from collections.abc import Callable
+from contextlib import closing, contextmanager
+from datetime import datetime
 from pathlib import Path
 
 from app.domain.accounts import Person, PersonRecord, Role
-from app.domain.boards import BoardDoc, BoardRecord, BoardRow
+from app.domain.boards import CARD, LEGACY_CARD, BoardDoc, BoardRecord, BoardRow
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
 from app.domain.invites import Invite
+from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.tasks import Task, now_iso
 
+log = logging.getLogger(__name__)
+
+
+def _rename_cards(conn: sqlite3.Connection) -> None:
+    """The node type `jira_card` becomes `task_card` in every stored board and its CRDT state."""
+    rows = conn.execute(
+        "SELECT id, doc, ydoc FROM boards WHERE doc LIKE ? OR ydoc IS NOT NULL",
+        (f'%"{LEGACY_CARD}"%',),
+    ).fetchall()
+    for row in rows:
+        doc = json.loads(row["doc"])
+        for node in doc.get("nodes", []):
+            if node.get("type") == LEGACY_CARD:
+                node["type"] = CARD
+        state = row["ydoc"]
+        if state is not None:
+            try:
+                live = LiveDoc(state)
+                if live.rename_type(LEGACY_CARD, CARD):
+                    state = live.state()
+            except Exception:
+                # A room without a state builds it from the JSON, which is the saved board.
+                log.exception("board %s: live state unreadable, rebuilt on next open", row["id"])
+                state = None
+        conn.execute(
+            "UPDATE boards SET doc = ?, ydoc = ? WHERE id = ?",
+            (json.dumps(doc, separators=(",", ":"), ensure_ascii=False), state, row["id"]),
+        )
+
+
 # File names start with the schema version they produce: 001_init.sql → user_version 1.
-MIGRATIONS = sorted(
-    (int(path.name.split("_", 1)[0]), path)
-    for path in (Path(__file__).parent / "migrations").glob("*.sql")
+# A step SQL cannot express is a function; the database is copied aside before it runs.
+Step = Path | Callable[[sqlite3.Connection], None]
+MIGRATIONS: list[tuple[int, Step]] = sorted(
+    [
+        *(
+            (int(path.name.split("_", 1)[0]), path)
+            for path in (Path(__file__).parent / "migrations").glob("*.sql")
+        ),
+        (12, _rename_cards),
+    ],
+    key=lambda step: step[0],
 )
 
 
@@ -24,6 +67,7 @@ class Database:
     def __init__(self, path: str) -> None:
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
+        self._path = path
         self._conn = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.Lock()
@@ -32,14 +76,32 @@ class Database:
 
     def _migrate(self) -> None:
         current = self._conn.execute("PRAGMA user_version").fetchone()[0]
-        for number, script in MIGRATIONS:
+        for number, step in MIGRATIONS:
             if number <= current:
                 continue
-            # executescript commits any open transaction, so the script carries its own.
-            with self._lock:
-                self._conn.executescript(
-                    f"BEGIN;\n{script.read_text()}\nPRAGMA user_version = {number};\nCOMMIT;"
-                )
+            if isinstance(step, Path):
+                # executescript commits any open transaction, so the script carries its own.
+                with self._lock:
+                    self._conn.executescript(
+                        f"BEGIN;\n{step.read_text()}\nPRAGMA user_version = {number};\nCOMMIT;"
+                    )
+                continue
+            # A database made just now has nothing to lose.
+            if current:
+                self._copy_aside(number)
+            with self.transaction() as conn:
+                step(conn)
+                conn.execute(f"PRAGMA user_version = {number}")
+
+    def _copy_aside(self, number: int) -> None:
+        if self._path == ":memory:":
+            return
+        target = Path(self._path).parent / "backups"
+        target.mkdir(parents=True, exist_ok=True)
+        target /= f"before-v{number}-{datetime.now():%Y%m%d-%H%M%S}.db"
+        with closing(sqlite3.connect(target)) as copy:
+            self._conn.backup(copy)
+        log.info("database copied to %s before migration %s", target, number)
 
     @contextmanager
     def transaction(self):
