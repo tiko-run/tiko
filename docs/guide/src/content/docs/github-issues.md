@@ -92,8 +92,11 @@ Create a fine-grained token, so that it can only read:
 2. Name it, for example `tiko – read issues`, and choose an expiration.
 3. In **Resource owner** choose the account or the organization that owns the repositories. An organization may have to approve the token first.
 4. In **Repository access** choose "Only select repositories" and pick the ones you want on your boards.
-5. In **Permissions → Repository permissions** set **Issues** and **Pull requests** to "Read-only". GitHub adds "Metadata: Read-only" itself.
-6. Press **Generate token**, copy it and paste it into Settings → My tracker.
+5. In **Permissions** press **Add permissions** and tick **Issues** and **Pull requests**. The list starts empty, and picking repositories alone gives the token no access to them.
+6. Check that both read "Access: Read-only". GitHub adds **Metadata** itself, so the **Repositories** tab counts 3.
+7. Press **Generate token**, copy it and paste it into Settings → My tracker.
+
+If a card of a private repository answers "was not found on GitHub, or your token cannot read its repository", open the token on GitHub and check steps 4 to 6: the repository is picked and both permissions are there. Press **Update** after a change; the token itself stays the same, so there is nothing to enter in tiko again.
 
 tiko takes a classic token too. The two kinds differ in how much they open, not in who sees your cards:
 

@@ -258,7 +258,10 @@ class GitHubReader:
     source_note: str | None = None
     # What a task of a repository the reader was refused comes back as.
     _refused_state: Literal["not_found", "no_token"] = "not_found"
-    _refused = "or your token cannot read its repository"
+    _refused = (
+        "or your token cannot read its repository. A fine-grained token needs the repository"
+        " picked and read access to Issues and Pull requests"
+    )
 
     def __init__(self, api: GitHubApi, clock: Callable[[], float] = time.time) -> None:
         self._api = api

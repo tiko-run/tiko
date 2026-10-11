@@ -70,7 +70,8 @@ function GitHubTokenForm({ tracker }: { tracker: Tracker }) {
       <p className="text-muted-foreground text-[13px]">
         With your own token you see issues and pull requests of private repositories it can read,
         and your GitHub cards refresh on your own request limit. Other people on a board see a
-        private task only with a token of their own.{' '}
+        private task only with a token of their own. A fine-grained token needs the repositories
+        picked and read-only access to Issues and Pull requests.{' '}
         <a
           href={GITHUB_GUIDE}
           target="_blank"
