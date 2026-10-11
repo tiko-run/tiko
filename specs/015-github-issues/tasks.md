@@ -43,9 +43,9 @@ description: "Task list for GitHub Issues"
 
 **Goal**: a person's own token opens their private repositories to them only.
 
-- [ ] T018 [US3] `domain/settings.py` and `api/me.py`: a token per source for a person (save, test, remove), bound to api.github.com. Tests
-- [ ] T019 [US3] `api/deps.py`: a person with a token gets their own `GitHubProvider`; without one, a task the shared reader cannot read comes back `no_token`. Tests with a mock private repository, two people
-- [ ] T020 [US3] `api/public.py` and `domain/public.py`: a guest gets `private` for what the shared reader cannot read. The byte test of spec 012 on a board with a private GitHub task (SC-005)
-- [ ] T021 [P] [US3] Settings → My tracker: the GitHub token block. Tests
-- [ ] T022 [US3] Check on the compose stack: owner, a second person and a guest on one board with a private task. `make check`, `make smoke` green
-- [ ] T023 [US3] Guide (which token to create and with what access); how a team shares private tasks; one limit per GitHub user), `CHANGELOG.md`. See "Open points" in the spec
+- [x] T018 [US3] `domain/settings.py` and `api/me.py`: a token per source for a person (save, test, remove), bound to api.github.com. Tests
+- [x] T019 [US3] `api/deps.py`: a person with a token gets their own `GitHubProvider`; without one, a task the shared reader cannot read comes back `no_token`. Tests with a mock private repository, two people
+- [x] T020 [US3] `api/public.py` and `domain/public.py`: a guest gets `private` for what the shared reader cannot read. The byte test of spec 012 on a board with a private GitHub task (SC-005)
+- [x] T021 [P] [US3] Settings → My tracker: the GitHub token block. Tests
+- [x] T022 [US3] Check on the compose stack: owner, a second person and a guest on one board with a private task. `make check`, `make smoke` green
+- [x] T023 [US3] Guide (which token to create and with what access); how a team shares private tasks; one limit per GitHub user), `CHANGELOG.md`. See "Open points" in the spec
