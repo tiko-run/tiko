@@ -93,6 +93,7 @@ class SettingsService:
         on_token: Callable[[str], None] = lambda _: None,
         on_change: Callable[[], None] = lambda: None,
         on_public_off: Callable[[], None] = lambda: None,
+        on_github_token: Callable[[str], None] = lambda _: None,
         env: dict[LockedField, str] | None = None,
     ) -> None:
         self._env = env or {}
@@ -105,6 +106,8 @@ class SettingsService:
         self._on_change = on_change
         # Guests already on a board must go when public links are switched off.
         self._on_public_off = on_public_off
+        # What the old token read must not outlive it in the person's task cache.
+        self._on_github_token = on_github_token
 
     def _token(
         self, user_id: str, base_url: str | None, kind: str = "jira"
@@ -212,12 +215,14 @@ class SettingsService:
         if plain is None:
             raise ValidationFailed("token: enter your personal access token")
         self._credentials.set(user_id, "github", self._box.encrypt(plain), GITHUB_API_URL)
+        self._on_github_token(user_id)
         self._on_token(plain)
         self._on_change()
         return self.github_token_state(user_id)
 
     def remove_github_token(self, user_id: str) -> None:
         self._credentials.delete(user_id, "github")
+        self._on_github_token(user_id)
         self._on_change()
 
     def jira_credentials(

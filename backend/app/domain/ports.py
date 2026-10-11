@@ -192,6 +192,10 @@ class SnapshotRepo(Protocol):
 
     def put_many(self, tasks: list[Task]) -> None: ...
 
+    def forget(self, source: str) -> None:
+        """Drops the cached tasks of one tracker."""
+        ...
+
 
 class SecretBox(Protocol):
     def encrypt(self, plain: str) -> str:

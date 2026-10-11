@@ -323,8 +323,16 @@ class GitHubReader:
             repo.unreadable = True
             repo.tasks = dict.fromkeys(repo.wanted)
             repo.stale.clear()
+            # Nothing of the old list holds once access is back.
+            repo.etag = None
+            repo.since = ""
+            repo.covered = False
+            repo.read_at.clear()
         elif response.status_code == 200:
-            repo.unreadable = False
+            if repo.unreadable:
+                repo.unreadable = False
+                repo.tasks.clear()
+                repo.stale = set(repo.wanted)
             page = [issue for issue in _json(response, list) if isinstance(issue, dict)]
             listed: set[int] = set()
             for issue in page:

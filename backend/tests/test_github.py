@@ -628,3 +628,35 @@ def test_a_demo_visitor_cannot_keep_a_token(private):
     refused = visitor.put("/api/me/tracker", json={"token": T_ANN, "source": "github"})
     assert refused.status_code == 403
     assert visitor.get("/api/me/tracker").json()["github_token_state"] == "none"
+
+
+def test_access_given_back_brings_the_cards_back(private, clock):
+    private.repos[SECRET] |= {n: issue(n, SECRET) for n in range(100, 230)}
+    old = private.repos[SECRET][7] = issue(7, SECRET, updated_at="2026-01-01T00:00:00Z")
+    ann = readers(private, clock).of("ann", T_ANN)
+    assert ann.resolve(f"{SECRET}#7").summary == old["title"]
+    assert ann.poll([f"{SECRET}#7"])[0].state == "ok"
+    private.tokens[T_ANN] = set()
+    clock.now += 60
+    assert ann.poll([f"{SECRET}#7"])[0].state == "not_found"
+    private.tokens[T_ANN] = {SECRET}
+    clock.now += 60
+    # The task is older than the first page of the list: it is read by itself again.
+    assert ann.poll([f"{SECRET}#7"])[0].summary == old["title"]
+
+
+def test_a_changed_token_takes_what_the_old_one_read_out_of_the_cache(team, private):
+    ann = team["ann"]
+    assert ann.put("/api/me/tracker", json={"token": T_ANN, "source": "github"}).is_success
+    board_id = board_with(ann, f"{REPO}#1", f"{SECRET}#7", "DEMO-1")
+    ann.post(f"/api/boards/{board_id}/refresh")
+    assert HIDDEN in ann.get(f"/api/boards/{board_id}").text
+    # Before any refresh with the new token: the board opens without the private title.
+    assert ann.put("/api/me/tracker", json={"token": T_BOB, "source": "github"}).is_success
+    opened = ann.get(f"/api/boards/{board_id}")
+    assert HIDDEN not in opened.text and "demo:DEMO-1" in opened.json()["tasks"]
+    assert ann.put("/api/me/tracker", json={"token": T_ANN, "source": "github"}).is_success
+    ann.post(f"/api/boards/{board_id}/refresh")
+    assert HIDDEN in ann.get(f"/api/boards/{board_id}").text
+    assert ann.delete("/api/me/tracker", params={"source": "github"}).status_code == 204
+    assert HIDDEN not in ann.get(f"/api/boards/{board_id}").text
