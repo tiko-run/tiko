@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- About: "Report a bug or idea" opens the form chooser for a bug, an idea or a question instead of the list of issues.
+
 ## [2026.10.15] - 2026-10-11
 
 ### Added

@@ -28,6 +28,10 @@ test('shows the running version and project links', async () => {
     'href',
     'https://github.com/tiko-run/tiko',
   )
+  expect(screen.getByRole('link', { name: 'Report a bug or idea' })).toHaveAttribute(
+    'href',
+    'https://github.com/tiko-run/tiko/issues/new/choose',
+  )
   expect(screen.queryByText(/is available/)).toBeNull()
 })
 
