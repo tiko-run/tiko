@@ -13,6 +13,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - A card's node type in the API and in stored boards is `task_card` instead of `jira_card`, now that a card holds a task of any tracker. Boards are rewritten on the first start of the new version, and tiko first copies the database to `data/backups/before-v12-<time>.db`. A board sent to the API with `jira_card` is still accepted. Reload tabs left open over the upgrade.
 - About: "Report a bug or idea" opens the form chooser for a bug, an idea or a question instead of the list of issues.
 
+### Fixed
+
+- An instance no longer stops at about 510 open boards. The web container's nginx kept its stock limit of 1024 connections per worker, and past it every request answered 500. The limit is now 16384.
+
 ## [2026.10.15] - 2026-10-11
 
 ### Added
