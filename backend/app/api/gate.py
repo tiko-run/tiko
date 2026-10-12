@@ -1,3 +1,4 @@
+import secrets
 import time
 
 from starlette.requests import HTTPConnection
@@ -22,6 +23,7 @@ OPEN_PATHS = {
 INVITES = "/api/invites/"
 # Boards shown by their public link; the routes there only read.
 PUBLIC = "/api/public/"
+METRICS = "/metrics"
 
 
 def is_open(scope: Scope) -> bool:
@@ -42,9 +44,17 @@ class PasswordGate:
     """Puts the signed-in person on the request and closes every route except OPEN_PATHS
     to requests without one."""
 
-    def __init__(self, app: ASGIApp, sessions: Sessions) -> None:
+    def __init__(self, app: ASGIApp, sessions: Sessions, metrics_token: str = "") -> None:
         self.app = app
         self.sessions = sessions
+        self.metrics_token = metrics_token
+
+    def _scrapes(self, scope: Scope) -> bool:
+        """A monitoring system reading /metrics with the token of the instance."""
+        if not self.metrics_token or scope["path"] != METRICS or scope["type"] != "http":
+            return False
+        sent = HTTPConnection(scope).headers.get("authorization", "")
+        return secrets.compare_digest(sent.encode(), f"Bearer {self.metrics_token}".encode())
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "lifespan":
@@ -55,7 +65,10 @@ class PasswordGate:
         if person is not None:
             state = scope.setdefault("state", {})
             state["person"], state["session"] = person, token
-        if person is not None or is_open(scope):
+        scraper = self._scrapes(scope)
+        if scraper:
+            scope.setdefault("state", {})["scraper"] = True
+        if person is not None or scraper or is_open(scope):
             await self.app(scope, receive, send)
             return
         if scope["type"] == "websocket":

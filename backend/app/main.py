@@ -7,7 +7,7 @@ from functools import partial
 
 import anyio.to_thread
 import httpx
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.adapters import password_file
@@ -35,20 +35,28 @@ from app.api.routes import router
 from app.config import Settings, get_settings
 from app.domain import demo
 from app.domain.accounts import Accounts
+from app.domain.errors import NotFound
 from app.domain.invites import Invites
 from app.domain.members import Members
 from app.domain.ports import ReleaseFeed
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
-from app.domain.sessions import Sessions
+from app.domain.sessions import Sessions, iso
 from app.domain.settings import LockedField, SettingsService, normalize_base_url
 from app.domain.updates import UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.observability import (
+    DEMO_LIMIT,
+    DEMO_VISITORS,
+    LIVE_OUTBOX,
+    LIVE_ROOMS,
+    LIVE_SOCKETS,
+    THREADS_BUSY,
     RequestContextMiddleware,
     metrics_response,
     register_secret,
     setup_logging,
+    watch_loop,
 )
 from app.version import VERSION
 
@@ -120,7 +128,9 @@ def create_app(
         cleaner = (
             asyncio.create_task(clean_demo(app.state.visitors)) if app.state.visitors else None
         )
+        watcher = asyncio.create_task(watch_loop())
         yield
+        watcher.cancel()
         if cleaner:
             cleaner.cancel()
         # Open boards are saved and their sockets told to come back.
@@ -156,7 +166,14 @@ def create_app(
     adopt_orphans(users, member_repo, credentials)
     app.state.members = Members(member_repo, users, app.state.live)
     # Added before the request context, so it runs inside it and 401s are logged and counted.
-    app.add_middleware(PasswordGate, sessions=app.state.sessions)
+    metrics_token = (
+        settings.tiko_metrics_token.get_secret_value().strip()
+        if settings.tiko_metrics_token
+        else ""
+    )
+    if metrics_token:
+        register_secret(metrics_token)
+    app.add_middleware(PasswordGate, sessions=app.state.sessions, metrics_token=metrics_token)
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
 
@@ -207,7 +224,23 @@ def create_app(
         return JSONResponse({"ready": status == 200, "checks": checks}, status_code=status)
 
     @app.get("/metrics", include_in_schema=False)
-    def metrics() -> Response:
+    async def metrics(request: Request) -> Response:
+        # The numbers tell how busy the instance is: for its admins and its monitoring only.
+        person = getattr(request.state, "person", None)
+        if not (getattr(request.state, "scraper", False) or (person and person.role == "admin")):
+            raise NotFound("not found")
+        # On the loop, where the rooms live: these are read at the moment of the scrape.
+        rooms, people, guests, fullest = app.state.live.stats()
+        LIVE_ROOMS.set(rooms)
+        LIVE_SOCKETS.labels("person").set(people)
+        LIVE_SOCKETS.labels("guest").set(guests)
+        LIVE_OUTBOX.set(fullest)
+        THREADS_BUSY.set(anyio.to_thread.current_default_thread_limiter().borrowed_tokens)
+        visitors = app.state.visitors
+        if visitors is not None:
+            alive = await anyio.to_thread.run_sync(users.demo_alive, iso(time.time()))
+            DEMO_VISITORS.set(alive)
+            DEMO_LIMIT.set(visitors.max_alive)
         return metrics_response()
 
     return app

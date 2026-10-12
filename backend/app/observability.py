@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -6,7 +7,7 @@ import uuid
 from contextvars import ContextVar
 
 from fastapi import Request, Response
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -15,6 +16,54 @@ HTTP_REQUESTS = Counter("http_requests_total", "HTTP requests", ["method", "rout
 HTTP_LATENCY = Histogram(
     "http_request_duration_seconds", "HTTP request latency", ["method", "route"]
 )
+
+# Finer than the default: a healthy loop and a healthy database answer in under a millisecond.
+_FAST = (0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
+
+LIVE_ROOMS = Gauge("tiko_live_rooms", "Boards held open in memory")
+LIVE_SOCKETS = Gauge("tiko_live_sockets", "Open live sockets", ["kind"])
+LIVE_OUTBOX = Gauge("tiko_live_outbox_max", "Messages waiting in the fullest queue of a socket")
+LIVE_MESSAGES = Counter("tiko_live_messages", "Messages of live sockets", ["direction", "kind"])
+LIVE_BYTES = Counter("tiko_live_bytes", "Bytes of live messages", ["direction"])
+LIVE_CLOSES = Counter("tiko_live_closes", "Live sockets closed by the server", ["code"])
+LIVE_CHECK = Histogram("tiko_live_check_seconds", "Check of a board after edits", buckets=_FAST)
+LIVE_SAVE = Histogram("tiko_live_save_seconds", "Save of an open board", buckets=_FAST)
+LIVE_NODES = Histogram(
+    "tiko_live_board_nodes",
+    "Elements of a board when it is saved",
+    buckets=(10, 50, 100, 250, 500, 1000, 2500, 5000),
+)
+LOOP_LAG = Histogram("tiko_event_loop_lag_seconds", "How late the event loop runs", buckets=_FAST)
+DB_WAIT = Histogram("tiko_db_wait_seconds", "Wait for the database connection", buckets=_FAST)
+DB_HELD = Histogram("tiko_db_transaction_seconds", "Length of a transaction", buckets=_FAST)
+THREADS_BUSY = Gauge("tiko_threadpool_busy", "Worker threads serving a request")
+DEMO_VISITORS = Gauge("tiko_demo_visitors", "Demo visitors the instance keeps")
+DEMO_LIMIT = Gauge("tiko_demo_limit", "Demo visitors the instance may keep")
+
+LOOP_LAG_EVERY_S = 0.25
+_KINDS = {0: "sync", 1: "awareness"}
+# Looked up once: a live message is counted on the busiest path of the server.
+_MESSAGES = {
+    (direction, kind): LIVE_MESSAGES.labels(direction, kind)
+    for direction in ("in", "out")
+    for kind in ("sync", "awareness", "other")
+}
+_BYTES = {direction: LIVE_BYTES.labels(direction) for direction in ("in", "out")}
+
+
+def live_message(direction: str, data: bytes) -> None:
+    """Counts one message of a live socket by its y-websocket type."""
+    _MESSAGES[direction, _KINDS.get(data[0], "other") if data else "other"].inc()
+    _BYTES[direction].inc(len(data))
+
+
+async def watch_loop() -> None:
+    """Measures how much later than asked the loop wakes: the sign that one core is not enough."""
+    loop = asyncio.get_running_loop()
+    while True:
+        asked = loop.time()
+        await asyncio.sleep(LOOP_LAG_EVERY_S)
+        LOOP_LAG.observe(max(0.0, loop.time() - asked - LOOP_LAG_EVERY_S))
 
 
 _secrets: set[str] = set()

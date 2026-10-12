@@ -9,6 +9,7 @@ import anyio.to_thread
 from fastapi import APIRouter, WebSocket
 
 from app.domain.live import ACCESS_CHANGED, MAX_MESSAGE_BYTES, POLICY, SESSION_ENDED, TOO_BIG
+from app.observability import live_message
 
 router = APIRouter(tags=["live"])
 log = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ async def serve(
             data = message.get("bytes")
             if data is None:
                 continue
+            live_message("in", data)
             if len(data) > MAX_MESSAGE_BYTES:
                 listener.kick(TOO_BIG)
                 return

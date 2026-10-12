@@ -45,7 +45,7 @@ The main tables:
 | `task_snapshots` | Latest fields per task key, kept apart for each person |
 | `settings` | Tracker, its URL and the refresh interval |
 
-`/health`, `/ready` and `/metrics` (Prometheus) are served outside `/api`.
+`/health`, `/ready` and `/metrics` (Prometheus) are served outside `/api`. What the metrics hold is in [Monitoring](../monitoring/).
 
 ## Frontend
 

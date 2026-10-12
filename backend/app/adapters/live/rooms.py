@@ -7,6 +7,7 @@ cross over with `call_soon_threadsafe`. Storage is blocking and runs in worker t
 import asyncio
 import contextlib
 import logging
+import time
 import weakref
 from collections.abc import Callable
 from typing import Any
@@ -40,6 +41,7 @@ from app.domain.live import (
 )
 from app.domain.members import role_on
 from app.domain.ports import BoardRepo, MemberRepo
+from app.observability import LIVE_CHECK, LIVE_CLOSES, LIVE_NODES, LIVE_SAVE, live_message
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +65,7 @@ class Listener:
     def push(self, data: bytes) -> None:
         if self.closing:
             return
+        live_message("out", data)
         try:
             self.outbox.put_nowait(data)
         except asyncio.QueueFull:
@@ -72,6 +75,7 @@ class Listener:
         if self.closing:
             return
         self.closing = True
+        LIVE_CLOSES.labels(str(code)).inc()
         while not self.outbox.empty():
             self.outbox.get_nowait()
         self.outbox.put_nowait(code)
@@ -233,12 +237,15 @@ class Room:
         if self._check_timer:
             self._check_timer.cancel()
             self._check_timer = None
+        started = time.perf_counter()
         try:
             self.last, notes = self.live.repair(self.last)
         except Exception:
             # The previous valid board stays the one that is saved.
             log.exception("live board %s failed its check", self.board_id)
             return
+        finally:
+            LIVE_CHECK.observe(time.perf_counter() - started)
         for note in notes:
             log.warning("live board %s repaired: %s", self.board_id, note)
         self._plan_save()
@@ -263,6 +270,8 @@ class Room:
                 return
             self._dirty_since = None
             doc, state = self.last, self.live.state()
+            LIVE_NODES.observe(len(doc.nodes))
+            started = time.perf_counter()
             try:
                 self.version = await anyio.to_thread.run_sync(
                     self._rooms.boards.save_live, self.board_id, doc, state
@@ -273,6 +282,8 @@ class Room:
                 log.exception("live board %s was not saved", self.board_id)
                 self._dirty_since = asyncio.get_running_loop().time()
                 self._plan_save()
+            finally:
+                LIVE_SAVE.observe(time.perf_counter() - started)
 
     async def put(self, version: int, doc: BoardDoc) -> int:
         if version != self.version:
@@ -320,6 +331,16 @@ class LiveRooms:
         self.save_idle_s = 2.0
         self.save_max_s = 10.0
         self.idle_s = 30.0
+
+    def stats(self) -> tuple[int, int, int, int]:
+        """Open rooms, sockets of people and of guests, and the fullest queue of a socket."""
+        people = guests = fullest = 0
+        for room in self._rooms.values():
+            people += len(room.connections)
+            guests += len(room.guests)
+            for listener in (*room.connections, *room.guests):
+                fullest = max(fullest, listener.outbox.qsize())
+        return len(self._rooms), people, guests, fullest
 
     async def _room(self, board_id: str) -> Room | None:
         self._loop = asyncio.get_running_loop()

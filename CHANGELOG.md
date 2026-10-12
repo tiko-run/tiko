@@ -6,11 +6,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Monitoring: `/metrics` now tells how busy an instance is. Open boards and sockets, live messages and bytes, sockets the server closed, the time to check and save a board, the delay of the event loop, the wait for the database, busy worker threads and, on a demo, visitors against the limit. `TIKO_METRICS_TOKEN` lets Prometheus read them without an account. See "Monitoring" in the guide.
 - `TIKO_DEMO_LIMIT` sets how many demo visitors an instance keeps at once. Empty means 500, as before.
 - GitHub private repositories: add your own GitHub token in Settings → My tracker, and issues and pull requests of the private repositories it reads become live cards. Your GitHub cards then refresh at the board's pace on your own request limit. A private task shows in full only to a person whose own token reads it: others on the board see its key with a hint to connect a token, a guest of the public link sees the key only. See "Your own token" in the guide's GitHub Issues page.
 
 ### Changed
 
+- `/metrics` answers only to admins and to the metrics token. A member or a demo visitor, who could read it before, gets 404.
 - A card's node type in the API and in stored boards is `task_card` instead of `jira_card`, now that a card holds a task of any tracker. Boards are rewritten on the first start of the new version, and tiko first copies the database to `data/backups/before-v12-<time>.db`. A board sent to the API with `jira_card` is still accepted. Reload tabs left open over the upgrade.
 - About: "Report a bug or idea" opens the form chooser for a bug, an idea or a question instead of the list of issues.
 
