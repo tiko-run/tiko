@@ -350,6 +350,15 @@ def test_the_board_limit_of_the_instance_holds_members_and_not_admins():
     assert transfer.json()["error"]["code"] == "board_limit"
 
 
+def test_the_instance_limit_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv("TIKO_DEMO_LIMIT", "7")
+    limited = create_app(Settings(_env_file=None, db_path=":memory:", tiko_demo=True))
+    assert limited.state.visitors.max_alive == 7
+    monkeypatch.setenv("TIKO_DEMO_LIMIT", "")
+    default = create_app(Settings(_env_file=None, db_path=":memory:", tiko_demo=True))
+    assert default.state.visitors.max_alive == demo.MAX_ALIVE
+
+
 def test_a_variable_left_empty_means_its_default(monkeypatch):
     for name in ("TIKO_BOARD_LIMIT", "TIKO_TRACKER", "TIKO_DEMO"):
         monkeypatch.setenv(name, "")
@@ -383,13 +392,24 @@ def test_demos_asked_for_at_once_stay_within_the_address_limit(app, monkeypatch)
 
 
 def test_demos_asked_for_at_once_stay_within_the_instance_limit(app, monkeypatch):
-    monkeypatch.setattr(demo, "MAX_ALIVE", 2)
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
     edit(ann := visitor(app), welcome(ann))
     slow_add(app, monkeypatch)
     now = time.time()
     together(4, lambda index: app.state.visitors.create(f"198.51.100.{index}", now))
     # Each newcomer takes the place of the one before, who changed nothing yet.
     assert app.state.visitors._users.demo_alive(demo.iso(now)) == 2
+
+
+def test_a_lowered_limit_takes_back_every_place_over_it(app, monkeypatch):
+    edit(busy := visitor(app, "203.0.113.1"), welcome(busy))
+    for index in range(2, 6):
+        visitor(app, f"203.0.113.{index}")
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
+    now = time.time()
+    visitor(app, "203.0.113.6")
+    assert app.state.visitors._users.demo_alive(demo.iso(now)) == 2
+    assert me(busy)["name"] == "Demo visitor"
 
 
 def test_an_ipv6_network_counts_as_one_address():
@@ -400,7 +420,7 @@ def test_an_ipv6_network_counts_as_one_address():
 
 
 def test_a_full_demo_gives_the_place_of_one_who_changed_nothing(app, monkeypatch):
-    monkeypatch.setattr(demo, "MAX_ALIVE", 2)
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
     idle = visitor(app, "203.0.113.1")
     busy = visitor(app, "203.0.113.2")
     idle_board = welcome(idle)
@@ -451,7 +471,7 @@ def test_a_visitor_who_changed_nothing_goes_within_the_hour(app):
 
 
 def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch):
-    monkeypatch.setattr(demo, "MAX_ALIVE", 2)
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
     ann, bob = visitor(app), visitor(app, "203.0.113.2")
     assert ann.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"}).is_success
     board_id = welcome(bob)

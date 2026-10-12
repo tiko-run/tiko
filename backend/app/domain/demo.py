@@ -61,10 +61,13 @@ def board_limit(person: Person, member_limit: int | None) -> int | None:
 class DemoVisitors:
     """Temporary people of a demo instance: made in one click, deleted when they stay away."""
 
-    def __init__(self, users: UserRepo, sessions: Sessions, live: LiveBoards) -> None:
+    def __init__(
+        self, users: UserRepo, sessions: Sessions, live: LiveBoards, max_alive: int = MAX_ALIVE
+    ) -> None:
         self._users = users
         self._sessions = sessions
         self._live = live
+        self.max_alive = max_alive
         self._per_address = Limiter(
             PER_ADDRESS, PER_ADDRESS_WINDOW_S, "Too many demos from this address, try again later."
         )
@@ -77,7 +80,8 @@ class DemoVisitors:
         # One at a time: requests that arrive together would all pass the same two checks.
         with self._creating:
             self._per_address.check(key, now)
-            if self._users.demo_alive(iso(now)) >= MAX_ALIVE:
+            # A loop: a limit lowered under the people already here takes more than one place back.
+            while self._users.demo_alive(iso(now)) >= self.max_alive:
                 gone = self._users.evict_untouched_demo()
                 if not gone[0]:
                     raise DemoFull("The demo is full right now. Try again later.")

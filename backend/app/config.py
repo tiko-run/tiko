@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     update_check: bool = True
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
+    # Demo visitors the instance keeps at once. Empty: 500.
+    tiko_demo_limit: int | None = Field(default=None, ge=1)
     # Boards a person may own, admins aside. Empty: no limit.
     tiko_board_limit: int | None = Field(default=None, ge=1)
 

@@ -140,7 +140,11 @@ def create_app(
     app.state.accounts = Accounts(users, app.state.sessions)
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
-        demo.DemoVisitors(users, app.state.sessions, app.state.live) if settings.tiko_demo else None
+        demo.DemoVisitors(
+            users, app.state.sessions, app.state.live, settings.tiko_demo_limit or demo.MAX_ALIVE
+        )
+        if settings.tiko_demo
+        else None
     )
     app.state.board_limit = settings.tiko_board_limit
     app.state.invites = Invites(SqliteInviteRepo(db), app.state.accounts, app.state.sessions)

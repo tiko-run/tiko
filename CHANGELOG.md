@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- `TIKO_DEMO_LIMIT` sets how many demo visitors an instance keeps at once. Empty means 500, as before.
 - GitHub private repositories: add your own GitHub token in Settings → My tracker, and issues and pull requests of the private repositories it reads become live cards. Your GitHub cards then refresh at the board's pace on your own request limit. A private task shows in full only to a person whose own token reads it: others on the board see its key with a hint to connect a token, a guest of the public link sees the key only. See "Your own token" in the guide's GitHub Issues page.
 
 ### Changed
@@ -16,6 +17,8 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - An instance no longer stops at about 510 open boards. The web container's nginx kept its stock limit of 1024 connections per worker, and past it every request answered 500. The limit is now 16384.
+- An instance on a Linux host no longer stops at about 1000 open boards: the compose files raise the API container's limit of open files from the host's 1024 to 65536. If you run tiko from your own compose file, add `ulimits: nofile: 65536` to the `api` service.
+- From source, `docker compose up` brings the containers back after a crash or a reboot of the host, as `compose.release.yml` already did.
 
 ## [2026.10.15] - 2026-10-11
 
