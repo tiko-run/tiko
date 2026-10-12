@@ -3,14 +3,19 @@ name: tiko
 services:
   api:
     build: ./backend
+    restart: unless-stopped
     env_file:
       - path: .env
         required: false
     ports: ["${TIKO_API_PORT:-8000}:8000"]
     volumes: ["./data:/app/data"]  # SQLite and other local data survive rebuilds
+    # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
+    ulimits:
+      nofile: 65536
 
   web:
     build: ./frontend
+    restart: unless-stopped
     ports: ["${TIKO_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }

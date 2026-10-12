@@ -11,6 +11,9 @@ services:
       - path: .env
         required: false
     volumes: ["./data:/app/data"]
+    # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
+    ulimits:
+      nofile: 65536
 
   web:
     image: ghcr.io/tiko-run/tiko-web:${TAG:-latest}
