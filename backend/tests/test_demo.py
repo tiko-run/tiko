@@ -401,6 +401,17 @@ def test_demos_asked_for_at_once_stay_within_the_instance_limit(app, monkeypatch
     assert app.state.visitors._users.demo_alive(demo.iso(now)) == 2
 
 
+def test_a_lowered_limit_takes_back_every_place_over_it(app, monkeypatch):
+    edit(busy := visitor(app, "203.0.113.1"), welcome(busy))
+    for index in range(2, 6):
+        visitor(app, f"203.0.113.{index}")
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
+    now = time.time()
+    visitor(app, "203.0.113.6")
+    assert app.state.visitors._users.demo_alive(demo.iso(now)) == 2
+    assert me(busy)["name"] == "Demo visitor"
+
+
 def test_an_ipv6_network_counts_as_one_address():
     assert demo.address_key("2001:db8:1:2:aaaa::1") == demo.address_key("2001:db8:1:2:bbbb::9")
     assert demo.address_key("2001:db8:1:2::1") != demo.address_key("2001:db8:1:3::1")

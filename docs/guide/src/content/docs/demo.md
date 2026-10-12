@@ -36,7 +36,7 @@ There is no mail on a demo, so a forgotten password cannot be reset by the perso
 
 ## Limits
 
-All but the last are fixed:
+Two of them are yours to set, the rest are fixed:
 
 | Limit | Value |
 |---|---|

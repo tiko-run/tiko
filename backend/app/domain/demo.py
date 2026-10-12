@@ -80,7 +80,8 @@ class DemoVisitors:
         # One at a time: requests that arrive together would all pass the same two checks.
         with self._creating:
             self._per_address.check(key, now)
-            if self._users.demo_alive(iso(now)) >= self.max_alive:
+            # A loop: a limit lowered under the people already here takes more than one place back.
+            while self._users.demo_alive(iso(now)) >= self.max_alive:
                 gone = self._users.evict_untouched_demo()
                 if not gone[0]:
                     raise DemoFull("The demo is full right now. Try again later.")
