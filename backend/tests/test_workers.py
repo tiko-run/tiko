@@ -1,7 +1,9 @@
 import os
+import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from contextlib import contextmanager
@@ -90,12 +92,15 @@ def _close_code(conn) -> int:
     return closed.value.rcvd.code
 
 
-@pytest.fixture(scope="module")
-def instance(tmp_path_factory):
+@pytest.fixture(scope="module", params=["ports", "ports and unix sockets"])
+def instance(request, tmp_path_factory):
     port = _free_ports()
+    # Not pytest's own directory: the path of a Unix socket has to stay short.
+    sockets = tempfile.mkdtemp(prefix="tiko") if "unix" in request.param else ""
     env = {
         **os.environ,
         "TIKO_WORKERS": "2",
+        "TIKO_SOCKET_DIR": sockets,
         "DB_PATH": str(tmp_path_factory.mktemp("workers") / "app.db"),
         "TIKO_PASSWORD": PASSWORD,
         "UPDATE_CHECK": "false",
@@ -104,6 +109,7 @@ def instance(tmp_path_factory):
         [sys.executable, "-m", "app.serve", "--port", str(port)], cwd=BACKEND, env=env
     )
     found = Instance(port)
+    found.sockets = sockets
     try:
         deadline = time.monotonic() + 60
         while True:
@@ -118,6 +124,17 @@ def instance(tmp_path_factory):
     finally:
         process.terminate()
         process.wait(30)
+        if sockets:
+            shutil.rmtree(sockets, ignore_errors=True)
+
+
+def test_each_process_also_answers_on_a_unix_socket(instance):
+    if not instance.sockets:
+        pytest.skip("this instance listens on ports only")
+    for n in (0, 1):
+        path = f"{instance.sockets}/{instance.ports[n]}.sock"
+        with httpx.Client(transport=httpx.HTTPTransport(uds=path), base_url="http://tiko") as local:
+            assert local.get("/health").is_success
 
 
 def test_signing_out_everywhere_closes_a_socket_in_the_other_process(instance):

@@ -3,16 +3,20 @@
 import argparse
 import os
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.request
+from pathlib import Path
 
 from app.config import get_settings
 
 
 def _command(port: int) -> list[str]:
+    if get_settings().tiko_socket_dir:
+        return [sys.executable, "-m", "app.serve", "--only", str(port)]
     return [
         sys.executable,
         "-m",
@@ -28,6 +32,23 @@ def _command(port: int) -> list[str]:
     ]
 
 
+def _serve(port: int, socket_dir: str) -> None:
+    """One process on its port and on a Unix socket named after it, for a proxy on this host."""
+    import uvicorn
+
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    tcp.bind(("0.0.0.0", port))  # noqa: S104  the container's network is the boundary
+    path = Path(socket_dir) / f"{port}.sock"
+    path.unlink(missing_ok=True)
+    local = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    local.bind(str(path))
+    # The proxy runs as another user in another container; the shared directory is the boundary.
+    path.chmod(0o666)
+    config = uvicorn.Config("app.main:create_app", factory=True, ws_per_message_deflate=False)
+    uvicorn.Server(config).run(sockets=[tcp, local])
+
+
 def _healthy(port: int) -> bool:
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=1):  # noqa: S310
@@ -40,9 +61,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000, help="port of the first process")
     parser.add_argument("--healthy", action="store_true", help="only check that all answer")
+    parser.add_argument("--only", type=int, help="run the one process of this port")
     args = parser.parse_args()
     port = args.port
     settings = get_settings()
+    if args.only:
+        _serve(args.only, settings.tiko_socket_dir)
+        return 0
     count = settings.tiko_workers
     metrics = settings.tiko_metrics_port
     if metrics and metrics + count > port and port + count > metrics:

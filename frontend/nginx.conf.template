@@ -23,8 +23,9 @@ server {
     real_ip_recursive on;
 
     location /api/ {
-        # $api_port is the process of the board in the path, or any of them: api-workers.envsh.
-        proxy_pass http://${API_HOST}:$api_port;
+        # $api_upstream is the process of the board in the path, or any of them, over the
+        # network or a Unix socket: api-workers.envsh.
+        proxy_pass http://$api_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Request-Id $request_id;
         proxy_set_header X-Real-IP $remote_addr;
