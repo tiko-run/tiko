@@ -2,6 +2,7 @@
 
   rooms.py setup --boards 100 --nodes 1000     makes the boards, writes boards.json
   rooms.py run --rooms 20 --hold 180           fills 20 rooms and measures
+  rooms.py sweep                               takes leftovers of a broken step off the boards
 
 Every socket signs in as the same admin: a room counts connections, not people.
 A room of 30: 5 drag elements, 2 create and delete them, 10 move the pointer, 13 watch.
@@ -33,6 +34,8 @@ ROLES = ["drag"] * 5 + ["create"] * 2 + ["move"] * 10 + ["watch"] * 13
 EMPTY_STEP1 = create_sync_message(Doc())
 PRESENCE_MARK = re.compile(rb'"t":(\d+\.\d+)')
 EDIT_MARK = re.compile(rb"ts:(\d+\.\d+);")
+# Ids of the elements the load makes, so they can be told from the board's own.
+MADE = "lt"
 
 
 def sign_in(args) -> str:
@@ -82,6 +85,28 @@ def setup(args) -> None:
     with open(args.file, "w") as out:
         json.dump(boards, out)
     print(f"{len(boards)} boards of {args.nodes} elements")
+
+
+def sweep(args, cookie: str, boards: list[str]) -> None:
+    """Takes off the boards what a step left behind: a socket that was closed or failed never
+    got to delete the elements it made."""
+    left = 0
+    with httpx.Client(base_url=args.base, timeout=120, headers={"Cookie": cookie}) as http:
+        for board_id in boards:
+            board = http.get(f"/api/boards/{board_id}").json()
+            nodes = board["doc"]["nodes"]
+            kept = [node for node in nodes if not node["id"].startswith(MADE)]
+            if len(kept) == len(nodes):
+                continue
+            doc = {**board["doc"], "nodes": kept}
+            saved = http.put(
+                f"/api/boards/{board_id}", json={"version": board["version"], "doc": doc}
+            )
+            if saved.status_code >= 400:
+                print(f"board {board_id} was not swept: {saved.status_code}; make the boards anew")
+            else:
+                left += len(nodes) - len(kept)
+    print(f"swept {left} leftover elements")
 
 
 def presence(client: int, clock: int, state: dict) -> bytes:
@@ -213,7 +238,7 @@ async def person(
                     else:
                         x, y = await wander(random.uniform(0.5, 1.5), x, y)
                         created += 1
-                        node_id = f"lt{client:x}-{created}"
+                        node_id = f"{MADE}{client:x}-{created}"
                         nodes[node_id] = Map(
                             {
                                 "type": "sticky",
@@ -330,10 +355,11 @@ def run(args) -> None:
     for name, values in merged.items():
         print(line(name, values))
     print("errors:", dict(errors) or "none")
+    sweep(args, cookie, boards)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mode", choices=["setup", "run"])
+parser.add_argument("mode", choices=["setup", "run", "sweep"])
 parser.add_argument("--base", default="http://localhost:13000")
 parser.add_argument("--password", default="load-test-password")
 parser.add_argument("--file", default="boards.json")
@@ -349,4 +375,10 @@ parser.add_argument("--procs", type=int, default=4)
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    setup(args) if args.mode == "setup" else run(args)
+    if args.mode == "setup":
+        setup(args)
+    elif args.mode == "run":
+        run(args)
+    else:
+        with open(args.file) as source:
+            sweep(args, sign_in(args), json.load(source))

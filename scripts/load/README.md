@@ -22,11 +22,11 @@ Away from the repository: `uv run --with httpx --with websockets --with pycrdt p
 
 ## The reference setup
 
-- **Target**: a Linux VM with 1 vCPU and 2 GiB, tiko from `docker compose up` with `TIKO_PASSWORD` and `TIKO_METRICS_TOKEN` set in `.env`, and `prom/node-exporter` next to it. For `visitors.py` also `TIKO_DEMO=1` and a `TIKO_DEMO_LIMIT` above the largest `--users` of the run: without the first every visitor gets 404, and the default limit of 500 stops the bigger rows of table A.
+- **Target**: a Linux VM with 1 vCPU and 2 GiB, tiko from `docker compose up` with `TIKO_PASSWORD` and `TIKO_METRICS_TOKEN` set in `.env`, and `prom/node-exporter` next to it. For `visitors.py` also `TIKO_DEMO=1` and a `TIKO_DEMO_LIMIT` above the sum of `--users` of every run on that database: without the first every visitor gets 404, the default limit of 500 stops the bigger rows of table A, and a visitor who dragged a card keeps their place for a week, so earlier runs count. Or start each run from an empty database.
 - **Generator**: a second VM with 4 vCPU on the same private network, so the path between them adds nothing. It runs the scripts and a Prometheus that scrapes the target every 5 seconds: the API at `:8000/metrics` with the token and node exporter at `:9100`.
 - `visitors.py` sets `X-Forwarded-For` to give every visitor an address of their own. nginx believes it only from a private network, which is where the generator sits.
 - A step holds for 2 to 3 minutes: saves run every 2 to 10 seconds and the session check once a minute, so that covers every periodic job. Leave 40 seconds between steps.
-- `rooms.py` puts a board back to its size when a step ends: the people who create delete what they made. The saved history of the board still grows with every step, so make the boards anew (`rooms.py setup`, on an empty database) before a series that will be compared with another.
+- `rooms.py` puts a board back to its size when a step ends: the people who create delete what they made, and the run then sweeps the boards for what a closed or failed socket left behind. `rooms.py sweep` does the same by hand after a step that was interrupted. The saved history of the board still grows with every step, so make the boards anew (`rooms.py setup`, on an empty database) before a series that will be compared with another.
 - `rooms.py run` prints `window <start> <end>`; give the two numbers to `window.py` on the Prometheus host for the server's side of the same step.
 - Profile at about 70% of the knee, on the target: `py-spy record -p $(pgrep -x uvicorn) -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`.
 
