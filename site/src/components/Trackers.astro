@@ -1,0 +1,50 @@
+---
+import { DOCS } from '../data/site'
+import Mark from './Mark.astro'
+---
+
+<section class="trackers" aria-label="Supported trackers">
+  <div class="wrap row">
+    <span class="label">Works with</span>
+    <span class="tracker"><Mark tracker="jira" /> Jira Data Center and Server</span>
+    <span class="tracker"><Mark tracker="github" /> GitHub Issues</span>
+    <span class="soon">
+      Planned: Jira Cloud, Linear, Plane
+    </span>
+    <a class="more" href={`${DOCS}/trackers/`}>All trackers</a>
+  </div>
+</section>
+
+<style>
+  .trackers {
+    border-block: 1px solid var(--border);
+    background: var(--card);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 2rem;
+    padding-block: 1.125rem;
+    font-size: 0.9375rem;
+  }
+  .label,
+  .soon {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+  .tracker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+  }
+  .more {
+    margin-left: auto;
+  }
+  @media (max-width: 720px) {
+    .more {
+      margin-left: 0;
+    }
+  }
+</style>

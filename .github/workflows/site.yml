@@ -1,0 +1,54 @@
+# Build the landing page in site/ on every change; publish it to Cloudflare Pages.
+name: site
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "install/**"
+      - "brand/**"
+      - "docs/guide/src/content/docs/**"
+      - "frontend/src/sources/marks/**"
+      - ".github/workflows/site.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "install/**"
+      - "brand/**"
+      - "docs/guide/src/content/docs/**"
+      - "frontend/src/sources/marks/**"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # main goes to tiko.run, a branch to its own preview address. A pull request from a fork
+      # has no token and is only built.
+      - name: Publish
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: >
+          npx --yes wrangler@4.149.0 pages deploy dist --project-name=tiko
+          --branch="${{ github.head_ref || github.ref_name }}" --commit-dirty=true

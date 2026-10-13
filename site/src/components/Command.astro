@@ -1,0 +1,18 @@
+---
+import Icon from './Icon.astro'
+
+interface Props {
+  text: string
+  prompt?: string
+}
+const { text, prompt = '$' } = Astro.props
+---
+
+<div class="cmd">
+  <span class="cmd-prompt">{prompt}</span>
+  <code>{text}</code>
+  <button class="cmd-copy" type="button" data-copy={text} aria-label="Copy the command">
+    <Icon name="copy" size={15} class="idle" />
+    <Icon name="check" size={15} class="ok" />
+  </button>
+</div>

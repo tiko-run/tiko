@@ -1,0 +1,136 @@
+---
+import { DEMO, DOCS, REPO } from '../data/site'
+import Brand from './Brand.astro'
+import ThemeSwitch from './ThemeSwitch.astro'
+
+const columns = [
+  {
+    title: 'Product',
+    links: [
+      ['Demo', DEMO],
+      ['Features', '/#features'],
+      ['Scenarios', '/#scenarios'],
+      ['Roadmap', `${DOCS}/roadmap/`],
+      ['Changelog', `${REPO}/blob/main/CHANGELOG.md`],
+    ],
+  },
+  {
+    title: 'Guide',
+    links: [
+      ['Quick start', `${DOCS}/quick-start/`],
+      ['Adding tasks', `${DOCS}/adding-tasks/`],
+      ['Gantt', `${DOCS}/gantt/`],
+      ['Timers and focus', `${DOCS}/focus-and-timers/`],
+      ['Supported trackers', `${DOCS}/trackers/`],
+    ],
+  },
+  {
+    title: 'Self-hosting',
+    links: [
+      ['Install', `${DOCS}/install/`],
+      ['Configuration', `${DOCS}/configuration/`],
+      ['Data and upgrades', `${DOCS}/data-and-upgrades/`],
+      ['Security and privacy', `${DOCS}/security/`],
+      ['Monitoring', `${DOCS}/monitoring/`],
+    ],
+  },
+  {
+    title: 'Community',
+    links: [
+      ['GitHub', REPO],
+      ['Discussions', `${REPO}/discussions`],
+      ['Report a bug', `${REPO}/issues/new/choose`],
+      ['Contributing', `${REPO}/blob/main/CONTRIBUTING.md`],
+      ['License', `${REPO}/blob/main/LICENSE`],
+    ],
+  },
+]
+---
+
+<footer>
+  <div class="wrap">
+    <div class="top">
+      <div class="about">
+        <a href="/" aria-label="tiko, home"><Brand height={28} /></a>
+        <p>Open-source infinite canvas for your tasks: live cards from your tracker, arranged the way you think.</p>
+      </div>
+      {
+        columns.map(({ title, links }) => (
+          <nav aria-label={title}>
+            <h2>{title}</h2>
+            <ul>
+              {links.map(([label, href]) => (
+                <li><a href={href}>{label}</a></li>
+              ))}
+            </ul>
+          </nav>
+        ))
+      }
+    </div>
+    <div class="bottom">
+      <p>
+        © 2026 tiko contributors. Free software under AGPL-3.0. Jira is a trademark of Atlassian
+        and GitHub a trademark of GitHub, Inc.; tiko is not affiliated with either.
+      </p>
+      <ThemeSwitch />
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--card);
+  }
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr));
+    gap: 2.5rem 2rem;
+    padding-block: 3.5rem 3rem;
+  }
+  @media (max-width: 900px) {
+    .top {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .about {
+      grid-column: 1 / -1;
+    }
+  }
+  .about a {
+    display: inline-flex;
+    color: var(--foreground);
+  }
+  .about p {
+    max-width: 30ch;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  h2 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  ul {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  li a:hover {
+    color: var(--foreground);
+  }
+  .bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+  .bottom p {
+    max-width: 70ch;
+  }
+</style>

@@ -1,0 +1,59 @@
+---
+import Icon from './Icon.astro'
+---
+
+<button class="theme" type="button" data-theme-switch aria-label="Switch between light and dark theme">
+  <Icon name="sun" size={16} class="sun" />
+  <Icon name="moon" size={16} class="moon" />
+</button>
+
+<script>
+  for (const button of document.querySelectorAll('[data-theme-switch]')) {
+    button.addEventListener('click', () => {
+      const root = document.documentElement
+      const dark =
+        root.dataset.theme === 'dark' ||
+        (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches)
+      root.dataset.theme = dark ? 'light' : 'dark'
+      try {
+        localStorage.setItem('theme', root.dataset.theme)
+      } catch {}
+    })
+  }
+</script>
+
+<style>
+  .theme {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+  }
+  .theme:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .theme :global(.moon),
+  :global([data-theme='dark']) .theme :global(.sun) {
+    display: none;
+  }
+  :global([data-theme='dark']) .theme :global(.moon) {
+    display: block;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .theme :global(.sun) {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .theme :global(.moon) {
+      display: block;
+    }
+  }
+  :global(html:not(.js)) .theme {
+    display: none;
+  }
+</style>

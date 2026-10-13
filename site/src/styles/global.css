@@ -1,0 +1,363 @@
+/* Tokens from DESIGN.md. The dark set is written twice: for the system theme and for the switch. */
+:root {
+  color-scheme: light;
+  --background: oklch(0.985 0.002 250);
+  --grid: oklch(0.9 0.004 250);
+  --card: oklch(1 0 0);
+  --muted: oklch(0.96 0.004 250);
+  --border: oklch(0.91 0.005 250);
+  --foreground: oklch(0.24 0.01 260);
+  --muted-foreground: oklch(0.52 0.012 260);
+  --primary: oklch(0.53 0.17 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --accent: oklch(0.96 0.012 255);
+  --emblem-dot: #a6abb3;
+  --todo: oklch(0.93 0.006 260);
+  --todo-fg: oklch(0.42 0.01 260);
+  --progress: oklch(0.93 0.04 255);
+  --progress-fg: oklch(0.45 0.13 255);
+  --done: oklch(0.93 0.06 150);
+  --done-fg: oklch(0.42 0.11 150);
+  --sticky-yellow: oklch(0.94 0.05 95);
+  --sticky-blue: oklch(0.94 0.05 240);
+  --sticky-green: oklch(0.94 0.05 150);
+  --sticky-foreground: oklch(0.24 0.01 260);
+  --timer: oklch(0.82 0.16 75);
+  --timer-foreground: oklch(0.3 0.07 60);
+  --timer-fired: oklch(0.66 0.19 30);
+  --timer-fired-foreground: oklch(0.99 0.01 30);
+  --sync-ok: oklch(0.65 0.17 150);
+  --focus-fill: oklch(0.945 0.05 150);
+  --focus-fill-2: oklch(0.945 0.06 95);
+  --focus-ink: oklch(0.4 0.11 150);
+  --type-story: oklch(0.62 0.15 150);
+  --type-task: oklch(0.6 0.15 250);
+  --type-bug: oklch(0.6 0.2 27);
+  --frame-mix: 28%;
+  --shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 8px 24px oklch(0.2 0.02 260 / 0.08);
+
+  --font: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --radius: 6px;
+  --page: 70rem;
+  --gutter: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --background: oklch(0.274 0.018 252);
+    --grid: oklch(0.345 0.018 255);
+    --card: oklch(0.311 0.022 259);
+    --muted: oklch(0.35 0.022 257);
+    --border: oklch(0.384 0.018 255);
+    --foreground: oklch(0.877 0.014 258);
+    --muted-foreground: oklch(0.71 0.016 255);
+    --primary: oklch(0.684 0.152 255);
+    --primary-foreground: oklch(0.2 0.02 255);
+    --accent: oklch(0.35 0.035 255);
+    --emblem-dot: #5a5f66;
+    --sync-ok: oklch(0.72 0.17 150);
+    --focus-fill: oklch(0.38 0.045 150);
+    --focus-fill-2: oklch(0.38 0.05 95);
+    --focus-ink: oklch(0.9 0.1 150);
+    --frame-mix: 9%;
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.2), 0 8px 24px oklch(0 0 0 / 0.25);
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: oklch(0.274 0.018 252);
+  --grid: oklch(0.345 0.018 255);
+  --card: oklch(0.311 0.022 259);
+  --muted: oklch(0.35 0.022 257);
+  --border: oklch(0.384 0.018 255);
+  --foreground: oklch(0.877 0.014 258);
+  --muted-foreground: oklch(0.71 0.016 255);
+  --primary: oklch(0.684 0.152 255);
+  --primary-foreground: oklch(0.2 0.02 255);
+  --accent: oklch(0.35 0.035 255);
+  --emblem-dot: #5a5f66;
+  --sync-ok: oklch(0.72 0.17 150);
+  --focus-fill: oklch(0.38 0.045 150);
+  --focus-fill-2: oklch(0.38 0.05 95);
+  --focus-ink: oklch(0.9 0.1 150);
+  --frame-mix: 9%;
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.2), 0 8px 24px oklch(0 0 0 / 0.25);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-feature-settings: 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+svg {
+  display: block;
+  flex: none;
+}
+code,
+kbd {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+::selection {
+  background: color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+.wrap {
+  width: 100%;
+  max-width: calc(var(--page) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--foreground);
+  color: var(--background);
+}
+.skip:focus {
+  top: 1rem;
+}
+
+/* Section heads: a small label in the key's blue mono, a title, one muted line. */
+.section {
+  padding-block: clamp(4rem, 9vw, 7rem);
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.h2 {
+  margin-top: 0.75rem;
+  max-width: 22ch;
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.lead {
+  margin-top: 1rem;
+  max-width: 56ch;
+  font-size: 1.0625rem;
+  color: var(--muted-foreground);
+  text-wrap: pretty;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding-inline: 1.125rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.btn-primary:hover {
+  background: color-mix(in oklch, var(--primary) 88%, var(--foreground));
+}
+.btn-outline {
+  border-color: var(--border);
+  background: var(--card);
+}
+.btn-outline:hover {
+  border-color: color-mix(in oklch, var(--border) 50%, var(--muted-foreground));
+}
+.btn-sm {
+  height: 2.25rem;
+  padding-inline: 0.875rem;
+  font-size: 0.875rem;
+}
+.btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.link {
+  color: var(--primary);
+  border-bottom: 1px solid color-mix(in oklch, currentColor 35%, transparent);
+}
+.link:hover {
+  border-bottom-color: currentColor;
+}
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--primary);
+}
+.more svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  transition: transform 0.15s;
+}
+.more:hover svg {
+  transform: translateX(2px);
+}
+
+.dots {
+  background-image: radial-gradient(var(--grid) 1px, transparent 1.4px);
+  background-size: 20px 20px;
+}
+
+/* A command with a copy button, as in a terminal. */
+.cmd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0 0.375rem 0 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+.cmd-prompt {
+  color: var(--muted-foreground);
+  user-select: none;
+}
+.cmd code {
+  overflow: hidden;
+  font-size: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmd-copy {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.cmd-copy:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.cmd-copy svg {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+.cmd-copy .ok,
+.cmd-copy.copied .idle {
+  display: none;
+}
+.cmd-copy.copied .ok {
+  display: block;
+  color: var(--done-fg);
+}
+html:not(.js) .cmd-copy {
+  display: none;
+}
+
+/* Blocks rise into place once, when scripts and motion are on. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--d, 0s);
+  }
+  .js .reveal.in {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

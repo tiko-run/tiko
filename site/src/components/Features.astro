@@ -1,0 +1,760 @@
+---
+// Six things tiko does, each with a small looping drawing in the board's own look. A real
+// screencast can replace any drawing later: the tile only needs a 320×200 picture.
+import { DOCS } from '../data/site'
+import Icon from './Icon.astro'
+---
+
+<section class="section" id="features">
+  <div class="wrap">
+    <p class="eyebrow reveal">What you can do</p>
+    <h2 class="h2 reveal">Your tracker keeps the tasks. tiko gives them a place.</h2>
+    <p class="lead reveal">
+      Lists and columns hide how work fits together. On a canvas you group it, plan it and see
+      what is waiting on what, with statuses that are never out of date.
+    </p>
+
+    <div class="grid">
+      <article class="tile reveal">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art live">
+            <span class="chip"><i></i>Synced just now</span>
+            <div class="fc" style="--y:44px">
+              <span class="ty story"></span><span class="k">APP-112</span>Retry payments<span class="lz progress">In progress</span>
+            </div>
+            <div class="fc turning" style="--y:88px">
+              <span class="ty task"></span><span class="k">APP-118</span>Billing cron
+              <span class="swap"><span class="lz progress">In review</span><span class="lz done">Done</span></span>
+            </div>
+            <div class="fc" style="--y:132px">
+              <span class="ty bug"></span><span class="k">APP-127</span>Flaky login test<span class="lz">To do</span>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Cards that stay live</h3>
+          <p>Add tasks by key, link or query. Each card shows the real status from your tracker, refreshed every 30 seconds.</p>
+          <a class="more" href={`${DOCS}/adding-tasks/`}>Adding tasks <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+
+      <article class="tile reveal" style="--d:0.08s">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art arrange">
+            <div class="fr"><b>Ideas</b></div>
+            <i class="st yellow">Split the cron</i>
+            <i class="st blue">Ask QA first</i>
+            <span class="guide"></span>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Arrange them the way you think</h3>
+          <p>Frames, sticky notes, text and arrows around the cards, with smart guides that snap things into place.</p>
+          <a class="more" href={`${DOCS}/adding-tasks/#around-the-cards`}>The board <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+
+      <article class="tile reveal" style="--d:0.16s">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art plan">
+            <div class="gm">
+              <div class="gm-head">Oct<span>5</span><span>12</span><span>19</span><span>26</span></div>
+              <div class="gm-row"><i class="progress" style="--l:6%;--w:38%"></i></div>
+              <div class="gm-row"><i class="done" style="--l:24%;--w:34%;--t:0.25s"></i></div>
+              <div class="gm-row"><i style="--l:60%;--w:30%;--t:0.5s"></i></div>
+              <span class="gm-today"></span>
+              <span class="gm-stone"></span>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Plan on a timeline</h3>
+          <p>Drop cards onto a Gantt and get bars with live status, milestones and dependency lines.</p>
+          <a class="more" href={`${DOCS}/gantt/`}>Gantt <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+
+      <article class="tile reveal">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art wait">
+            <span class="cube"><span class="run"><Icon name="alarm-clock" size={14} />2m</span><span class="fired"><Icon name="bell" size={18} /></span></span>
+            <div class="fc" style="--x:74px;--y:52px">
+              <span class="ty task"></span><span class="k">APP-118</span>Billing cron<span class="lz progress">In review</span>
+            </div>
+            <div class="went">
+              <b>Ping QA about the cron</b>
+              <small>On APP-118 · Went off at 15:30</small>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Wait without watching</h3>
+          <p>Put a timer next to a card. It goes off after a set time or when the task leaves its status.</p>
+          <a class="more" href={`${DOCS}/focus-and-timers/`}>Timers and focus <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+
+      <article class="tile reveal" style="--d:0.08s">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art find">
+            <div class="pal">
+              <div class="pal-in"><Icon name="search" size={14} /><span class="typing">billing</span><i></i></div>
+              <div class="pal-row on"><span class="ty task"></span><span class="k">APP-118</span><span><mark>Billing</mark> cron</span><small>In review</small></div>
+              <div class="pal-row"><span class="ty story"></span><span class="k">APP-131</span><span>New <mark>billing</mark> page</span><small>To do</small></div>
+              <div class="pal-row"><Icon name="sticky-note" size={13} /><span>Ask finance about <mark>billing</mark></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Find anything from the keyboard</h3>
+          <p><kbd>⌘K</kbd> searches the board and runs commands, and every tool has a shortcut.</p>
+          <a class="more" href={`${DOCS}/search/`}>Search <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+
+      <article class="tile reveal" style="--d:0.16s">
+        <div class="visual dots" aria-hidden="true">
+          <div class="art team">
+            <span class="faces"><i style="--c:oklch(0.62 0.19 330)">A</i><i style="--c:oklch(0.62 0.16 160)">M</i><i style="--c:oklch(0.6 0.15 250)">K</i></span>
+            <div class="fc held" style="--x:52px;--y:84px">
+              <span class="ty story"></span><span class="k">APP-112</span>Retry failed payments
+            </div>
+            <span class="ptr anna"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Anna</b></span>
+            <span class="ptr max"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Max</b></span>
+          </div>
+        </div>
+        <div class="body">
+          <h3>Work on a board together</h3>
+          <p>Invite people with a link, as viewers or editors. Everyone sees each other's cursors and changes as they happen.</p>
+          <a class="more" href={`${DOCS}/working-together/`}>Working together <Icon name="arrow-right" /></a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+  }
+  @media (max-width: 960px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 620px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+  }
+  .visual {
+    position: relative;
+    height: 216px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--background);
+  }
+  .body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem 1.25rem 1.375rem;
+  }
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .body p {
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+  .body .more {
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+  kbd {
+    padding: 0.05rem 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  /* Every drawing lives in a 320×200 box in the middle of its tile. */
+  .art {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 320px;
+    height: 200px;
+    margin: -100px 0 0 -160px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .fc {
+    position: absolute;
+    left: var(--x, 24px);
+    top: var(--y);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    white-space: nowrap;
+  }
+  .ty {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+  .story {
+    background: var(--type-story);
+  }
+  .task {
+    background: var(--type-task);
+  }
+  .bug {
+    background: var(--type-bug);
+  }
+  .k {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--primary);
+  }
+  .lz {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .lz.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  .lz.done {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+
+  /* Live: one status turns from In review to Done and back. */
+  .chip {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .chip i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sync-ok);
+    animation: beat 7s infinite;
+  }
+  .swap {
+    display: grid;
+  }
+  .swap .lz {
+    grid-area: 1 / 1;
+    justify-self: start;
+  }
+  .swap .done {
+    animation: appear 7s infinite;
+  }
+  .swap .progress {
+    animation: appear 7s infinite reverse;
+  }
+  .turning .k {
+    text-decoration: line-through;
+    animation: strike 7s infinite;
+  }
+  .turning {
+    animation: glow 7s infinite;
+  }
+  @keyframes appear {
+    0%,
+    42% {
+      opacity: 0;
+    }
+    48%,
+    94% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes strike {
+    0%,
+    42% {
+      text-decoration-color: transparent;
+    }
+    48%,
+    94% {
+      text-decoration-color: currentColor;
+      color: var(--muted-foreground);
+    }
+    100% {
+      text-decoration-color: transparent;
+    }
+  }
+  @keyframes glow {
+    0%,
+    43% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    45% {
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+    58%,
+    100% {
+      box-shadow: 0 0 0 9px transparent;
+    }
+  }
+  @keyframes beat {
+    0%,
+    43% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    45% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--sync-ok) 60%, transparent);
+    }
+    58%,
+    100% {
+      box-shadow: 0 0 0 7px transparent;
+    }
+  }
+
+  /* Arrange: a note slides next to another and a guide shows when their tops line up. */
+  .fr {
+    position: absolute;
+    inset: 44px 30px 22px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+  }
+  .fr b {
+    position: absolute;
+    left: 2px;
+    bottom: calc(100% + 4px);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .st {
+    position: absolute;
+    left: 54px;
+    top: 68px;
+    width: 86px;
+    height: 86px;
+    padding: 9px;
+    border-radius: 3px;
+    color: var(--sticky-foreground);
+    font-style: normal;
+    box-shadow: 0 1px 3px oklch(0.2 0.02 260 / 0.12);
+  }
+  .yellow {
+    background: var(--sticky-yellow);
+  }
+  .blue {
+    left: 164px;
+    background: var(--sticky-blue);
+    animation: slide 6.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .guide {
+    position: absolute;
+    left: 44px;
+    right: 44px;
+    top: 68px;
+    border-top: 1px dashed var(--primary);
+    animation: guide 6.5s infinite;
+  }
+  @keyframes slide {
+    0%,
+    18% {
+      transform: translate(46px, 26px);
+    }
+    38%,
+    86% {
+      transform: none;
+    }
+    100% {
+      transform: translate(46px, 26px);
+    }
+  }
+  @keyframes guide {
+    0%,
+    34% {
+      opacity: 0;
+    }
+    38%,
+    62% {
+      opacity: 1;
+    }
+    70%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Plan: bars grow along the weeks. */
+  .gm {
+    position: absolute;
+    inset: 24px 16px 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+  }
+  .gm-head {
+    display: grid;
+    grid-template-columns: 44px repeat(4, 1fr);
+    height: 26px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    line-height: 26px;
+    color: var(--muted-foreground);
+    padding-left: 8px;
+  }
+  .gm-head span {
+    padding-left: 6px;
+    border-left: 1px solid var(--border);
+  }
+  .gm-row {
+    position: relative;
+    height: 36px;
+    margin-left: 52px;
+  }
+  .gm-row i {
+    position: absolute;
+    left: var(--l);
+    top: 8px;
+    width: var(--w);
+    height: 20px;
+    border-radius: 4px;
+    background: var(--todo);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+    transform-origin: left;
+    animation: grow 7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--t, 0s) infinite both;
+  }
+  .gm-row .progress {
+    background: var(--progress);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+  }
+  .gm-row .done {
+    background: var(--done);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+  }
+  .gm-today {
+    position: absolute;
+    left: 58%;
+    top: 26px;
+    bottom: 0;
+    width: 1px;
+    background: var(--primary);
+  }
+  .gm-stone {
+    position: absolute;
+    right: 20px;
+    bottom: 7px;
+    width: 8px;
+    height: 8px;
+    background: var(--foreground);
+    transform: rotate(45deg);
+  }
+  @keyframes grow {
+    0%,
+    8% {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+    22%,
+    90% {
+      transform: none;
+      opacity: 1;
+    }
+    97%,
+    100% {
+      transform: none;
+      opacity: 0;
+    }
+  }
+
+  /* Wait: the timer by the card runs out and its note appears. */
+  .cube {
+    position: absolute;
+    left: 28px;
+    top: 48px;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--timer);
+    color: var(--timer-foreground);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.1;
+    animation: fire 7s infinite;
+  }
+  .cube span {
+    grid-area: 1 / 1;
+    display: grid;
+    place-items: center;
+    align-content: center;
+  }
+  .cube .fired {
+    animation: appear 7s infinite;
+  }
+  .cube .run {
+    animation: appear 7s infinite reverse;
+  }
+  .went {
+    position: absolute;
+    left: 28px;
+    right: 28px;
+    top: 112px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    animation: appear 7s infinite;
+  }
+  .went b {
+    display: block;
+    font-weight: 500;
+  }
+  .went small {
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  @keyframes fire {
+    0%,
+    42% {
+      background: var(--timer);
+      color: var(--timer-foreground);
+    }
+    48%,
+    94% {
+      background: var(--timer-fired);
+      color: var(--timer-fired-foreground);
+    }
+    100% {
+      background: var(--timer);
+    }
+  }
+
+  /* Find: the palette with a query being typed. */
+  .pal {
+    position: absolute;
+    inset: 20px 14px auto;
+    padding-bottom: 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .pal-in {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    margin-bottom: 6px;
+    padding-inline: 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--muted-foreground);
+  }
+  .typing {
+    display: inline-block;
+    width: 7ch;
+    overflow: hidden;
+    color: var(--foreground);
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: nowrap;
+    animation: typing 6s steps(7) infinite;
+  }
+  .pal-in i {
+    width: 1px;
+    height: 16px;
+    margin-left: -6px;
+    background: var(--foreground);
+    animation: blink 1s steps(2, start) infinite;
+  }
+  .pal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    margin-inline: 6px;
+    padding-inline: 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .pal-row.on {
+    background: var(--accent);
+  }
+  .pal-row small {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .pal-row :global(svg) {
+    color: var(--muted-foreground);
+  }
+  mark {
+    background: color-mix(in oklch, var(--primary) 15%, transparent);
+    color: inherit;
+  }
+  @keyframes typing {
+    0%,
+    10% {
+      width: 0;
+    }
+    35%,
+    100% {
+      width: 7ch;
+    }
+  }
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+
+  /* Together: two people's cursors around a card one of them holds. */
+  .faces {
+    position: absolute;
+    right: 22px;
+    top: 14px;
+    display: flex;
+  }
+  .faces i {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-left: -6px;
+    border: 2px solid var(--background);
+    border-radius: 50%;
+    background: var(--c);
+    color: white;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+  }
+  .held {
+    outline: 2px solid oklch(0.62 0.19 330);
+    outline-offset: 1px;
+    animation: carry 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .ptr {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: flex-start;
+    --c: oklch(0.62 0.19 330);
+  }
+  .ptr svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--c);
+    stroke: var(--card);
+    stroke-width: 1;
+  }
+  .ptr b {
+    margin: 12px 0 0 -2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--c);
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .anna {
+    transform: translate(196px, 100px);
+    animation: anna 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .max {
+    --c: oklch(0.62 0.16 160);
+    transform: translate(70px, 160px);
+    animation: max 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes carry {
+    0%,
+    20% {
+      transform: none;
+    }
+    45%,
+    75% {
+      transform: translate(28px, 34px);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes anna {
+    0%,
+    20% {
+      transform: translate(196px, 100px);
+    }
+    45%,
+    75% {
+      transform: translate(224px, 134px);
+    }
+    100% {
+      transform: translate(196px, 100px);
+    }
+  }
+  @keyframes max {
+    0% {
+      transform: translate(70px, 160px);
+    }
+    30% {
+      transform: translate(150px, 40px);
+    }
+    60% {
+      transform: translate(40px, 60px);
+    }
+    100% {
+      transform: translate(70px, 160px);
+    }
+  }
+
+  /* Without motion every drawing shows its finished state. */
+  @media (prefers-reduced-motion: reduce) {
+    .swap .progress,
+    .cube .run {
+      display: none;
+    }
+    .cube {
+      background: var(--timer-fired);
+      color: var(--timer-fired-foreground);
+    }
+  }
+</style>

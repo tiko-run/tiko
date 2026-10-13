@@ -1,0 +1,28 @@
+---
+// The logo or the emblem from brand/, recolored through tokens so it follows the theme.
+import { readFileSync } from 'node:fs'
+
+interface Props {
+  mark?: 'logo' | 'emblem'
+  height?: number
+}
+const { mark = 'logo', height = 28 } = Astro.props
+const path = mark === 'logo' ? '../brand/logo/tiko-logo.svg' : '../brand/emblem/tiko-emblem.svg'
+const file = readFileSync(path, 'utf8')
+const [, , width, box] = file.match(/viewBox="(0 0 (\d+) (\d+))"/) ?? []
+const body = file
+  .slice(file.indexOf('>', file.indexOf('<svg')) + 1, file.lastIndexOf('</svg>'))
+  .replace(/<title>.*?<\/title>/, '')
+  .replaceAll('#A6ABB3', 'var(--emblem-dot)')
+  .replaceAll('#096ACB', 'var(--primary)')
+  .replaceAll('#1C1F24', 'currentColor')
+---
+
+<svg
+  height={height}
+  width={(height * Number(width)) / Number(box)}
+  viewBox={`0 0 ${width} ${box}`}
+  fill="none"
+  aria-hidden="true"
+  set:html={body}
+/>

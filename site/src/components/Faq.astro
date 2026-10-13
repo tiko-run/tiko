@@ -1,0 +1,76 @@
+---
+import { FAQ } from '../data/site'
+import Icon from './Icon.astro'
+---
+
+<section class="section" id="faq">
+  <div class="wrap cols">
+    <div>
+      <p class="eyebrow reveal">Questions</p>
+      <h2 class="h2 reveal">Before you try it</h2>
+    </div>
+    <div class="list reveal">
+      {
+        FAQ.map(({ q, a }, i) => (
+          <details open={i === 0}>
+            <summary>
+              <h3>{q}</h3>
+              <Icon name="chevron-down" size={16} />
+            </summary>
+            <p>{a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 2rem clamp(2rem, 6vw, 5rem);
+  }
+  @media (max-width: 860px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .list {
+    border-top: 1px solid var(--border);
+  }
+  details {
+    border-bottom: 1px solid var(--border);
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.125rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary :global(svg) {
+    color: var(--muted-foreground);
+    transition: transform 0.2s;
+  }
+  details[open] summary :global(svg) {
+    transform: rotate(180deg);
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  summary:hover h3 {
+    color: var(--primary);
+  }
+  details p {
+    max-width: 60ch;
+    padding-bottom: 1.25rem;
+    color: var(--muted-foreground);
+  }
+</style>
