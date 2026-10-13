@@ -68,7 +68,7 @@ A person opens `tiko.run` from a launch post. Without scrolling they read what t
 - **FR-001**: The site MUST build to static files with `npm run build` in `site/`, and CI MUST build it on every change to `site/` or `install/`.
 - **FR-002**: Colors, type, radius and the look of board elements MUST come from `DESIGN.md`, in a light and a dark theme, following the system theme with a switch.
 - **FR-003**: The page MUST work without JavaScript and without motion.
-- **FR-004**: The page MUST NOT load fonts, scripts or pictures from other hosts.
+- **FR-004**: The page MUST NOT load fonts, scripts or pictures from other hosts. The one exception is the Cloudflare Web Analytics beacon, which Cloudflare adds to the page at its edge; it sets no cookies.
 - **FR-005**: Every name, key and task on the page MUST be made up.
 - **FR-006**: The site MUST serve the installers and redirect guide paths and `/demo` (Decision 9).
 
@@ -81,6 +81,5 @@ A person opens `tiko.run` from a launch post. Without scrolling they read what t
 ## Out of scope
 
 - The e-mail list for tiko Cloud, a privacy policy and terms.
-- Analytics: Cloudflare Web Analytics is turned on for the project in the dashboard, with no code.
 - Real screencasts, a blog, comparison pages, other languages.
 - Switching `tiko.run` to the site: done by hand after G3, with the owner's word (DNS and the redirect rules of the zone).
