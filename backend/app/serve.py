@@ -11,8 +11,6 @@ import urllib.request
 
 from app.config import get_settings
 
-START_TIMEOUT_S = 120.0
-
 
 def _command(port: int) -> list[str]:
     return [
@@ -44,7 +42,13 @@ def main() -> int:
     parser.add_argument("--healthy", action="store_true", help="only check that all answer")
     args = parser.parse_args()
     port = args.port
-    count = get_settings().tiko_workers
+    settings = get_settings()
+    count = settings.tiko_workers
+    metrics = settings.tiko_metrics_port
+    if metrics and metrics + count > port and port + count > metrics:
+        parser.error(
+            f"TIKO_METRICS_PORT {metrics} runs into the API's ports {port} to {port + count - 1}"
+        )
     if args.healthy:
         # The web container waits for this: a board may belong to the last process to start.
         return 0 if all(_healthy(port + index) for index in range(count)) else 1
@@ -65,8 +69,8 @@ def main() -> int:
             children.append(subprocess.Popen(_command(port + index), env=env))  # noqa: S603
             if index == 0:
                 # The first one alone migrates the database and makes the first admin.
-                deadline = time.monotonic() + START_TIMEOUT_S
-                while not _healthy(port) and time.monotonic() < deadline:
+                # However long that takes: a second process started meanwhile would migrate too.
+                while not _healthy(port):
                     if children[0].poll() is not None:
                         return children[0].returncode or 1
                     time.sleep(0.2)

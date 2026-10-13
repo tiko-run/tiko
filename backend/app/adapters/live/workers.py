@@ -74,10 +74,8 @@ class Workers:
                     put, board_id, version, BoardDoc.model_validate(doc)
                 )
             else:
-                if what in _TOLD:
-                    getattr(self._rooms, what)(*args)
-                for act in self._heard.get(what, []):
-                    act(*args)
+                # Off the loop: what runs here may wait for a lock or the database.
+                await anyio.to_thread.run_sync(self._hear, what, args)
         except tuple(_ERRORS.values()) as error:
             reply["error"] = [error.code, str(error)]
         except Exception:
@@ -87,6 +85,12 @@ class Workers:
             writer.write(json.dumps(reply).encode())
             await writer.drain()
             writer.close()
+
+    def _hear(self, what: str, args: list[Any]) -> None:
+        if what in _TOLD:
+            getattr(self._rooms, what)(*args)
+        for act in self._heard.get(what, []):
+            act(*args)
 
     def _ask(self, index: int, what: str, args: list[Any], timeout: float) -> dict[str, Any]:
         with socket.socket(socket.AF_UNIX) as conn:

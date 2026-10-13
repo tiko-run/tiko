@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     tiko_demo_limit: int | None = Field(default=None, ge=1)
     # Boards a person may own, admins aside. Empty: no limit.
     tiko_board_limit: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _metrics_ports_fit(self) -> Self:
+        # Each process has a metrics port of its own, counted up from the first.
+        if self.tiko_metrics_port and self.tiko_metrics_port + self.tiko_workers - 1 > 65535:
+            raise ValueError("TIKO_METRICS_PORT leaves no port for every one of TIKO_WORKERS")
+        return self
 
 
 @lru_cache

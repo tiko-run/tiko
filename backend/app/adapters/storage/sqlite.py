@@ -694,8 +694,9 @@ class SqliteAttempts:
                 "SELECT opened, used FROM attempt_windows WHERE scope = ? AND key = ?", (scope, key)
             ).fetchone()
             opened, used = (row["opened"], row["used"]) if row else (at, 0)
-            if at - opened >= window_s:
-                # Keys that went quiet would otherwise stay here for good.
+            if not row or at - opened >= window_s:
+                # A window opens: the moment to drop the scope's spent ones, or keys that
+                # went quiet would stay here for good.
                 conn.execute(
                     "DELETE FROM attempt_windows WHERE scope = ? AND opened <= ?",
                     (scope, at - window_s),

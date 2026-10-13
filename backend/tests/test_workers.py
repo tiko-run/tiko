@@ -9,12 +9,14 @@ from pathlib import Path
 
 import httpx
 import pytest
+from pydantic import ValidationError
 from websockets.exceptions import ConnectionClosed
 from websockets.sync.client import connect
 
 from app.adapters.live.workers import owner
 from app.adapters.storage.lock import FileLock
 from app.adapters.storage.sqlite import Database, SqliteAttempts
+from app.config import Settings
 from app.domain.accounts import PER_USERNAME_FAILURES
 from app.domain.attempts import MemoryAttempts
 from app.domain.live import GOING_AWAY, SESSION_ENDED
@@ -224,3 +226,28 @@ def test_a_window_opens_at_its_first_request(attempts):
     attempts.spend("s", "k", 2, 60.0, 161.0)
     attempts.drop("s", "k")
     assert attempts.spend("s", "k", 2, 60.0, 162.0) is None
+
+
+def test_windows_of_keys_that_went_quiet_are_dropped():
+    db = Database(":memory:")
+    attempts = SqliteAttempts(db)
+    for n in range(100):
+        attempts.spend("s", f"key-{n}", 2, 60.0, float(n))
+    attempts.spend("other", "kept", 2, 60.0, 0.0)
+    with db.transaction() as conn:
+        rows = conn.execute("SELECT scope, COUNT(*) FROM attempt_windows GROUP BY scope").fetchall()
+    assert {row[0]: row[1] for row in rows} == {"s": 60, "other": 1}
+
+
+def test_metrics_ports_must_fit_every_process():
+    with pytest.raises(ValidationError):
+        Settings(tiko_metrics_port=65535, tiko_workers=2)
+    assert Settings(tiko_metrics_port=65534, tiko_workers=2).tiko_metrics_port == 65534
+
+
+def test_metrics_ports_must_not_run_into_the_api_ports():
+    env = {**os.environ, "TIKO_WORKERS": "2", "TIKO_METRICS_PORT": "7999"}
+    run = subprocess.run(
+        [sys.executable, "-m", "app.serve"], cwd=BACKEND, env=env, capture_output=True, text=True
+    )
+    assert run.returncode == 2 and "runs into the API's ports 8000 to 8001" in run.stderr
