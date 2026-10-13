@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `/metrics` answers only to admins and to the metrics token. A member or a demo visitor, who could read it before, gets 404.
 - A card's node type in the API and in stored boards is `task_card` instead of `jira_card`, now that a card holds a task of any tracker. Boards are rewritten on the first start of the new version, and tiko first copies the database to `data/backups/before-v12-<time>.db`. A board sent to the API with `jira_card` is still accepted. Reload tabs left open over the upgrade.
+- After an edit the server checks the elements that changed instead of the whole board. On a board of 1000 elements a check took about 60 ms on a laptop and stalled everyone on the instance for that long; it now takes about 4 ms.
 - Pointers, selections and drags of the people on a board reach the others as one message for the whole board, at most 20 times a second, instead of one message per move and person. Ten people moving at once used to mean 200 messages a second for every tab on the board; now it is 20.
 - Sockets of live boards are no longer compressed per message. Compressing every pointer frame took up to 15% of the server's core in a load test; a busy board now sends more bytes and the server has more room for people.
 - About: "Report a bug or idea" opens the form chooser for a bug, an idea or a question instead of the list of issues.

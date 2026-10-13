@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from app.domain import live as live_module
 from app.domain.boards import MAX_NODES, BoardDoc, check_doc
 from app.domain.live import LiveDoc, from_board, repaired, stored_node, to_json
 from app.domain.tasks import now_iso  # noqa: F401 - keeps the import graph as the app has it
@@ -260,3 +261,128 @@ def test_a_card_under_its_old_type_name_is_kept_and_renamed():
     repaired_board, notes = live.repair(board([]))
     assert (repaired_board.nodes[0].type, notes) == ("task_card", [])
     assert live.read()[0]["card"]["type"] == "task_card"
+
+
+def merge(server: LiveDoc, change) -> None:
+    """Someone's tab changes the board its own way and the server hears the update."""
+    tab = LiveDoc(server.state())
+    change(tab)
+    server.doc.apply_update(tab.state())
+
+
+def test_a_broken_element_among_a_thousand_is_repaired_without_checking_the_rest(monkeypatch):
+    start = board(
+        [sticky(f"s{n}") for n in range(1000)], [{"id": "e", "source": "s1", "target": "s2"}]
+    )
+    server = LiveDoc()
+    server.apply_json(start)
+    last, _ = server.repair(start)
+    looked_at: list[dict] = []
+    valid = live_module._valid
+    monkeypatch.setattr(
+        live_module,
+        "_valid",
+        lambda adapter, value: looked_at.append(value) or valid(adapter, value),
+    )
+
+    def spoil(tab: LiveDoc) -> None:
+        nodes, edges = tab.read()
+        nodes["s500"]["data"]["text"] = "x" * 6000
+        nodes["s7"]["place"]["x"] = 77
+        tab.write(nodes, edges, origin="tab")
+
+    merge(server, spoil)
+    after, notes = server.repair(last)
+    assert notes == ["node_restored"]
+    assert sorted(value["id"] for value in looked_at) == ["s500", "s7"]
+    check_doc(after)
+    moved = {**as_json(last), "nodes": [dict(node) for node in as_json(last)["nodes"]]}
+    moved["nodes"][7]["position"] = {"x": 77, "y": 20}
+    assert as_json(after) == moved
+    assert server.read()[0]["s500"]["data"]["text"] == "s500"
+
+    looked_at.clear()
+    again, notes = server.repair(after)
+    assert (notes, looked_at) == ([], []) and as_json(again) == as_json(after)
+
+
+def test_a_repair_of_what_changed_is_the_repair_of_everything():
+    """Round after round on one document: the board, the notes and the document that a check
+    of every element gives from the same last valid state."""
+    rng = random.Random(19)
+    server = LiveDoc()
+    server.apply_json(EVERY_TYPE)
+    last, _ = server.repair(EVERY_TYPE)
+    seen_notes: set[str] = set()
+
+    def anything(tab: LiveDoc) -> None:
+        nodes, edges = tab.read()
+        for _ in range(rng.randint(1, 4)):
+            ids = list(nodes)
+            move = rng.choice(
+                [
+                    "delete",
+                    "reparent",
+                    "add",
+                    "frame",
+                    "timer",
+                    "edge",
+                    "unedge",
+                    "text",
+                    "type",
+                    "junk",
+                ]
+            )
+            if move == "delete" and ids:
+                nodes.pop(rng.choice(ids))
+            elif move == "reparent" and ids:
+                nodes[rng.choice(ids)]["place"]["parentId"] = rng.choice(ids + ["nowhere"])
+            elif move in ("add", "frame"):
+                new = f"n{rng.random()}"
+                made = sticky(new) if move == "add" else frame(new)
+                if rng.random() < 0.2:
+                    # The end of an arrow that points at nothing; it lives while an edge holds it.
+                    made = {**made, "type": "anchor", "data": {}}
+                nodes[new] = stored_node(made, rng.random() * 10)
+                if rng.random() < 0.2:
+                    nodes[new]["data"]["text"] = "x" * 6000
+                if ids and rng.random() < 0.5:
+                    nodes[new]["place"]["parentId"] = rng.choice(ids)
+            elif move == "timer" and ids:
+                new = f"t{rng.random()}"
+                made = {"id": new, "type": "timer", "position": {"x": 1, "y": 1}, "data": {}}
+                nodes[new] = stored_node({**made, "parentId": rng.choice(ids)}, rng.random() * 10)
+            elif move == "edge" and ids:
+                ends = ids + ["nowhere"]
+                edges[f"e{rng.random()}"] = {"source": rng.choice(ends), "target": rng.choice(ends)}
+            elif move == "unedge" and edges:
+                edges.pop(rng.choice(list(edges)))
+            elif move == "text" and ids:
+                node = nodes[rng.choice(ids)]
+                node["data"]["text"] = "x" * rng.choice([3, 6000])
+            elif move == "type" and ids:
+                nodes[rng.choice(ids)]["type"] = rng.choice(["sticky", "frame", "bogus"])
+        tab.write(nodes, edges, origin="tab")
+        if move == "junk" and ids:
+            # Not even a map where a node should be.
+            tab.doc["nodes"][rng.choice(ids)] = 5
+
+    for _ in range(300):
+        before = server.read()[0]
+        merge(server, anything)
+        good, kept, expected_notes = repaired(*LiveDoc(server.state()).read(), before)
+        last, notes = server.repair(last)
+        check_doc(last)
+        assert sorted(notes) == sorted(expected_notes)
+        assert server.read() == (good, kept)
+        assert as_json(last) == as_json(BoardDoc.model_validate(to_json(good, kept)))
+        seen_notes.update(notes)
+    # The run is worth something only if it broke the board in every way a repair knows.
+    assert seen_notes >= {
+        "node_restored",
+        "node_dropped",
+        "node_detached",
+        "timer_dropped",
+        "edge_dropped",
+        "anchor_dropped",
+    }
