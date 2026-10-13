@@ -10,6 +10,7 @@
 | `Origin` host equals the request host | closed with 1008 before accept |
 | Role on the board at least viewer | accepted, then closed with 4403 |
 | Under 30 connections in the room | accepted, then closed with 4429 |
+| With several API processes (spec 019): the request reached the process that holds the board | accepted, then closed with 1012 |
 
 ## Messages
 

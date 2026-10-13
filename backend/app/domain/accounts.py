@@ -4,14 +4,13 @@ import hmac
 import math
 import re
 import secrets
-import threading
 import uuid
-from collections import deque
 from functools import cache
 from typing import Literal
 
 from pydantic import BaseModel
 
+from app.domain.attempts import MemoryAttempts
 from app.domain.errors import (
     AccountDisabled,
     InvalidCredentials,
@@ -21,7 +20,7 @@ from app.domain.errors import (
     ValidationFailed,
     WeakPassword,
 )
-from app.domain.ports import UserRepo
+from app.domain.ports import Attempts, UserRepo
 from app.domain.sessions import Sessions
 
 Role = Literal["admin", "member"]
@@ -105,51 +104,50 @@ class Limiter:
 
     def __init__(
         self,
+        scope: str,
         limit: int,
         window_s: float,
         message: str = "too many wrong passwords, try again later",
+        attempts: Attempts | None = None,
     ) -> None:
+        self._scope = scope
         self._limit = limit
         self._window_s = window_s
         self._message = message
-        self._failures: dict[str, deque[float]] = {}
-        self._lock = threading.Lock()
+        self._attempts = attempts or MemoryAttempts()
+
+    def _refuse(self, oldest: float, now: float) -> TooManyAttempts:
+        wait = math.ceil(oldest + self._window_s - now)
+        return TooManyAttempts(self._message, max(wait, 1))
 
     def check(self, key: str, now: float) -> None:
-        with self._lock:
-            failures = self._failures.get(key)
-            if not failures:
-                return
-            while failures and failures[0] <= now - self._window_s:
-                failures.popleft()
-            if not failures:
-                del self._failures[key]
-            elif len(failures) >= self._limit:
-                wait = math.ceil(failures[0] + self._window_s - now)
-                raise TooManyAttempts(self._message, max(wait, 1))
+        count, oldest = self._attempts.recent(self._scope, key, now - self._window_s)
+        if count >= self._limit:
+            raise self._refuse(oldest, now)
 
     def fail(self, key: str, now: float) -> None:
-        with self._lock:
-            self._failures.setdefault(key, deque()).append(now)
+        self._attempts.add(self._scope, key, now, now - self._window_s)
 
     def spend(self, key: str, now: float) -> None:
         """Checks and counts in one step, for a budget of requests instead of failures."""
-        with self._lock:
-            used = self._failures.setdefault(key, deque())
-            while used and used[0] <= now - self._window_s:
-                used.popleft()
-            if len(used) >= self._limit:
-                wait = math.ceil(used[0] + self._window_s - now)
-                raise TooManyAttempts(self._message, max(wait, 1))
-            used.append(now)
+        oldest = self._attempts.add_under(self._scope, key, self._limit, now, now - self._window_s)
+        if oldest is not None:
+            raise self._refuse(oldest, now)
 
 
 class Accounts:
-    def __init__(self, users: UserRepo, sessions: Sessions) -> None:
+    def __init__(
+        self, users: UserRepo, sessions: Sessions, attempts: Attempts | None = None
+    ) -> None:
         self._users = users
         self._sessions = sessions
-        self._per_username = Limiter(PER_USERNAME_FAILURES, PER_USERNAME_WINDOW_S)
-        self._instance = Limiter(INSTANCE_FAILURES, INSTANCE_WINDOW_S)
+        attempts = attempts or MemoryAttempts()
+        self._per_username = Limiter(
+            "sign-in", PER_USERNAME_FAILURES, PER_USERNAME_WINDOW_S, attempts=attempts
+        )
+        self._instance = Limiter(
+            "sign-in-instance", INSTANCE_FAILURES, INSTANCE_WINDOW_S, attempts=attempts
+        )
 
     def create(self, username: str, name: str, password: str, role: Role) -> Person:
         person = Person(

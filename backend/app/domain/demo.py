@@ -2,6 +2,7 @@ import ipaddress
 import secrets
 import threading
 import uuid
+from contextlib import AbstractContextManager
 
 from app.domain.accounts import (
     Limiter,
@@ -11,8 +12,9 @@ from app.domain.accounts import (
     check_username,
     hash_password,
 )
+from app.domain.attempts import MemoryAttempts
 from app.domain.errors import DemoFull, NotFound
-from app.domain.ports import LiveBoards, UserRepo
+from app.domain.ports import Attempts, LiveBoards, UserRepo
 from app.domain.sessions import Sessions, iso
 
 VISITOR_TTL_S = 7 * 24 * 3600
@@ -62,17 +64,31 @@ class DemoVisitors:
     """Temporary people of a demo instance: made in one click, deleted when they stay away."""
 
     def __init__(
-        self, users: UserRepo, sessions: Sessions, live: LiveBoards, max_alive: int = MAX_ALIVE
+        self,
+        users: UserRepo,
+        sessions: Sessions,
+        live: LiveBoards,
+        max_alive: int = MAX_ALIVE,
+        attempts: Attempts | None = None,
+        creating: AbstractContextManager | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
         self._live = live
         self.max_alive = max_alive
+        attempts = attempts or MemoryAttempts()
         self._per_address = Limiter(
-            PER_ADDRESS, PER_ADDRESS_WINDOW_S, "Too many demos from this address, try again later."
+            "demo-address",
+            PER_ADDRESS,
+            PER_ADDRESS_WINDOW_S,
+            "Too many demos from this address, try again later.",
+            attempts,
         )
-        self._lookups = Limiter(LOOKUPS, LOOKUPS_WINDOW_S, "Too many searches, try again later.")
-        self._creating = threading.Lock()
+        self._lookups = Limiter(
+            "lookups", LOOKUPS, LOOKUPS_WINDOW_S, "Too many searches, try again later.", attempts
+        )
+        # Held across the processes of the instance when it runs several.
+        self._creating = creating or threading.Lock()
 
     def create(self, address: str, now: float) -> str:
         """Makes a demo visitor and returns the token of their session."""

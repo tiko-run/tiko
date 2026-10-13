@@ -131,7 +131,9 @@ class World:
     @contextmanager
     def guest(self, token: str):
         """Someone with the public link and no session."""
-        with self.sockets.websocket_connect(f"/api/public/{token}/live") as socket:
+        found = TestClient(self.app).get(f"/api/public/{token}")
+        room = found.json()["room"] if found.is_success else "00"
+        with self.sockets.websocket_connect(f"/api/public/{token}/live/{room}") as socket:
             yield Tab(socket)
 
     def guest_close_code(self, token: str) -> int:

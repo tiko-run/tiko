@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # A second listener for /metrics, on a thread of its own, that answers the token while the
     # server is too busy to. Empty: none.
     tiko_metrics_port: int | None = Field(default=None, ge=1, le=65535)
+    # API processes, one core each; the web container needs the same number to pick the process
+    # of a board. Metrics of process N are on TIKO_METRICS_PORT + N.
+    tiko_workers: int = Field(default=1, ge=1, le=64)
+    # Set by the starter for each process, never by hand: which of them this is, and the
+    # directory of the sockets they talk to each other through.
+    tiko_worker: int = Field(default=0, ge=0)
+    tiko_workers_dir: str | None = None
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
     # Demo visitors the instance keeps at once. Empty: 500.

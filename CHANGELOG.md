@@ -12,7 +12,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `TIKO_METRICS_PORT` opens a second port for `/metrics`, served by its own thread: Prometheus keeps getting the numbers of an instance that is too overloaded to answer on port 8000. It needs `TIKO_METRICS_TOKEN`. See "Monitoring" in the guide.
 
+- `TIKO_WORKERS` runs several API processes, one core each, so an instance with many busy boards is no longer held to one core. A board is always served by the same process; signing out, role changes and the limits on wrong passwords and public links work across all of them. With several processes each has its own metrics port, counted up from `TIKO_METRICS_PORT`. See "Several processes" in the guide's Configuration page.
+
 ### Changed
+
+- The socket of a public link moved from `/api/public/{token}/live` to `/api/public/{token}/live/{room}`, with `room` taken from `GET /api/public/{token}`. Reload public boards left open over the upgrade.
+- The limits on wrong passwords, demo starts, people searches and requests of a public link are kept in the database, so they survive a restart of the API.
 
 - `/metrics` answers only to admins and to the metrics token. A member or a demo visitor, who could read it before, gets 404.
 - A card's node type in the API and in stored boards is `task_card` instead of `jira_card`, now that a card holds a task of any tracker. Boards are rewritten on the first start of the new version, and tiko first copies the database to `data/backups/before-v12-<time>.db`. A board sent to the API with `jira_card` is still accepted. Reload tabs left open over the upgrade.

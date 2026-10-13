@@ -1,27 +1,30 @@
 import math
 import secrets
-import threading
 import time
 from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel
 
+from app.domain.attempts import MemoryAttempts
 from app.domain.boards import task_refs
 from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
-from app.domain.ports import BoardRepo, LiveBoards, TaskProvider
+from app.domain.live import room_key
+from app.domain.ports import Attempts, BoardRepo, LiveBoards, TaskProvider
 from app.domain.tasks import Task, now_iso, split_ref, task_ref
 
 # Guests of one link share this budget, so one link going viral cannot starve the instance.
 # The API sits behind proxies and cannot tell guests apart by address.
 LINK_REQUESTS = 3000
 LINK_WINDOW_S = 60.0
-_KEEP_WINDOWS = 1024
+_LINK = "link"
 
 
 class PublicBoard(BaseModel):
     """A board as a guest gets it: content and tasks, nothing about its people."""
 
+    # What the path of the link's socket ends with; says nothing else about the board.
+    room: str
     name: str
     updated_at: str
     version: int
@@ -29,37 +32,6 @@ class PublicBoard(BaseModel):
     tasks: dict[str, Task]
     default_source: str
     refresh_interval_s: int
-
-
-class _Budget:
-    """Requests per key in a fixed window."""
-
-    def __init__(self, limit: int, window_s: float, clock: Callable[[], float]) -> None:
-        self._limit = limit
-        self._window_s = window_s
-        self._clock = clock
-        self._windows: dict[str, tuple[float, int]] = {}
-        self._lock = threading.Lock()
-
-    def spend(self, key: str) -> None:
-        now = self._clock()
-        with self._lock:
-            started, used = self._windows.get(key, (now, 0))
-            if now - started >= self._window_s:
-                started, used = now, 0
-            if used >= self._limit:
-                wait = math.ceil(started + self._window_s - now)
-                raise TooManyAttempts("This board is busy. Try again in a moment.", max(wait, 1))
-            if key not in self._windows and len(self._windows) >= _KEEP_WINDOWS:
-                # Links that were deleted or went quiet would otherwise stay here for good.
-                self._windows = {
-                    k: w for k, w in self._windows.items() if now - w[0] < self._window_s
-                }
-            self._windows[key] = (started, used + 1)
-
-    def drop(self, key: str) -> None:
-        with self._lock:
-            self._windows.pop(key, None)
 
 
 class PublicLinks:
@@ -70,12 +42,14 @@ class PublicLinks:
         boards: BoardRepo,
         allowed: Callable[[], bool],
         live: LiveBoards | None = None,
-        clock: Callable[[], float] = time.monotonic,
+        clock: Callable[[], float] = time.time,
+        attempts: Attempts | None = None,
     ) -> None:
         self._boards = boards
         self._allowed = allowed
         self._live = live
-        self._budget = _Budget(LINK_REQUESTS, LINK_WINDOW_S, clock)
+        self._clock = clock
+        self._attempts = attempts or MemoryAttempts()
 
     def token(self, board_id: str) -> str | None:
         return self._boards.public_token(board_id)
@@ -84,7 +58,7 @@ class PublicLinks:
         """Turns the link on or off. A link turned off is gone: turning it on makes a new one."""
         if not public:
             if old := self._boards.clear_public_token(board_id):
-                self._budget.drop(old)
+                self._attempts.drop(_LINK, old)
                 if self._live:
                     self._live.end_public(board_id)
             return None
@@ -101,7 +75,11 @@ class PublicLinks:
         found = self._boards.by_public_token(token) if self._allowed() else None
         if found is None:
             raise NotFound("board not found")
-        self._budget.spend(token)
+        now = self._clock()
+        opened = self._attempts.spend(_LINK, token, LINK_REQUESTS, LINK_WINDOW_S, now)
+        if opened is not None:
+            wait = math.ceil(opened + LINK_WINDOW_S - now)
+            raise TooManyAttempts("This board is busy. Try again in a moment.", max(wait, 1))
         return found
 
     def alive(self, token: str, board_id: str) -> bool:
@@ -154,6 +132,7 @@ def public_board(
     if record is None:
         raise NotFound("board not found")
     return PublicBoard(
+        room=room_key(record.id),
         name=record.name,
         updated_at=record.updated_at,
         version=record.version,

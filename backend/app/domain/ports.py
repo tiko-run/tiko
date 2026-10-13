@@ -111,6 +111,33 @@ class BoardRepo(Protocol):
         ...
 
 
+class Attempts(Protocol):
+    """Counts of what is limited (wrong passwords, requests of a link) by scope and key, shared
+    by every process of the instance. Times are seconds of the wall clock."""
+
+    def recent(self, scope: str, key: str, since: float) -> tuple[int, float]:
+        """How many events later than `since` are counted, and the time of the oldest."""
+        ...
+
+    def add(self, scope: str, key: str, at: float, since: float) -> None:
+        """Counts an event; the scope forgets what it holds from `since` or earlier."""
+        ...
+
+    def add_under(self, scope: str, key: str, limit: int, at: float, since: float) -> float | None:
+        """Counts an event unless `limit` later than `since` are counted already; then nothing
+        is counted and the time of the oldest comes back. One step."""
+        ...
+
+    def spend(self, scope: str, key: str, limit: int, window_s: float, at: float) -> float | None:
+        """Takes one of the `limit` requests of the key's window, which opens at its first
+        request and lasts `window_s`. A spent window returns the time it opened. One step."""
+        ...
+
+    def drop(self, scope: str, key: str) -> None:
+        """Forgets the key's window."""
+        ...
+
+
 class LiveBoards(Protocol):
     """Open sockets of live boards. Every call returns at once and is safe from any thread."""
 

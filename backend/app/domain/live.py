@@ -20,7 +20,13 @@ MAX_CONNECTIONS = 30
 MAX_GUESTS = 200
 MAX_MESSAGE_BYTES = 1024 * 1024
 
+
 # Close codes of the live socket (specs/009-realtime/contracts/live.md).
+def room_key(board_id: str) -> str:
+    """What the proxy reads to pick the process of a board's room: the end of its id."""
+    return board_id[-2:]
+
+
 POLICY = 1008
 TOO_BIG = 1009
 GOING_AWAY = 1012
