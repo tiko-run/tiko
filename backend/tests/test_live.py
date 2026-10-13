@@ -85,7 +85,7 @@ class World:
     def __init__(self) -> None:
         self.app = create_app(Settings(db_path=":memory:"))
         self.rooms = self.app.state.live
-        self.rooms.save_idle_s = self.rooms.check_delay_s = 0.01
+        self.rooms.save_idle_s = self.rooms.check_delay_s = self.rooms.presence_delay_s = 0.01
         self.clients = {"admin": signed_in(self.app)}
         self.ids = {}
         for name in ("ann", "bob", "carl", "dave"):
@@ -338,6 +338,76 @@ def test_presence_is_relayed_handed_to_newcomers_and_cleared_on_leave(world):
                 assert hello in bob.received
         assert ann.read() == presence(7, 2, "null")
     assert world.stored(board_id)["doc"]["nodes"] == []
+
+
+def moves(clocks: range) -> list[bytes]:
+    return [presence(7, clock, f'{{"cursor":{{"x":{clock},"y":0}}}}') for clock in clocks]
+
+
+def test_a_burst_of_presence_is_one_frame_with_the_latest_state(world, monkeypatch):
+    board_id = world.board()
+    monkeypatch.setattr(world.rooms, "presence_delay_s", 0.2)
+    with world.tab("ann", board_id) as ann, world.tab("carl", board_id) as carl:
+        first, *burst = moves(range(1, 22))
+        carl.send(first)
+        for move in burst:
+            carl.send(move)
+        # After a pause the first move leaves at once; the twenty behind it are one frame.
+        assert ann.read() == first and carl.read() == first
+        assert ann.read() == burst[-1] and carl.read() == burst[-1]
+        # Nothing of the burst is left behind: the next frame is the next move.
+        after = moves(range(22, 23))[0]
+        carl.send(after)
+        assert ann.read() == after
+
+
+def test_presence_of_several_tabs_is_one_frame(world, monkeypatch):
+    board_id = world.board()
+    monkeypatch.setattr(world.rooms, "presence_delay_s", 0.2)
+    with (
+        world.tab("ann", board_id) as ann,
+        world.tab("bob", board_id) as bob,
+        world.tab("carl", board_id) as carl,
+    ):
+        ann.send(presence(6, 1, '{"user":{"name":"Ann"}}'))
+        bob.send(presence(8, 1, '{"user":{"name":"Bob"}}'))
+        carl.send(presence(7, 1, '{"user":{"name":"Carl"}}'))
+        assert b"Ann" in ann.read()
+        frame = ann.read()
+        assert b"Bob" in frame and b"Carl" in frame
+        assert [bob.read(), bob.read()][1] == frame and [carl.read(), carl.read()][1] == frame
+
+
+def test_presence_heard_before_an_edit_leaves_before_it(world, monkeypatch):
+    board_id = world.board()
+    with world.tab("ann", board_id) as ann, world.tab("bob", board_id) as bob:
+        bob.send(presence(8, 1, '{"user":{"name":"Bob"}}'))
+        ann.read()
+        monkeypatch.setattr(world.rooms, "presence_delay_s", 5)
+        drag = presence(8, 2, '{"drag":{"a":{"x":1,"y":2}}}')
+        bob.send(drag)
+        bob.add(sticky("a"))
+        assert ann.read() == drag
+        assert ann.read()[0] == YMessageType.SYNC
+
+
+def test_leaving_is_told_at_once(world, monkeypatch):
+    board_id = world.board()
+    with world.tab("ann", board_id) as ann:
+        ann.send(presence(6, 1, '{"user":{"name":"Ann"}}'))
+        ann.read()
+        # A frame has just left, so whatever comes next waits for its turn.
+        monkeypatch.setattr(world.rooms, "presence_delay_s", 5)
+        with world.tab("bob", board_id) as bob:
+            bob.send(presence(8, 1, '{"user":{"name":"Bob"}}'))
+            # The room has heard Bob before he goes; no frame with him has left yet.
+            bob.sync()
+        assert ann.read() == presence(8, 2, "null")
+        with world.tab("bob", board_id) as bob:
+            # A closing tab says goodbye itself, and that does not wait for the next frame.
+            bob.send(presence(9, 1, "null"))
+            bob.sync()
+        assert ann.read() == presence(9, 1, "null")
 
 
 def test_a_tab_speaks_only_for_itself_in_presence(world):

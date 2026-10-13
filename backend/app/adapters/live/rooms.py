@@ -106,6 +106,10 @@ class Room:
         self.presence: dict[int, tuple[int, str]] = {}
         # Which connection each presence state belongs to.
         self._owners: dict[int, Connection] = {}
+        # States that changed since the last presence frame went out.
+        self._news: dict[int, tuple[int, str]] = {}
+        self._presence_timer: asyncio.TimerHandle | None = None
+        self._presence_sent = 0.0
         self._sender: Connection | None = None
         self._dirty_since: float | None = None
         if state is None:
@@ -124,6 +128,8 @@ class Room:
     def _on_update(self, event: TransactionEvent) -> None:
         if event.update == _EMPTY_UPDATE:
             return
+        # Presence heard before an edit leaves before it: a drag ends with both.
+        self._send_presence()
         message = create_update_message(event.update)
         for connection in (*self.connections, *self.guests):
             if connection is not self._sender:
@@ -178,11 +184,14 @@ class Room:
         for client in connection.clients:
             if self._owners.get(client) is connection:
                 del self._owners[client]
-        gone = {
-            client: (self.presence.pop(client)[0] + 1, "null")
-            for client in connection.clients
-            if client in self.presence
-        }
+        gone: dict[int, tuple[int, str]] = {}
+        for client in connection.clients:
+            # Told at once, with a goodbye the tab itself sent and that was still waiting.
+            waiting = self._news.pop(client, None)
+            if client in self.presence:
+                gone[client] = (self.presence.pop(client)[0] + 1, "null")
+            elif waiting:
+                gone[client] = waiting
         if gone:
             message = _presence_message(gone)
             for other in self.connections:
@@ -207,7 +216,7 @@ class Room:
             # A browser sends back every presence change it hears, other people's included.
             # Only a tab's own state counts: otherwise one tab closing would take the others'
             # cursors with it, and anyone could move anyone's cursor.
-            accepted: dict[int, tuple[int, str]] = {}
+            accepted = False
             decoder = Decoder(read_message(data[1:]))
             for _ in range(decoder.read_var_uint()):
                 client, clock = decoder.read_var_uint(), decoder.read_var_uint()
@@ -218,17 +227,36 @@ class Room:
                 if owner is not connection:
                     continue
                 connection.clients.add(client)
-                accepted[client] = (clock, state)
+                self._news[client] = (clock, state)
+                accepted = True
                 if state == "null":
                     self.presence.pop(client, None)
                 else:
                     self.presence[client] = (clock, state)
-            if accepted:
-                # The sender gets it back too: the browser's provider reconnects when it hears
-                # nothing for 30 s, and its own heartbeat is what keeps a lone tab connected.
-                message = _presence_message(accepted)
-                for other in self.connections:
-                    other.push(message)
+            # At most one frame for the room every `presence_delay_s`, not one per pointer move:
+            # relayed one by one, 30 people turn 130 messages a second into 4000. After a pause
+            # the first one leaves at once, so a lone pointer is not held back.
+            if accepted and self._presence_timer is None:
+                loop = asyncio.get_running_loop()
+                due = self._presence_sent + self._rooms.presence_delay_s
+                if due <= loop.time():
+                    self._send_presence()
+                else:
+                    self._presence_timer = loop.call_at(due, self._send_presence)
+
+    def _send_presence(self) -> None:
+        if self._presence_timer:
+            self._presence_timer.cancel()
+            self._presence_timer = None
+        if not self._news:
+            return
+        # The sender gets it back too: the browser's provider reconnects when it hears
+        # nothing for 30 s, and its own heartbeat is what keeps a lone tab connected.
+        message = _presence_message(self._news)
+        self._news = {}
+        self._presence_sent = asyncio.get_running_loop().time()
+        for connection in self.connections:
+            connection.push(message)
 
     def check(self) -> None:
         """Repairs what the last merges broke; `last` is the board as it will be saved."""
@@ -298,7 +326,12 @@ class Room:
             connection.kick(code)
 
     def stop(self) -> None:
-        for timer in (self._check_timer, self._save_timer, self._drop_timer):
+        for timer in (
+            self._check_timer,
+            self._save_timer,
+            self._drop_timer,
+            self._presence_timer,
+        ):
             if timer:
                 timer.cancel()
         self.live.doc.unobserve(self._subscription)
@@ -326,6 +359,7 @@ class LiveRooms:
         self._opening: dict[str, asyncio.Future[Room | None]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
         self.check_delay_s = 0.05
+        self.presence_delay_s = 0.05
         self.save_idle_s = 2.0
         self.save_max_s = 10.0
         self.idle_s = 30.0
