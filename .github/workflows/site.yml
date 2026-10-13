@@ -49,6 +49,6 @@ jobs:
       # has no token and is only built.
       - name: Publish
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: >
-          npx --yes wrangler@4.149.0 pages deploy dist --project-name=tiko
-          --branch="${{ github.head_ref || github.ref_name }}" --commit-dirty=true
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: npx --yes wrangler@4.149.0 pages deploy dist --project-name=tiko --branch="$BRANCH" --commit-dirty=true

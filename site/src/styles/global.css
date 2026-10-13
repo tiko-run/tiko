@@ -335,9 +335,10 @@ html:not(.js) .cmd-copy {
   display: none;
 }
 
-/* Blocks rise into place once, when scripts and motion are on. */
+/* Blocks rise into place once. page.ts turns this on when its observer is ready, so a script
+   that failed to load leaves everything in view. */
 @media (prefers-reduced-motion: no-preference) {
-  .js .reveal {
+  .rising .reveal {
     opacity: 0;
     transform: translateY(14px);
     transition:
@@ -345,7 +346,7 @@ html:not(.js) .cmd-copy {
       transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
     transition-delay: var(--d, 0s);
   }
-  .js .reveal.in {
+  .rising .reveal.in {
     opacity: 1;
     transform: none;
   }

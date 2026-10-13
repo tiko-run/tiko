@@ -91,6 +91,22 @@ if (board) {
     selectTool.classList.add('active')
   }
 
+  // The scene as the markup has it: what a visitor without motion sees.
+  const finish = () => {
+    for (const el of all('[data-drag]')) place(el)
+    for (const el of [...cards, ...bars, ...rows, note]) el.classList.remove('out')
+    popover.classList.add('out')
+    cursor.classList.add('out')
+    sticky.classList.remove('gliding')
+    place(cursor)
+    setStatus('c1', 'progress')
+    setStatus('c2', 'done')
+    timer.dataset.state = 'fired'
+    syncText.textContent = 'Synced just now'
+    cardTool.classList.remove('active')
+    selectTool.classList.add('active')
+  }
+
   const scene = async () => {
     await sleep(700)
 
@@ -205,8 +221,14 @@ if (board) {
 
   replay?.addEventListener('click', () => {
     if (!still.matches) return void start()
-    for (const el of all('[data-drag]')) place(el)
+    finish()
     replay.setAttribute('hidden', '')
+  })
+  // Motion turned off while the scene plays: stop it on the finished board.
+  still.addEventListener('change', () => {
+    if (!still.matches) return void start()
+    play++
+    finish()
   })
   if (!still.matches) start()
 }

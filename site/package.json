@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/public-files.mjs",
     "dev": "astro dev",
     "prebuild": "node scripts/public-files.mjs",
     "build": "astro build",
