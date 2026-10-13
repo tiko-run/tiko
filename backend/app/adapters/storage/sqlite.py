@@ -76,6 +76,14 @@ class Database:
         self._lock = threading.Lock()
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._migrate()
+        # Reads have a connection of their own: in WAL they do not wait for a write, here or in
+        # another process. An in-memory database belongs to one connection, so there they share.
+        self._reader, self._read_lock = self._conn, self._lock
+        if path != ":memory:":
+            self._reader = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+            self._reader.row_factory = sqlite3.Row
+            self._reader.execute("PRAGMA query_only=ON")
+            self._read_lock = threading.Lock()
 
     def _migrate(self) -> None:
         current = self._conn.execute("PRAGMA user_version").fetchone()[0]
@@ -131,6 +139,23 @@ class Database:
                 DB_HELD.observe(held)
                 DB_HELD_BY_KIND.labels(kind).observe(held)
 
+    def read(self):
+        """For one statement that only reads: it sees the last commit and takes no write lock."""
+        return self._read(sys._getframe(1).f_code.co_qualname)
+
+    @contextmanager
+    def _read(self, kind: str):
+        asked = time.perf_counter()
+        with self._read_lock:
+            started = time.perf_counter()
+            DB_WAIT.observe(started - asked)
+            try:
+                yield self._reader
+            finally:
+                held = time.perf_counter() - started
+                DB_HELD.observe(held)
+                DB_HELD_BY_KIND.labels(kind).observe(held)
+
     def ping(self) -> bool:
         try:
             with self._lock:
@@ -153,12 +178,13 @@ class SqliteBoardRepo:
             where = "WHERE m.role IS NOT NULL OR u.demo_expires_at IS NULL"
             params = (user_id,)
         else:
+            # One list of ids from two indexes: with an OR over both, SQLite reads every board.
             where = (
-                "WHERE b.id IN (SELECT board_id FROM board_members WHERE user_id = ?)"
-                " OR b.everyone_role IS NOT NULL"
+                "WHERE b.id IN (SELECT board_id FROM board_members WHERE user_id = ?"
+                " UNION SELECT id FROM boards WHERE everyone_role IS NOT NULL)"
             )
             params = (user_id, user_id)
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(
                 "SELECT b.id, b.name, b.updated_at, b.everyone_role, m.role AS member_role,"
                 " o.user_id AS owner_id, u.name AS owner_name,"
@@ -216,14 +242,14 @@ class SqliteBoardRepo:
         return board_id
 
     def owned(self, user_id: str) -> int:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM board_members WHERE user_id = ? AND role = 'owner'",
                 (user_id,),
             ).fetchone()[0]
 
     def owner(self, board_id: str) -> str | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT user_id FROM board_members WHERE board_id = ? AND role = 'owner'",
                 (board_id,),
@@ -231,7 +257,7 @@ class SqliteBoardRepo:
         return row["user_id"] if row else None
 
     def get(self, board_id: str) -> BoardRecord | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT id, name, doc, version, updated_at FROM boards WHERE id = ?", (board_id,)
             ).fetchone()
@@ -249,7 +275,7 @@ class SqliteBoardRepo:
         record = self.get(board_id)
         if record is None:
             return None
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute("SELECT ydoc FROM boards WHERE id = ?", (board_id,)).fetchone()
         return record, row["ydoc"] if row else None
 
@@ -296,7 +322,7 @@ class SqliteBoardRepo:
             raise NotFound("board not found")
 
     def public_token(self, board_id: str) -> str | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT public_token FROM boards WHERE id = ?", (board_id,)
             ).fetchone()
@@ -322,7 +348,7 @@ class SqliteBoardRepo:
         return row["public_token"] if row else None
 
     def by_public_token(self, token: str) -> tuple[str, int, str] | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT id, version, updated_at FROM boards WHERE public_token = ?", (token,)
             ).fetchone()
@@ -343,7 +369,7 @@ class SqliteSnapshotRepo:
         if not refs:
             return {}
         marks = ",".join("?" * len(refs))
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(
                 "SELECT data FROM task_snapshots_v3"
                 f" WHERE user_id = ? AND source || ':' || key IN ({marks})",
@@ -377,7 +403,7 @@ class SqliteCredentialRepo:
         self._db = db
 
     def get(self, user_id: str, provider: str) -> tuple[str, str] | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT token_enc, base_url FROM user_credentials"
                 " WHERE user_id = ? AND provider = ?",
@@ -424,7 +450,7 @@ class SqliteSettingsRepo:
         self._db = db
 
     def get_all(self) -> dict[str, str]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute("SELECT key, value FROM settings").fetchall()
         return {row["key"]: row["value"] for row in rows}
 
@@ -498,7 +524,7 @@ class SqliteUserRepo:
         self._db = db
 
     def count(self) -> int:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             return conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
 
     def add(self, person: Person, password_hash: str) -> None:
@@ -521,7 +547,7 @@ class SqliteUserRepo:
             raise UsernameTaken("This username is taken.") from error
 
     def find(self, username: str) -> tuple[Person, str] | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 f"SELECT {_PERSON}, u.password_hash FROM users u"
                 " WHERE lower(u.username) = lower(?)",
@@ -546,14 +572,14 @@ class SqliteUserRepo:
             )
 
     def get(self, user_id: str) -> Person | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 f"SELECT {_PERSON} FROM users u WHERE u.id = ?", (user_id,)
             ).fetchone()
         return _person(row) if row else None
 
     def list(self) -> list[PersonRecord]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(
                 f"SELECT {_PERSON}, u.last_sign_in_at, u.created_at FROM users u"
                 " WHERE u.demo_expires_at IS NULL ORDER BY lower(u.name), lower(u.username)"
@@ -579,7 +605,7 @@ class SqliteUserRepo:
             )
 
     def active_admins(self) -> int:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM users WHERE role = 'admin' AND disabled_at IS NULL"
             ).fetchone()[0]
@@ -621,7 +647,7 @@ class SqliteUserRepo:
             return [row["id"] for row in rows], _delete_people(conn, [row["id"] for row in rows])
 
     def demo_alive(self, now: str) -> int:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM users WHERE demo_expires_at > ?", (now,)
             ).fetchone()[0]
@@ -651,7 +677,7 @@ class SqliteDemoStatusRepo:
         self._db = db
 
     def get(self, user_id: str) -> dict[str, tuple[str, str]]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(
                 "SELECT key, status, updated_at FROM demo_statuses WHERE user_id = ?", (user_id,)
             ).fetchall()
@@ -672,7 +698,7 @@ class SqliteAttempts:
         self._db = db
 
     def recent(self, scope: str, key: str, since: float) -> tuple[int, float]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             count, oldest = conn.execute(
                 "SELECT COUNT(*), MIN(at) FROM attempts WHERE scope = ? AND key = ? AND at > ?",
                 (scope, key, since),
@@ -736,7 +762,7 @@ class SqliteSessionRepo:
             )
 
     def get(self, token_hash: str) -> tuple[Person, str] | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 f"SELECT {_PERSON}, s.expires_at FROM sessions s"
                 " JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?",
@@ -788,7 +814,7 @@ class SqliteInviteRepo:
             )
 
     def find_open(self, token_hash: str, now: str) -> Invite | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 f"{_INVITE} WHERE i.token_hash = ? AND {_OPEN}", (token_hash, now)
             ).fetchone()
@@ -807,7 +833,7 @@ class SqliteInviteRepo:
             conn.execute("UPDATE invites SET used_at = NULL WHERE id = ?", (invite_id,))
 
     def pending(self, now: str) -> list[Invite]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(f"{_INVITE} WHERE {_OPEN} ORDER BY i.created_at", (now,)).fetchall()
         return [Invite(**dict(row)) for row in rows]
 
@@ -827,7 +853,7 @@ class SqliteMemberRepo:
     def roles(
         self, board_id: str, user_id: str
     ) -> tuple[BoardRole | None, ShareRole | None] | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT m.role, b.everyone_role FROM boards b"
                 " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = ?"
@@ -837,7 +863,7 @@ class SqliteMemberRepo:
         return (row["role"], row["everyone_role"]) if row else None
 
     def role(self, board_id: str, user_id: str) -> BoardRole | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT role FROM board_members WHERE board_id = ? AND user_id = ?",
                 (board_id, user_id),
@@ -845,7 +871,7 @@ class SqliteMemberRepo:
         return row["role"] if row else None
 
     def members(self, board_id: str) -> list[Member]:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             rows = conn.execute(
                 "SELECT u.id, u.username, u.name, m.role FROM board_members m"
                 " JOIN users u ON u.id = m.user_id WHERE m.board_id = ?"
@@ -861,7 +887,7 @@ class SqliteMemberRepo:
         ]
 
     def everyone(self, board_id: str) -> ShareRole | None:
-        with self._db.transaction() as conn:
+        with self._db.read() as conn:
             row = conn.execute(
                 "SELECT everyone_role FROM boards WHERE id = ?", (board_id,)
             ).fetchone()

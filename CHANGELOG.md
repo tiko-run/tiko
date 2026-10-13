@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- An instance with thousands of boards answers as fast as an empty one: the list of your boards no longer reads every board of the instance, and requests that only read no longer wait for the ones that write.
 - The socket of a public link moved from `/api/public/{token}/live` to `/api/public/{token}/live/{room}`, with `room` taken from `GET /api/public/{token}`. Reload public boards left open over the upgrade.
 - The limits on wrong passwords, demo starts, people searches and requests of a public link are kept in the database, so they survive a restart of the API.
 

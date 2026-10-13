@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import threading
 
 import pytest
 
@@ -144,3 +145,33 @@ def test_upgrade_rebuilds_a_live_state_it_cannot_read(tmp_path):
 def test_a_new_database_is_not_copied(tmp_path):
     Database(str(tmp_path / "app.db"))
     assert not (tmp_path / "backups").exists()
+
+
+def test_a_read_answers_while_a_write_is_held(tmp_path):
+    db = Database(str(tmp_path / "app.db"))
+    repo = SqliteBoardRepo(db)
+    board_id = repo.create("before", BoardDoc(), "owner")
+    seen = []
+    with db.transaction() as conn:
+        conn.execute("UPDATE boards SET name = 'after' WHERE id = ?", (board_id,))
+        reader = threading.Thread(target=lambda: seen.append(repo.get(board_id).name))
+        reader.start()
+        reader.join(2)
+    assert seen == ["before"]
+    assert repo.get(board_id).name == "after"
+
+
+def test_a_read_does_not_wait_for_a_write_of_another_process(tmp_path):
+    path = str(tmp_path / "app.db")
+    repo = SqliteBoardRepo(Database(path))
+    board_id = repo.create("before", BoardDoc(), "owner")
+    with Database(path).transaction() as conn:
+        conn.execute("UPDATE boards SET name = 'after' WHERE id = ?", (board_id,))
+        assert [board.name for board in repo.listing("owner")] == ["before"]
+    assert repo.get(board_id).name == "after"
+
+
+def test_the_connection_for_reads_cannot_write(tmp_path):
+    db = Database(str(tmp_path / "app.db"))
+    with pytest.raises(sqlite3.OperationalError), db.read() as conn:
+        conn.execute("DELETE FROM boards")
