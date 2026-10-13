@@ -10,7 +10,7 @@ const copies = {
   'install.ps1': '../install/install.ps1',
   'favicon.svg': '../brand/app-icon/favicon.svg',
   'apple-touch-icon.png': '../brand/app-icon/apple-touch-icon.png',
-  'og.png': '../brand/social/github-social-preview.png',
+  'og.png': '../brand/social/site-share.png',
 }
 for (const [name, source] of Object.entries(copies)) copyFileSync(source, `public/${name}`)
 
