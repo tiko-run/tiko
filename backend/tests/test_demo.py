@@ -486,6 +486,30 @@ def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch
     assert bob.get("/api/boards").status_code == 200
 
 
+def test_places_keep_being_found_behind_visitors_who_changed_something(app, monkeypatch):
+    monkeypatch.setattr(app.state.visitors, "max_alive", 3)
+    busy, first, second = (visitor(app, f"203.0.113.{n}") for n in (1, 2, 3))
+    edit(busy, welcome(busy))
+    welcome(first), welcome(second)
+
+    third = visitor(app, "203.0.113.4")
+    fourth = visitor(app, "203.0.113.5")
+    gone = [who.get("/api/boards").status_code for who in (busy, first, second)]
+    assert gone == [200, 401, 401]
+
+    edit(third, welcome(third))
+    edit(fourth, welcome(fourth))
+    full = TestClient(app).post("/api/auth/demo", headers={"x-real-ip": "203.0.113.6"})
+    assert full.json()["error"]["code"] == "demo_full"
+
+    # A place opens and an idle visitor takes it: the next one to come still finds them.
+    monkeypatch.setattr(app.state.visitors, "max_alive", 4)
+    idle = visitor(app, "203.0.113.7")
+    visitor(app, "203.0.113.8")
+    assert idle.get("/api/boards").status_code == 401
+    assert all(who.get("/api/boards").status_code == 200 for who in (busy, third, fourth))
+
+
 def test_a_visitor_deleted_between_the_read_and_the_touch_is_signed_out(app, monkeypatch):
     ann = visitor(app)
     sessions, users = app.state.sessions, app.state.visitors._users

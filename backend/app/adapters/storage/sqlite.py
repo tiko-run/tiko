@@ -522,6 +522,8 @@ def _delete_people(conn: sqlite3.Connection, user_ids: list[str]) -> list[str]:
 class SqliteUserRepo:
     def __init__(self, db: Database) -> None:
         self._db = db
+        # Demo visitors who expire before this were all seen to have changed something.
+        self._changed_until = ""
 
     def count(self) -> int:
         with self._db.read() as conn:
@@ -664,10 +666,19 @@ class SqliteUserRepo:
 
     def evict_untouched_demo(self) -> _Gone:
         with self._db.transaction() as conn:
+            # The search goes on from where the last one ended: everyone before that had changed
+            # something, and an expiry only moves later. Without it every search walks past all
+            # of them again. One who deletes what they changed is passed over and leaves on time.
             row = conn.execute(
-                f"SELECT id FROM users WHERE demo_expires_at IS NOT NULL AND {_UNTOUCHED}"
-                " ORDER BY demo_expires_at LIMIT 1"
+                f"SELECT id, demo_expires_at FROM users WHERE demo_expires_at >= ? AND {_UNTOUCHED}"
+                " ORDER BY demo_expires_at LIMIT 1",
+                (self._changed_until,),
             ).fetchone()
+            if row:
+                self._changed_until = row["demo_expires_at"]
+            else:
+                last = conn.execute("SELECT MAX(demo_expires_at) FROM users").fetchone()[0]
+                self._changed_until = last or ""
             user_ids = [row["id"]] if row else []
             return user_ids, _delete_people(conn, user_ids)
 
