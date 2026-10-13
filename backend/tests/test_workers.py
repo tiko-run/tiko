@@ -13,7 +13,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 from websockets.exceptions import ConnectionClosed
-from websockets.sync.client import connect
+from websockets.sync.client import connect, unix_connect
 
 from app.adapters.live.workers import owner
 from app.adapters.storage.lock import FileLock
@@ -45,11 +45,20 @@ def _free_ports() -> int:
 class Instance:
     """tiko as two processes, each asked on its own port like the proxy does."""
 
-    def __init__(self, port: int) -> None:
+    def __init__(self, port: int, sockets: str = "") -> None:
         self.ports = (port, port + 1)
+        # With a directory of Unix sockets every request and live socket goes through them.
+        self.sockets = sockets
+
+    def _unix(self, worker: int) -> str | None:
+        return f"{self.sockets}/{self.ports[worker]}.sock" if self.sockets else None
 
     def client(self, worker: int) -> httpx.Client:
-        return httpx.Client(base_url=f"http://127.0.0.1:{self.ports[worker]}", timeout=10)
+        return httpx.Client(
+            base_url=f"http://127.0.0.1:{self.ports[worker]}",
+            timeout=10,
+            transport=httpx.HTTPTransport(uds=self._unix(worker)),
+        )
 
     def sign_in(self, worker: int = 0) -> httpx.Client:
         client = self.client(worker)
@@ -68,7 +77,10 @@ class Instance:
     @contextmanager
     def socket(self, worker: int, board_id: str, session: str):
         url = f"ws://127.0.0.1:{self.ports[worker]}/api/boards/{board_id}/live"
-        with connect(url, additional_headers={"Cookie": f"tiko_session={session}"}) as conn:
+        headers = {"Cookie": f"tiko_session={session}"}
+        path = self._unix(worker)
+        opened = unix_connect(path, url, additional_headers=headers) if path else None
+        with opened or connect(url, additional_headers=headers) as conn:
             yield conn
 
 
@@ -108,8 +120,7 @@ def instance(request, tmp_path_factory):
     process = subprocess.Popen(
         [sys.executable, "-m", "app.serve", "--port", str(port)], cwd=BACKEND, env=env
     )
-    found = Instance(port)
-    found.sockets = sockets
+    found = Instance(port, sockets)
     try:
         deadline = time.monotonic() + 60
         while True:
@@ -128,13 +139,9 @@ def instance(request, tmp_path_factory):
             shutil.rmtree(sockets, ignore_errors=True)
 
 
-def test_each_process_also_answers_on_a_unix_socket(instance):
-    if not instance.sockets:
-        pytest.skip("this instance listens on ports only")
-    for n in (0, 1):
-        path = f"{instance.sockets}/{instance.ports[n]}.sock"
-        with httpx.Client(transport=httpx.HTTPTransport(uds=path), base_url="http://tiko") as local:
-            assert local.get("/health").is_success
+def test_a_process_with_unix_sockets_still_answers_on_its_port(instance):
+    for port in instance.ports:
+        assert httpx.get(f"http://127.0.0.1:{port}/health", timeout=10).is_success
 
 
 def test_signing_out_everywhere_closes_a_socket_in_the_other_process(instance):

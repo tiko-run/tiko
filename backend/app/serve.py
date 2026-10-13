@@ -33,7 +33,8 @@ def _command(port: int) -> list[str]:
 
 
 def _serve(port: int, socket_dir: str) -> None:
-    """One process on its port and on a Unix socket named after it, for a proxy on this host."""
+    # uvicorn's command line takes a port or a Unix socket, not both; the port stays for the
+    # health check, the other processes and a proxy that is not on this host.
     import uvicorn
 
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
