@@ -66,9 +66,20 @@ One scrape answers in 3.0 ms at the median and 3.6 ms at p95 for 25 KB: every 5 
 
 ## Phase 3: Slice `perf2-socket-path` (R3)
 
-- [ ] T030 nginx to the API over a Unix socket; the web container's share of the host before and after. Owner decides
-- [ ] T031 Only if T030 is not enough: the host's network as a compose option. Owner decides
+- [x] T030 nginx to the API over a Unix socket; the web container's share of the host before and after. Owner decides
+- [ ] T031 The host's network as a compose option: needs a Linux host, measured in Phase 7 next to the Unix socket
 - [ ] T032 Only if nginx is still over 10% of the host: the direct socket, as a proposal for the owner
+
+T030, measured on a laptop with Docker: three rooms of 30 on boards of 1000 elements for a minute, the two ways taking turns, the median of three runs with the least and the most.
+
+| | Docker network | Unix socket |
+|---|---|---|
+| Web container, share of a core | 11.5% [11.4 .. 11.7] | 10.4% [10.0 .. 11.5] |
+| API container, share of a core | 19.5% [19.2 .. 19.7] | 17.3% [16.6 .. 19.0] |
+| Pointer, p95 | 55.7 ms [53.7 .. 56.0] | 54.1 ms [54.0 .. 56.6] |
+| Edit, p95 | 8.2 ms [7.3 .. 9.6] | 7.4 ms [7.1 .. 8.1] |
+
+About a tenth less CPU in both containers, and the ranges touch. The socket ships as `TIKO_SOCKET_DIR`, off by default: whether the compose files turn it on is decided after Phase 7 measures it on the reference host, together with the host's network.
 
 ## Phase 4: Slice `perf2-edit-batch` (R4)
 

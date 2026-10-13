@@ -3,10 +3,22 @@
 # API_UPSTREAM. A board's room lives in one of them, so everything about a board goes to the
 # process its id names: the last two hex digits, modulo the number of processes. The API
 # checks the same rule. Requests about no board are spread over all of them.
+# With TIKO_SOCKET_DIR, a directory shared with the API on the same host, the processes are
+# reached over Unix sockets named after their ports instead of the network.
 workers=${TIKO_WORKERS:-1}
-export API_HOST="${API_UPSTREAM%:*}"
+host="${API_UPSTREAM%:*}"
 first=${API_UPSTREAM##*:}
 {
+  if [ -n "${TIKO_SOCKET_DIR:-}" ]; then
+    n=0
+    while [ "$n" -lt "$workers" ]; do
+      echo "upstream api_$((first + n)) { server unix:$TIKO_SOCKET_DIR/$((first + n)).sock; }"
+      n=$((n + 1))
+    done
+    echo 'map $api_port $api_upstream { default "api_$api_port"; }'
+  else
+    echo "map \$api_port \$api_upstream { default \"$host:\$api_port\"; }"
+  fi
   echo 'map $uri $board_key {'
   echo '    default "";'
   echo '    "~^/api/boards/([^/]+)" $1;'

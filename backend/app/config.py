@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # directory of the sockets they talk to each other through.
     tiko_worker: int = Field(default=0, ge=0)
     tiko_workers_dir: str | None = None
+    # A directory shared with the proxy: each process also listens on <port>.sock in it.
+    tiko_socket_dir: str | None = None
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
     # Demo visitors the instance keeps at once. Empty: 500.

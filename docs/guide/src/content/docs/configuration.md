@@ -16,6 +16,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_BOARD_LIMIT` | Boards a person may own, admins and demo visitors aside | no limit |
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
 | `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
+| `TIKO_SOCKET_DIR` | A directory shared by both containers; the web container reaches the API over Unix sockets in it. See [A Unix socket between the containers](#a-unix-socket-between-the-containers) | empty: the network |
 | `TIKO_WORKERS` | API processes, one core each. Set it for both containers, as the compose files do. See [Several processes](#several-processes) | `1` |
 | `GITHUB_TOKEN` | Read-only GitHub token that raises the request limit for public issues from 60 to 5000 an hour, so GitHub cards update at the board's pace. See [GitHub Issues](../github-issues/) | unset |
 | `JIRA_TLS_VERIFY` | Verify Jira's TLS certificate; `false` skips the check | `true` |
@@ -48,6 +49,27 @@ TIKO_WORKERS=4
 - Go through the web container (port 3000), as with one process. A socket that reaches the wrong process is closed and the tab tries again, so a proxy of your own that talks to port 8000 directly only works with one process.
 - Signing out, role changes and the limits on wrong passwords and on public links work across the processes as they do in one.
 - The processes stand and fall together: when one stops, the container restarts.
+
+### A Unix socket between the containers
+
+On one host the web container can reach the API over a Unix socket instead of the Docker network. In our measurement both containers used about a tenth less CPU on busy boards. It is off unless you turn it on, and it needs a directory that both containers see:
+
+```yaml
+# docker-compose.override.yml
+services:
+  api:
+    environment:
+      TIKO_SOCKET_DIR: /run/tiko
+    volumes: ["sockets:/run/tiko"]
+  web:
+    environment:
+      TIKO_SOCKET_DIR: /run/tiko
+    volumes: ["sockets:/run/tiko"]
+volumes:
+  sockets:
+```
+
+The API keeps its ports as well, so health checks and metrics work as before. Platforms that run the two services apart, like Render and Railway, have no shared directory: leave it off there.
 
 
 Caddy and Traefik pass WebSockets without extra settings:
