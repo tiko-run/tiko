@@ -49,8 +49,20 @@ Measured on a laptop with Docker: 3000 demo visitors at a limit of 3000, half of
 
 ## Phase 2: Slice `perf2-metrics-cost` (R2)
 
-- [ ] T020 A step with and without a scrape, three runs each
-- [ ] T021 Only if T020 shows a difference above the spread: the scrape made cheaper
+- [x] T020 A step with and without a scrape, three runs each
+- [x] T021 Only if T020 shows a difference above the spread: the scrape made cheaper. Not needed: the difference is inside the spread
+
+Measured on a laptop with Docker: 400 visitors for 40 seconds, the two variants taking turns, the median of three runs with the least and the most.
+
+| | Scraped every 5 s | Not scraped |
+|---|---|---|
+| API container, share of a core | 21.7% [20.4 .. 22.6] | 22.0% [21.3 .. 22.8] |
+| Web container, share of a core | 8.8% [8.4 .. 8.8] | 8.9% [8.7 .. 8.9] |
+| Pointer echo, p95 | 2.4 ms [2.2 .. 2.6] | 2.5 ms [2.5 .. 2.5] |
+| Socket in sync, p95 | 15.3 ms [15.0 .. 22.1] | 15.7 ms [15.2 .. 21.8] |
+| Open a board, p95 | 6.4 ms [5.9 .. 17.9] | 13.4 ms [4.1 .. 22.3] |
+
+One scrape takes 3.0 ms at the median and 3.6 ms at p95 for 25 KB: every 5 seconds that is 0.06% of a core. The hint from spec 019 came from two runs at the limit of a shared vCPU; nothing here supports it. The reference run (Phase 7) keeps its Prometheus.
 
 ## Phase 3: Slice `perf2-socket-path` (R3)
 
