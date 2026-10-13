@@ -351,6 +351,12 @@ html:not(.js) .cmd-copy {
     transform: none;
   }
 }
+@media print {
+  .rising .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
