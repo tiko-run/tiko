@@ -97,3 +97,6 @@ English, short and to the point, no exclamation marks. Buttons start with a verb
 - Side panels open by default. The canvas takes the whole screen.
 - Shadows on cards on the canvas.
 - Tracker logos anywhere but the source mark, a tracker's brand color on borders, backgrounds or text, and a recolored or redrawn logo. Atlassian icon sets in the bundle. The task type icon is the `iconUrl` from the user's Jira response (their own instance), with a neutral lucide icon as a fallback.
+
+## Landing page
+`site/` is the page at tiko.run: the same tokens, fonts and radius, with a larger type scale (headline up to 60px, section titles up to 40px, text 16px). The wow is the board itself: the hero is a drawing of a board in DOM and CSS that plays one scene in a loop and lets the visitor drag its elements, and each feature has a small loop in the same look. No gradients, parallax or scroll effects beyond a block rising 14px into place once. Everything stands still under `prefers-reduced-motion`, and the page reads without scripts. Tracker marks appear in one place, the "Works with" row, unchanged; the GitHub mark also labels the link to the repository. Names, keys and tasks on it are made up.

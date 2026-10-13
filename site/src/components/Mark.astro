@@ -1,0 +1,18 @@
+---
+// A tracker's own mark from the web app's files, unchanged; GitHub's follows the text color,
+// which is its black on light and white on dark.
+import { readFileSync } from 'node:fs'
+
+interface Props {
+  tracker: 'jira' | 'github'
+  size?: number
+}
+const { tracker, size = 18 } = Astro.props
+const file = readFileSync(`../frontend/src/sources/marks/${tracker}.svg`, 'utf8')
+const box = file.match(/viewBox="([^"]+)"/)?.[1]
+const body = file
+  .slice(file.indexOf('>', file.indexOf('<svg')) + 1, file.lastIndexOf('</svg>'))
+  .replace('fill="#000"', 'fill="currentColor"')
+---
+
+<svg width={size} height={size} viewBox={box} aria-hidden="true" set:html={body} />

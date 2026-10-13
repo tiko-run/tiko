@@ -1,0 +1,974 @@
+---
+// The hero board: a drawing of the canvas in DOM and CSS, not the real one. The markup is the
+// finished scene, so it reads without scripts or motion; board.ts rewinds it and plays it.
+import Brand from './Brand.astro'
+import Icon from './Icon.astro'
+
+const cards = [
+  { id: 'c1', key: 'APP-112', title: 'Retry failed payments', type: 'story', status: 'progress' },
+  { id: 'c2', key: 'APP-118', title: 'Move billing cron to a queue', type: 'task', status: 'done' },
+  { id: 'c3', key: 'APP-121', title: 'Release notes for 2.4', type: 'task', status: 'todo' },
+  { id: 'c4', key: 'APP-127', title: 'Flaky login test', type: 'bug', status: 'todo' },
+]
+const waiting = [
+  { key: 'OPS-41', type: 'task', status: 'review' },
+  { key: 'OPS-44', type: 'task', status: 'todo' },
+  { key: 'WEB-9', type: 'story', status: 'done' },
+]
+const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+const TYPE_ICON = { story: 'bookmark', task: 'check', bug: 'bug' }
+const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm-clock']
+---
+
+<div class="stage">
+  <div
+    class="board dots"
+    data-board
+    role="img"
+    aria-label="A tiko board: a sprint frame with four live task cards, a sticky note, a timer that went off and a Gantt plan of the release."
+  >
+    <svg class="wires" viewBox="0 0 1120 600" aria-hidden="true">
+      <path d="M480 236 C 502 236, 496 322, 514 322" />
+      <path class="head" d="M507 317 L515 322 L507 327" />
+    </svg>
+
+    <div class="n bar topbar">
+      <span class="tb-menu"><Brand mark="emblem" height={18} /><Icon name="chevron-down" size={12} /></span>
+      <span class="tb-name">Release 2.4 <Icon name="chevron-down" size={12} /></span>
+      <span class="tb-share">Share</span>
+    </div>
+
+    <div class="n capsule">
+      <span class="cap-icon"><Icon name="target" size={14} /></span>
+      <span class="cap-time">24:10</span>
+      <span class="cap-dots"><i class="on"></i><i class="on"></i><i></i><i></i></span>
+      <span class="cap-play"><Icon name="pause" size={12} /></span>
+    </div>
+
+    <div class="n sync" data-sync><i></i><span data-sync-text>Synced just now</span></div>
+
+    <div class="n frame"><span class="frame-title">Sprint 24</span></div>
+
+    {
+      cards.map((card) => (
+        <div class={`n card ${card.id}`} data-card={card.id} data-status={card.status} data-drag>
+          <span class={`type type-${card.type}`}>
+            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={10} />
+          </span>
+          <span class="key">{card.key}</span>
+          <span class="title">{card.title}</span>
+          <span class="lozenge" data-lozenge>
+            {STATUS[card.status as keyof typeof STATUS]}
+          </span>
+        </div>
+      ))
+    }
+
+    <div class="n frame frame2"><span class="frame-title">Waiting on others</span></div>
+    {
+      waiting.map((card, i) => (
+        <div class={`n card mini w${i + 1}`} data-status={card.status} data-drag>
+          <span class={`type type-${card.type}`}>
+            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={10} />
+          </span>
+          <span class="key">{card.key}</span>
+          <span class="lozenge">{STATUS[card.status as keyof typeof STATUS]}</span>
+        </div>
+      ))
+    }
+
+    <div class="n sticky" data-sticky data-drag>Ship on Thursday.<br />Code freeze Wed 18:00.</div>
+
+    <div class="n timer" data-timer data-state="fired" data-drag>
+      <span class="timer-bell"><Icon name="bell" size={14} /></span>
+      <span class="timer-clock"><Icon name="alarm-clock" size={14} /></span>
+      <span class="timer-left" data-timer-left>3s</span>
+    </div>
+
+    <div class="n note" data-note>
+      <span class="note-cube"><Icon name="bell" size={12} /></span>
+      <span class="note-text">
+        <b>Ping QA about the cron</b>
+        <small>On APP-118 · Went off at 15:30</small>
+      </span>
+      <span class="note-actions"><i>Done</i><i>+10 min</i></span>
+    </div>
+
+    <div class="n gantt">
+      <div class="g-head"><Icon name="chart-gantt" size={14} /> Release 2.4</div>
+      <div class="g-scale">
+        <span class="g-corner"></span>
+        <span class="g-month">October 2026</span>
+        <span class="g-corner"></span>
+        <span class="g-weeks"><i>5</i><i>12</i><i>19</i><i>26</i></span>
+      </div>
+      <div class="g-rows">
+        <span class="g-today"></span>
+        <svg class="g-dep" data-gantt-row viewBox="0 0 388 96" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M222 48 H236 V80 H246" />
+        </svg>
+        <div class="g-row" data-gantt-row>
+          <span class="g-label"><span class="type type-story"><Icon name="bookmark" size={10} /></span><b>APP-112</b><span class="g-t">Retry payments</span></span>
+          <span class="g-track"><i class="g-bar b1" data-bar="c1" data-status="progress"></i></span>
+        </div>
+        <div class="g-row" data-gantt-row>
+          <span class="g-label"><span class="type type-task"><Icon name="check" size={10} /></span><b>APP-118</b><span class="g-t">Billing cron</span></span>
+          <span class="g-track"><i class="g-bar b2" data-bar="c2" data-status="done"></i></span>
+        </div>
+        <div class="g-row" data-gantt-row>
+          <span class="g-label"><span class="type type-task"><Icon name="check" size={10} /></span><b>APP-121</b><span class="g-t">Release notes</span></span>
+          <span class="g-track"><i class="g-bar b3" data-bar="c3" data-status="todo"></i></span>
+        </div>
+      </div>
+      <div class="g-foot"><span class="g-stone" data-gantt-row><i></i>2.4 out</span></div>
+    </div>
+
+    <div class="n popover out" data-popover>
+      <span class="pop-input"><span data-typed></span><i class="caret"></i></span>
+      <span class="pop-hint">Keys, links or a query</span>
+    </div>
+
+    <div class="n bar toolbar">
+      {tools.map((tool, i) => <span class:list={{ active: i === 0 }} data-tool={tool}><Icon name={tool} size={16} /></span>)}
+      <span data-tool="card"><Icon name="square-kanban" size={16} /></span>
+      <span><Icon name="layout-grid" size={16} /></span>
+    </div>
+
+    <div class="n cursor out" data-cursor>
+      <svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z" /></svg>
+      <span>Anna</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <span class="hint" data-hint><Icon name="hand" size={13} /> Drag a card</span>
+    <button class="replay" type="button" data-replay hidden><Icon name="rotate-ccw" size={13} /> Replay</button>
+  </div>
+</div>
+
+<script>
+  import '../scripts/board'
+</script>
+
+<style>
+  /* One board unit is a pixel at full width: every size below is a number of units, so the
+     whole board scales with its width and keeps its proportions. */
+  .stage {
+    position: relative;
+    container-type: inline-size;
+  }
+  .board {
+    --u: calc(100cqw / 1120);
+    position: relative;
+    aspect-ratio: 1120 / 600;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--background);
+    background-size: calc(20 * var(--u)) calc(20 * var(--u));
+    box-shadow: var(--shadow);
+    font-size: calc(13 * var(--u));
+    line-height: 1.35;
+    user-select: none;
+  }
+  .n {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    transition:
+      opacity 0.35s,
+      transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .n.out {
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+  }
+  [data-drag] {
+    cursor: grab;
+    touch-action: none;
+  }
+  [data-drag].dragging {
+    z-index: 5;
+    cursor: grabbing;
+    transition: none;
+  }
+  .gliding {
+    transition:
+      left 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+      top 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.35s;
+  }
+
+  .wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.7;
+  }
+
+  /* Floating bars share one surface. */
+  .bar {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .topbar {
+    --x: 16;
+    --y: 16;
+    height: calc(36 * var(--u));
+    padding-inline: calc(4 * var(--u));
+    gap: calc(2 * var(--u));
+    font-weight: 500;
+  }
+  .topbar > span {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    height: calc(28 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border-radius: calc(6 * var(--u));
+  }
+  .topbar svg {
+    height: calc(12 * var(--u));
+    width: auto;
+    color: var(--muted-foreground);
+  }
+  .tb-menu svg:first-child {
+    height: calc(18 * var(--u));
+  }
+  .tb-share {
+    color: var(--muted-foreground);
+  }
+
+  .capsule {
+    --x: 428;
+    --y: 14;
+    display: flex;
+    align-items: center;
+    gap: calc(10 * var(--u));
+    width: calc(264 * var(--u));
+    height: calc(46 * var(--u));
+    padding-inline: calc(10 * var(--u));
+    border-radius: calc(23 * var(--u));
+    background: linear-gradient(100deg, var(--focus-fill), var(--focus-fill-2), var(--focus-fill));
+    color: var(--focus-ink);
+    box-shadow: var(--shadow);
+  }
+  .capsule svg {
+    width: calc(14 * var(--u));
+    height: auto;
+  }
+  .cap-icon,
+  .cap-play {
+    display: grid;
+    place-items: center;
+    width: calc(28 * var(--u));
+    height: calc(28 * var(--u));
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--focus-ink) 10%, transparent);
+  }
+  .cap-play {
+    margin-left: auto;
+    background: var(--focus-ink);
+    color: var(--focus-fill);
+  }
+  .cap-play svg {
+    width: calc(12 * var(--u));
+  }
+  .cap-time {
+    font-family: var(--mono);
+    font-size: calc(22 * var(--u));
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .cap-dots {
+    display: flex;
+    gap: calc(4 * var(--u));
+  }
+  .cap-dots i {
+    width: calc(5 * var(--u));
+    height: calc(5 * var(--u));
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--focus-ink) 25%, transparent);
+  }
+  .cap-dots i.on {
+    background: var(--focus-ink);
+  }
+
+  .sync {
+    --x: 968;
+    --y: 24;
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .sync i {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+    border-radius: 50%;
+    background: var(--sync-ok);
+  }
+  .sync.pulse i {
+    animation: sync-pulse 0.9s ease-out;
+  }
+  @keyframes sync-pulse {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--sync-ok) 60%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 calc(8 * var(--u)) transparent;
+    }
+  }
+
+  .frame {
+    --x: 40;
+    --y: 104;
+    width: calc(440 * var(--u));
+    height: calc(200 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), transparent);
+  }
+  .frame2 {
+    --y: 362;
+    height: calc(68 * var(--u));
+    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+  }
+  .card.mini {
+    --y: 382;
+  }
+  .card.w1 {
+    --x: 56;
+  }
+  .card.w2 {
+    --x: 218;
+  }
+  .card.w3 {
+    --x: 348;
+  }
+  .frame-title {
+    position: absolute;
+    left: calc(2 * var(--u));
+    bottom: calc(100% + 4 * var(--u));
+    font-size: calc(15 * var(--u));
+    font-weight: 600;
+  }
+
+  .card {
+    --x: 60;
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    padding: calc(5 * var(--u)) calc(8 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    white-space: nowrap;
+  }
+  .c1 {
+    --y: 124;
+  }
+  .c2 {
+    --y: 164;
+  }
+  .c3 {
+    --y: 204;
+  }
+  .c4 {
+    --y: 244;
+  }
+  .type {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    border-radius: calc(3 * var(--u));
+    color: white;
+  }
+  .type svg {
+    width: calc(10 * var(--u));
+    height: auto;
+    stroke-width: 3;
+  }
+  .type-story {
+    background: var(--type-story);
+  }
+  .type-task {
+    background: var(--type-task);
+  }
+  .type-bug {
+    background: var(--type-bug);
+  }
+  .key {
+    font-family: var(--mono);
+    font-size: calc(12 * var(--u));
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
+  }
+  .lozenge {
+    padding: calc(1 * var(--u)) calc(5 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: calc(11 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition:
+      background-color 0.3s,
+      color 0.3s;
+  }
+  [data-status='progress'] .lozenge,
+  [data-status='review'] .lozenge {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  [data-status='done'] .lozenge {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+  [data-status='done'] .key {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+  }
+  [data-status='done'] .title {
+    color: var(--muted-foreground);
+  }
+  .card.flash {
+    animation: flash 0.9s ease-out;
+  }
+  @keyframes flash {
+    from {
+      box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 calc(10 * var(--u)) transparent;
+    }
+  }
+
+  .sticky {
+    --x: 520;
+    --y: 100;
+    width: calc(156 * var(--u));
+    height: calc(112 * var(--u));
+    padding: calc(12 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--sticky-yellow);
+    color: var(--sticky-foreground);
+    font-size: calc(14 * var(--u));
+    box-shadow: 0 calc(1 * var(--u)) calc(3 * var(--u)) oklch(0.2 0.02 260 / 0.12);
+  }
+
+  .timer {
+    --x: 700;
+    --y: 104;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    width: calc(40 * var(--u));
+    height: calc(40 * var(--u));
+    border-radius: calc(8 * var(--u));
+    background: var(--timer);
+    color: var(--timer-foreground);
+    font-family: var(--mono);
+    font-size: calc(11 * var(--u));
+    font-weight: 600;
+    line-height: 1.1;
+    transition:
+      background-color 0.25s,
+      color 0.25s,
+      opacity 0.35s,
+      transform 0.35s;
+  }
+  .timer svg {
+    width: calc(14 * var(--u));
+    height: auto;
+  }
+  .timer[data-state='fired'] {
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+    animation: ring 1.6s ease-out infinite;
+  }
+  .timer[data-state='fired'] :is(.timer-clock, .timer-left),
+  .timer:not([data-state='fired']) .timer-bell {
+    display: none;
+  }
+  .timer[data-state='fired'] svg {
+    width: calc(18 * var(--u));
+  }
+  @keyframes ring {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--timer-fired) 55%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 calc(12 * var(--u)) transparent;
+    }
+  }
+
+  .note {
+    --x: 816;
+    --y: 60;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: calc(8 * var(--u)) calc(10 * var(--u));
+    width: calc(288 * var(--u));
+    padding: calc(10 * var(--u)) calc(12 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .note.out {
+    transform: translateY(calc(-8 * var(--u)));
+  }
+  .note-cube {
+    display: grid;
+    place-items: center;
+    width: calc(24 * var(--u));
+    height: calc(24 * var(--u));
+    border-radius: calc(6 * var(--u));
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+  }
+  .note-cube svg {
+    width: calc(12 * var(--u));
+    height: auto;
+  }
+  .note-text b {
+    display: block;
+    font-weight: 500;
+  }
+  .note-text small {
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .note-actions {
+    grid-column: 2;
+    display: flex;
+    gap: calc(6 * var(--u));
+  }
+  .note-actions i {
+    padding: calc(3 * var(--u)) calc(8 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    font-size: calc(12 * var(--u));
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .gantt {
+    --x: 516;
+    --y: 236;
+    width: calc(564 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: var(--card);
+    overflow: hidden;
+  }
+  .g-head {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    height: calc(36 * var(--u));
+    padding-inline: calc(12 * var(--u));
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .g-head svg {
+    width: calc(14 * var(--u));
+    height: auto;
+    color: var(--muted-foreground);
+  }
+  .g-scale {
+    display: grid;
+    grid-template-columns: calc(176 * var(--u)) 1fr;
+    border-bottom: 1px solid var(--border);
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .g-scale > * {
+    height: calc(24 * var(--u));
+    line-height: calc(24 * var(--u));
+  }
+  .g-corner {
+    border-right: 1px solid var(--border);
+  }
+  .g-month {
+    padding-left: calc(8 * var(--u));
+    border-bottom: 1px solid var(--border);
+  }
+  .g-weeks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .g-weeks i {
+    padding-left: calc(8 * var(--u));
+    border-left: 1px solid var(--border);
+    font-style: normal;
+  }
+  .g-weeks i:first-child {
+    border-left: 0;
+  }
+  .g-rows {
+    position: relative;
+  }
+  .g-row {
+    display: grid;
+    grid-template-columns: calc(176 * var(--u)) 1fr;
+    height: calc(32 * var(--u));
+    transition: opacity 0.4s;
+  }
+  .g-label {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    padding-left: calc(12 * var(--u));
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    font-size: calc(12 * var(--u));
+    white-space: nowrap;
+  }
+  .g-label b {
+    font-family: var(--mono);
+    font-weight: 400;
+    color: var(--primary);
+  }
+  .g-track {
+    position: relative;
+  }
+  .g-bar {
+    position: absolute;
+    top: calc(6 * var(--u));
+    left: calc(var(--bx) * var(--u));
+    width: calc(var(--bw) * var(--u));
+    height: calc(20 * var(--u));
+    border-radius: calc(4 * var(--u));
+    background: var(--todo);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+    transition:
+      width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.3s;
+  }
+  .g-bar[data-status='progress'],
+  .g-bar[data-status='review'] {
+    background: var(--progress);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+  }
+  .g-bar[data-status='done'] {
+    background: var(--done);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+  }
+  .b1 {
+    --bx: 14;
+    --bw: 150;
+  }
+  .b2 {
+    --bx: 92;
+    --bw: 130;
+  }
+  .b3 {
+    --bx: 246;
+    --bw: 118;
+  }
+  .g-bar.out {
+    width: 0;
+    box-shadow: none;
+  }
+  .g-today {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc((176 + 196) * var(--u));
+    width: 1px;
+    background: var(--primary);
+  }
+  .g-dep {
+    position: absolute;
+    left: calc(176 * var(--u));
+    top: 0;
+    width: calc(100% - 154 * var(--u));
+    height: 100%;
+    fill: none;
+    stroke: color-mix(in oklch, var(--foreground) 55%, transparent);
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+    transition: opacity 0.4s;
+  }
+  .g-dep path {
+    vector-effect: non-scaling-stroke;
+  }
+  .g-foot {
+    position: relative;
+    height: calc(28 * var(--u));
+    border-top: 1px solid var(--border);
+  }
+  .g-stone {
+    position: absolute;
+    left: calc((176 + 318) * var(--u));
+    top: calc(8 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    font-size: calc(11 * var(--u));
+    transition: opacity 0.4s;
+  }
+  .g-stone i {
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    background: var(--foreground);
+    transform: rotate(45deg);
+  }
+  [data-gantt-row].out {
+    opacity: 0;
+  }
+
+  .toolbar {
+    --x: 406;
+    --y: 546;
+    gap: calc(2 * var(--u));
+    height: calc(40 * var(--u));
+    padding-inline: calc(4 * var(--u));
+    border-radius: calc(10 * var(--u));
+  }
+  .toolbar span {
+    display: grid;
+    place-items: center;
+    width: calc(34 * var(--u));
+    height: calc(32 * var(--u));
+    border-radius: calc(6 * var(--u));
+    color: var(--muted-foreground);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .toolbar svg {
+    width: calc(17 * var(--u));
+    height: auto;
+  }
+  .toolbar .active {
+    background: var(--accent);
+    color: var(--primary);
+  }
+
+  .popover {
+    --x: 400;
+    --y: 468;
+    display: grid;
+    gap: calc(6 * var(--u));
+    width: calc(320 * var(--u));
+    padding: calc(10 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(10 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+    z-index: 4;
+  }
+  .popover.out {
+    transform: translateY(calc(6 * var(--u)));
+  }
+  .pop-input {
+    display: flex;
+    align-items: center;
+    height: calc(30 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border: 1px solid var(--primary);
+    border-radius: calc(6 * var(--u));
+    font-family: var(--mono);
+    font-size: calc(12 * var(--u));
+    white-space: pre;
+    box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 18%, transparent);
+  }
+  .caret {
+    width: 1px;
+    height: calc(15 * var(--u));
+    margin-left: 1px;
+    background: var(--foreground);
+    animation: blink 1s steps(2, start) infinite;
+  }
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  .pop-hint {
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+
+  .cursor {
+    --x: 800;
+    --y: 420;
+    z-index: 6;
+    display: flex;
+    align-items: flex-start;
+    pointer-events: none;
+    transition:
+      left 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+      top 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.3s;
+  }
+  .cursor.out {
+    transform: none;
+  }
+  .cursor svg {
+    width: calc(16 * var(--u));
+    height: auto;
+    fill: oklch(0.62 0.19 330);
+    stroke: var(--card);
+    stroke-width: 1;
+  }
+  .cursor span {
+    margin: calc(12 * var(--u)) 0 0 calc(-2 * var(--u));
+    padding: calc(1 * var(--u)) calc(6 * var(--u));
+    border-radius: calc(4 * var(--u));
+    background: oklch(0.62 0.19 330);
+    color: white;
+    font-size: calc(11 * var(--u));
+    font-weight: 500;
+  }
+
+  .controls {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 7;
+  }
+  .hint,
+  .replay {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1.75rem;
+    padding-inline: 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  .replay {
+    color: var(--foreground);
+    cursor: pointer;
+  }
+  .replay[hidden],
+  .hint[hidden],
+  :global(html:not(.js)) .hint {
+    display: none;
+  }
+
+  /* A phone gets a narrower board: the frame over the Gantt, without the note and the capsule. */
+  @container (max-width: 640px) {
+    .board {
+      --u: calc(100cqw / 400);
+      aspect-ratio: 400 / 590;
+    }
+    .capsule,
+    .frame2,
+    .mini,
+    .sticky,
+    .note,
+    .wires,
+    .cursor,
+    .topbar .tb-share {
+      display: none;
+    }
+    .topbar {
+      --x: 12;
+      --y: 12;
+    }
+    .sync {
+      --x: 268;
+      --y: 22;
+    }
+    .frame {
+      --x: 12;
+      --y: 88;
+      width: calc(376 * var(--u));
+      height: calc(184 * var(--u));
+    }
+    .card {
+      --x: 24;
+    }
+    .c1 {
+      --y: 100;
+    }
+    .c2 {
+      --y: 142;
+    }
+    .c3 {
+      --y: 184;
+    }
+    .c4 {
+      --y: 226;
+    }
+    .timer {
+      --x: 336;
+      --y: 220;
+    }
+    .gantt {
+      --x: 12;
+      --y: 290;
+      width: calc(376 * var(--u));
+    }
+    .g-scale,
+    .g-row {
+      grid-template-columns: calc(96 * var(--u)) 1fr;
+    }
+    .g-label {
+      padding-left: calc(8 * var(--u));
+    }
+    .g-t {
+      display: none;
+    }
+    .g-today {
+      left: calc((96 + 134) * var(--u));
+    }
+    .g-dep {
+      left: calc(96 * var(--u));
+      width: calc(100% - 96 * var(--u));
+    }
+    .g-stone {
+      left: calc((96 + 200) * var(--u));
+    }
+    .b1 {
+      --bx: 8;
+      --bw: 100;
+    }
+    .b2 {
+      --bx: 62;
+      --bw: 88;
+    }
+    .b3 {
+      --bx: 166;
+      --bw: 80;
+    }
+    .toolbar {
+      --x: 46;
+      --y: 536;
+    }
+    .controls {
+      position: static;
+      margin-top: 0.625rem;
+      text-align: right;
+    }
+    .popover {
+      --x: 40;
+      --y: 458;
+    }
+  }
+</style>

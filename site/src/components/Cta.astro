@@ -1,0 +1,53 @@
+---
+import { DEMO, DOCS } from '../data/site'
+import Brand from './Brand.astro'
+import Icon from './Icon.astro'
+---
+
+<section class="wrap">
+  <div class="panel dots reveal">
+    <Brand mark="emblem" height={44} />
+    <h2>Put your tasks where you can see them</h2>
+    <p>The demo opens a sample board in your browser. You don't need to sign up or install anything.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href={DEMO}>Try the demo <Icon name="arrow-right" /></a>
+      <a class="btn btn-outline" href={`${DOCS}/install/`}>Install tiko</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  section {
+    padding-bottom: clamp(4rem, 9vw, 7rem);
+  }
+  .panel {
+    display: grid;
+    justify-items: center;
+    padding: clamp(2.5rem, 7vw, 5rem) 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background-color: var(--card);
+    text-align: center;
+  }
+  h2 {
+    max-width: 18ch;
+    margin-top: 1.5rem;
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  p {
+    max-width: 44ch;
+    margin-top: 1rem;
+    color: var(--muted-foreground);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+</style>
