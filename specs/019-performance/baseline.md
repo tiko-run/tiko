@@ -86,4 +86,6 @@ Sending is one call down to the socket for every frame and every recipient. The 
 - More than one CPU core, and a core that is not shared with other tenants.
 - The same room with distinct people: every socket signed in as the same admin.
 
+Two flaws of `rooms.py` as it was for table B, both fixed since. The boards were used again from step to step and each step left up to 30 elements on a board, so the later rows ran on boards up to 3% bigger, with a longer history. And a person who creates elements reused one id after their fifteenth, so late in a step they rewrote an element instead of adding one; the number of edits a second was the same.
+
 A run on a laptop (Docker Desktop, the API held to one CPU) gave about three times the numbers of table A. It is not comparable with the VM and is not a baseline.

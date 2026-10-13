@@ -155,9 +155,10 @@ async def person(
                         seen += 1
                         # One in ten: a full room sends hundreds of presence frames a second.
                         if seen % 10 == 0:
-                            mark = PRESENCE_MARK.search(message)
-                            if mark:
-                                stats.record("presence", time.time() - float(mark.group(1)))
+                            # Every state in the frame: one frame may carry several tabs.
+                            now = time.time()
+                            for mark in PRESENCE_MARK.finditer(message):
+                                stats.record("presence", now - float(mark.group(1)))
 
             async def say(cursor, selected=(), drag=None) -> None:
                 nonlocal clock
@@ -187,7 +188,7 @@ async def person(
             await asyncio.wait_for(synced.wait(), 60)
             stats.record("join", time.perf_counter() - started)
             stats.online += 1
-            x, y, made = random.uniform(0, 5000), random.uniform(0, 5000), []
+            x, y, made, created = random.uniform(0, 5000), random.uniform(0, 5000), [], 0
             try:
                 while time.time() < until and not reader.done():
                     if role == "watch":
@@ -211,7 +212,8 @@ async def person(
                         await asyncio.sleep(random.uniform(1, 4))
                     else:
                         x, y = await wander(random.uniform(0.5, 1.5), x, y)
-                        node_id = f"lt{client:x}-{len(made)}"
+                        created += 1
+                        node_id = f"lt{client:x}-{created}"
                         nodes[node_id] = Map(
                             {
                                 "type": "sticky",
@@ -226,6 +228,12 @@ async def person(
                             nodes.pop(made.pop(0))
                         await flush()
                         await asyncio.sleep(random.uniform(3, 7))
+                # The board goes back to its size, so the next step starts from the same one.
+                if made and not reader.done():
+                    for node_id in made:
+                        nodes.pop(node_id)
+                    await flush()
+                    await asyncio.sleep(0.5)
             finally:
                 stats.online -= 1
                 reader.cancel()
