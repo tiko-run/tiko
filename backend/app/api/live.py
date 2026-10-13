@@ -9,7 +9,7 @@ import anyio.to_thread
 from fastapi import APIRouter, WebSocket
 
 from app.domain.live import ACCESS_CHANGED, MAX_MESSAGE_BYTES, POLICY, SESSION_ENDED, TOO_BIG
-from app.observability import live_message
+from app.observability import LIVE_CLOSES, live_message
 
 router = APIRouter(tags=["live"])
 log = logging.getLogger(__name__)
@@ -35,22 +35,28 @@ def _same_origin(websocket: WebSocket) -> bool:
     return urlsplit(origin).hostname == host
 
 
+async def close(websocket: WebSocket, code: int) -> None:
+    """Closes a socket from the server's side and counts it under its code."""
+    LIVE_CLOSES.labels(str(code)).inc()
+    await websocket.close(code)
+
+
 @router.websocket("/boards/{board_id}/live")
 async def live_board(websocket: WebSocket, board_id: str) -> None:
     state = websocket.app.state
     person, session = websocket.state.person, websocket.state.session
     if not _same_origin(websocket):
-        await websocket.close(POLICY)
+        await close(websocket, POLICY)
         return
     # Accepted before the role is known: a refused upgrade cannot carry a close code.
     await websocket.accept()
     role = await anyio.to_thread.run_sync(state.members.role, person, board_id)
     if role is None:
-        await websocket.close(ACCESS_CHANGED)
+        await close(websocket, ACCESS_CHANGED)
         return
     connection = await state.live.join(board_id, person, session, role != "viewer")
     if isinstance(connection, int):
-        await websocket.close(connection)
+        await close(websocket, connection)
         return
     room = connection.room
     try:
@@ -101,9 +107,10 @@ async def serve(
         while True:
             item = await listener.outbox.get()
             if isinstance(item, int):
-                await websocket.close(item)
+                await close(websocket, item)
                 return
             await websocket.send_bytes(item)
+            live_message("out", item)
 
     async def watch() -> None:
         while True:

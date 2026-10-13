@@ -41,7 +41,7 @@ from app.domain.live import (
 )
 from app.domain.members import role_on
 from app.domain.ports import BoardRepo, MemberRepo
-from app.observability import LIVE_CHECK, LIVE_CLOSES, LIVE_NODES, LIVE_SAVE, live_message
+from app.observability import LIVE_CHECK, LIVE_NODES, LIVE_SAVE
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +65,6 @@ class Listener:
     def push(self, data: bytes) -> None:
         if self.closing:
             return
-        live_message("out", data)
         try:
             self.outbox.put_nowait(data)
         except asyncio.QueueFull:
@@ -75,7 +74,6 @@ class Listener:
         if self.closing:
             return
         self.closing = True
-        LIVE_CLOSES.labels(str(code)).inc()
         while not self.outbox.empty():
             self.outbox.get_nowait()
         self.outbox.put_nowait(code)

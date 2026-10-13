@@ -81,3 +81,17 @@ def test_monitoring_reads_the_metrics_with_the_token():
 def test_without_a_token_set_no_header_opens_the_metrics():
     scraper = TestClient(app_with())
     assert scraper.get("/metrics", headers={"authorization": "Bearer "}).status_code == 401
+
+
+def test_a_socket_the_server_refuses_is_counted_under_its_code(monkeypatch):
+    monkeypatch.setattr("app.adapters.live.rooms.MAX_CONNECTIONS", 1)
+    admin = signed_in(app_with())
+    board = admin.post("/api/boards", json={"name": "Plan"}).json()
+    full = 'tiko_live_closes_total{code="4429"}'
+    text = admin.get("/metrics").text
+    before = value(text, full) if full in text else 0
+    with admin.websocket_connect(f"/api/boards/{board['id']}/live") as first:
+        first.receive_bytes()
+        with admin.websocket_connect(f"/api/boards/{board['id']}/live") as second:
+            assert second.receive()["code"] == 4429
+    assert value(admin.get("/metrics").text, full) == before + 1

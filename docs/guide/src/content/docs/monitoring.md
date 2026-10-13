@@ -51,7 +51,7 @@ The API is one process on one CPU core, and every open board is a socket in it. 
 | `tiko_live_rooms` | gauge | Boards held open in memory |
 | `tiko_live_sockets` | gauge | Open live sockets by `kind` |
 | `tiko_live_outbox_max` | gauge | Messages waiting in the fullest queue of a socket |
-| `tiko_live_messages_total` | counter | Live messages by `direction` (`in`, `out`) and `kind` (`sync` for edits, `awareness` for cursors and selections, `other`) |
+| `tiko_live_messages_total` | counter | Live messages received and sent by `direction` (`in`, `out`) and `kind` (`sync` for edits, `awareness` for cursors and selections, `other`) |
 | `tiko_live_bytes_total` | counter | Bytes of those messages by `direction` |
 | `tiko_live_closes_total` | counter | Sockets closed by the server, by `code` |
 | `tiko_live_check_seconds` | histogram | Check of a board after a burst of edits |

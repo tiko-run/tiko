@@ -241,6 +241,7 @@ def create_app(
             alive = await anyio.to_thread.run_sync(users.demo_alive, iso(time.time()))
             DEMO_VISITORS.set(alive)
             DEMO_LIMIT.set(visitors.max_alive)
-        return metrics_response()
+        # Rendering reads /proc and walks every metric: off the loop, where sockets are served.
+        return await anyio.to_thread.run_sync(metrics_response)
 
     return app
