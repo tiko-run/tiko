@@ -16,8 +16,8 @@ A board held cards, frames, sticky notes and text. A flowchart around the tasks 
 
 1. **Eight shapes for diagrams**: rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon, cylinder.
 2. **One element type.** A shape is a `shape` node with `shape`, `text` and `color` in its data. A new shape is a new outline, not a new node type.
-3. **Quiet by default.** A new shape has the card surface and a 1.5px `--foreground` outline. It can take one of the six sticky colors; a filled shape keeps dark text and outline in both themes.
-4. **Drawn or placed.** Pick a shape in the toolbar gallery (`S`), then drag to set its size or click for 160 by 100. The tool returns to Select and the text is ready to type.
+3. **Quiet by default.** A new shape is see-through with a 1.5px `--foreground` outline. It can take the card surface or one of the six sticky colors; a shape in a sticky color keeps dark text and outline in both themes.
+4. **Drawn or placed.** Pick a shape in the toolbar gallery (`S`): its outline follows the pointer at 160 by 100. Drag to set the size, with the outline growing under the pointer, or click to place it as shown. The tool returns to Select and the text is ready to type.
 5. **Text sits inside the outline**: centered, 14px, up to 500 characters, in the largest area the outline leaves. Text that does not fit is cut.
 6. **A shape behaves like a sticky note** everywhere else: arrows from its four sides, frames, timers, copy and paste, search, live editing, view-only boards.
 
@@ -31,10 +31,10 @@ A person lays out a release: a rhombus "Certs valid?", a rectangle for each step
 
 **Acceptance Scenarios**:
 
-1. **Given** the toolbar, **When** Shapes is clicked or `S` is pressed, **Then** a gallery shows the eight shapes with their names.
+1. **Given** the toolbar, **When** Shapes is clicked or `S` is pressed, **Then** a gallery shows the eight shapes with their names and none of them looks picked.
 2. **Given** a picked shape, **When** the person drags on the canvas, **Then** the shape takes the dragged size, at least 40 by 40; a click places it 160 by 100 around the point.
 3. **Given** a new shape, **Then** its text is being edited; double-click edits it later.
-4. **Given** a selected shape, **Then** a toolbar offers no fill and six colors, and the shape resizes from its corners and sides.
+4. **Given** a selected shape, **Then** a toolbar offers no fill, a plain fill and six colors, and the shape resizes from its corners and sides.
 5. **Given** a shape, **Then** arrows start and end on its four sides, a frame takes it in, a timer attaches to it, search finds its text, and the command palette has "Add <shape>" for each.
 6. **Given** a view-only board, **Then** a shape shows with no editor, no color toolbar and no resize handles.
 7. **Given** a saved doc with an unknown `shape`, **Then** the API answers 422.

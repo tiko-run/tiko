@@ -247,7 +247,16 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
             <Shapes className="size-[18px]" strokeWidth={1.75} />
           </Button>
         </PopoverTrigger>
-        <PopoverContent side="top" sideOffset={10} className="grid w-auto grid-cols-4 gap-0.5 p-1">
+        <PopoverContent
+          side="top"
+          sideOffset={10}
+          className="grid w-auto grid-cols-4 gap-0.5 p-1"
+          // Focus goes to the gallery, not its first shape: opened with a key, that shape would look picked.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault()
+            ;(event.currentTarget as HTMLElement).focus()
+          }}
+        >
           {SHAPES.map(({ kind, name }) => (
             <Button
               key={kind}

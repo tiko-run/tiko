@@ -65,6 +65,7 @@ import { newId } from '@/lib/id'
 import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
 import { ShapeNode } from '@/canvas/nodes/ShapeNode'
+import { ShapeGhost } from '@/canvas/ShapeGhost'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { resolveAll } from '@/canvas/refs'
@@ -100,6 +101,8 @@ const CASCADE_Y = 96
 // Duplicates land next to the original; a drag shorter than this places a default-size frame.
 const DUPLICATE_OFFSET = 24
 const MIN_DRAW = 8
+const drawn = ({ width, height }: { width: number; height: number }) =>
+  width >= MIN_DRAW && height >= MIN_DRAW
 // Same floor as the frame resizer, so a thin drag still makes a usable frame.
 const MIN_FRAME = { width: 160, height: 120 }
 // An arrow released closer than this to where it started was a click on the handle, not a drag.
@@ -510,8 +513,8 @@ export function BoardCanvas({
     setTool('select')
     const start = screenToFlowPosition({ x, y })
     const end = screenToFlowPosition({ x: x + width, y: y + height })
-    const drawn = width >= MIN_DRAW && height >= MIN_DRAW
-    const size = drawn
+    const sized = drawn({ width, height })
+    const size = sized
       ? {
           width: Math.max(end.x - start.x, SHAPE_MIN.width),
           height: Math.max(end.y - start.y, SHAPE_MIN.height),
@@ -520,7 +523,7 @@ export function BoardCanvas({
     const node: AppNode = {
       id: newId(),
       type: 'shape',
-      position: drawn ? start : { x: start.x - size.width / 2, y: start.y - size.height / 2 },
+      position: sized ? start : { x: start.x - size.width / 2, y: start.y - size.height / 2 },
       ...size,
       data: { shape: shapeKind, text: '', color: 'none' },
     }
@@ -718,7 +721,13 @@ export function BoardCanvas({
         <Guides guides={guides.guides} />
         <PresenceLayer />
       </ReactFlow>
-      {draw.preview && (
+      {tool === 'shape' && (
+        <ShapeGhost
+          kind={shapeKind}
+          rect={draw.preview && drawn(draw.preview) ? draw.preview : null}
+        />
+      )}
+      {tool !== 'shape' && draw.preview && (
         <div
           className="border-primary bg-primary/5 pointer-events-none fixed rounded-sm border border-dashed"
           style={{

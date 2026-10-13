@@ -13,8 +13,8 @@ export type StickyColor = (typeof STICKY_COLORS)[number]
 export type StickyData = { text: string; color: StickyColor }
 export type StickyNode = Node<StickyData, 'sticky'>
 
-// A shape is filled with a sticky color or, with `none`, with the card surface.
-export const SHAPE_COLORS = ['none', ...STICKY_COLORS] as const
+// `none` leaves a shape see-through, `surface` fills it with the card surface.
+export const SHAPE_COLORS = ['none', 'surface', ...STICKY_COLORS] as const
 export type ShapeData = { shape: ShapeKind; text: string; color: (typeof SHAPE_COLORS)[number] }
 export type ShapeNode = Node<ShapeData, 'shape'>
 

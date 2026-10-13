@@ -59,8 +59,11 @@ test('double-click edits the text up to the limit', () => {
 
 test('a selected shape takes a fill color', () => {
   const { container } = renderBoard({ selected: true })
-  fireEvent.click(screen.getByRole('button', { name: 'blue fill' }))
   const path = container.querySelector('.react-flow__node-shape path')
+  expect(path?.getAttribute('fill')).toBe('none')
+  fireEvent.click(screen.getByRole('button', { name: 'plain fill' }))
+  expect(path?.getAttribute('fill')).toBe('var(--card)')
+  fireEvent.click(screen.getByRole('button', { name: 'blue fill' }))
   expect(path?.getAttribute('fill')).toBe('var(--sticky-blue)')
 })
 

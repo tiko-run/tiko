@@ -7,7 +7,12 @@ import { SHAPE_COLORS, type ShapeNode as ShapeNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
 
-const fillOf = (color: string) => (color === 'none' ? 'var(--card)' : `var(--sticky-${color})`)
+const FILLS: Record<string, string> = { none: 'none', surface: 'var(--card)' }
+const fillOf = (color: string) => FILLS[color] ?? `var(--sticky-${color})`
+const LABELS: Record<string, string> = { none: 'no fill', surface: 'plain fill' }
+// "No fill" is drawn as a struck-through swatch.
+const NO_FILL =
+  'linear-gradient(to top right, var(--card) 44%, var(--destructive) 44% 56%, var(--card) 56%)'
 
 function ShapeNodeView({
   id,
@@ -24,7 +29,7 @@ function ShapeNodeView({
     <div
       className={cn('relative h-full w-full', selected && 'outline-primary outline-1')}
       // The outline and the text share one color, dark on a filled shape in both themes.
-      style={{ color: data.color === 'none' ? undefined : 'var(--sticky-foreground)' }}
+      style={{ color: data.color in FILLS ? undefined : 'var(--sticky-foreground)' }}
     >
       <NodeResizer
         isVisible={selected && !readOnly}
@@ -41,14 +46,14 @@ function ShapeNodeView({
           <button
             key={color}
             type="button"
-            aria-label={color === 'none' ? 'no fill' : `${color} fill`}
+            aria-label={LABELS[color] ?? `${color} fill`}
             aria-pressed={data.color === color}
             onClick={() => updateNodeData(id, { color })}
             className={cn(
               'size-5 rounded-full border',
               data.color === color && 'ring-primary ring-2 ring-offset-1',
             )}
-            style={{ background: fillOf(color) }}
+            style={{ background: color === 'none' ? NO_FILL : fillOf(color) }}
           />
         ))}
       </NodeToolbar>
