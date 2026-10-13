@@ -69,7 +69,8 @@
     "perf-incremental-check",
     "perf-metrics-under-load",
     "perf-workers",
-    "landing"
+    "landing",
+    "perf-remeasure"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -166,7 +167,8 @@
     "G3_perf-metrics-under-load": "approved",
     "G3_perf-workers": "approved",
     "G1_landing": "approved",
-    "G3_landing": "approved"
+    "G3_landing": "approved",
+    "G3_perf-remeasure": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -232,6 +234,7 @@
     "2026-10-11 task card: owner asked for the rename spec 015 had put off and chose a full rewrite of stored boards over reading both names; short spec 017, no G2. Slice task-card approved at G3 after the owner's look at the boards on the stand; spec 017 done. The node type is task_card in the API, the web app, stored boards and their CRDT state. Migrations take a step written as code, and the server copies the database to backups/before-v12-<time>.db before one; the live state is edited in place, so a board keeps its history. jira_card is still read from the API and from a live update. Checked on a copy of a real database of schema 11: only the type of card nodes changed. A database moved to schema 12 does not open with an older version: going back means restoring the copy. Next: sign-in with GitHub.",
     "2026-10-13 performance: spec 019 in work, slices perf-ws-compression, perf-presence-batch, perf-incremental-check and perf-metrics-under-load approved at G3 (PR 141, 142, 143, 145). Presence leaves at most once in 50 ms with the first frame at once: a plain 50 ms tick doubled the gaps against the web app's own 50 ms. The check of a 1000-element board went from 62 to 4 ms on a laptop; a ring of parents no longer makes the repair depend on element order. Owner chose a port of its own for metrics (TIKO_METRICS_PORT): a request on port 8000 crosses the event loop whatever the route does. Nothing measured on the reference host yet: that is slice perf-remeasure. Next: perf-workers, starting with the plan T050; with several processes each has its own counters, so metrics are touched again.",
     "2026-10-13 workers: slice perf-workers approved at G3. Owner's decisions on the plan T050: the proxy picks the process of a board, the guest socket's contract changes, limiters go to SQLite instead of pinning requests to one process, a metrics port per process. TIKO_WORKERS processes on consecutive ports; a board's room lives in the process named by the last two hex digits of its id, nginx and the API share the rule. Sign-out and role changes are told over Unix sockets, a REST save is passed to the board's process. A guest must not learn the board's id (an existing test says so), so the socket path ends with a two-character room key. Every transaction is BEGIN IMMEDIATE now: reads of different processes wait for each other, to be measured in perf-remeasure. Not tried: several ports of a private service on Render, the guest page in a real browser. Next: perf-remeasure, ask the owner before spending on droplets.",
-    "2026-10-13 landing: owner asked for a landing page at tiko.run in place of the redirect to the guide and approved the structure (G1): a static Astro site in site/ on Cloudflare Pages, the hero as a board drawn in DOM and CSS that plays a scene, no animation library, scenarios instead of customer stories, GitHub as a link without a star count, tiko Cloud as \"Coming soon\" with no e-mail form. Spec 020, slice landing approved at G3 after the owner's look at the local preview (PR 147). The site serves the installers and redirects the guide's paths itself. Left: T009 the checks on the Pages address, T010 pointing tiko.run at it; an e-mail list for tiko Cloud needs a privacy policy and is a slice of its own."
+    "2026-10-13 landing: owner asked for a landing page at tiko.run in place of the redirect to the guide and approved the structure (G1): a static Astro site in site/ on Cloudflare Pages, the hero as a board drawn in DOM and CSS that plays a scene, no animation library, scenarios instead of customer stories, GitHub as a link without a star count, tiko Cloud as \"Coming soon\" with no e-mail form. Spec 020, slice landing approved at G3 after the owner's look at the local preview (PR 147). The site serves the installers and redirects the guide's paths itself. Left: T009 the checks on the Pages address, T010 pointing tiko.run at it; an e-mail list for tiko Cloud needs a privacy policy and is a slice of its own.",
+    "2026-10-13 remeasure: slice perf-remeasure, results in specs/019-performance/results.md, approved at G3. Rooms of 30 on boards of 1000 elements: one core holds 4 and 5 at the edge (the baseline held 1), four cores with TIKO_WORKERS=4 hold 20; past the limit nobody is dropped. nginx takes 16 to 20% of the host at the heaviest passing step, so P7 is asked for. Many small rooms: 200 pass and 500 sit at the limit on one core, and that row is noise of a shared vCPU, the baseline's 78 ms did not come back on its own code. With more cores the next limit for many single visitors is the database, not the CPU. BEGIN IMMEDIATE between processes cost under 3 ms in rooms. Owner on 2026-10-13: P7 goes ahead, and what this run found becomes a new spec, the second round of performance."
   ]
 }

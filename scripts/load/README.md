@@ -1,6 +1,6 @@
 # Load tests
 
-What the numbers in [specs/019-performance/baseline.md](../../specs/019-performance/baseline.md) were measured with. Run them against a throwaway instance with an empty database, never against one with real boards.
+What the numbers in [baseline.md](../../specs/019-performance/baseline.md) and [results.md](../../specs/019-performance/results.md) of `specs/019-performance` were measured with. Run them against a throwaway instance with an empty database, never against one with real boards.
 
 | Script | Scenario |
 |---|---|
@@ -27,8 +27,10 @@ Away from the repository: `uv run --with httpx --with websockets --with pycrdt p
 - `visitors.py` sets `X-Forwarded-For` to give every visitor an address of their own. nginx believes it only from a private network, which is where the generator sits.
 - A step holds for 2 to 3 minutes: saves run every 2 to 10 seconds and the session check once a minute, so that covers every periodic job. Leave 40 seconds between steps.
 - `rooms.py` puts a board back to its size when a step ends: the people who create delete what they made, and the run then sweeps the boards for what a closed or failed socket left behind. `rooms.py sweep` does the same by hand after a step that was interrupted. The saved history of the board still grows with every step, so make the boards anew (`rooms.py setup`, on an empty database) before a series that will be compared with another.
-- `rooms.py run` prints `window <start> <end>`; give the two numbers to `window.py` on the Prometheus host for the server's side of the same step.
-- Profile at about 70% of the knee, on the target: `py-spy record -p $(pgrep -x uvicorn) -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`.
+- `rooms.py run` prints `window <start> <end>`; give the two numbers to `window.py` on the Prometheus host for the server's side of the same step. It sums over the API processes; with `TIKO_WORKERS` above 1 give Prometheus every metrics port as a target. `PROM=http://host:port` names a Prometheus other than the local one.
+- Run through the web container (port 3000), not the API's port: with several processes only the proxy knows which one holds a board.
+- Node exporter does not tell nginx from the API. For the share of each, read `usage_usec` in `cpu.stat` of the container's cgroup at both ends of the window.
+- Profile at about 70% of the knee, on the target: `py-spy record -p $(pgrep -f 'uvicorn --factory' | head -1) -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`.
 
 Watch `client_lag` in the output: when its p99 goes over a few milliseconds, the generator is the bottleneck and the latencies are its own.
 
