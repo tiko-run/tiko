@@ -3,10 +3,13 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { Faces } from '@/live/Avatar'
 import {
   PRESENCE_COLORS,
+  TRAVEL_BUSY_MS,
+  TRAVEL_MS,
   colorOf,
   initials,
   parsePeers,
   peopleOf,
+  pacer,
   presenceSender,
   selectedBy,
   throttle,
@@ -104,6 +107,22 @@ test('throttle: the first call at once, then the latest value once per interval'
   send.cancel()
   vi.advanceTimersByTime(100)
   expect(seen).toEqual([1, 3])
+})
+
+test('a move takes longer once the frames of the room come half as often', () => {
+  const pace = pacer()
+  let now = 0
+  const frames = (gapMs: number, count: number) => {
+    let ms = 0
+    for (let i = 0; i < count; i++) ms = pace((now += gapMs))
+    return ms
+  }
+  expect(frames(50, 10)).toBe(TRAVEL_MS)
+  expect(frames(100, 10)).toBe(TRAVEL_BUSY_MS)
+  // People who stop for a while do not make the room slow, and one late frame does not either.
+  expect(frames(50, 10)).toBe(TRAVEL_MS)
+  expect(frames(5000, 3)).toBe(TRAVEL_MS)
+  expect(frames(120, 1)).toBe(TRAVEL_MS)
 })
 
 test('cursor and drag leave in one message, so a dragged node stays under its cursor', () => {

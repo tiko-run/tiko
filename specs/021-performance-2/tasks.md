@@ -81,21 +81,39 @@ T030, measured on a laptop with Docker: three rooms of 30 on boards of 1000 elem
 
 About a tenth less CPU in both containers, and the ranges touch. The socket ships as `TIKO_SOCKET_DIR`, off by default: whether the compose files turn it on is decided after Phase 7 measures it on the reference host, together with the host's network.
 
-## Phase 4: Slice `perf2-edit-batch` (R4)
+## Phase 4: Slice `perf2-edit-batch` (R4), not built
+
+Dropped on 2026-10-13 by the owner's decision, see "The order after R3" in the spec: of 643 to 650 messages a second a room sent in 019, about 45 were edits.
 
 - [ ] T040 `adapters/live/rooms.py`: updates of a tick merged and sent once, the first at once. Tests: one frame per recipient for a burst, the tabs converge
 - [ ] T041 `specs/009-realtime/contracts/live.md`: the timing of edits
 
-## Phase 5: Slice `perf2-incremental-save` (R5)
+## Phase 5: Slice `perf2-incremental-save` (R5), only if Phase 7 asks for it
 
 - [ ] T050 Plan: the format, the migration, what reads a board from the database (REST save, export, the copy before a migration)
 - [ ] T051 Updates appended, a snapshot when the room is quiet or on a timer. Tests: restore equals live, a restart in the middle
 - [ ] T052 Local number: `tiko_live_save_seconds` on a 1000-element board
 
-## Phase 6: Slice `perf2-presence-rate` (R6), only if Phase 7 asks for it
+## Phase 6: Slice `perf2-presence-rate` (R6), built before Phase 5
 
-- [ ] T060 The web app interpolates pointers, one release ahead
-- [ ] T061 A busy room sends presence at 10 Hz
+- [x] T060 The web app measures the gap between presence frames and takes 160 ms instead of 80 for a pointer or a dragged element when they come half as often
+- [x] T061 A room of 10 sockets or more sends presence at most once in 100 ms; `specs/009-realtime/contracts/live.md`
+- [x] T062 Local number: presence frames out and the CPU of both containers, 20 Hz against 10 Hz
+
+On a laptop, three rooms of 30 on boards of 1000 elements, 60 s a run, the two rates in turn on one build, the median of three runs with the least and the most:
+
+| | 20 Hz | 10 Hz in a busy room |
+|---|---|---|
+| Presence frames out a second | 2270 [2266 .. 2280] | 1206 [1191 .. 1207] |
+| API container, share of a core | 21.4% [20.7 .. 22.3] | 18.5% [18.0 .. 18.5] |
+| Web container, share of a core | 12.1% [11.7 .. 12.3] | 9.2% [9.0 .. 9.2] |
+| Pointer, p95 | 54.1 ms [53.7 .. 54.6] | 56.2 ms [55.8 .. 56.8] |
+| Pointer, p99 | 56.9 ms [56.5 .. 57.5] | 82.5 ms [82.2 .. 88.7] |
+| Edit, p95 | 8.0 ms [6.3 .. 9.0] | 7.8 ms [7.8 .. 11.0] |
+
+Frames fall by 47%, the API container by about a seventh and the web container by about a quarter, and the ranges do not touch. Whether more rooms pass is for Phase 7: a laptop at a fifth of a core is far from the limit.
+
+In two tabs of a browser, with a room made busy at two sockets: the other tab went from 80 to 160 ms by itself and its pointer moved on every one of the last 120 frames.
 
 ## Phase 7: Slices `perf2-remeasure` (R7) and `perf2-verdict` (R8)
 

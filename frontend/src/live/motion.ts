@@ -1,6 +1,7 @@
 import type { XYPosition } from '@xyflow/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { AppNode } from '@/canvas/types'
+import { TRAVEL_MS } from '@/live/presence'
 
 /**
  * How other people's moves are drawn.
@@ -14,9 +15,8 @@ type Box = { x: number; y: number; width?: number; height?: number }
 type Tween = { from: Box; to: Box; start: number; ms: number; linear: boolean }
 export type Motion = ReadonlyMap<string, Tween>
 
-// A dragged node gets a new place every 50 ms and moves evenly between them; a change that
-// arrives whole glides in and slows down at the end.
-const DRAG_MS = 80
+// A dragged node gets a new place with every presence frame and moves evenly between them, in
+// the time the caller measured; a change that arrives whole glides in and slows down at the end.
 const GLIDE_MS = 150
 const STILL: Motion = new Map()
 
@@ -70,6 +70,7 @@ export function plan(
   now: number,
   originOf: (parentId: string) => XYPosition | undefined,
   instant = false,
+  dragMs = TRAVEL_MS,
 ): Motion {
   const next = new Map<string, Tween>()
   let changed = false
@@ -94,7 +95,7 @@ export function plan(
       changed ||= current !== undefined
       continue
     }
-    const ms = instant ? 0 : dragged ? DRAG_MS : GLIDE_MS
+    const ms = instant ? 0 : dragged ? dragMs : GLIDE_MS
     next.set(node.id, { from, to, start: now, ms, linear: dragged })
     changed = true
   }
@@ -123,6 +124,7 @@ export function useRemoteMotion(
   drags: ReadonlyMap<string, XYPosition>,
   arrived: ReadonlySet<string>,
   originOf: (parentId: string) => XYPosition | undefined,
+  dragMs = TRAVEL_MS,
 ): AppNode[] {
   const [motion, setMotion] = useState<Motion>(STILL)
   const [now, setNow] = useState(0)
@@ -141,13 +143,14 @@ export function useRemoteMotion(
       moment,
       originOf,
       reducedMotion(),
+      dragMs,
     )
     previous.current = new Map(nodes.map((node) => [node.id, target(node, drags, originOf)]))
     if (next !== motion) {
       setMotion(next)
       setNow(moment)
     }
-  }, [nodes, drags, arrived, motion, originOf])
+  }, [nodes, drags, arrived, motion, originOf, dragMs])
 
   useEffect(() => {
     if (motion.size === 0) return

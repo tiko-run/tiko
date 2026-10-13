@@ -243,7 +243,7 @@ class Room:
             # the first one leaves at once, so a lone pointer is not held back.
             if accepted and self._presence_timer is None:
                 loop = asyncio.get_running_loop()
-                due = self._presence_sent + self._rooms.presence_delay_s
+                due = self._presence_sent + self._rooms.presence_delay(len(self.connections))
                 if due <= loop.time():
                     self._send_presence()
                 else:
@@ -373,9 +373,17 @@ class LiveRooms:
         self._loop: asyncio.AbstractEventLoop | None = None
         self.check_delay_s = 0.05
         self.presence_delay_s = 0.05
+        # A room of this many sockets sends presence half as often: a frame for each of them
+        # on every turn is what fills the host.
+        self.presence_busy_from = 10
+        self.presence_busy_delay_s = 0.1
         self.save_idle_s = 2.0
         self.save_max_s = 10.0
         self.idle_s = 30.0
+
+    def presence_delay(self, sockets: int) -> float:
+        busy = sockets >= self.presence_busy_from
+        return self.presence_busy_delay_s if busy else self.presence_delay_s
 
     def stats(self) -> tuple[int, int, int, int]:
         """Open rooms, sockets of people and of guests, and the fullest queue of a socket."""

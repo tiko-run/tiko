@@ -376,6 +376,24 @@ def test_a_burst_of_presence_is_one_frame_with_the_latest_state(world, monkeypat
         assert ann.read() == after
 
 
+def test_a_busy_room_sends_presence_at_its_own_pace(world, monkeypatch):
+    board_id = world.board()
+    monkeypatch.setattr(world.rooms, "presence_busy_from", 2)
+    monkeypatch.setattr(world.rooms, "presence_busy_delay_s", NEVER)
+    with world.tab("ann", board_id) as ann:
+        first, *burst = moves(range(1, 22))
+        # Alone the room is not busy: nothing holds a move back.
+        ann.send(first)
+        assert ann.read() == first
+        with world.tab("carl", board_id) as carl:
+            assert first in carl.received
+            for move in burst:
+                ann.send(move)
+            ann.sync()
+            world.send_presence(board_id)
+            assert carl.read() == burst[-1]
+
+
 def test_presence_of_several_tabs_is_one_frame(world, monkeypatch):
     board_id = world.board()
     monkeypatch.setattr(world.rooms, "presence_delay_s", NEVER)

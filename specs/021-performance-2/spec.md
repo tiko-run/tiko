@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Approved at G1 and G2 on 2026-10-13. The owner asked for a spec that fixes what the remeasure of spec 019 found and ends with an answer: is this stack at its limit, and if so, which part of it. The slices go in the order below.
+**Status**: Approved at G1 and G2 on 2026-10-13. The owner asked for a spec that fixes what the remeasure of spec 019 found and ends with an answer: is this stack at its limit, and if so, which part of it. The slices go in the order below. On 2026-10-13, after R3, the owner changed that order: R4 is not built, R6 goes next, R5 waits for the remeasure (see "The order after R3").
 
 **Input**: [results of spec 019](../019-performance/results.md), its [baseline](../019-performance/baseline.md), and a reading of how tldraw, Figma, Excalidraw and the Yjs servers do the same job (sources under "What others do").
 
@@ -64,11 +64,19 @@ Ordered by what a crowd meets first, then by cost.
 | R1 | `perf2-db-readers` | Reads stop waiting for writes | The wait for the database back under a millisecond with many single visitors | medium |
 | R2 | `perf2-metrics-cost` | What a scrape costs, and less of it | To be measured first | small |
 | R3 | `perf2-socket-path` | A cheaper path between the proxy and the API (019's P7) | A part of the 16 to 20% of the host back | small trial, then decided |
-| R4 | `perf2-edit-batch` | Edits leave in the room's tick, merged | Fewer frames; aimed at the half of the process that sends | small to medium |
-| R5 | `perf2-incremental-save` | A save writes what changed | A save of a 1000-element board in a few milliseconds whatever the load | medium |
-| R6 | `perf2-presence-rate` | Fewer presence frames under load, smooth pointers in the client | Presence frames halved when a room is busy | small server, medium client; only if R7 needs it |
+| R4 | `perf2-edit-batch` | Edits leave in the room's tick, merged | Not built: there is almost nothing to merge | – |
+| R6 | `perf2-presence-rate` | Fewer presence frames in a busy room, smooth pointers in the client | Presence frames halved when a room is busy | small |
+| R5 | `perf2-incremental-save` | A save writes what changed | A save of a 1000-element board in a few milliseconds whatever the load | medium; only if R7 asks for it |
 | R7 | `perf2-remeasure` | Tables A to C again, by the rules above | The comparison | half a day |
 | R8 | `perf2-verdict` | The table of limits and triggers | The answer to the owner's question | small |
+
+### The order after R3
+
+Before R4 was built its premise was checked against 019's results. A room of 30 sent 643 to 650 messages a second, 600 of them presence and about 45 edits: edits arrive less than once in a tick, so merging them in the tick has almost nothing to merge. "The half of the process that sends" sends presence. What the host runs out of is frames, and the one slice that takes frames away is R6. So:
+
+- R4 is not built. It comes back only if a profile after R6 shows edits.
+- R6 goes next.
+- R5 is the largest slice, with a change of the stored format, and the save took a few percent of a core in 019. It is built only if R7 shows the save in the way.
 
 ### R0: runs that can be trusted
 
@@ -98,7 +106,7 @@ In order, each with its measurement, the owner deciding after each:
 
 **Accept**: for each option, the web container's share of the host and the rooms that pass, next to today's.
 
-### R4: edits in the tick
+### R4: edits in the tick (not built)
 
 A room already wakes every 50 ms for presence. Updates of the document that arrive within a tick are merged into one update (`merge_updates` of Yjs) and sent once per recipient; the first one after a quiet time goes at once, as tldraw does. One WebSocket frame still carries one y-websocket message, so the web app of the previous release reads it.
 
@@ -112,9 +120,13 @@ Today the whole board is written on every save. Plan: the updates of a board are
 
 ### R6: presence under load
 
-Only if R7 shows presence frames still first in the profile. A busy room sends presence at 10 Hz and the web app moves pointers between two known points. A release earlier the client learns to interpolate; then the server may slow down.
+A room with 10 sockets or more sends presence at most once in 100 ms; a smaller one keeps its 50 ms. The first state after a pause still leaves at once. What a tab sends does not change.
 
-**Accept**: two tabs: the other pointer moves smoothly at 10 Hz. Presence frames out of a busy room halve.
+The web app already moves pointers and dragged elements evenly between two frames, over 80 ms. It now measures the gap between the frames it gets and takes 160 ms when they come half as often, so it follows the room without being told the rule. The spec first asked for the web app to learn this a release ahead of the server. It ships in the same release instead: the two come in one image, and a tab of the previous release left open reads every frame as before; its pointers only pause for a moment between two frames until it is reloaded.
+
+A pointer that keeps moving does not arrive later for it: the room sends the latest state of a tab, and a tab sends one every 50 ms, so what leaves is at most that old. Only a second move right after a lone first one may wait up to 100 ms.
+
+**Accept**: tests: a busy room holds a burst back for its own delay, a small one does not; the web app takes the longer move once frames come half as often. Two tabs: the other pointer moves smoothly at 10 Hz. Locally, presence frames out of rooms of 30 halve.
 
 ### R7 and R8: the remeasure and the verdict
 
@@ -122,8 +134,8 @@ R7 is 019's P6 by the rules of "How it is accepted", plus the target with 8 core
 
 | Part | It is the limit when | Then |
 |---|---|---|
-| SQLite | After R1 and R5 the wait for the database is still what stops single visitors while cores are free; or the aim needs several hosts | A spec for a second storage adapter behind the same port |
-| The socket layer of uvicorn | After R3 and R4 the API process, not the host, is full, and sending is still over half of it | A prototype of another server for the socket of a board, measured on table B |
+| SQLite | After R1 the wait for the database is still what stops single visitors while cores are free; or the aim needs several hosts | A spec for a second storage adapter behind the same port |
+| The socket layer of uvicorn | After R3 and R6 the API process, not the host, is full, and sending is still over half of it | A prototype of another server for the socket of a board, measured on table B |
 | Python in the room | The prototype above does not move the limit either | A spec for a native room core; the CRDT is native already |
 | The proxy | After R3 nginx is still over 10% of the host | The owner decides on the direct socket |
 | Nothing | The aim is met, or the limit is the number of cores | Size the host; the spec ends |
