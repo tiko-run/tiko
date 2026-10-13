@@ -65,7 +65,8 @@
     "task-card",
     "live-metrics",
     "perf-ws-compression",
-    "perf-presence-batch"
+    "perf-presence-batch",
+    "perf-incremental-check"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -157,7 +158,8 @@
     "G1_task-card": "approved",
     "G3_task-card": "approved",
     "G3_perf-ws-compression": "approved",
-    "G3_perf-presence-batch": "approved"
+    "G3_perf-presence-batch": "approved",
+    "G3_perf-incremental-check": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",

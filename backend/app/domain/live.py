@@ -82,25 +82,29 @@ def _well_formed(node: Any) -> bool:
     )
 
 
-def to_json(nodes: Stored, edges: Stored) -> dict[str, Any]:
-    """Nodes by stacking order with every child right after its parent, as xyflow needs.
-
-    A node whose parent is missing is left out; the repair brings it back as a top-level node.
-    """
+def _ordered(nodes: Stored) -> list[str]:
     children: dict[str | None, list[str]] = {}
     for node_id, node in nodes.items():
         children.setdefault(node["place"].get("parentId"), []).append(node_id)
     for ids in children.values():
         ids.sort(key=lambda node_id: (nodes[node_id]["order"], node_id))
-    out: list[dict[str, Any]] = []
+    out: list[str] = []
     # A stack, not recursion: a forged chain of parents must not hit the recursion limit.
     stack = list(reversed(children.get(None, [])))
     while stack:
         node_id = stack.pop()
-        out.append(json_node(node_id, nodes[node_id]))
+        out.append(node_id)
         stack.extend(reversed(children.get(node_id, [])))
+    return out
+
+
+def to_json(nodes: Stored, edges: Stored) -> dict[str, Any]:
+    """Nodes by stacking order with every child right after its parent, as xyflow needs.
+
+    A node whose parent is missing is left out; the repair brings it back as a top-level node.
+    """
     return {
-        "nodes": out,
+        "nodes": [json_node(node_id, nodes[node_id]) for node_id in _ordered(nodes)],
         "edges": [{"id": edge_id, **edges[edge_id]} for edge_id in sorted(edges)],
     }
 
@@ -126,7 +130,10 @@ def _origin(node_id: str | None, *sources: Stored) -> tuple[float, float]:
 
 
 def repaired(
-    nodes: dict[str, Any], edges: dict[str, Any], previous: Stored
+    nodes: dict[str, Any],
+    edges: dict[str, Any],
+    previous: Stored,
+    changed: tuple[set[str], set[str]] | None = None,
 ) -> tuple[Stored, Stored, list[str]]:
     """The same board with every rule of `BoardDoc` and `check_doc` holding again.
 
@@ -135,7 +142,12 @@ def repaired(
     """
     notes: list[str] = []
     good: Stored = {}
+    # `changed` names the nodes and the edges that may differ from `previous`. The others are
+    # valid on their own: only the rules that span elements are checked for them.
     for node_id, node in nodes.items():
+        if changed is not None and node_id not in changed[0]:
+            good[node_id] = node
+            continue
         if _well_formed(node) and node["type"] == LEGACY_CARD:
             node = {**node, "type": CARD}
         if _well_formed(node) and _valid(_NODE, json_node(node_id, node)):
@@ -157,7 +169,7 @@ def repaired(
 
     def detach(node_id: str) -> None:
         node = good[node_id]
-        parent_x, parent_y = _origin(node["place"]["parentId"], good, previous)
+        parent_x, parent_y = _origin(node["place"]["parentId"], placed, previous)
         place = {"x": node["place"]["x"] + parent_x, "y": node["place"]["y"] + parent_y}
         good[node_id] = {**node, "place": place}
         notes.append("node_detached")
@@ -166,10 +178,14 @@ def repaired(
         parent = good.get(good[node_id]["place"].get("parentId"))
         return parent["type"] if parent else None
 
+    # Places are read from the board as it was before a pass moved anything: a forged ring of
+    # parents then gives the same board whatever the order of the elements.
+    placed = dict(good)
     # Frames and modules first: a card inside a frame that was itself nested stays in it.
     for node_id in [n for n, node in good.items() if node["type"] in ("frame", "module")]:
         if good[node_id]["place"].get("parentId") is not None:
             detach(node_id)
+    placed = dict(good)
     for node_id in [n for n, node in good.items() if node["type"] not in ("frame", "module")]:
         node = good[node_id]
         if node["place"].get("parentId") is None:
@@ -183,7 +199,9 @@ def repaired(
 
     kept: Stored = {}
     for edge_id, edge in edges.items():
-        ok = isinstance(edge, dict) and _valid(_EDGE, {"id": edge_id, **edge})
+        ok = (changed is not None and edge_id not in changed[1]) or (
+            isinstance(edge, dict) and _valid(_EDGE, {"id": edge_id, **edge})
+        )
         if ok and edge["source"] in good and edge["target"] in good and len(kept) < MAX_EDGES:
             kept[edge_id] = edge
         else:
@@ -205,26 +223,46 @@ class LiveDoc:
             self.doc.apply_update(state)
         self.doc["nodes"] = self._nodes = Map()
         self.doc["edges"] = self._edges = Map()
+        # What the last repair left, valid: stored nodes, stored edges and the board. The
+        # document equals it until an update arrives, so the next repair starts from it.
+        self._checked: tuple[Stored, Stored, BoardDoc] | None = None
+        # Ids of the nodes and the edges touched since; watched from the first repair on.
+        self._touched: tuple[set[str], set[str]] = (set(), set())
+        self._watch: Any = None
+        # Validated models by id, each next to the stored value it was made from.
+        self._node_models: dict[str, tuple[Any, Any]] = {}
+        self._edge_models: dict[str, tuple[Any, Any]] = {}
 
     def state(self) -> bytes:
         return self.doc.get_update()
 
+    @staticmethod
+    def _plain_node(node: Any) -> Any:
+        shaped = isinstance(node, Map) and isinstance(node.get("data"), Map)
+        return node.to_py() if shaped else None
+
     def read(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """Nodes and edges as plain values; a node that is not a map of the right shape is None."""
-        nodes: dict[str, Any] = {}
-        for node_id, node in self._nodes.items():
-            shaped = isinstance(node, Map) and isinstance(node.get("data"), Map)
-            nodes[node_id] = node.to_py() if shaped else None
+        nodes = {node_id: self._plain_node(node) for node_id, node in self._nodes.items()}
         return nodes, self._edges.to_py() or {}
 
-    def write(self, nodes: Stored, edges: Stored, origin: Any = SERVER) -> bool:
+    def write(
+        self,
+        nodes: Stored,
+        edges: Stored,
+        origin: Any = SERVER,
+        current: tuple[dict[str, Any], dict[str, Any]] | None = None,
+    ) -> bool:
         """Makes the document equal to the given state, touching only what differs."""
-        current, current_edges = self.read()
+        # `current`: the document as plain values, when the caller has already read it.
+        current, current_edges = current or self.read()
         ops: list[Any] = []
         for node_id in current.keys() - nodes.keys():
             ops.append(lambda node_id=node_id: self._nodes.pop(node_id))
         for node_id, node in nodes.items():
             have = current.get(node_id)
+            if have is node:
+                continue
             if have is None:
                 ops.append(lambda node_id=node_id, node=node: self._put_node(node_id, node))
                 continue
@@ -265,12 +303,93 @@ class LiveDoc:
     def apply_json(self, board: BoardDoc, origin: Any = SERVER) -> None:
         self.write(*from_board(board), origin=origin)
 
+    def _watch_changes(self) -> Any:
+        # The callbacks hold the two sets and not the document: pycrdt objects must be freed
+        # on the thread that made them, and a cycle would leave that to the collector.
+        def watch(touched: set[str]) -> Any:
+            def note(events: list[Any]) -> None:
+                for event in events:
+                    path = event.path
+                    touched.update([path[0]] if path else event.keys)
+
+            return note
+
+        nodes, edges = self._touched
+        return self._nodes.observe_deep(watch(nodes)), self._edges.observe_deep(watch(edges))
+
+    def _changed(
+        self, nodes: Stored, edges: Stored
+    ) -> tuple[dict[str, Any], dict[str, Any], tuple[set[str], set[str]]]:
+        # The document as plain values, read only where it was touched since the last repair.
+        changed = (set(self._touched[0]), set(self._touched[1]))
+        now, now_edges = dict(nodes), dict(edges)
+        for node_id in changed[0]:
+            if node_id in self._nodes:
+                now[node_id] = self._plain_node(self._nodes[node_id])
+            else:
+                now.pop(node_id, None)
+        for edge_id in changed[1]:
+            if edge_id in self._edges:
+                edge = self._edges[edge_id]
+                now_edges[edge_id] = edge.to_py() if hasattr(edge, "to_py") else edge
+            else:
+                now_edges.pop(edge_id, None)
+        return now, now_edges, changed
+
+    def _board(self, nodes: Stored, edges: Stored, last: BoardDoc) -> BoardDoc:
+        # An element becomes a model once, not on every check: unchanged ones are taken as made.
+        def models(
+            cache: dict[str, tuple[Any, Any]],
+            ids: list[str],
+            stored: Stored,
+            adapter: TypeAdapter,
+            as_json: Any,
+        ) -> list[Any]:
+            out = []
+            for item_id in ids:
+                have = cache.get(item_id)
+                if have is None or have[0] is not stored[item_id]:
+                    model = adapter.validate_python(as_json(item_id, stored[item_id]))
+                    have = cache[item_id] = (stored[item_id], model)
+                out.append(have[1])
+            for item_id in cache.keys() - stored.keys():
+                del cache[item_id]
+            return out
+
+        return BoardDoc.model_construct(
+            nodes=models(self._node_models, _ordered(nodes), nodes, _NODE, json_node),
+            edges=models(
+                self._edge_models,
+                sorted(edges),
+                edges,
+                _EDGE,
+                lambda edge_id, edge: {"id": edge_id, **edge},
+            ),
+            viewport=last.viewport,
+        )
+
     def repair(self, last: BoardDoc) -> tuple[BoardDoc, list[str]]:
         """Fixes what a merge broke and returns the board as it now stands, valid."""
-        nodes, edges, notes = repaired(*self.read(), from_board(last)[0])
-        self.write(nodes, edges)
-        board = BoardDoc.model_validate(
-            {**to_json(nodes, edges), "viewport": last.viewport.model_dump()}
-        )
-        check_doc(board)
+        # Given the board the previous repair returned (its viewport may differ), only what
+        # changed since is read and validated. Any other `last` means a check of everything.
+        if self._watch is None:
+            self._watch = self._watch_changes()
+        checked, self._checked = self._checked, None
+        try:
+            if checked and last.nodes is checked[2].nodes and last.edges is checked[2].edges:
+                previous = checked[0]
+                nodes, edges, changed = self._changed(checked[0], checked[1])
+            else:
+                previous = from_board(last)[0]
+                nodes, edges = self.read()
+                changed = None
+            good, kept, notes = repaired(nodes, edges, previous, changed)
+            self.write(good, kept, current=(nodes, edges))
+            board = self._board(good, kept, last)
+            check_doc(board)
+        finally:
+            # A repair that failed leaves nothing to start from: the next one checks everything.
+            for touched in self._touched:
+                touched.clear()
+        self._checked = (good, kept, board)
         return board, notes

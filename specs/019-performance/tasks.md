@@ -30,9 +30,9 @@ description: "Task list for the performance of live boards"
 
 ## Phase 3: Slice `perf-incremental-check` (P3)
 
-- [ ] T030 `domain/live.py`: repair of the elements an update touched, plus the rules across elements. Tests unchanged and green; new tests for a broken element among 1000 valid ones
-- [ ] T031 `adapters/live/rooms.py`: the room passes what changed to the check
-- [ ] T032 Local check on a 1000-element board: `tiko_live_check_seconds` before and after
+- [x] T030 `domain/live.py`: repair of the elements an update touched, plus the rules across elements. Tests unchanged and green; new tests for a broken element among 1000 valid ones
+- [x] T031 What changed reaches the check: the shared document notes the elements an update touched itself, so the room calls the check as before
+- [x] T032 Local check on a 1000-element board: `tiko_live_check_seconds` before and after
 
 ## Phase 4: Slice `perf-metrics-under-load` (P4)
 
