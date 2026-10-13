@@ -62,7 +62,7 @@ Measured on a laptop with Docker: 400 visitors for 40 seconds, the two variants 
 | Socket in sync, p95 | 15.3 ms [15.0 .. 22.1] | 15.7 ms [15.2 .. 21.8] |
 | Open a board, p95 | 6.4 ms [5.9 .. 17.9] | 13.4 ms [4.1 .. 22.3] |
 
-One scrape takes 3.0 ms at the median and 3.6 ms at p95 for 25 KB: every 5 seconds that is 0.06% of a core. The hint from spec 019 came from two runs at the limit of a shared vCPU; nothing here supports it. The reference run (Phase 7) keeps its Prometheus.
+One scrape answers in 3.0 ms at the median and 3.6 ms at p95 for 25 KB: every 5 seconds that is 0.06% of the time, an upper bound on what it can take from a core and not a measurement of CPU. The containers show no extra CPU above the spread. The hint from spec 019 came from two runs at the limit of a shared vCPU; nothing here supports it. The reference run (Phase 7) keeps its Prometheus.
 
 ## Phase 3: Slice `perf2-socket-path` (R3)
 
