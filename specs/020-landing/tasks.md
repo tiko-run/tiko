@@ -10,5 +10,5 @@ One slice, `feat/landing`.
 - [x] T006 Installers copied at build time; redirects for guide paths and `/demo` generated from the guide's pages
 - [x] T007 CI builds the site; `THIRD_PARTY.md`, `CHANGELOG.md`, `CONTRIBUTING.md`
 - [x] T008 Check in the browser: 1440×900 and 390×844, both themes, reduced motion, no JavaScript; Lighthouse
-- [ ] T009 Cloudflare Pages project and a preview address; US3 checked on it
+- [x] T009 Cloudflare Pages project and a preview address; US3 checked on it
 - [ ] T010 After G3, with the owner's word: `tiko.run` and `www` point to the site, the zone's redirect rules are removed
