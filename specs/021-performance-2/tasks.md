@@ -67,8 +67,8 @@ One scrape answers in 3.0 ms at the median and 3.6 ms at p95 for 25 KB: every 5 
 ## Phase 3: Slice `perf2-socket-path` (R3)
 
 - [x] T030 nginx to the API over a Unix socket; the web container's share of the host before and after. Owner decides
-- [ ] T031 The host's network as a compose option: needs a Linux host, measured in Phase 7 next to the Unix socket
-- [ ] T032 Only if nginx is still over 10% of the host: the direct socket, as a proposal for the owner
+- [x] T031 The host network measured on Linux in Phase 7 next to the Unix socket; it showed no reliable improvement, so no compose option was added
+- [x] T032 nginx remains above 10% of the host; the direct browser-to-API socket proposal and tradeoffs are in [results.md](results.md) for the owner
 
 T030, measured on a laptop with Docker: three rooms of 30 on boards of 1000 elements for a minute, the two ways taking turns, the median of three runs with the least and the most.
 
@@ -117,5 +117,5 @@ In two tabs of a browser, with a room made busy at two sockets: the other tab we
 
 ## Phase 7: Slices `perf2-remeasure` (R7) and `perf2-verdict` (R8)
 
-- [ ] T070 Tables A to C by the rules of the spec, against the code of 019's end on the same VM
-- [ ] T071 `results.md` with the verdict table
+- [x] T070 Tables A to C by the rules of the spec, against the code of 019's end on the same VM. Not run: the target with 8 cores, a size the account does not allow, and a repeat of the profile of table C
+- [x] T071 `results.md` with the verdict table
