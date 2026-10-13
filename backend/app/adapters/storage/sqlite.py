@@ -290,6 +290,15 @@ class SqliteBoardRepo:
             raise NotFound("board not found")
         return row["version"]
 
+    def keep_live_state(self, board_id: str, ydoc: bytes) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE boards SET ydoc = ? WHERE id = ? AND ydoc IS NULL", (ydoc, board_id)
+            )
+            exists = conn.execute("SELECT 1 FROM boards WHERE id = ?", (board_id,)).fetchone()
+        if exists is None:
+            raise NotFound("board not found")
+
     def save(self, board_id: str, version: int, doc: BoardDoc, ydoc: bytes | None = None) -> int:
         with self._db.transaction() as conn:
             cursor = conn.execute(

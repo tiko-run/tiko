@@ -470,6 +470,26 @@ def test_a_visitor_who_changed_nothing_goes_within_the_hour(app):
     assert busy.get("/api/boards").status_code == 200
 
 
+def test_a_visitor_who_only_opened_the_board_changed_nothing(app):
+    app.state.live.save_idle_s = 0.01
+    idle = visitor(app)
+    board_id = welcome(idle)
+    boards = app.state.boards
+    with TestClient(app) as sockets:
+        cookie = idle.cookies.get("tiko_session")
+        with sockets.websocket_connect(
+            f"/api/boards/{board_id}/live", headers={"cookie": f"tiko_session={cookie}"}
+        ) as socket:
+            socket.receive_bytes()
+            deadline = time.time() + 5
+            while boards.load(board_id)[1] is None and time.time() < deadline:
+                time.sleep(0.01)
+    assert boards.load(board_id)[1] is not None
+    assert boards.get(board_id).version == 1
+    assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 1
+    assert idle.get("/api/boards").status_code == 401
+
+
 def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch):
     monkeypatch.setattr(app.state.visitors, "max_alive", 2)
     ann, bob = visitor(app), visitor(app, "203.0.113.2")
