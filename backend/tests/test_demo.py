@@ -530,6 +530,21 @@ def test_places_keep_being_found_behind_visitors_who_changed_something(app, monk
     assert all(who.get("/api/boards").status_code == 200 for who in (busy, third, fourth))
 
 
+def test_an_idle_visitor_behind_the_last_search_is_found_before_the_demo_is_full(app, monkeypatch):
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
+    users = app.state.visitors._users
+    busy, idle = visitor(app, "203.0.113.1"), visitor(app, "203.0.113.2")
+    edit(busy, welcome(busy))
+    welcome(idle)
+    # A request that waited its turn brings an older clock: its visitor expires before the
+    # place the last search stopped at.
+    users._changed_until = demo.iso(time.time() + 30 * DAY)
+
+    visitor(app, "203.0.113.3")
+    assert idle.get("/api/boards").status_code == 401
+    assert busy.get("/api/boards").status_code == 200
+
+
 def test_a_visitor_deleted_between_the_read_and_the_touch_is_signed_out(app, monkeypatch):
     ann = visitor(app)
     sessions, users = app.state.sessions, app.state.visitors._users

@@ -531,7 +531,7 @@ def _delete_people(conn: sqlite3.Connection, user_ids: list[str]) -> list[str]:
 class SqliteUserRepo:
     def __init__(self, db: Database) -> None:
         self._db = db
-        # Demo visitors who expire before this were all seen to have changed something.
+        # Where the last search for an idle demo visitor ended; see evict_untouched_demo.
         self._changed_until = ""
 
     def count(self) -> int:
@@ -675,19 +675,20 @@ class SqliteUserRepo:
 
     def evict_untouched_demo(self) -> _Gone:
         with self._db.transaction() as conn:
-            # The search goes on from where the last one ended: everyone before that had changed
-            # something, and an expiry only moves later. Without it every search walks past all
-            # of them again. One who deletes what they changed is passed over and leaves on time.
-            row = conn.execute(
-                f"SELECT id, demo_expires_at FROM users WHERE demo_expires_at >= ? AND {_UNTOUCHED}"
-                " ORDER BY demo_expires_at LIMIT 1",
-                (self._changed_until,),
-            ).fetchone()
-            if row:
-                self._changed_until = row["demo_expires_at"]
-            else:
-                last = conn.execute("SELECT MAX(demo_expires_at) FROM users").fetchone()[0]
-                self._changed_until = last or ""
+            # The search starts where the last one ended: everyone before that had changed
+            # something then, and walking past all of them every time grows with the demo.
+            # Only a hint: before the demo is called full, the search is made from the start.
+            row = None
+            for since in dict.fromkeys((self._changed_until, "")):
+                row = conn.execute(
+                    "SELECT id, demo_expires_at FROM users"
+                    f" WHERE demo_expires_at >= ? AND {_UNTOUCHED}"
+                    " ORDER BY demo_expires_at LIMIT 1",
+                    (since,),
+                ).fetchone()
+                if row:
+                    break
+            self._changed_until = row["demo_expires_at"] if row else ""
             user_ids = [row["id"]] if row else []
             return user_ids, _delete_people(conn, user_ids)
 
