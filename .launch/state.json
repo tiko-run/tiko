@@ -63,7 +63,8 @@
     "github-labels",
     "github-token",
     "task-card",
-    "live-metrics"
+    "live-metrics",
+    "perf-ws-compression"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -153,7 +154,8 @@
     "G3_github-labels": "approved",
     "G3_github-token": "approved",
     "G1_task-card": "approved",
-    "G3_task-card": "approved"
+    "G3_task-card": "approved",
+    "G3_perf-ws-compression": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
