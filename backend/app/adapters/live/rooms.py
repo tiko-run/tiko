@@ -109,7 +109,8 @@ class Room:
         # States that changed since the last presence frame went out.
         self._news: dict[int, tuple[int, str]] = {}
         self._presence_timer: asyncio.TimerHandle | None = None
-        self._presence_sent = 0.0
+        # The loop's clock starts near zero on a fresh host, so "never" is not 0.
+        self._presence_sent = float("-inf")
         self._sender: Connection | None = None
         self._dirty_since: float | None = None
         if state is None:
