@@ -30,7 +30,7 @@ Away from the repository: `uv run --with httpx --with websockets --with pycrdt p
 - `rooms.py run` prints `window <start> <end>`; give the two numbers to `window.py` on the Prometheus host for the server's side of the same step. It sums over the API processes; with `TIKO_WORKERS` above 1 give Prometheus every metrics port as a target. `PROM=http://host:port` names a Prometheus other than the local one.
 - Run through the web container (port 3000), not the API's port: with several processes only the proxy knows which one holds a board.
 - Node exporter does not tell nginx from the API. For the share of each, read `usage_usec` in `cpu.stat` of the container's cgroup at both ends of the window.
-- Profile at about 70% of the knee, on the target: `py-spy record -p $(pgrep -f 'uvicorn --factory' | head -1) -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`.
+- Profile at about 70% of the knee, on the target: `py-spy record -p <pid> -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`. `pgrep -f 'uvicorn --factory'` lists the API processes. With `TIKO_WORKERS` above 1 a board lives in one of them, so profile each, or the one `top` shows busiest: another may be idle.
 
 Watch `client_lag` in the output: when its p99 goes over a few milliseconds, the generator is the bottleneck and the latencies are its own.
 
