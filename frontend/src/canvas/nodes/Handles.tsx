@@ -8,8 +8,10 @@ const SIDES = [
 ]
 
 // With connectionMode="loose" every handle is both a start and an end of an arrow.
-export function Handles() {
+// `side` moves the left and right handles inwards, in percent, for an outline that leaves its box there.
+export function Handles({ side = 0 }: { side?: number }) {
+  const moved = side ? { l: { left: `${side}%` }, r: { left: `${100 - side}%` } } : undefined
   return SIDES.map(({ id, position }) => (
-    <Handle key={id} id={id} type="source" position={position} />
+    <Handle key={id} id={id} type="source" position={position} style={moved?.[id as 'l' | 'r']} />
   ))
 }

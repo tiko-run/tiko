@@ -23,6 +23,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `F` | Frame |
 | `N` | Sticky note |
 | `T` | Text |
+| `S` | Shapes |
 | `R` | Timer |
 | `C` | Jira card |
 | `M` | Modules |

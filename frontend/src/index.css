@@ -448,6 +448,34 @@
   }
 }
 
+/* Text of a shape: centered in the area its outline leaves, cut where it does not fit. */
+.shape-text {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: center;
+}
+.shape-text > div {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.shape-text > textarea {
+  height: auto;
+  max-height: 100%;
+  text-align: center;
+}
+/* An empty shape shows its "Text" hint only while selected. */
+.shape-text-empty > div {
+  opacity: 0;
+}
+
 /* A sticky at its character limit: a "no entry" sign that fades out. */
 .sticky-blocked {
   color: var(--sticky-foreground);

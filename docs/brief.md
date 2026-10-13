@@ -50,7 +50,7 @@ The main hypothesis from the research (top by ICE): a lead will trust the canvas
 - Confluence, Todoist (only a hook in the provider interface)
 - Two-way sync: changing status and editing a task from the board
 - Jira webhooks
-- Freehand drawing and arbitrary shapes other than sticky note and frame
+- Freehand drawing and shapes outside the fixed pack ([specs/022-shapes](../specs/022-shapes/spec.md))
 - Payments
 - i18n: English-only interface
 - LLM

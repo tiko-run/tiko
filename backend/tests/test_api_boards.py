@@ -1,3 +1,5 @@
+import pytest
+
 DOC = {
     "nodes": [
         {
@@ -36,6 +38,14 @@ DOC = {
             "position": {"x": 600, "y": -80},
             "width": 240,
             "data": {"text": "Q4 risks"},
+        },
+        {
+            "id": "d",
+            "type": "shape",
+            "position": {"x": 600, "y": 200},
+            "width": 160,
+            "height": 100,
+            "data": {"shape": "rhombus", "text": "Certs valid?", "color": "none"},
         },
     ],
     "edges": [
@@ -82,6 +92,21 @@ def test_invalid_doc_rejected(client):
     response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": nested})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"shape": "star", "text": "", "color": "none"},
+        {"shape": "rhombus", "text": "", "color": "red"},
+        {"shape": "rhombus", "text": "x" * 501, "color": "none"},
+    ],
+)
+def test_bad_shape_rejected(client, data):
+    board = create(client)
+    doc = {"nodes": [DOC["nodes"][-1] | {"data": data}]}
+    response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
+    assert response.status_code == 422
 
 
 def test_child_before_its_frame_rejected(client):
