@@ -27,7 +27,7 @@ The owner's question behind this spec: after it, either the stack carries the ai
 - **A slice** is accepted by its tests, `make check`, and its own number on a local stack, before and after, written into the slice's task.
 - **The reference run** at the end repeats tables A to C of 019 on the same setup. Every row is run three times and the median is reported with the spread. A row is compared with the code of 019's end run on the same VM on the same day, not with a number from another day.
 - **A step passes** as before: a pointer and an edit within 150 ms at p95, a board open within 2 s at p95, no errors.
-- **The verdict** (slice R8) is a table: for each part of the stack, the share of the limit it is responsible for, and whether its trigger below was met.
+- **The verdict** (slice R8) is a table: for each part of the stack, the numbers its trigger below names, as measured in R7, and whether the trigger was met. The parts are measured in different units (a share of the host, a share of the process's samples, a wait in milliseconds), so they are not added up into one scale.
 
 Decided at G2: the reference run is on DigitalOcean again. The targets get cores of their own where the account offers them, and a third target with 8 cores shows whether rooms keep growing with cores.
 
