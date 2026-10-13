@@ -18,6 +18,7 @@ from prometheus_client import (
     Counter,
     Gauge,
     Histogram,
+    Summary,
     generate_latest,
     make_wsgi_app,
 )
@@ -49,6 +50,10 @@ LIVE_NODES = Histogram(
 LOOP_LAG = Histogram("tiko_event_loop_lag_seconds", "How late the event loop runs", buckets=_FAST)
 DB_WAIT = Histogram("tiko_db_wait_seconds", "Wait for the database connection", buckets=_FAST)
 DB_HELD = Histogram("tiko_db_transaction_seconds", "Length of a transaction", buckets=_FAST)
+# A sum and a count for each kind: a histogram would be fifteen series for every method.
+DB_HELD_BY_KIND = Summary(
+    "tiko_db_held_seconds", "Time the database is held, by the kind of work", ["kind"]
+)
 THREADS_BUSY = Gauge("tiko_threadpool_busy", "Worker threads serving a request")
 DEMO_VISITORS = Gauge("tiko_demo_visitors", "Demo visitors the instance keeps")
 DEMO_LIMIT = Gauge("tiko_demo_limit", "Demo visitors the instance may keep")

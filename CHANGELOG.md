@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - `tiko.run` gets a landing page instead of a redirect to the guide: what tiko is, a board that plays in the first screen, three ways to lay a board out drawn as small boards, the demo and the install command one click away. A shared `tiko.run` link previews with the headline over the board. `tiko.run/install.sh`, `tiko.run/install.ps1` and the old links to guide pages keep working.
 - Monitoring: `/metrics` now tells how busy an instance is. Open boards and sockets, live messages and bytes, sockets the server closed, the time to check and save a board, the delay of the event loop, the wait for the database, busy worker threads and, on a demo, visitors against the limit. `TIKO_METRICS_TOKEN` lets Prometheus read them without an account. See "Monitoring" in the guide.
+- Monitoring: `tiko_db_held_seconds` tells which kind of work holds the database, as a sum and a count by `kind`.
 - `TIKO_DEMO_LIMIT` sets how many demo visitors an instance keeps at once. Empty means 500, as before.
 - GitHub private repositories: add your own GitHub token in Settings → My tracker, and issues and pull requests of the private repositories it reads become live cards. Your GitHub cards then refresh at the board's pace on your own request limit. A private task shows in full only to a person whose own token reads it: others on the board see its key with a hint to connect a token, a guest of the public link sees the key only. See "Your own token" in the guide's GitHub Issues page.
 

@@ -54,6 +54,14 @@ def test_the_database_and_the_runtime_are_measured():
     assert value(text, "tiko_db_transaction_seconds_count") > 0
 
 
+def test_the_database_time_is_told_by_the_kind_of_work():
+    admin = signed_in(app_with())
+    admin.get("/api/boards")
+    text = admin.get("/metrics").text
+    assert value(text, 'tiko_db_held_seconds_count{kind="SqliteBoardRepo.listing"}') > 0
+    assert value(text, 'tiko_db_held_seconds_sum{kind="SqliteBoardRepo.listing"}') > 0
+
+
 def test_the_loop_is_watched_while_the_app_runs(monkeypatch):
     monkeypatch.setattr("app.observability.LOOP_LAG_EVERY_S", 0.01)
     with signed_in(app_with()) as admin:

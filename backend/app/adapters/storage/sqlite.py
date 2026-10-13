@@ -1,6 +1,7 @@
 import json
 import logging
 import sqlite3
+import sys
 import threading
 import time
 import uuid
@@ -16,7 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.tasks import Task, now_iso
-from app.observability import DB_HELD, DB_WAIT
+from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
 log = logging.getLogger(__name__)
 
@@ -105,8 +106,12 @@ class Database:
             self._conn.backup(copy)
         log.info("database copied to %s before migration %s", target, number)
 
-    @contextmanager
     def transaction(self):
+        # Named after the method that asked, so a slow kind of work can be told from the rest.
+        return self._transaction(sys._getframe(1).f_code.co_qualname)
+
+    @contextmanager
+    def _transaction(self, kind: str):
         asked = time.perf_counter()
         with self._lock:
             started = time.perf_counter()
@@ -122,7 +127,9 @@ class Database:
                     raise
                 self._conn.execute("COMMIT")
             finally:
-                DB_HELD.observe(time.perf_counter() - started)
+                held = time.perf_counter() - started
+                DB_HELD.observe(held)
+                DB_HELD_BY_KIND.labels(kind).observe(held)
 
     def ping(self) -> bool:
         try:

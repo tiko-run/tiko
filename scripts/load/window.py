@@ -91,6 +91,10 @@ rows = [
 ]
 for label, expr, scale in rows:
     print(f"{label:>24}: {one(expr, scale)}")
+held = q(f"topk(5, sum by (kind) (rate(tiko_db_held_seconds_sum[{w}])))")
+for found in sorted(held, key=lambda r: -float(r["value"][1])):
+    label = f"db held ms/s {found['metric']['kind']}"
+    print(f"{label:>24}: {round(1000 * float(found['value'][1]), 1)}")
 closes = {
     r["metric"]["code"]: round(float(r["value"][1]))
     for r in q(f"sum by (code) (increase(tiko_live_closes_total[{w}]))")
