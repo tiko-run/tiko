@@ -134,7 +134,13 @@ export function BoardCanvas({
 }) {
   const me =
     useQuery({ queryKey: ['auth'], queryFn: getAuthStatus, enabled: !guest }).data?.me ?? undefined
-  const live = useLiveBoard(board, viewer, onAccessChanged, me, guest?.token)
+  const live = useLiveBoard(
+    board,
+    viewer,
+    onAccessChanged,
+    me,
+    guest && `${guest.token}/live/${guest.room}`,
+  )
   const liveNotice = guest && live.status === 'full' ? GUEST_FULL : LIVE_NOTICE[live.status]
   const onLive = guest?.onLive
   useEffect(() => onLive?.(live.status === 'live'), [onLive, live.status])

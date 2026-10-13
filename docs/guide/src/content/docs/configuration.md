@@ -16,6 +16,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_BOARD_LIMIT` | Boards a person may own, admins and demo visitors aside | no limit |
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
 | `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
+| `TIKO_WORKERS` | API processes, one core each. Set it for both containers, as the compose files do. See [Several processes](#several-processes) | `1` |
 | `GITHUB_TOKEN` | Read-only GitHub token that raises the request limit for public issues from 60 to 5000 an hour, so GitHub cards update at the board's pace. See [GitHub Issues](../github-issues/) | unset |
 | `JIRA_TLS_VERIFY` | Verify Jira's TLS certificate; `false` skips the check | `true` |
 | `JIRA_CA_BUNDLE` | Path inside the container to a CA bundle for a corporate certificate authority | unset |
@@ -32,7 +33,22 @@ The refresh interval is set in Settings → Task source, not in the environment.
 
 ## Behind your own reverse proxy
 
-Live boards use a WebSocket at `/api/boards/<id>/live`, on the same address as the rest of tiko. The proxy in front of tiko has to pass WebSocket upgrades to the web container (port 3000) and keep idle connections open. Without that, boards open view-only with "Live connection unavailable". Public links use `/api/public/<token>/live` the same way and fall back to checking for changes every few seconds.
+Live boards use a WebSocket at `/api/boards/<id>/live`, on the same address as the rest of tiko. The proxy in front of tiko has to pass WebSocket upgrades to the web container (port 3000) and keep idle connections open. Without that, boards open view-only with "Live connection unavailable". Public links use `/api/public/<token>/live/<room>` the same way and fall back to checking for changes every few seconds.
+
+### Several processes
+
+One API process uses one core, so an instance with many busy boards stops at what one core can serve. `TIKO_WORKERS=4` starts four processes in the API container, on ports 8000 to 8003. A board is open in exactly one of them, the one its id names, and the web container sends everything about that board there. Requests that are about no board go to any of them.
+
+```bash
+# .env
+TIKO_WORKERS=4
+```
+
+- Both containers need the number: the API to start the processes, the web container to pick one. The compose files pass it to both. On Render or Railway, set it on both services.
+- Go through the web container (port 3000), as with one process. A socket that reaches the wrong process is closed and the tab tries again, so a proxy of your own that talks to port 8000 directly only works with one process.
+- Signing out, role changes and the limits on wrong passwords and on public links work across the processes as they do in one.
+- The processes stand and fall together: when one stops, the container restarts.
+
 
 Caddy and Traefik pass WebSockets without extra settings:
 

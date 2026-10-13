@@ -39,6 +39,8 @@ TIKO_METRICS_PORT=9464
 
 Point Prometheus at `api:9464` instead of `api:8000`, with the same token. The port serves `/metrics` to the token and nothing else, and stays closed when no token is set. It holds 8 connections at once and drops one that sends no request within 5 seconds; keep it on the private network all the same, like port 8000. On this port the gauges of open boards and sockets are up to a quarter of a second old, longer when the server runs late. On a demo the count of visitors is the last known one when the database is slow to answer.
 
+With `TIKO_WORKERS` above 1 every process counts its own boards, sockets and requests, and has a metrics port of its own: process 0 on `TIKO_METRICS_PORT`, process 1 on the next one, and so on. Give Prometheus all of them as targets (`api:9464`, `api:9465`, ...) and sum over `instance` for the whole of tiko; one process that is busier than the rest shows on its own line. `/metrics` on port 8000 and up answers for the process you ask.
+
 `/health` answers as soon as the process is up. `/ready` also asks the database and answers 503 when it does not reply; point an uptime check at `/ready`.
 
 ## What to watch

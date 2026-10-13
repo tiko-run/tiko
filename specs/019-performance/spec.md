@@ -69,6 +69,23 @@ Found at 4 rooms: no scrape got through. Since #138 the rendering is off the loo
 
 One process uses one core. A room lives in the memory of its process, so a board must always reach the same one: the proxy picks the process by the board id in the path. What crosses processes today and has to be dealt with: signing a person out of every open board, the role changes that close sockets, the limiters of sign-in and demo, and the REST save that goes through an open room. SQLite in WAL mode serves several processes on one host.
 
+The plan (T050; the owner's decisions on 2026-10-13):
+
+| What crosses | How it is carried |
+|---|---|
+| Which process holds a board | `TIKO_WORKERS` processes on consecutive ports. The room of a board lives in process `last two hex digits of the id mod N`. nginx in the web container sends `/api/boards/{id}/…` and the guest socket there; the API checks the same rule and closes a socket that came to the wrong process with 1012 |
+| The guest socket | Its path carried the link's token only. It ends with `room` now, the two characters the rule reads, which `GET /api/public/{token}` returns; the board's id stays hidden from guests. A change of the contract of spec 012 |
+| Sign-out, sign-out everywhere, a changed password, a disabled person, a changed role | Each process listens on a Unix socket in a directory only the container sees; the process where it happened tells every other one, which closes its sockets and drops the session from its 30 s cache. A process that does not answer is logged: its sockets still ask about their session once a minute |
+| Access to one board, its public link | Told to the process of that board only |
+| A change of the tracker in Settings | Told to all: each drops its cached tasks |
+| A REST save | nginx brings it to the board's process. One that arrives elsewhere is passed to that process and its answer, a conflict included, comes back |
+| Limiters (wrong passwords, demo starts per address, people searches, requests of a public link) | Counted in SQLite, so any process may take any request; requests about no board are spread over all processes |
+| "One demo visitor at a time" | A file lock next to the database instead of a lock in memory |
+| Demo cleanup | In process 0 only |
+| Metrics | Every process counts its own and has its own port, `TIKO_METRICS_PORT + n` |
+| Start | Process 0 first: it alone migrates the database and makes the first admin. The container is healthy when all answer, and stops whole when one stops |
+| SQLite | Transactions take the write lock at `BEGIN`: one that reads and then writes would otherwise fail when another process wrote in between. Reads of different processes now wait for each other; the remeasure tells whether that costs anything |
+
 **Accept**: tests with two processes: signing out everywhere still closes that person's sockets on every board, and a REST save reaches the tabs of a board open in the other process. At the remeasure: on a host with 4 cores the passing number of rooms is at least three times that of one process.
 
 ### P6: the remeasure

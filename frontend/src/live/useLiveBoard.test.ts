@@ -194,12 +194,13 @@ test('leaving the board ends its connection and its timers', () => {
 test('a guest of a public link listens on the socket of the link and says nothing', () => {
   const onAccessChanged = vi.fn()
   const { result, rerender } = renderHook(
-    ({ shown }: { shown: Board }) => useLiveBoard(shown, true, onAccessChanged, undefined, 'tok'),
+    ({ shown }: { shown: Board }) =>
+      useLiveBoard(shown, true, onAccessChanged, undefined, 'tok/live/a3'),
     { initialProps: { shown: board } },
   )
   const [provider] = providers
   expect(provider.url).toMatch(/\/api\/public$/)
-  expect(provider.room).toBe('tok/live')
+  expect(provider.room).toBe('tok/live/a3')
   expect((provider.awareness as Awareness).getLocalState()).toBeNull()
   const reloaded = (ids: string[]) => ({ ...board, doc: { ...board.doc, nodes: ids.map(sticky) } })
   const shown = () => result.current.nodes.map((node) => node.id)

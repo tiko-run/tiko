@@ -67,7 +67,7 @@ frontend/src/
 
 ## Live boards
 
-An open board is a shared document (a CRDT: Yjs in the browser, pycrdt on the server) synced over a WebSocket at `/api/boards/{id}/live`. The canvas edits that document, and the server merges everyone's changes, checks the person's role on every change and saves the result. `PUT /api/boards/{id}` still works: it is applied to the shared document, so people who have the board open see the change. A guest of a public link listens to the same document over `/api/public/{token}/live`: that socket only reads, carries no presence and has places of its own, 200 per board, apart from the 30 of the people on it. What merges and what wins is described in [Working together](../working-together/).
+An open board is a shared document (a CRDT: Yjs in the browser, pycrdt on the server) synced over a WebSocket at `/api/boards/{id}/live`. The canvas edits that document, and the server merges everyone's changes, checks the person's role on every change and saves the result. `PUT /api/boards/{id}` still works: it is applied to the shared document, so people who have the board open see the change. A guest of a public link listens to the same document over `/api/public/{token}/live/{room}`: that socket only reads, carries no presence and has places of its own, 200 per board, apart from the 30 of the people on it. What merges and what wins is described in [Working together](../working-together/).
 
 ## Status refresh
 

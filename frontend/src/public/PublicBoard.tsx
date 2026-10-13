@@ -139,8 +139,13 @@ export default function PublicBoard({ token }: { token: string }) {
     [data, token],
   )
   const guest = useMemo(
-    () => ({ token, intervalS: data?.refresh_interval_s ?? 30, onLive: setLive }),
-    [token, data?.refresh_interval_s],
+    () => ({
+      token,
+      room: data?.room ?? '',
+      intervalS: data?.refresh_interval_s ?? 30,
+      onLive: setLive,
+    }),
+    [token, data?.room, data?.refresh_interval_s],
   )
 
   if (isGone(board.error) || isGone(version.error)) {

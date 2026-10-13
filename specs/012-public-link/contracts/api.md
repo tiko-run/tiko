@@ -26,7 +26,7 @@ Open without a session. A session cookie, when the browser sends one, is ignored
 
 | Route | Answer |
 |---|---|
-| `GET /api/public/{token}` | `{name, updated_at, version, doc, tasks, refresh_interval_s}` |
+| `GET /api/public/{token}` | `{room, name, updated_at, version, doc, tasks, refresh_interval_s}`; `room` is the last segment of the socket's path and tells nothing else about the board |
 | `GET /api/public/{token}/version` | `{version, updated_at}`; a rename changes `updated_at` only |
 | `POST /api/public/{token}/refresh` | `{tasks, fetched_at, sources}`, as `POST /api/boards/{id}/refresh` |
 
@@ -39,11 +39,12 @@ Open without a session. A session cookie, when the browser sends one, is ignored
 
 ## Guest socket
 
-`GET /api/public/{token}/live`, upgraded to a WebSocket: the live document of [spec 009](../../009-realtime/contracts/live.md), for reading. No session is needed or used.
+`GET /api/public/{token}/live/{room}`, upgraded to a WebSocket (until spec 019 the path ended at `/live`; the proxy needs `room` to find the process that holds the board): the live document of [spec 009](../../009-realtime/contracts/live.md), for reading. No session is needed or used.
 
 | Check | Result when it fails |
 |---|---|
 | The link opens a board (as `GET /api/public/{token}`) | accepted, then closed with 4403 |
+| `room` is the one that board's `GET` returns | accepted, then closed with 4403 |
 | The link's request budget | accepted, then closed with 4429 |
 | Under 200 guests in the room | accepted, then closed with 4429 |
 
@@ -63,7 +64,7 @@ The server sends sync step 1 on accept and then every document update. It never 
 
 Guests do not count toward the 30 connections of the people on the board, and people do not take guests' places. Each time the socket becomes live the page asks `/version` once, to catch a rename or a change made while it was connecting, and then stops asking. When the socket is not live for 5 s, or a reload asked for by a 4403 has not succeeded yet, it checks every 5 s as in slice 1 and shows what it reloads.
 
-The server's own log never carries a token: the path of an accepted socket is written as `/api/public/***/live`.
+The server's own log never carries a token: the path of an accepted socket is written as `/api/public/***/live/{room}`.
 
 ## Headers of the page
 

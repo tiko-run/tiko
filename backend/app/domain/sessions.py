@@ -106,6 +106,15 @@ class Sessions:
         if self._live:
             self._live.end_session(token)
 
+    def uncache(self, token: str) -> None:
+        """The session ended in another process: the next request reads it fresh."""
+        with self._lock:
+            self._cache.pop(token_hash(token), None)
+
+    def uncache_person(self, user_id: str, *_: object) -> None:
+        """The person's sessions or record changed in another process."""
+        self._forget(user_id)
+
     def end_all(self, user_id: str, keep_token: str | None = None) -> None:
         self._repo.delete_for_user(user_id, token_hash(keep_token) if keep_token else None)
         self._forget(user_id)
