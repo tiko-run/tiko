@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     update_check: bool = True
     # Lets a monitoring system read /metrics with `Authorization: Bearer <token>`, no account.
     tiko_metrics_token: SecretStr | None = None
+    # A second listener for /metrics, on a thread of its own, that answers the token while the
+    # server is too busy to. Empty: none.
+    tiko_metrics_port: int | None = Field(default=None, ge=1, le=65535)
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
     # Demo visitors the instance keeps at once. Empty: 500.

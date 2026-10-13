@@ -36,7 +36,7 @@ description: "Task list for the performance of live boards"
 
 ## Phase 4: Slice `perf-metrics-under-load` (P4)
 
-- [ ] T040 Gauges kept by the rooms, read off the loop. Test: `/metrics` answers while the loop is held busy
+- [x] T040 `TIKO_METRICS_PORT`: `/metrics` on a port and a thread of its own (owner's choice on 2026-10-13: a request on port 8000 crosses the event loop whatever the route does); the gauges are refreshed four times a second by the loop's watcher. Test: the port answers while the loop is held busy
 
 ## Phase 5: Slice `perf-workers` (P5)
 
