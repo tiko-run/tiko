@@ -1,0 +1,99 @@
+---
+import { DEMO, INSTALL_SH } from '../data/site'
+import BoardSim from './BoardSim.astro'
+import Command from './Command.astro'
+import Icon from './Icon.astro'
+
+const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Reads your tracker, never edits it', 'No telemetry']
+---
+
+<section class="hero dots">
+  <div class="wrap">
+    <div class="copy">
+      <h1>A whiteboard where your tasks stay live</h1>
+      <p class="sub">
+        tiko puts the tasks from Jira and GitHub on an infinite canvas as cards. Arrange them the
+        way you think. Their statuses update on their own.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href={DEMO}>Try the demo <Icon name="arrow-right" /></a>
+        <Command text={INSTALL_SH} />
+      </div>
+      <ul class="facts">
+        {facts.map((fact) => <li><Icon name="check" size={14} />{fact}</li>)}
+      </ul>
+    </div>
+    <BoardSim />
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding-block: clamp(2rem, 4.5vw, 3.5rem) clamp(3rem, 6vw, 5rem);
+    background-size: 22px 22px;
+  }
+  /* The grid fades into the plain page at the edges, so the text sits on a calm field. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 55% at 50% 22%, var(--background) 35%, transparent 100%),
+      linear-gradient(to bottom, transparent 70%, var(--background));
+    pointer-events: none;
+  }
+  .wrap {
+    position: relative;
+  }
+  .copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    margin-bottom: clamp(2rem, 4vw, 2.75rem);
+    text-align: center;
+  }
+  h1 {
+    max-width: 17ch;
+    font-size: clamp(2.25rem, 5.6vw, 3.75rem);
+    font-weight: 600;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .sub {
+    max-width: 44rem;
+    margin-top: 1.25rem;
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    color: var(--muted-foreground);
+    text-wrap: balance;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 2rem;
+  }
+  .actions :global(.cmd) {
+    max-width: 100%;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.375rem 1.25rem;
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+  .facts li {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .facts :global(svg) {
+    color: var(--sync-ok);
+  }
+</style>

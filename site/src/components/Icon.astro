@@ -1,0 +1,27 @@
+---
+// A lucide icon inlined at build time, stroke 1.75 as on the board.
+import { readFileSync } from 'node:fs'
+
+interface Props {
+  name: string
+  size?: number
+  class?: string
+}
+const { name, size = 16, class: className } = Astro.props
+const file = readFileSync(`node_modules/lucide-static/icons/${name}.svg`, 'utf8')
+const body = file.slice(file.indexOf('>', file.indexOf('<svg')) + 1, file.lastIndexOf('</svg>'))
+---
+
+<svg
+  class={className}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  set:html={body}
+/>

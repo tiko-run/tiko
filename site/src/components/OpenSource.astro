@@ -1,0 +1,98 @@
+---
+import { DOCS, REPO } from '../data/site'
+import Icon from './Icon.astro'
+
+const links = [
+  { icon: 'map', title: 'Roadmap', text: 'What we build next and what is already done.', href: `${DOCS}/roadmap/` },
+  { icon: 'messages-square', title: 'Discussions', text: 'Ideas, questions and feature requests.', href: `${REPO}/discussions` },
+  { icon: 'git-branch', title: 'Contributing', text: 'A new tracker provider is a good first pull request.', href: `${REPO}/blob/main/CONTRIBUTING.md` },
+  { icon: 'book-open', title: 'Architecture', text: 'How the canvas, the trackers and live sync fit together.', href: `${DOCS}/architecture/` },
+]
+---
+
+<section class="section alt" id="open-source">
+  <div class="wrap">
+    <p class="eyebrow reveal">Open source</p>
+    <h2 class="h2 reveal">Built in the open, under AGPL-3.0</h2>
+    <p class="lead reveal">
+      The whole of tiko is on GitHub: the code, the roadmap and the decisions behind them. You can run
+      it on your own server and change it under the license.
+    </p>
+    <ul class="grid">
+      {
+        links.map(({ icon, title, text, href }, i) => (
+          <li class="reveal" style={`--d:${i * 0.06}s`}>
+            <a href={href}>
+              <Icon name={icon} size={18} />
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <Icon name="arrow-up-right" size={16} class="go" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .alt {
+    border-block: 1px solid var(--border);
+    background: var(--card);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 480px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  a {
+    position: relative;
+    display: block;
+    height: 100%;
+    padding: 1.125rem 1.25rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--background);
+    transition:
+      border-color 0.15s,
+      background-color 0.15s;
+  }
+  a:hover {
+    border-color: var(--primary);
+    background: var(--accent);
+  }
+  a > :global(svg:first-child) {
+    color: var(--primary);
+  }
+  a :global(.go) {
+    position: absolute;
+    right: 1rem;
+    top: 1.125rem;
+    color: var(--muted-foreground);
+    transition: transform 0.15s;
+  }
+  a:hover :global(.go) {
+    transform: translate(2px, -2px);
+  }
+  h3 {
+    margin-top: 0.875rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  li p {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+</style>

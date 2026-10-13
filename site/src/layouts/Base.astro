@@ -1,0 +1,85 @@
+---
+import '@fontsource-variable/ibm-plex-sans'
+import '@fontsource-variable/jetbrains-mono'
+import '../styles/global.css'
+import { DESCRIPTION, FAQ, REPO, TITLE } from '../data/site'
+
+interface Props {
+  title?: string
+  description?: string
+  index?: boolean
+}
+const { title = TITLE, description = DESCRIPTION, index = true } = Astro.props
+const canonical = new URL(Astro.url.pathname, Astro.site)
+const image = new URL('/og.png', Astro.site)
+
+const software = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'tiko',
+  description: DESCRIPTION,
+  url: Astro.site,
+  image,
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Linux, macOS, Windows',
+  license: 'https://www.gnu.org/licenses/agpl-3.0.html',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  sameAs: [REPO],
+}
+const questions = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {!index && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#f9fafb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#272d37" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="tiko" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content="tiko: open-source infinite canvas for your tasks" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {index && <script type="application/ld+json" is:inline set:html={JSON.stringify(software)} />}
+    {index && <script type="application/ld+json" is:inline set:html={JSON.stringify(questions)} />}
+
+    <script is:inline>
+      // Before the first paint: the saved theme, and a mark that scripts run.
+      ;(() => {
+        const root = document.documentElement
+        root.classList.add('js')
+        try {
+          const theme = localStorage.getItem('theme')
+          if (theme === 'light' || theme === 'dark') root.dataset.theme = theme
+        } catch {}
+      })()
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>

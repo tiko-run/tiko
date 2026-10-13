@@ -68,7 +68,8 @@
     "perf-presence-batch",
     "perf-incremental-check",
     "perf-metrics-under-load",
-    "perf-workers"
+    "perf-workers",
+    "landing"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -163,7 +164,9 @@
     "G3_perf-presence-batch": "approved",
     "G3_perf-incremental-check": "approved",
     "G3_perf-metrics-under-load": "approved",
-    "G3_perf-workers": "approved"
+    "G3_perf-workers": "approved",
+    "G1_landing": "approved",
+    "G3_landing": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -228,6 +231,7 @@
     "2026-10-11 GitHub Issues: slice github-token approved at G3 after the owner added an issue of a private repository on the stand with a fine-grained token; spec 015 done. A person's own GitHub token in Settings → My tracker opens private issues and pull requests to them alone and moves their GitHub cards to their own request limit; others on the board see the key and a prompt to connect a token, a guest the key only. Review found two things, both fixed: a changed or removed token left the old token's tasks in the cache, and access given back did not bring cards back. The owner's first token had the repository picked but no permissions, and GitHub answered 404: the guide's steps, the hint in Settings and the error text now name the Issues and Pull requests access. Not checked: the block in the dark theme. Issue 130: the Jira token has the same stale cache on change. Next: the node type jira_card renamed with a backup, then sign-in with GitHub.",
     "2026-10-11 task card: owner asked for the rename spec 015 had put off and chose a full rewrite of stored boards over reading both names; short spec 017, no G2. Slice task-card approved at G3 after the owner's look at the boards on the stand; spec 017 done. The node type is task_card in the API, the web app, stored boards and their CRDT state. Migrations take a step written as code, and the server copies the database to backups/before-v12-<time>.db before one; the live state is edited in place, so a board keeps its history. jira_card is still read from the API and from a live update. Checked on a copy of a real database of schema 11: only the type of card nodes changed. A database moved to schema 12 does not open with an older version: going back means restoring the copy. Next: sign-in with GitHub.",
     "2026-10-13 performance: spec 019 in work, slices perf-ws-compression, perf-presence-batch, perf-incremental-check and perf-metrics-under-load approved at G3 (PR 141, 142, 143, 145). Presence leaves at most once in 50 ms with the first frame at once: a plain 50 ms tick doubled the gaps against the web app's own 50 ms. The check of a 1000-element board went from 62 to 4 ms on a laptop; a ring of parents no longer makes the repair depend on element order. Owner chose a port of its own for metrics (TIKO_METRICS_PORT): a request on port 8000 crosses the event loop whatever the route does. Nothing measured on the reference host yet: that is slice perf-remeasure. Next: perf-workers, starting with the plan T050; with several processes each has its own counters, so metrics are touched again.",
-    "2026-10-13 workers: slice perf-workers approved at G3. Owner's decisions on the plan T050: the proxy picks the process of a board, the guest socket's contract changes, limiters go to SQLite instead of pinning requests to one process, a metrics port per process. TIKO_WORKERS processes on consecutive ports; a board's room lives in the process named by the last two hex digits of its id, nginx and the API share the rule. Sign-out and role changes are told over Unix sockets, a REST save is passed to the board's process. A guest must not learn the board's id (an existing test says so), so the socket path ends with a two-character room key. Every transaction is BEGIN IMMEDIATE now: reads of different processes wait for each other, to be measured in perf-remeasure. Not tried: several ports of a private service on Render, the guest page in a real browser. Next: perf-remeasure, ask the owner before spending on droplets."
+    "2026-10-13 workers: slice perf-workers approved at G3. Owner's decisions on the plan T050: the proxy picks the process of a board, the guest socket's contract changes, limiters go to SQLite instead of pinning requests to one process, a metrics port per process. TIKO_WORKERS processes on consecutive ports; a board's room lives in the process named by the last two hex digits of its id, nginx and the API share the rule. Sign-out and role changes are told over Unix sockets, a REST save is passed to the board's process. A guest must not learn the board's id (an existing test says so), so the socket path ends with a two-character room key. Every transaction is BEGIN IMMEDIATE now: reads of different processes wait for each other, to be measured in perf-remeasure. Not tried: several ports of a private service on Render, the guest page in a real browser. Next: perf-remeasure, ask the owner before spending on droplets.",
+    "2026-10-13 landing: owner asked for a landing page at tiko.run in place of the redirect to the guide and approved the structure (G1): a static Astro site in site/ on Cloudflare Pages, the hero as a board drawn in DOM and CSS that plays a scene, no animation library, scenarios instead of customer stories, GitHub as a link without a star count, tiko Cloud as \"Coming soon\" with no e-mail form. Spec 020, slice landing approved at G3 after the owner's look at the local preview (PR 147). The site serves the installers and redirects the guide's paths itself. Left: T009 the checks on the Pages address, T010 pointing tiko.run at it; an e-mail list for tiko Cloud needs a privacy policy and is a slice of its own."
   ]
 }

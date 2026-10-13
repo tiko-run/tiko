@@ -1,0 +1,159 @@
+---
+import { DOCS, INSTALL_PS1, INSTALL_SH } from '../data/site'
+import Command from './Command.astro'
+import Icon from './Icon.astro'
+
+const points = [
+  { icon: 'database', title: 'One SQLite file', text: 'Boards, people and settings live in one file on your server, with no database to run.' },
+  { icon: 'lock', title: 'Tokens stay on the server', text: 'Tracker tokens are encrypted and never sent back to the browser or written to logs.' },
+  { icon: 'eye', title: 'Read-only by design', text: 'tiko reads tasks and never edits them. Each person sees what their own tracker access allows.' },
+  { icon: 'shield-check', title: 'No telemetry', text: 'It talks to your tracker and, unless you turn it off, to GitHub to check for a new release.' },
+]
+const RAILWAY =
+  'https://railway.com/deploy/tiko?referralCode=wFuy8y&utm_medium=integration&utm_source=button&utm_campaign=tiko'
+const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
+---
+
+<section class="section" id="self-host">
+  <div class="wrap cols">
+    <div>
+      <p class="eyebrow reveal">Self-host</p>
+      <h2 class="h2 reveal">Running on your server in a few minutes</h2>
+      <p class="lead reveal">
+        The installer sets up Docker if it is missing, starts the latest release and prints the
+        address and the password. A fresh install opens on a sample board, so you can try
+        everything before you connect a tracker.
+      </p>
+
+      <div class="install reveal">
+        <p class="os">Linux, macOS</p>
+        <Command text={INSTALL_SH} />
+        <p class="os">Windows 10, 11 (PowerShell)</p>
+        <Command text={INSTALL_PS1} prompt=">" />
+      </div>
+
+      <p class="other reveal">
+        Or
+        <a class="link" href={`${DOCS}/install/`}>run Docker Compose yourself</a>, deploy on
+        <a class="link" href={RAILWAY}>Railway</a> or <a class="link" href={RENDER}>Render</a>.
+      </p>
+
+      <div class="cloud reveal">
+        <Icon name="cloud" size={18} />
+        <p><b>tiko Cloud</b> is tiko hosted by us, with nothing to install and a free plan.</p>
+        <span class="tag">Coming soon</span>
+      </div>
+    </div>
+
+    <ul class="points reveal">
+      {
+        points.map(({ icon, title, text }) => (
+          <li>
+            <span class="pi"><Icon name={icon} size={16} /></span>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .install {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 34rem;
+    margin-top: 2rem;
+  }
+  .os {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+  .other {
+    margin-top: 1.25rem;
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+  .cloud {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 34rem;
+    margin-top: 2rem;
+    padding: 0.875rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+  .cloud :global(svg) {
+    color: var(--primary);
+  }
+  .cloud b {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .tag {
+    margin-left: auto;
+    padding: 0.125rem 0.5rem;
+    border-radius: 3px;
+    background: var(--progress);
+    color: var(--progress-fg);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .points {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--border);
+  }
+  @media (max-width: 480px) {
+    .points {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .points li {
+    padding: 1.25rem;
+    background: var(--card);
+  }
+  .pi {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.875rem;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--primary);
+  }
+  h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  .points p {
+    margin-top: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+</style>

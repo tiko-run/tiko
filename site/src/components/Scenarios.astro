@@ -1,0 +1,191 @@
+---
+// Ways people lay a board out, drawn as small schematic boards. Not customer stories.
+type Block = { t: 'frame' | 'card' | 'note' | 'bar' | 'timer'; at: number[]; s?: string }
+
+const scenarios: { title: string; text: string; blocks: Block[] }[] = [
+  {
+    title: 'Sprint planning',
+    text: 'Pull the backlog in with one query, drag cards into frames by goal and leave notes on what is still unclear. During the sprint the board shows where each task really is.',
+    blocks: [
+      { t: 'frame', at: [4, 14, 28, 78] },
+      { t: 'frame', at: [36, 14, 28, 78] },
+      { t: 'frame', at: [68, 14, 28, 78] },
+      { t: 'card', at: [7, 22, 22, 9], s: 'todo' },
+      { t: 'card', at: [7, 36, 22, 9], s: 'todo' },
+      { t: 'card', at: [7, 50, 22, 9], s: 'todo' },
+      { t: 'card', at: [39, 22, 22, 9], s: 'progress' },
+      { t: 'card', at: [39, 36, 22, 9], s: 'progress' },
+      { t: 'card', at: [39, 50, 22, 9], s: 'done' },
+      { t: 'card', at: [39, 64, 22, 9], s: 'done' },
+      { t: 'card', at: [71, 22, 22, 9], s: 'progress' },
+      { t: 'note', at: [73, 40, 16, 28], s: 'yellow' },
+    ],
+  },
+  {
+    title: 'A release across teams',
+    text: 'Put the tasks of several projects, from Jira and GitHub, on one board. Plan them on a Gantt with milestones and see which bar slips when a status does not move.',
+    blocks: [
+      { t: 'frame', at: [4, 14, 30, 48] },
+      { t: 'card', at: [7, 22, 24, 9], s: 'done' },
+      { t: 'card', at: [7, 36, 24, 9], s: 'progress' },
+      { t: 'card', at: [7, 50, 24, 9], s: 'todo' },
+      { t: 'note', at: [8, 68, 15, 24], s: 'blue' },
+      { t: 'frame', at: [40, 14, 56, 78] },
+      { t: 'bar', at: [44, 24, 22, 9], s: 'done' },
+      { t: 'bar', at: [52, 38, 24, 9], s: 'progress' },
+      { t: 'bar', at: [62, 52, 20, 9], s: 'progress' },
+      { t: 'bar', at: [74, 66, 18, 9], s: 'todo' },
+    ],
+  },
+  {
+    title: 'Your own week',
+    text: 'Keep the tasks you own and the ones you wait on in two frames. Set a timer on a review you asked for and use the focus timer for the deep work.',
+    blocks: [
+      { t: 'frame', at: [4, 14, 44, 78] },
+      { t: 'card', at: [8, 22, 34, 9], s: 'progress' },
+      { t: 'card', at: [8, 36, 34, 9], s: 'todo' },
+      { t: 'card', at: [8, 50, 34, 9], s: 'todo' },
+      { t: 'note', at: [9, 66, 14, 22], s: 'green' },
+      { t: 'frame', at: [54, 14, 42, 46] },
+      { t: 'timer', at: [57, 22, 7, 11] },
+      { t: 'card', at: [66, 22, 26, 9], s: 'progress' },
+      { t: 'card', at: [66, 38, 26, 9], s: 'done' },
+      { t: 'note', at: [58, 66, 15, 24], s: 'yellow' },
+    ],
+  },
+]
+---
+
+<section class="section alt" id="scenarios">
+  <div class="wrap">
+    <p class="eyebrow reveal">Scenarios</p>
+    <h2 class="h2 reveal">One canvas, many ways to lay work out</h2>
+    <p class="lead reveal">
+      A board has no fixed shape. Three layouts to start from.
+    </p>
+    <div class="grid">
+      {
+        scenarios.map(({ title, text, blocks }, i) => (
+          <article class="reveal" style={`--d:${i * 0.08}s`}>
+            <div class="thumb dots" aria-hidden="true">
+              {blocks.map(({ t, at: [x, y, w, h], s }) => (
+                <i class={`${t} ${s ?? ''}`} style={`left:${x}%;top:${y}%;width:${w}%;height:${h}%`} />
+              ))}
+            </div>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .alt {
+    border-block: 1px solid var(--border);
+    background: var(--card);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem 1.5rem;
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+  }
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+      max-width: 34rem;
+    }
+  }
+  .thumb {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--background);
+    background-size: 14px 14px;
+    transition: border-color 0.2s;
+  }
+  article:hover .thumb {
+    border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+  }
+  .thumb i {
+    position: absolute;
+    border-radius: 3px;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  article:hover .thumb :is(.card, .bar):nth-of-type(odd) {
+    transform: translateX(3px);
+  }
+  .frame {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), transparent);
+  }
+  .card {
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  /* The lozenge at the end of a card. */
+  .card::after {
+    content: '';
+    position: absolute;
+    right: 8%;
+    top: 28%;
+    width: 30%;
+    height: 44%;
+    border-radius: 2px;
+    background: var(--todo-fg);
+    opacity: 0.35;
+  }
+  .card.progress::after {
+    background: var(--progress-fg);
+    opacity: 0.6;
+  }
+  .card.done::after {
+    background: var(--done-fg);
+    opacity: 0.6;
+  }
+  .bar {
+    background: var(--todo);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 25%, transparent);
+  }
+  .bar.progress {
+    background: var(--progress);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 35%, transparent);
+  }
+  .bar.done {
+    background: var(--done);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 35%, transparent);
+  }
+  .note {
+    border-radius: 2px;
+    box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.12);
+  }
+  .yellow {
+    background: var(--sticky-yellow);
+  }
+  .blue {
+    background: var(--sticky-blue);
+  }
+  .green {
+    background: var(--sticky-green);
+  }
+  .timer {
+    border-radius: 4px;
+    background: var(--timer);
+  }
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  p:not(.eyebrow, .lead) {
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+</style>

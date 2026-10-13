@@ -25,6 +25,7 @@ __pycache__/
 # Node
 node_modules
 dist/
+.astro/
 coverage/
 *.tsbuildinfo
 
@@ -35,3 +36,11 @@ backend/data/
 
 # Copied from install/ by the docs workflow
 docs/guide/public/install.sh
+
+# Written by site/scripts/public-files.mjs before a build
+site/public/install.sh
+site/public/install.ps1
+site/public/_redirects
+site/public/favicon.svg
+site/public/apple-touch-icon.png
+site/public/og.png
