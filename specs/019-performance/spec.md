@@ -61,7 +61,7 @@ After a burst of edits the room reads the whole document out of the CRDT and val
 
 ### P4: metrics under overload
 
-Found at 4 rooms: no scrape got through. Since #138 the rendering is off the loop, but the gauges are still read on it. The rooms will keep the gauges up to date themselves, so a scrape never waits for the loop.
+Found at 4 rooms: no scrape got through. Since #138 the rendering is off the loop, but a request on the API's port still crosses the loop several times before it reaches the route, whatever the route does. So the metrics get a port of their own, `TIKO_METRICS_PORT`, served by a separate thread to the metrics token (the owner's choice on 2026-10-13). The loop's watcher keeps the gauges of rooms and sockets fresh four times a second, so that thread never reaches into the loop.
 
 **Accept**: a test holds the event loop busy and `/metrics` still answers. At the remeasure: Prometheus gets every scrape at a step that fails.
 

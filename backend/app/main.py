@@ -55,6 +55,7 @@ from app.observability import (
     RequestContextMiddleware,
     metrics_response,
     register_secret,
+    serve_metrics,
     setup_logging,
     watch_loop,
 )
@@ -128,8 +129,19 @@ def create_app(
         cleaner = (
             asyncio.create_task(clean_demo(app.state.visitors)) if app.state.visitors else None
         )
-        watcher = asyncio.create_task(watch_loop())
+        watcher = asyncio.create_task(watch_loop(live_gauges))
+        port = settings.tiko_metrics_port
+        if port and not metrics_token:
+            log.warning(
+                "TIKO_METRICS_PORT is set without TIKO_METRICS_TOKEN: the port stays closed"
+            )
+        listener = (
+            serve_metrics(port, metrics_token, demo_gauges) if port and metrics_token else None
+        )
         yield
+        if listener:
+            await anyio.to_thread.run_sync(listener.shutdown)
+            listener.server_close()
         watcher.cancel()
         if cleaner:
             cleaner.cancel()
@@ -229,19 +241,25 @@ def create_app(
         person = getattr(request.state, "person", None)
         if not (getattr(request.state, "scraper", False) or (person and person.role == "admin")):
             raise NotFound("not found")
-        # On the loop, where the rooms live: these are read at the moment of the scrape.
+        live_gauges()
+        await anyio.to_thread.run_sync(demo_gauges)
+        # Rendering reads /proc and walks every metric: off the loop, where sockets are served.
+        return await anyio.to_thread.run_sync(metrics_response)
+
+    def live_gauges() -> None:
+        # On the loop, where the rooms live.
         rooms, people, guests, fullest = app.state.live.stats()
         LIVE_ROOMS.set(rooms)
         LIVE_SOCKETS.labels("person").set(people)
         LIVE_SOCKETS.labels("guest").set(guests)
         LIVE_OUTBOX.set(fullest)
         THREADS_BUSY.set(anyio.to_thread.current_default_thread_limiter().borrowed_tokens)
+
+    def demo_gauges() -> None:
+        # Reads the database: for a worker thread or the thread of the metrics port.
         visitors = app.state.visitors
         if visitors is not None:
-            alive = await anyio.to_thread.run_sync(users.demo_alive, iso(time.time()))
-            DEMO_VISITORS.set(alive)
+            DEMO_VISITORS.set(users.demo_alive(iso(time.time())))
             DEMO_LIMIT.set(visitors.max_alive)
-        # Rendering reads /proc and walks every metric: off the loop, where sockets are served.
-        return await anyio.to_thread.run_sync(metrics_response)
 
     return app

@@ -2,12 +2,25 @@ import asyncio
 import json
 import logging
 import re
+import secrets
+import threading
 import time
 import uuid
+from collections.abc import Callable
 from contextvars import ContextVar
+from socketserver import ThreadingMixIn
+from typing import Any
+from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
 from fastapi import Request, Response
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+    make_wsgi_app,
+)
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -57,13 +70,46 @@ def live_message(direction: str, data: bytes) -> None:
     _BYTES[direction].inc(len(data))
 
 
-async def watch_loop() -> None:
+async def watch_loop(gauges: Callable[[], None]) -> None:
     """Measures how much later than asked the loop wakes: the sign that one core is not enough."""
     loop = asyncio.get_running_loop()
     while True:
         asked = loop.time()
         await asyncio.sleep(LOOP_LAG_EVERY_S)
         LOOP_LAG.observe(max(0.0, loop.time() - asked - LOOP_LAG_EVERY_S))
+        # Kept fresh here for the metrics port, whose thread must not reach into the loop.
+        gauges()
+
+
+class _MetricsServer(ThreadingMixIn, WSGIServer):
+    daemon_threads = True
+
+
+class _Quiet(WSGIRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:
+        pass
+
+
+def serve_metrics(port: int, token: str, refresh: Callable[[], None]) -> WSGIServer:
+    """Serves /metrics to the token from a thread of its own: a busy event loop cannot hold it."""
+    expected = f"Bearer {token}".encode()
+    render = make_wsgi_app()
+
+    def app(environ: dict[str, Any], start_response: Callable[..., Any]) -> Any:
+        sent = environ.get("HTTP_AUTHORIZATION", "").encode()
+        if environ.get("PATH_INFO") != "/metrics":
+            status = "404 Not Found"
+        elif not secrets.compare_digest(sent, expected):
+            status = "401 Unauthorized"
+        else:
+            refresh()
+            return render(environ, start_response)
+        start_response(status, [("Content-Type", "text/plain")])
+        return [status.encode()]
+
+    server = make_server("", port, app, _MetricsServer, _Quiet)
+    threading.Thread(target=server.serve_forever, name="metrics", daemon=True).start()
+    return server
 
 
 _secrets: set[str] = set()

@@ -15,6 +15,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_DEMO_LIMIT` | Demo visitors the instance keeps at once | `500` |
 | `TIKO_BOARD_LIMIT` | Boards a person may own, admins and demo visitors aside | no limit |
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
+| `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
 | `GITHUB_TOKEN` | Read-only GitHub token that raises the request limit for public issues from 60 to 5000 an hour, so GitHub cards update at the board's pace. See [GitHub Issues](../github-issues/) | unset |
 | `JIRA_TLS_VERIFY` | Verify Jira's TLS certificate; `false` skips the check | `true` |
 | `JIRA_CA_BUNDLE` | Path inside the container to a CA bundle for a corporate certificate authority | unset |

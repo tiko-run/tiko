@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - `TIKO_DEMO_LIMIT` sets how many demo visitors an instance keeps at once. Empty means 500, as before.
 - GitHub private repositories: add your own GitHub token in Settings → My tracker, and issues and pull requests of the private repositories it reads become live cards. Your GitHub cards then refresh at the board's pace on your own request limit. A private task shows in full only to a person whose own token reads it: others on the board see its key with a hint to connect a token, a guest of the public link sees the key only. See "Your own token" in the guide's GitHub Issues page.
 
+- `TIKO_METRICS_PORT` opens a second port for `/metrics`, served by its own thread: Prometheus keeps getting the numbers of an instance that is too overloaded to answer on port 8000. It needs `TIKO_METRICS_TOKEN`. See "Monitoring" in the guide.
+
 ### Changed
 
 - `/metrics` answers only to admins and to the metrics token. A member or a demo visitor, who could read it before, gets 404.
