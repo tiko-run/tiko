@@ -1,5 +1,7 @@
 import json
 import sqlite3
+import subprocess
+import sys
 import threading
 
 import pytest
@@ -9,6 +11,16 @@ from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain.boards import BoardDoc
 from app.domain.errors import VersionConflict
 from app.domain.live import LiveDoc, stored_node
+
+_HOLD_A_WRITE = """
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1], isolation_level=None)
+conn.execute("BEGIN IMMEDIATE")
+conn.execute("UPDATE boards SET name = 'after' WHERE id = ?", (sys.argv[2],))
+print("held", flush=True)
+sys.stdin.readline()
+conn.execute("COMMIT")
+"""
 
 
 @pytest.fixture
@@ -165,9 +177,17 @@ def test_a_read_does_not_wait_for_a_write_of_another_process(tmp_path):
     path = str(tmp_path / "app.db")
     repo = SqliteBoardRepo(Database(path))
     board_id = repo.create("before", BoardDoc(), "owner")
-    with Database(path).transaction() as conn:
-        conn.execute("UPDATE boards SET name = 'after' WHERE id = ?", (board_id,))
+    writer = subprocess.Popen(
+        [sys.executable, "-c", _HOLD_A_WRITE, path, board_id],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert writer.stdout.readline() == "held\n"
         assert [board.name for board in repo.listing("owner")] == ["before"]
+    finally:
+        writer.communicate("go\n", timeout=10)
     assert repo.get(board_id).name == "after"
 
 
