@@ -32,6 +32,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - An instance no longer stops at about 510 open boards. The web container's nginx kept its stock limit of 1024 connections per worker, and past it every request answered 500. The limit is now 16384.
 - An instance on a Linux host no longer stops at about 1000 open boards: the compose files raise the API container's limit of open files from the host's 1024 to 65536. If you run tiko from your own compose file, add `ulimits: nofile: 65536` to the `api` service.
 - From source, `docker compose up` brings the containers back after a crash or a reboot of the host, as `compose.release.yml` already did.
+- Install guide: a "Lost the password" section says where the first password is kept after each way of installing, with commands for Windows PowerShell next to the ones for Linux and macOS. The guide used to point to the log, which has no password after the one-line installer, and gave Windows a `grep` command that PowerShell does not have.
 
 ## [2026.10.15] - 2026-10-11
 
