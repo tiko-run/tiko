@@ -10,9 +10,9 @@ description: "Task list for the second round of performance of live boards"
 
 ## Phase 0: Slice `perf2-measure` (R0)
 
-- [ ] T001 `scripts/load`: a driver that runs a step, repeats it and prints the median and the spread; the CPU of each container for the window
-- [ ] T002 The same step against two images in turn on one target
-- [ ] T003 `tiko_db_held_seconds` by the kind of transaction; `docs/guide` Monitoring
+- [x] T001 `scripts/load`: a driver that runs a step, repeats it and prints the median and the spread; the CPU of each container for the window
+- [x] T002 The same step against two images in turn on one target
+- [x] T003 `tiko_db_held_seconds` by the kind of transaction; `docs/guide` Monitoring
 
 ## Phase 1: Slice `perf2-db-readers` (R1)
 

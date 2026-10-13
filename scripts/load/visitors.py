@@ -213,7 +213,9 @@ async def main() -> None:
     await asyncio.sleep(5)
     print(f"users={args.users} online after ramp={online}", flush=True)
     measuring, samples, at_start = True, [], online
-    for _ in range(max(1, args.hold // 10)):
+    steps = max(1, args.hold // 10)
+    print(f"measuring {time.time():.0f} {time.time() + 10 * steps:.0f}", flush=True)
+    for _ in range(steps):
         await asyncio.gather(asyncio.sleep(10), container_stats(samples))
     measuring = False
     print(f"online at end of hold={online} (start {at_start})")

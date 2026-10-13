@@ -333,6 +333,7 @@ def run(args) -> None:
         f"measure in {measure - time.time():.0f}s",
         flush=True,
     )
+    print(f"measuring {measure:.0f} {end:.0f}", flush=True)
     results, procs = multiprocessing.Queue(), []
     for part in range(args.procs):
         mine = slice(part, None, args.procs)

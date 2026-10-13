@@ -6,6 +6,7 @@ What the numbers in [baseline.md](../../specs/019-performance/baseline.md) and [
 |---|---|
 | `visitors.py` | Demo visitors, each on a board of their own: start a demo, open the board, hold the socket, drag cards. Many small rooms |
 | `rooms.py` | Rooms of 30 on shared boards of 1000 elements: 5 drag, 2 create and delete, 10 move the pointer, 13 watch |
+| `repeat.py` | A step run several times, or against several builds in turn: the median and the spread of every number |
 | `window.py` | What the server saw in one measured window, read from Prometheus |
 | `profile.py` | Top frames of a py-spy profile |
 
@@ -33,6 +34,22 @@ Away from the repository: `uv run --with httpx --with websockets --with pycrdt p
 - Profile at about 70% of the knee, on the target: `py-spy record -p <pid> -d 25 -r 50 -f raw -o prof.txt`, then `profile.py prof.txt`. `pgrep -f 'uvicorn --factory'` lists the API processes. With `TIKO_WORKERS` above 1 a board lives in one of them, so profile each, or the one `top` shows busiest: another may be idle.
 
 Watch `client_lag` in the output: when its p99 goes over a few milliseconds, the generator is the bottleneck and the latencies are its own.
+
+## Repeats and two builds
+
+One run of a step near the limit says little: on a shared vCPU the same row came out several times apart. `repeat.py` runs the step three times and prints the median with the least and the most:
+
+```bash
+uv run python ../scripts/load/repeat.py --window --containers tiko-api-1 tiko-web-1 --docker "ssh target docker" -- \
+  uv run python ../scripts/load/rooms.py run --base http://target:3000 --password <admin password> --rooms 4 --hold 120
+```
+
+- `--containers` reads the CPU each container used inside the measured window from its cgroup, as a share of one core. `--docker` says how to reach Docker on the target.
+- `--window` adds the server's side from `window.py`, with the five kinds of database work that held the database longest.
+- `--variant name='command'`, given twice or more, compares builds: before every run the command puts that build in place and returns when it answers, and the builds take turns, so whatever drifts over the hour drifts for all of them. With the release images: `--variant old='ssh target "cd tiko && TAG=2026.10.11 docker compose up -d --wait"'`.
+- `{run}` in the step becomes 0, 1, 2 and so on. `visitors.py` needs it: a visitor's address may start only a few demos, so every run takes new ones with `--offset {run}000`.
+
+Compare two builds only from one such series. A number from another day is another machine.
 
 ## Passing
 
