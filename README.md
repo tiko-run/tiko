@@ -122,7 +122,7 @@ cd tiko
 docker compose up --build
 ```
 
-With Docker or from source, open http://localhost:3000 and sign in as `admin`. The password is in the log: `docker compose logs api | grep 'tiko password'`.
+With Docker or from source, open http://localhost:3000 and sign in as `admin`. The password is in the log: `docker compose logs api | grep 'tiko password'`. In PowerShell use `Select-String` in place of `grep`. Lost the password? See [the guide](https://docs.tiko.run/install/#lost-the-password).
 
 ### Cloud
 
