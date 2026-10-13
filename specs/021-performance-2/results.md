@@ -21,7 +21,7 @@ The 1000-visitor R6 row still misses the 150 ms socket-sync target while the hos
 
 ## Table B: rooms of 30
 
-Presence and edit cells show p95 in milliseconds. CPU cells show the median; API and web are percentages of one core. A web share of 60% on a 4-vCPU target is about 15% of the host.
+Presence and edit cells show p95 in milliseconds. CPU cells show the median; API and web are percentages of one core. A web share of 60% on a 4-vCPU target is about 15% of the host. No room step had an error in any of its three runs, on either build or on any of the three proxy paths below.
 
 | vCPU | Rooms | Presence p95, 019 | Presence p95, R6 | Edit p95, 019 | Edit p95, R6 | Host busy, R6 | API/core, R6 | Web/core, R6 |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -56,7 +56,7 @@ The ranges overlap, and host CPU steal varies between runs. Neither Unix socket 
 
 ## Table C: API profile on 1 vCPU
 
-`py-spy`, 25 seconds at 50 samples per second, R6 build, four rooms of 30 on 1000-element boards. 1,271 samples; no sampling errors.
+`py-spy`, 25 seconds at 50 samples per second, R6 build, four rooms of 30 on 1000-element boards. 1,271 samples; no sampling errors. This is one capture: it was not repeated and the 019 build was not profiled, so it shows where the R6 process spends its time and compares nothing.
 
 | Profile entry | Samples | Reading |
 |---|---:|---|
@@ -73,7 +73,7 @@ The socket-write path is well below the 50% trigger for a different WebSocket se
 | Part | Trigger evidence | Result and next step |
 |---|---|---|
 | SQLite | At 1000 visitors on 4 vCPU, average DB wait is 16.7 ms while host busy is 55.8%; socket-sync p95 is 490 ms. At 2000 visitors the wait is 772 ms. | **Candidate limit for many visitors.** R1 improved the wait, but the 1000-visitor row still misses. Isolate DB wait in a focused follow-up before choosing a second storage adapter. |
-| Uvicorn socket layer | `live.write` is 16.4% inclusive in the API profile, below the “over half” trigger. | **Not triggered.** Do not prototype a replacement server from this evidence. |
+| Uvicorn socket layer | `live.write` is 16.4% inclusive in the API profile, below the “over half” trigger. | **Not triggered**, on one capture at four rooms, where the process is far from full. Do not prototype a replacement server from this evidence. |
 | Python room core | The spec considers this only if a socket-server prototype fails to move the limit; that prototype was not triggered. | **Not triggered / not tested.** |
 | Proxy | The web container uses 15.1–16.7% of the host in the 24-room path comparison, above the 10% trigger. | **Triggered.** Bridge, Unix socket, and host networking are indistinguishable within spread. A direct browser-to-API socket is a possible next experiment, but adds TLS/port and install complexity; owner decision required. |
 | Capacity / cores | 4 vCPU reaches 24 rooms by median and 28 only at the edge; 8 vCPU was unavailable. The aim is 100 rooms. | **Aim not met.** More cores or hosts may be required; scaling beyond 4 vCPU remains unmeasured. |

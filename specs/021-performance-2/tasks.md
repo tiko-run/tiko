@@ -117,5 +117,5 @@ In two tabs of a browser, with a room made busy at two sockets: the other tab we
 
 ## Phase 7: Slices `perf2-remeasure` (R7) and `perf2-verdict` (R8)
 
-- [x] T070 Tables A to C by the rules of the spec, against the code of 019's end on the same VM
+- [x] T070 Tables A to C by the rules of the spec, against the code of 019's end on the same VM. Not run: the target with 8 cores, a size the account does not allow, and a repeat of the profile of table C
 - [x] T071 `results.md` with the verdict table
