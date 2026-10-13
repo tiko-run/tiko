@@ -1,59 +1,72 @@
 ---
-// Ways people lay a board out, drawn as small schematic boards. Not customer stories.
-type Block = { t: 'frame' | 'card' | 'note' | 'bar' | 'timer'; at: number[]; s?: string }
+// Ways to lay a board out, drawn as small boards in the look of the real one. Not customer
+// stories: every key, name and note here is made up.
+type Item =
+  | { t: 'frame'; at: number[]; title: string; tone?: 'blue' | 'green' }
+  | { t: 'card'; at: number[]; k: string; s: 'todo' | 'progress' | 'review' | 'done'; type?: 'story' | 'task' | 'bug' }
+  | { t: 'note'; at: number[]; text: string; tone: 'yellow' | 'blue' | 'green' }
+  | { t: 'timer'; at: number[]; left: string }
+  | { t: 'gantt'; at: number[]; title: string; bars: [number, number, 'todo' | 'progress' | 'done'][] }
+  | { t: 'focus'; at: number[]; time: string }
 
-const scenarios: { title: string; text: string; blocks: Block[] }[] = [
+const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+
+const scenarios: { title: string; text: string; items: Item[] }[] = [
   {
     title: 'Sprint planning',
     text: 'Pull the backlog in with one query, drag cards into frames by goal and leave notes on what is still unclear. During the sprint the board shows where each task really is.',
-    blocks: [
-      { t: 'frame', at: [4, 14, 28, 78] },
-      { t: 'frame', at: [36, 14, 28, 78] },
-      { t: 'frame', at: [68, 14, 28, 78] },
-      { t: 'card', at: [7, 22, 22, 9], s: 'todo' },
-      { t: 'card', at: [7, 36, 22, 9], s: 'todo' },
-      { t: 'card', at: [7, 50, 22, 9], s: 'todo' },
-      { t: 'card', at: [39, 22, 22, 9], s: 'progress' },
-      { t: 'card', at: [39, 36, 22, 9], s: 'progress' },
-      { t: 'card', at: [39, 50, 22, 9], s: 'done' },
-      { t: 'card', at: [39, 64, 22, 9], s: 'done' },
-      { t: 'card', at: [71, 22, 22, 9], s: 'progress' },
-      { t: 'note', at: [73, 40, 16, 28], s: 'yellow' },
+    items: [
+      { t: 'frame', at: [10, 30, 120, 208], title: 'Backlog' },
+      { t: 'frame', at: [140, 30, 120, 208], title: 'Sprint 24' },
+      { t: 'frame', at: [270, 30, 120, 96], title: 'Blocked', tone: 'green' },
+      { t: 'card', at: [18, 40], k: 'APP-131', s: 'todo', type: 'story' },
+      { t: 'card', at: [18, 66], k: 'APP-134', s: 'todo' },
+      { t: 'card', at: [18, 92], k: 'APP-140', s: 'todo', type: 'bug' },
+      { t: 'card', at: [18, 118], k: 'APP-142', s: 'todo' },
+      { t: 'card', at: [148, 40], k: 'APP-112', s: 'progress', type: 'story' },
+      { t: 'card', at: [148, 66], k: 'APP-118', s: 'review' },
+      { t: 'card', at: [148, 92], k: 'APP-121', s: 'todo' },
+      { t: 'card', at: [148, 118], k: 'APP-127', s: 'done', type: 'bug' },
+      { t: 'card', at: [278, 40], k: 'OPS-41', s: 'review' },
+      { t: 'note', at: [282, 142, 96, 84], text: 'Staging is not ready. Ask OPS on Monday.', tone: 'yellow' },
     ],
   },
   {
     title: 'A release across teams',
     text: 'Put the tasks of several projects, from Jira and GitHub, on one board. Plan them on a Gantt with milestones and see which bar slips when a status does not move.',
-    blocks: [
-      { t: 'frame', at: [4, 14, 30, 48] },
-      { t: 'card', at: [7, 22, 24, 9], s: 'done' },
-      { t: 'card', at: [7, 36, 24, 9], s: 'progress' },
-      { t: 'card', at: [7, 50, 24, 9], s: 'todo' },
-      { t: 'note', at: [8, 68, 15, 24], s: 'blue' },
-      { t: 'frame', at: [40, 14, 56, 78] },
-      { t: 'bar', at: [44, 24, 22, 9], s: 'done' },
-      { t: 'bar', at: [52, 38, 24, 9], s: 'progress' },
-      { t: 'bar', at: [62, 52, 20, 9], s: 'progress' },
-      { t: 'bar', at: [74, 66, 18, 9], s: 'todo' },
+    items: [
+      { t: 'frame', at: [10, 30, 124, 92], title: 'Web' },
+      { t: 'card', at: [18, 40], k: 'WEB-9', s: 'done', type: 'story' },
+      { t: 'card', at: [18, 66], k: 'WEB-14', s: 'progress' },
+      { t: 'card', at: [18, 92], k: 'WEB-17', s: 'todo' },
+      { t: 'frame', at: [10, 150, 124, 88], title: 'API', tone: 'green' },
+      { t: 'card', at: [18, 160], k: 'api#212', s: 'review' },
+      { t: 'card', at: [18, 186], k: 'api#230', s: 'todo', type: 'bug' },
+      { t: 'gantt', at: [146, 14, 244, 150], title: 'Release 2.4', bars: [[4, 34, 'done'], [26, 36, 'progress'], [48, 30, 'progress'], [70, 24, 'todo']] },
+      { t: 'note', at: [150, 176, 104, 60], text: 'Code freeze Wed 18:00', tone: 'blue' },
+      { t: 'timer', at: [268, 176], left: '2d' },
     ],
   },
   {
     title: 'Your own week',
     text: 'Keep the tasks you own and the ones you wait on in two frames. Set a timer on a review you asked for and use the focus timer for the deep work.',
-    blocks: [
-      { t: 'frame', at: [4, 14, 44, 78] },
-      { t: 'card', at: [8, 22, 34, 9], s: 'progress' },
-      { t: 'card', at: [8, 36, 34, 9], s: 'todo' },
-      { t: 'card', at: [8, 50, 34, 9], s: 'todo' },
-      { t: 'note', at: [9, 66, 14, 22], s: 'green' },
-      { t: 'frame', at: [54, 14, 42, 46] },
-      { t: 'timer', at: [57, 22, 7, 11] },
-      { t: 'card', at: [66, 22, 26, 9], s: 'progress' },
-      { t: 'card', at: [66, 38, 26, 9], s: 'done' },
-      { t: 'note', at: [58, 66, 15, 24], s: 'yellow' },
+    items: [
+      { t: 'focus', at: [130, 8], time: '24:10' },
+      { t: 'frame', at: [10, 58, 184, 104], title: 'Mine' },
+      { t: 'card', at: [18, 68], k: 'APP-112', s: 'progress', type: 'story' },
+      { t: 'card', at: [18, 94], k: 'APP-121', s: 'todo' },
+      { t: 'card', at: [18, 120], k: 'APP-140', s: 'todo', type: 'bug' },
+      { t: 'frame', at: [206, 58, 184, 78], title: 'Waiting on', tone: 'green' },
+      { t: 'timer', at: [214, 70], left: '3h' },
+      { t: 'card', at: [246, 68], k: 'OPS-41', s: 'review' },
+      { t: 'card', at: [246, 94], k: 'WEB-9', s: 'done', type: 'story' },
+      { t: 'note', at: [18, 176, 92, 62], text: '1:1 with Max on Thursday', tone: 'green' },
+      { t: 'note', at: [122, 176, 92, 62], text: 'Ask about the Q4 budget', tone: 'yellow' },
     ],
   },
 ]
+const place = ([x, y, w, h]: number[]) =>
+  `--x:${x};--y:${y}` + (w ? `;--w:${w}` : '') + (h ? `;--h:${h}` : '')
 ---
 
 <section class="section alt" id="scenarios">
@@ -64,12 +77,39 @@ const scenarios: { title: string; text: string; blocks: Block[] }[] = [
     </p>
     <div class="grid">
       {
-        scenarios.map(({ title, text, blocks }, i) => (
+        scenarios.map(({ title, text, items }, i) => (
           <article class="reveal" style={`--d:${i * 0.08}s`}>
-            <div class="thumb dots" aria-hidden="true">
-              {blocks.map(({ t, at: [x, y, w, h], s }) => (
-                <i class={`${t} ${s ?? ''}`} style={`left:${x}%;top:${y}%;width:${w}%;height:${h}%`} />
-              ))}
+            <div class="thumb" aria-hidden="true">
+              <div class="mini dots">
+                {items.map((item) => {
+                  if (item.t === 'frame')
+                    return <div class={`n frame ${item.tone ?? 'blue'}`} style={place(item.at)}><b>{item.title}</b></div>
+                  if (item.t === 'card')
+                    return (
+                      <div class="n card" data-status={item.s} style={place(item.at)}>
+                        <i class={`ty ${item.type ?? 'task'}`} />
+                        <span class="k">{item.k}</span>
+                        <span class="lz">{STATUS[item.s]}</span>
+                      </div>
+                    )
+                  if (item.t === 'note')
+                    return <div class={`n note ${item.tone}`} style={place(item.at)}>{item.text}</div>
+                  if (item.t === 'timer')
+                    return <div class="n timer" style={place(item.at)}>{item.left}</div>
+                  if (item.t === 'focus')
+                    return <div class="n focus" style={place(item.at)}><i />{item.time}<i class="play" /></div>
+                  return (
+                    <div class="n gantt" style={place(item.at)}>
+                      <b>{item.title}</b>
+                      {item.bars.map(([left, width, status]) => (
+                        <span class="row"><i class={status} style={`left:${left}%;width:${width}%`} /></span>
+                      ))}
+                      <i class="today" />
+                      <i class="stone" />
+                    </div>
+                  )
+                })}
+              </div>
             </div>
             <h3>{title}</h3>
             <p>{text}</p>
@@ -97,85 +137,208 @@ const scenarios: { title: string; text: string; blocks: Block[] }[] = [
       max-width: 34rem;
     }
   }
+  /* Like the hero board: one unit is a pixel of a 400×250 board, scaled to the thumbnail. */
   .thumb {
-    position: relative;
-    aspect-ratio: 16 / 10;
+    container-type: inline-size;
     margin-bottom: 1.25rem;
+  }
+  .mini {
+    --u: calc(100cqw / 400);
+    position: relative;
+    aspect-ratio: 400 / 250;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 10px;
     background-color: var(--background);
-    background-size: 14px 14px;
+    background-size: calc(16 * var(--u)) calc(16 * var(--u));
+    font-size: calc(9 * var(--u));
+    line-height: 1.3;
     transition: border-color 0.2s;
   }
-  article:hover .thumb {
+  article:hover .mini {
     border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
   }
-  .thumb i {
+  .n {
     position: absolute;
-    border-radius: 3px;
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  article:hover .thumb :is(.card, .bar):nth-of-type(odd) {
-    transform: translateX(3px);
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    width: calc(var(--w) * var(--u));
+    height: calc(var(--h) * var(--u));
   }
   .frame {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(6 * var(--u));
     background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), transparent);
   }
-  .card {
-    border: 1px solid var(--border);
-    background: var(--card);
+  .frame.green {
+    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
   }
-  /* The lozenge at the end of a card. */
-  .card::after {
-    content: '';
+  .frame b {
     position: absolute;
-    right: 8%;
-    top: 28%;
-    width: 30%;
-    height: 44%;
-    border-radius: 2px;
-    background: var(--todo-fg);
-    opacity: 0.35;
+    left: calc(2 * var(--u));
+    bottom: calc(100% + 3 * var(--u));
+    font-size: calc(10 * var(--u));
+    font-weight: 600;
+    white-space: nowrap;
   }
-  .card.progress::after {
-    background: var(--progress-fg);
-    opacity: 0.6;
+  .card {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    width: auto;
+    height: auto;
+    padding: calc(3 * var(--u)) calc(5 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(4 * var(--u));
+    background: var(--card);
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .card.done::after {
-    background: var(--done-fg);
-    opacity: 0.6;
+  article:hover .card:nth-of-type(odd) {
+    transform: translateX(calc(3 * var(--u)));
   }
-  .bar {
+  .ty {
+    width: calc(9 * var(--u));
+    height: calc(9 * var(--u));
+    border-radius: calc(2 * var(--u));
+    background: var(--type-task);
+  }
+  .ty.story {
+    background: var(--type-story);
+  }
+  .ty.bug {
+    background: var(--type-bug);
+  }
+  .k {
+    font-family: var(--mono);
+    font-size: calc(8 * var(--u));
+    color: var(--primary);
+  }
+  .lz {
+    padding: 0 calc(3 * var(--u));
+    border-radius: calc(2 * var(--u));
     background: var(--todo);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 25%, transparent);
+    color: var(--todo-fg);
+    font-size: calc(7 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
-  .bar.progress {
+  [data-status='progress'] .lz,
+  [data-status='review'] .lz {
     background: var(--progress);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 35%, transparent);
+    color: var(--progress-fg);
   }
-  .bar.done {
+  [data-status='done'] .lz {
     background: var(--done);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 35%, transparent);
+    color: var(--done-fg);
+  }
+  [data-status='done'] .k {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
   }
   .note {
-    border-radius: 2px;
-    box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.12);
+    padding: calc(7 * var(--u));
+    border-radius: calc(2 * var(--u));
+    color: var(--sticky-foreground);
+    font-size: calc(9.5 * var(--u));
+    box-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) oklch(0.2 0.02 260 / 0.12);
   }
   .yellow {
     background: var(--sticky-yellow);
   }
-  .blue {
+  .note.blue {
     background: var(--sticky-blue);
   }
-  .green {
+  .note.green {
     background: var(--sticky-green);
   }
   .timer {
-    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    width: calc(26 * var(--u));
+    height: calc(26 * var(--u));
+    border-radius: calc(5 * var(--u));
     background: var(--timer);
+    color: var(--timer-foreground);
+    font-family: var(--mono);
+    font-size: calc(8 * var(--u));
+    font-weight: 600;
+  }
+  .focus {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    width: calc(140 * var(--u));
+    height: calc(28 * var(--u));
+    padding-inline: calc(7 * var(--u));
+    border-radius: calc(14 * var(--u));
+    background: linear-gradient(100deg, var(--focus-fill), var(--focus-fill-2), var(--focus-fill));
+    color: var(--focus-ink);
+    font-family: var(--mono);
+    font-size: calc(13 * var(--u));
+    font-weight: 500;
+  }
+  .focus i {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--focus-ink) 14%, transparent);
+  }
+  .focus .play {
+    margin-left: auto;
+    background: var(--focus-ink);
+  }
+  .gantt {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+  }
+  .gantt b {
+    display: block;
+    padding: calc(6 * var(--u)) calc(8 * var(--u));
+    border-bottom: 1px solid var(--border);
+    font-size: calc(10 * var(--u));
+    font-weight: 600;
+  }
+  .row {
+    position: relative;
+    display: block;
+    height: calc(26 * var(--u));
+  }
+  .row i {
+    position: absolute;
+    top: calc(6 * var(--u));
+    height: calc(14 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--todo);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+  }
+  .row .progress {
+    background: var(--progress);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+  }
+  .row .done {
+    background: var(--done);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+  }
+  .today {
+    position: absolute;
+    left: 56%;
+    top: calc(26 * var(--u));
+    bottom: 0;
+    width: 1px;
+    background: var(--primary);
+  }
+  .stone {
+    position: absolute;
+    right: calc(10 * var(--u));
+    bottom: calc(6 * var(--u));
+    width: calc(7 * var(--u));
+    height: calc(7 * var(--u));
+    background: var(--foreground);
+    transform: rotate(45deg);
   }
   h3 {
     font-size: 1.0625rem;

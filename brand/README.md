@@ -11,7 +11,7 @@ The emblem is a dot grid where one dot grew into a card: a calm canvas where onl
 | `wordmark/` | `tiko` alone | Where the emblem is already nearby |
 | `app-icon/` | White mark on a blue tile: `favicon.svg`, PNG 16, 32, 48, `apple-touch-icon.png` (180), 512, 1024, `producthunt-thumbnail-240.png` | Browser tab, home screen, store and launch thumbnails |
 | `button/` | `tiko-cloud-button`: white mark and label on a blue button with a FREE tag; in the SVG the card shrinks to a dot and grows back every 6 s | "Start on tiko Cloud" link in the README and on sites |
-| `social/` | `github-social-preview` 1280×640, `producthunt-gallery` 1270×760, `readme-banner` 1280×352 (PNG at 2×), light and dark | GitHub social preview, Product Hunt gallery, wide headers |
+| `social/` | `github-social-preview` 1280×640, `producthunt-gallery` 1270×760, `readme-banner` 1280×352 (PNG at 2×), light and dark; `site-share.png` 1280×640, the first screen of tiko.run without its header and buttons | GitHub social preview, Product Hunt gallery, wide headers, the link preview of tiko.run |
 
 Pick `-dark` on dark backgrounds, `-mono-*` for one-color print or overlays on photos.
 

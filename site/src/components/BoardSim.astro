@@ -11,9 +11,9 @@ const cards = [
   { id: 'c4', key: 'APP-127', title: 'Flaky login test', type: 'bug', status: 'todo' },
 ]
 const waiting = [
-  { key: 'OPS-41', type: 'task', status: 'review' },
-  { key: 'OPS-44', type: 'task', status: 'todo' },
-  { key: 'WEB-9', type: 'story', status: 'done' },
+  { key: 'OPS-41', type: 'task', status: 'todo' },
+  { key: 'OPS-44', type: 'task', status: 'done' },
+  { key: 'WEB-9', type: 'story', status: 'review' },
 ]
 const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
 const TYPE_ICON = { story: 'bookmark', task: 'check', bug: 'bug' }
@@ -28,7 +28,7 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     aria-label="A tiko board: a sprint frame with four live task cards, a sticky note, a timer that went off and a Gantt plan of the release."
   >
     <svg class="wires" viewBox="0 0 1120 600" aria-hidden="true">
-      <path d="M480 236 C 502 236, 496 322, 514 322" />
+      <path d="M490 236 C 508 236, 500 322, 514 322" />
       <path class="head" d="M507 317 L515 322 L507 327" />
     </svg>
 
@@ -337,7 +337,7 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
   .frame {
     --x: 40;
     --y: 104;
-    width: calc(440 * var(--u));
+    width: calc(450 * var(--u));
     height: calc(200 * var(--u));
     border: 1px solid var(--border);
     border-radius: calc(8 * var(--u));
@@ -355,10 +355,10 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     --x: 56;
   }
   .card.w2 {
-    --x: 218;
+    --x: 197;
   }
   .card.w3 {
-    --x: 348;
+    --x: 329;
   }
   .frame-title {
     position: absolute;
