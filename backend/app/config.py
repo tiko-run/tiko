@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,12 +32,26 @@ class Settings(BaseSettings):
     # A second listener for /metrics, on a thread of its own, that answers the token while the
     # server is too busy to. Empty: none.
     tiko_metrics_port: int | None = Field(default=None, ge=1, le=65535)
+    # API processes, one core each; the web container needs the same number to pick the process
+    # of a board. Metrics of process N are on TIKO_METRICS_PORT + N.
+    tiko_workers: int = Field(default=1, ge=1, le=64)
+    # Set by the starter for each process, never by hand: which of them this is, and the
+    # directory of the sockets they talk to each other through.
+    tiko_worker: int = Field(default=0, ge=0)
+    tiko_workers_dir: str | None = None
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
     # Demo visitors the instance keeps at once. Empty: 500.
     tiko_demo_limit: int | None = Field(default=None, ge=1)
     # Boards a person may own, admins aside. Empty: no limit.
     tiko_board_limit: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _metrics_ports_fit(self) -> Self:
+        # Each process has a metrics port of its own, counted up from the first.
+        if self.tiko_metrics_port and self.tiko_metrics_port + self.tiko_workers - 1 > 65535:
+            raise ValueError("TIKO_METRICS_PORT leaves no port for every one of TIKO_WORKERS")
+        return self
 
 
 @lru_cache

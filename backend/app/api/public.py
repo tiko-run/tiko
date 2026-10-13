@@ -9,7 +9,7 @@ from app.api.boards import RefreshOut
 from app.api.live import close, serve
 from app.domain.boards import task_refs
 from app.domain.errors import DomainError, NotFound, TooManyAttempts
-from app.domain.live import ACCESS_CHANGED, ROOM_FULL
+from app.domain.live import ACCESS_CHANGED, ROOM_FULL, room_key
 from app.domain.ports import BoardRepo, TaskProvider
 from app.domain.public import PublicBoard, PublicLinks, guest_tasks, public_board
 from app.domain.refresh import SourceError, SourceStatus
@@ -97,14 +97,17 @@ def refresh_public_board(
     return RefreshOut(tasks=tasks, fetched_at=now_iso(), sources=sources)
 
 
-@router.websocket("/{token}/live")
-async def live_public_board(websocket: WebSocket, token: str) -> None:
+# The board's `room` key is in the path for the proxy, which picks the process of the board by it.
+@router.websocket("/{token}/live/{key}")
+async def live_public_board(websocket: WebSocket, token: str, key: str) -> None:
     state = websocket.app.state
     links: PublicLinks = state.public_links
     # Accepted before the link is checked: a refused upgrade cannot carry a close code.
     await websocket.accept()
     try:
         board_id, *_ = await anyio.to_thread.run_sync(links.find, token)
+        if key != room_key(board_id):
+            raise NotFound("board not found")
     except NotFound:
         await close(websocket, ACCESS_CHANGED)
         return

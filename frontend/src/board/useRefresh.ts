@@ -9,6 +9,8 @@ const DEFAULT_INTERVAL_S = 30
 /** Someone viewing a board by its public link, without an account. */
 export type Guest = {
   token: string
+  /** What the path of the link's socket ends with, from the board the link returned. */
+  room: string
   intervalS: number
   /** Told whether the board is fed by its socket; while it is not, the page reloads it. */
   onLive?: (live: boolean) => void

@@ -57,6 +57,7 @@ def test_upgrade_keeps_each_persons_task_cache(tmp_path):
     conn = sqlite3.connect(path)
     conn.executescript(
         "PRAGMA user_version = 10; DROP TABLE task_snapshots_v3;"
+        "DROP TABLE attempts; DROP TABLE attempt_windows;"
         "CREATE TABLE task_snapshots_v2 (user_id TEXT, key TEXT, state TEXT, data TEXT,"
         " fetched_at TEXT, PRIMARY KEY (user_id, key));"
         "INSERT INTO settings VALUES ('provider', 'jira');"
@@ -102,6 +103,7 @@ def test_upgrade_renames_stored_cards_and_copies_the_database_first(tmp_path):
     conn.execute(
         "UPDATE boards SET doc = ?, ydoc = ? WHERE id = ?", (old_doc, state.state(), live_id)
     )
+    conn.executescript("DROP TABLE attempts; DROP TABLE attempt_windows;")
     conn.execute("PRAGMA user_version = 11")
     conn.commit()
     conn.close()
@@ -130,6 +132,7 @@ def test_upgrade_rebuilds_a_live_state_it_cannot_read(tmp_path):
         "UPDATE boards SET doc = ?, ydoc = ? WHERE id = ?",
         (json.dumps({"nodes": [_legacy_card("a")]}), b"not a state", board_id),
     )
+    conn.executescript("DROP TABLE attempts; DROP TABLE attempt_windows;")
     conn.execute("PRAGMA user_version = 11")
     conn.commit()
     conn.close()

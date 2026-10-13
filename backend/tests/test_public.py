@@ -43,6 +43,7 @@ def test_guest_reads_a_public_board(client):
     token = publish(client, board_id)
     body = anyone.get(f"/api/public/{token}").json()
     assert set(body) == {
+        "room",
         "name",
         "updated_at",
         "version",
@@ -265,16 +266,16 @@ def test_quiet_links_do_not_pile_up_in_memory():
     for n in range(2000):
         links.find(f"old-{n}")
         now[0] += 1.0
-    assert len(links._budget._windows) <= 1024
+    assert len(links._attempts._windows) <= 1024
 
 
 def test_a_public_link_is_not_written_to_the_server_log(client, caplog):
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         logging.getLogger("uvicorn.error").info(
-            '%s - "WebSocket %s" [accepted]', "10.0.0.1:1", "/api/public/s3cr3t-Link_1/live"
+            '%s - "WebSocket %s" [accepted]', "10.0.0.1:1", "/api/public/s3cr3t-Link_1/live/a3"
         )
     assert "s3cr3t" not in caplog.text
-    assert "/api/public/***/live" in caplog.text
+    assert "/api/public/***/live/a3" in caplog.text
 
 
 def test_guest_of_a_mixed_board_sees_demo_tasks_only(jira_client):

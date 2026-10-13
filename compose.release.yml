@@ -10,6 +10,9 @@ services:
     env_file:
       - path: .env
         required: false
+    # API processes; the web container picks the one of a board, so both get the number.
+    environment:
+      TIKO_WORKERS: ${TIKO_WORKERS:-1}
     volumes: ["./data:/app/data"]
     # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
     ulimits:
@@ -18,6 +21,8 @@ services:
   web:
     image: ghcr.io/tiko-run/tiko-web:${TAG:-latest}
     restart: unless-stopped
+    environment:
+      TIKO_WORKERS: ${TIKO_WORKERS:-1}
     ports: ["${TIKO_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }

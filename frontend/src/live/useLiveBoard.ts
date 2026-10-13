@@ -65,7 +65,7 @@ export function useLiveBoard(
   onAccessChanged: () => void,
   me: { id: string; name: string } | undefined,
   /**
-   * The token of a public link, for a guest: the socket is the link's, carries no presence, and
+   * The socket of a public link, for a guest: `<token>/live/<room>`. It carries no presence, and
    * while it is not live the board follows `board`, which the page reloads.
    */
   guest?: string,
@@ -140,7 +140,7 @@ export function useLiveBoard(
     // Other tabs of this browser go through the server too, so roles hold for them as well.
     const provider = new WebsocketProvider(
       socketUrl(guest !== undefined),
-      `${guest ?? board.id}/live`,
+      guest ?? `${board.id}/live`,
       doc,
       { disableBc: true, resyncInterval: guest ? GUEST_RESYNC_MS : -1 },
     )

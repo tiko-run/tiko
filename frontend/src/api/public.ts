@@ -4,6 +4,7 @@ import { fetchJson } from '@/api/client'
 import { taskSchema } from '@/api/tasks'
 
 const publicBoardSchema = z.object({
+  room: z.string(),
   name: z.string(),
   updated_at: z.string(),
   version: z.number(),

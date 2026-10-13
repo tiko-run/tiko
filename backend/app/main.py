@@ -12,10 +12,13 @@ from fastapi.responses import JSONResponse
 
 from app.adapters import password_file
 from app.adapters.live.rooms import LiveRooms
+from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
+from app.adapters.storage.lock import FileLock
 from app.adapters.storage.sqlite import (
     Database,
+    SqliteAttempts,
     SqliteBoardRepo,
     SqliteCredentialRepo,
     SqliteDemoStatusRepo,
@@ -126,11 +129,17 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # One process cleans up for all of them.
         cleaner = (
-            asyncio.create_task(clean_demo(app.state.visitors)) if app.state.visitors else None
+            asyncio.create_task(clean_demo(app.state.visitors))
+            if app.state.visitors and settings.tiko_worker == 0
+            else None
         )
         watcher = asyncio.create_task(watch_loop(live_gauges))
-        port = settings.tiko_metrics_port
+        if workers:
+            await workers.listen()
+        # Each process counts its own, so each has a port: Prometheus reads them all.
+        port = settings.tiko_metrics_port and settings.tiko_metrics_port + settings.tiko_worker
         if port and not metrics_token:
             log.warning(
                 "TIKO_METRICS_PORT is set without TIKO_METRICS_TOKEN: the port stays closed"
@@ -145,25 +154,44 @@ def create_app(
         watcher.cancel()
         if cleaner:
             cleaner.cancel()
+        if workers:
+            await workers.close()
         # Open boards are saved and their sockets told to come back.
-        await app.state.live.shutdown()
+        await rooms.shutdown()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     db = Database(settings.db_path)
     users = SqliteUserRepo(db)
     member_repo = SqliteMemberRepo(db)
     app.state.boards = SqliteBoardRepo(db)
-    app.state.live = LiveRooms(app.state.boards, member_repo)
+    rooms = LiveRooms(app.state.boards, member_repo)
+    workers = (
+        Workers(rooms, settings.tiko_worker, settings.tiko_workers, settings.tiko_workers_dir)
+        if settings.tiko_workers > 1 and settings.tiko_workers_dir
+        else None
+    )
+    app.state.live = workers or rooms
+    attempts = SqliteAttempts(db)
     app.state.sessions = Sessions(
         SqliteSessionRepo(db),
         app.state.live,
         touch_demo=partial(demo.touch, users) if settings.tiko_demo else None,
     )
-    app.state.accounts = Accounts(users, app.state.sessions)
+    if workers:
+        # The other processes keep sessions for 30 s too.
+        workers.heard("end_session", app.state.sessions.uncache)
+        workers.heard("end_person", app.state.sessions.uncache_person)
+        workers.heard("recheck_person", app.state.sessions.uncache_person)
+    app.state.accounts = Accounts(users, app.state.sessions, attempts)
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
         demo.DemoVisitors(
-            users, app.state.sessions, app.state.live, settings.tiko_demo_limit or demo.MAX_ALIVE
+            users,
+            app.state.sessions,
+            app.state.live,
+            settings.tiko_demo_limit or demo.MAX_ALIVE,
+            attempts,
+            None if settings.db_path == ":memory:" else FileLock(f"{settings.db_path}.demo-lock"),
         )
         if settings.tiko_demo
         else None
@@ -192,19 +220,29 @@ def create_app(
     app.state.snapshots = SqliteSnapshotRepo(db)
     box = FernetSecretBox(key) if key else NullSecretBox()
     app.state.refresher = RefreshService()
+
+    def tracker_changed() -> None:
+        app.state.refresher.reset()
+        if workers:
+            workers.tell("tracker_changed")
+
+    if workers:
+        workers.heard("tracker_changed", app.state.refresher.reset)
     service = SettingsService(
         SqliteSettingsRepo(db),
         credentials,
         box,
         secret_key_configured=bool(key),
         on_token=register_secret,
-        on_change=app.state.refresher.reset,
+        on_change=tracker_changed,
         on_public_off=app.state.live.end_public,
         on_github_token=lambda user_id: app.state.snapshots.scoped(user_id).forget("github"),
         env=_tracker_env(settings),
     )
     app.state.settings = service
-    app.state.public_links = PublicLinks(app.state.boards, service.public_links, app.state.live)
+    app.state.public_links = PublicLinks(
+        app.state.boards, service.public_links, app.state.live, attempts=attempts
+    )
     app.state.demo = DemoTaskProvider(SqliteDemoStatusRepo(db) if settings.tiko_demo else None)
     client = _jira_client(settings, jira_transport)
     # Built per request from the signed-in person's own token.
@@ -248,8 +286,8 @@ def create_app(
 
     def live_gauges() -> None:
         # On the loop, where the rooms live.
-        rooms, people, guests, fullest = app.state.live.stats()
-        LIVE_ROOMS.set(rooms)
+        open_rooms, people, guests, fullest = rooms.stats()
+        LIVE_ROOMS.set(open_rooms)
         LIVE_SOCKETS.labels("person").set(people)
         LIVE_SOCKETS.labels("guest").set(guests)
         LIVE_OUTBOX.set(fullest)

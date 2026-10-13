@@ -1,0 +1,32 @@
+#!/bin/sh
+# The API may run several processes (TIKO_WORKERS), on consecutive ports from the one in
+# API_UPSTREAM. A board's room lives in one of them, so everything about a board goes to the
+# process its id names: the last two hex digits, modulo the number of processes. The API
+# checks the same rule. Requests about no board are spread over all of them.
+workers=${TIKO_WORKERS:-1}
+export API_HOST="${API_UPSTREAM%:*}"
+first=${API_UPSTREAM##*:}
+{
+  echo 'map $uri $board_key {'
+  echo '    default "";'
+  echo '    "~^/api/boards/([^/]+)" $1;'
+  echo '    "~^/api/public/[^/]+/live/([^/]+)$" $1;'
+  echo '}'
+  echo 'split_clients $request_id $any_api_port {'
+  n=0
+  while [ "$n" -lt $((workers - 1)) ]; do
+    echo "    $(awk "BEGIN { printf \"%.2f\", 100 / $workers }")% $((first + n));"
+    n=$((n + 1))
+  done
+  echo "    * $((first + workers - 1));"
+  echo '}'
+  echo 'map $board_key $api_port {'
+  echo '    "" $any_api_port;'
+  echo "    default $first;"
+  for high in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+    for low in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+      echo "    \"~*$high$low\$\" $((first + 0x$high$low % workers));"
+    done
+  done
+  echo '}'
+} > /etc/nginx/conf.d/api-workers.conf

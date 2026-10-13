@@ -7,5 +7,5 @@ RUN uv sync --frozen --no-dev
 COPY app ./app
 EXPOSE 8000
 HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
-CMD ["uv", "run", "--no-dev", "--no-sync", "uvicorn", "--factory", "app.main:create_app", "--ws-per-message-deflate", "false", "--host", "0.0.0.0", "--port", "8000"]
+  CMD [".venv/bin/python", "-m", "app.serve", "--healthy"]
+CMD ["uv", "run", "--no-dev", "--no-sync", "python", "-m", "app.serve"]

@@ -112,7 +112,9 @@ class Database:
             started = time.perf_counter()
             DB_WAIT.observe(started - asked)
             try:
-                self._conn.execute("BEGIN")
+                # The write lock up front: a transaction that reads and then writes would
+                # fail at the write when another process wrote in between.
+                self._conn.execute("BEGIN IMMEDIATE")
                 try:
                     yield self._conn
                 except BaseException:
@@ -656,6 +658,62 @@ class SqliteDemoStatusRepo:
                 " status = excluded.status, updated_at = excluded.updated_at",
                 (user_id, key, status, updated_at),
             )
+
+
+class SqliteAttempts:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def recent(self, scope: str, key: str, since: float) -> tuple[int, float]:
+        with self._db.transaction() as conn:
+            count, oldest = conn.execute(
+                "SELECT COUNT(*), MIN(at) FROM attempts WHERE scope = ? AND key = ? AND at > ?",
+                (scope, key, since),
+            ).fetchone()
+        return count, oldest or 0.0
+
+    def add(self, scope: str, key: str, at: float, since: float) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM attempts WHERE scope = ? AND at <= ?", (scope, since))
+            conn.execute("INSERT INTO attempts (scope, key, at) VALUES (?, ?, ?)", (scope, key, at))
+
+    def add_under(self, scope: str, key: str, limit: int, at: float, since: float) -> float | None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM attempts WHERE scope = ? AND at <= ?", (scope, since))
+            count, oldest = conn.execute(
+                "SELECT COUNT(*), MIN(at) FROM attempts WHERE scope = ? AND key = ?", (scope, key)
+            ).fetchone()
+            if count >= limit:
+                return oldest
+            conn.execute("INSERT INTO attempts (scope, key, at) VALUES (?, ?, ?)", (scope, key, at))
+        return None
+
+    def spend(self, scope: str, key: str, limit: int, window_s: float, at: float) -> float | None:
+        with self._db.transaction() as conn:
+            row = conn.execute(
+                "SELECT opened, used FROM attempt_windows WHERE scope = ? AND key = ?", (scope, key)
+            ).fetchone()
+            opened, used = (row["opened"], row["used"]) if row else (at, 0)
+            if not row or at - opened >= window_s:
+                # A window opens: the moment to drop the scope's spent ones, or keys that
+                # went quiet would stay here for good.
+                conn.execute(
+                    "DELETE FROM attempt_windows WHERE scope = ? AND opened <= ?",
+                    (scope, at - window_s),
+                )
+                opened, used = at, 0
+            if used >= limit:
+                return opened
+            conn.execute(
+                "INSERT INTO attempt_windows (scope, key, opened, used) VALUES (?, ?, ?, ?)"
+                " ON CONFLICT (scope, key) DO UPDATE SET used = excluded.used",
+                (scope, key, opened, used + 1),
+            )
+        return None
+
+    def drop(self, scope: str, key: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM attempt_windows WHERE scope = ? AND key = ?", (scope, key))
 
 
 class SqliteSessionRepo:
