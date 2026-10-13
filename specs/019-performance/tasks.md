@@ -19,8 +19,8 @@ description: "Task list for the performance of live boards"
 
 ## Phase 1: Slice `perf-ws-compression` (P1)
 
-- [ ] T010 `backend/Dockerfile`, `Makefile`: uvicorn starts without per-message compression of sockets
-- [ ] T011 Check on the compose stack: the upgrade of a board's socket answers without `permessage-deflate`, two tabs still edit together
+- [x] T010 `backend/Dockerfile`, `Makefile`: uvicorn starts without per-message compression of sockets
+- [x] T011 Check on the compose stack: the upgrade of a board's socket answers without `permessage-deflate`, two tabs still edit together
 
 ## Phase 2: Slice `perf-presence-batch` (P2)
 
