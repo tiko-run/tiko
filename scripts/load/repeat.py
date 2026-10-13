@@ -16,28 +16,42 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-TIMING = re.compile(r"^\s*(\w+): n=\S+\s+p50=\s*([\d.]+) p95=\s*([\d.]+) p99=\s*([\d.]+)")
+TIMING = re.compile(
+    r"^\s*(\w+): n=(\d+)\s+p50=\s*([\d.]+) p95=\s*([\d.]+) p99=\s*([\d.]+) max=\s*([\d.]+)"
+)
 NUMBER = re.compile(r"^\s*([^:=]+): (-?[\d.]+)$")
 MEASURING = re.compile(r"^measuring (\d+) (\d+)")
 
 
-def cpu_usec(container: str) -> int:
+def cpu_used(container: str) -> tuple[float, int]:
+    """The target's clock and the container's CPU counter, read by one command on the target."""
     out = subprocess.run(
-        [*shlex.split(args.docker), "exec", container, "cat", "/sys/fs/cgroup/cpu.stat"],
+        [
+            *shlex.split(args.docker),
+            "exec",
+            container,
+            "cat",
+            "/proc/uptime",
+            "/sys/fs/cgroup/cpu.stat",
+        ],
         capture_output=True,
         text=True,
         check=True,
     ).stdout
-    return int(re.search(r"usage_usec (\d+)", out).group(1))
+    return float(out.split()[0]), int(re.search(r"usage_usec (\d+)", out).group(1))
 
 
 def sample_containers(start: float, end: float, found: dict[str, float]) -> None:
-    """CPU each container used inside the window, from its cgroup: node exporter cannot tell them apart."""
-    time.sleep(max(0, start - time.time()))
-    before = {name: (time.time(), cpu_usec(name)) for name in args.containers}
-    time.sleep(max(0, end - time.time()))
-    for name, (at, usec) in before.items():
-        found[f"{name} cpu % of a core"] = (cpu_usec(name) - usec) / (time.time() - at) / 1e4
+    """CPU of each container inside the window, from its cgroup: node exporter sees one host."""
+    try:
+        time.sleep(max(0, start - time.time()))
+        before = {name: cpu_used(name) for name in args.containers}
+        time.sleep(max(0, end - time.time()))
+        for name, (at, usec) in before.items():
+            now, used = cpu_used(name)
+            found[f"{name} cpu % of a core"] = (used - usec) / (now - at) / 1e4
+    except Exception as failure:
+        found["failure"] = failure
 
 
 def numbers(lines: list[str]) -> dict[str, float]:
@@ -45,11 +59,16 @@ def numbers(lines: list[str]) -> dict[str, float]:
     for text in lines:
         if timing := TIMING.match(text):
             name = timing.group(1)
-            for quantile, value in zip(("p50", "p95", "p99"), timing.groups()[1:], strict=True):
-                found[f"{name} {quantile} ms"] = float(value)
+            found[f"{name} n"] = float(timing.group(2))
+            for part, value in zip(("p50", "p95", "p99", "max"), timing.groups()[2:], strict=True):
+                found[f"{name} {part} ms"] = float(value)
         elif text.startswith("errors:"):
             said = text.split(":", 1)[1].strip()
             found["errors"] = 0 if said == "none" else sum(ast.literal_eval(said).values())
+        elif text.strip().startswith("server closes:"):
+            said = text.split(":", 1)[1].strip()
+            for code, count in ({} if said == "none" else ast.literal_eval(said)).items():
+                found[f"server closes {code}"] = float(count)
         elif number := NUMBER.match(text):
             found[number.group(1).strip()] = float(number.group(2))
     return found
@@ -73,6 +92,8 @@ def one_run(serial: int) -> dict[str, float]:
         sys.exit(f"the step ended with {step.returncode}")
     if sampler:
         sampler.join()
+        if "failure" in cpu:
+            sys.exit(f"the CPU of the containers was not read: {cpu['failure']}")
     found = numbers(lines) | cpu
     if args.window and window:
         seen = subprocess.run(
@@ -86,7 +107,7 @@ def one_run(serial: int) -> dict[str, float]:
 
 
 def main() -> None:
-    variants = [variant.split("=", 1) for variant in args.variant] or [("", "")]
+    variants = [variant.partition("=")[::2] for variant in args.variant] or [("", "")]
     runs = {name: defaultdict(list) for name, _ in variants}
     serial = 0
     # In turn, not one build after the other: what drifts over the hour drifts for all of them.
@@ -103,9 +124,11 @@ def main() -> None:
     for name, labels in runs.items():
         print(f"\n{name or 'step'}: median [least .. most] of {args.runs} runs")
         for label, values in labels.items():
+            # A number some runs did not print must not pass for one that held in all of them.
+            short = f"   in {len(values)} of {args.runs} runs" if len(values) < args.runs else ""
             print(
                 f"{label:>28}: {statistics.median(values):9.1f}"
-                f"   [{min(values):.1f} .. {max(values):.1f}]"
+                f"   [{min(values):.1f} .. {max(values):.1f}]{short}"
             )
 
 
@@ -132,7 +155,14 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    args.step = [word for word in args.step if word != "--"] if args.step[:1] == ["--"] else args.step
+    args.step = args.step[1:] if args.step[:1] == ["--"] else args.step
     if not args.step:
         parser.error("no step given after --")
+    if args.runs < 1:
+        parser.error("--runs is 1 or more")
+    pairs = [variant.partition("=")[::2] for variant in args.variant]
+    if not all(name and command for name, command in pairs):
+        parser.error("--variant is NAME=COMMAND")
+    if len({name for name, _ in pairs}) < len(pairs):
+        parser.error("two variants have one name")
     main()
