@@ -27,6 +27,8 @@ Text frames are ignored. A frame over 1 MiB closes the socket with 1009.
 
 The server sends sync step 1 on accept, then updates and awareness from the others, and its own repair updates.
 
+Awareness leaves in batches. The room sends one awareness message to every signed-in socket at most once in 50 ms: the latest state of each tab that changed, several tabs in one message. A state heard after a pause of 50 ms leaves at once; one heard sooner waits for its turn, up to 50 ms, and states a tab replaced within that time are never sent. Two things do not wait: a socket that closes is told to the others at once, and a document update is sent after the awareness the server heard before it.
+
 ## Close codes
 
 | Code | Meaning | What the web app does |

@@ -24,9 +24,9 @@ description: "Task list for the performance of live boards"
 
 ## Phase 2: Slice `perf-presence-batch` (P2)
 
-- [ ] T020 `adapters/live/rooms.py`: a room collects presence and sends one frame every 50 ms; leaving is told at once. Tests: `tests/test_live.py` presence cases, a burst becomes one frame
-- [ ] T021 `specs/009-realtime/contracts/live.md`: the timing of presence
-- [ ] T022 Check in two browser tabs: pointers and drags of the other tab still follow smoothly
+- [x] T020 `adapters/live/rooms.py`: a room collects presence and sends one frame every 50 ms; leaving is told at once. Tests: `tests/test_live.py` presence cases, a burst becomes one frame
+- [x] T021 `specs/009-realtime/contracts/live.md`: the timing of presence
+- [x] T022 Check in two browser tabs: pointers and drags of the other tab still follow smoothly
 
 ## Phase 3: Slice `perf-incremental-check` (P3)
 
