@@ -50,4 +50,4 @@ description: "Task list for the performance of live boards"
 
 ## Phase 7: Slice `perf-socket-path` (P7), only if P6 asks for it
 
-- [ ] T070 nginx is at 16 to 20% of the host at the heaviest passing step ([results.md](results.md)): options with a measurement each, owner decides at G2
+- [ ] T070 nginx is at 16 to 20% of the host at the heaviest passing step ([results.md](results.md)): options with a measurement each, owner decides at G2. Carried over to [spec 021](../021-performance-2/spec.md), slice R3
