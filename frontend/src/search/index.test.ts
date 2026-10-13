@@ -195,11 +195,11 @@ test('a keystroke on a board of 5000 elements stays within a frame', () => {
   const index = buildIndex(big, {})
   const queries = ['r', 're', 'rel', 'rele', 'release 3']
   // A busy runner only ever adds time, so the fastest of several rounds is the search itself.
-  let best = Infinity
+  let bestMs = Infinity
   for (let round = 0; round < 7; round++) {
     const start = performance.now()
     for (const q of queries) viewFor(index, q, [])
-    best = Math.min(best, (performance.now() - start) / queries.length)
+    bestMs = Math.min(bestMs, (performance.now() - start) / queries.length)
   }
-  expect(best).toBeLessThan(16)
+  expect(bestMs).toBeLessThan(16)
 })
