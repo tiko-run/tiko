@@ -1,11 +1,11 @@
 import json
 import random
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from app.domain import live as live_module
 from app.domain.boards import MAX_NODES, BoardDoc, check_doc
 from app.domain.live import LiveDoc, from_board, repaired, stored_node, to_json
 from app.domain.tasks import now_iso  # noqa: F401 - keeps the import graph as the app has it
@@ -263,27 +263,20 @@ def test_a_card_under_its_old_type_name_is_kept_and_renamed():
     assert live.read()[0]["card"]["type"] == "task_card"
 
 
-def merge(server: LiveDoc, change) -> None:
+def merge(server: LiveDoc, change: Callable[[LiveDoc], None]) -> None:
     """Someone's tab changes the board its own way and the server hears the update."""
     tab = LiveDoc(server.state())
     change(tab)
     server.doc.apply_update(tab.state())
 
 
-def test_a_broken_element_among_a_thousand_is_repaired_without_checking_the_rest(monkeypatch):
+def test_a_broken_element_among_a_thousand_is_repaired_and_the_rest_is_taken_as_it_was():
     start = board(
         [sticky(f"s{n}") for n in range(1000)], [{"id": "e", "source": "s1", "target": "s2"}]
     )
     server = LiveDoc()
     server.apply_json(start)
     last, _ = server.repair(start)
-    looked_at: list[dict] = []
-    valid = live_module._valid
-    monkeypatch.setattr(
-        live_module,
-        "_valid",
-        lambda adapter, value: looked_at.append(value) or valid(adapter, value),
-    )
 
     def spoil(tab: LiveDoc) -> None:
         nodes, edges = tab.read()
@@ -294,16 +287,47 @@ def test_a_broken_element_among_a_thousand_is_repaired_without_checking_the_rest
     merge(server, spoil)
     after, notes = server.repair(last)
     assert notes == ["node_restored"]
-    assert sorted(value["id"] for value in looked_at) == ["s500", "s7"]
     check_doc(after)
     moved = {**as_json(last), "nodes": [dict(node) for node in as_json(last)["nodes"]]}
     moved["nodes"][7]["position"] = {"x": 77, "y": 20}
     assert as_json(after) == moved
     assert server.read()[0]["s500"]["data"]["text"] == "s500"
+    # Only the two touched elements were made anew; the rest are the objects of the last check.
+    remade = [new.id for old, new in zip(last.nodes, after.nodes, strict=True) if new is not old]
+    assert remade == ["s7", "s500"] and after.edges[0] is last.edges[0]
 
-    looked_at.clear()
     again, notes = server.repair(after)
-    assert (notes, looked_at) == ([], []) and as_json(again) == as_json(after)
+    assert notes == [] and as_json(again) == as_json(after)
+    assert all(new is old for old, new in zip(after.nodes, again.nodes, strict=True))
+
+
+def test_after_a_repair_that_failed_the_next_one_checks_everything():
+    server = LiveDoc()
+    server.apply_json(EVERY_TYPE)
+    last, _ = server.repair(EVERY_TYPE)
+
+    def spoil(tab: LiveDoc) -> None:
+        nodes, edges = tab.read()
+        nodes["sticky"]["data"]["text"] = "x" * 6000
+        nodes["text"]["place"]["x"] = 77
+        nodes.pop("frame")
+        tab.write(nodes, edges, origin="tab")
+
+    merge(server, spoil)
+    # A caller's mistake stands in for any failure: the repair ends before it has looked.
+    with pytest.raises(AttributeError):
+        server.repair(None)
+    everything = LiveDoc(server.state())
+    expected, expected_notes = everything.repair(last)
+    after, notes = server.repair(last)
+    assert sorted(notes) == sorted(expected_notes) and "node_restored" in notes
+    assert as_json(after) == as_json(expected)
+    assert server.read() == everything.read()
+    # And what follows starts from that check again.
+    again, notes = server.repair(after)
+    assert notes == [] and all(
+        new is old for old, new in zip(after.nodes, again.nodes, strict=True)
+    )
 
 
 def test_a_repair_of_what_changed_is_the_repair_of_everything():
@@ -386,3 +410,11 @@ def test_a_repair_of_what_changed_is_the_repair_of_everything():
         "edge_dropped",
         "anchor_dropped",
     }
+
+
+def test_a_ring_of_parents_is_repaired_the_same_in_any_order():
+    a = stored_node(sticky("a", parentId="b"), 0)
+    b = stored_node(sticky("b", parentId="a"), 1)
+    one, _, notes = fix({"a": a, "b": b})
+    other, _, _ = fix({"b": b, "a": a})
+    assert one == other and notes == ["node_detached", "node_detached"]

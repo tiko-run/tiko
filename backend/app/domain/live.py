@@ -83,10 +83,6 @@ def _well_formed(node: Any) -> bool:
 
 
 def _ordered(nodes: Stored) -> list[str]:
-    """Node ids by stacking order with every child right after its parent, as xyflow needs.
-
-    A node whose parent is missing is left out; the repair brings it back as a top-level node.
-    """
     children: dict[str | None, list[str]] = {}
     for node_id, node in nodes.items():
         children.setdefault(node["place"].get("parentId"), []).append(node_id)
@@ -103,6 +99,10 @@ def _ordered(nodes: Stored) -> list[str]:
 
 
 def to_json(nodes: Stored, edges: Stored) -> dict[str, Any]:
+    """Nodes by stacking order with every child right after its parent, as xyflow needs.
+
+    A node whose parent is missing is left out; the repair brings it back as a top-level node.
+    """
     return {
         "nodes": [json_node(node_id, nodes[node_id]) for node_id in _ordered(nodes)],
         "edges": [{"id": edge_id, **edges[edge_id]} for edge_id in sorted(edges)],
@@ -138,12 +138,12 @@ def repaired(
     """The same board with every rule of `BoardDoc` and `check_doc` holding again.
 
     `previous` is the last valid state: where a broken node is restored from and where the
-    place of an already deleted parent is read from. `changed` names the nodes and the edges
-    that may differ from that state; the others are valid on their own and only the rules
-    that span elements are checked for them. Without it every element is checked.
+    place of an already deleted parent is read from.
     """
     notes: list[str] = []
     good: Stored = {}
+    # `changed` names the nodes and the edges that may differ from `previous`. The others are
+    # valid on their own: only the rules that span elements are checked for them.
     for node_id, node in nodes.items():
         if changed is not None and node_id not in changed[0]:
             good[node_id] = node
@@ -169,7 +169,7 @@ def repaired(
 
     def detach(node_id: str) -> None:
         node = good[node_id]
-        parent_x, parent_y = _origin(node["place"]["parentId"], good, previous)
+        parent_x, parent_y = _origin(node["place"]["parentId"], placed, previous)
         place = {"x": node["place"]["x"] + parent_x, "y": node["place"]["y"] + parent_y}
         good[node_id] = {**node, "place": place}
         notes.append("node_detached")
@@ -178,10 +178,14 @@ def repaired(
         parent = good.get(good[node_id]["place"].get("parentId"))
         return parent["type"] if parent else None
 
+    # Places are read from the board as it was before a pass moved anything: a forged ring of
+    # parents then gives the same board whatever the order of the elements.
+    placed = dict(good)
     # Frames and modules first: a card inside a frame that was itself nested stays in it.
     for node_id in [n for n, node in good.items() if node["type"] in ("frame", "module")]:
         if good[node_id]["place"].get("parentId") is not None:
             detach(node_id)
+    placed = dict(good)
     for node_id in [n for n, node in good.items() if node["type"] not in ("frame", "module")]:
         node = good[node_id]
         if node["place"].get("parentId") is None:
@@ -249,9 +253,8 @@ class LiveDoc:
         origin: Any = SERVER,
         current: tuple[dict[str, Any], dict[str, Any]] | None = None,
     ) -> bool:
-        """Makes the document equal to the given state, touching only what differs.
-
-        `current` is the document as plain values when the caller has already read it."""
+        """Makes the document equal to the given state, touching only what differs."""
+        # `current`: the document as plain values, when the caller has already read it.
         current, current_edges = current or self.read()
         ops: list[Any] = []
         for node_id in current.keys() - nodes.keys():
@@ -317,7 +320,7 @@ class LiveDoc:
     def _changed(
         self, nodes: Stored, edges: Stored
     ) -> tuple[dict[str, Any], dict[str, Any], tuple[set[str], set[str]]]:
-        """The document as plain values, read only where it was touched since the last repair."""
+        # The document as plain values, read only where it was touched since the last repair.
         changed = (set(self._touched[0]), set(self._touched[1]))
         now, now_edges = dict(nodes), dict(edges)
         for node_id in changed[0]:
@@ -334,8 +337,7 @@ class LiveDoc:
         return now, now_edges, changed
 
     def _board(self, nodes: Stored, edges: Stored, last: BoardDoc) -> BoardDoc:
-        """The board of valid stored elements; an element is validated once, not on every check."""
-
+        # An element becomes a model once, not on every check: unchanged ones are taken as made.
         def models(
             cache: dict[str, tuple[Any, Any]],
             ids: list[str],
@@ -367,11 +369,9 @@ class LiveDoc:
         )
 
     def repair(self, last: BoardDoc) -> tuple[BoardDoc, list[str]]:
-        """Fixes what a merge broke and returns the board as it now stands, valid.
-
-        `last` is the board the previous repair returned (its viewport may differ). Then only
-        what changed since is read and validated; any other `last` means a check of everything.
-        """
+        """Fixes what a merge broke and returns the board as it now stands, valid."""
+        # Given the board the previous repair returned (its viewport may differ), only what
+        # changed since is read and validated. Any other `last` means a check of everything.
         if self._watch is None:
             self._watch = self._watch_changes()
         checked, self._checked = self._checked, None
