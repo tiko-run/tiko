@@ -2,6 +2,7 @@
 
   rooms.py setup --boards 100 --nodes 1000     makes the boards, writes boards.json
   rooms.py run --rooms 20 --hold 180           fills 20 rooms and measures
+  rooms.py sweep                               takes leftovers of a broken step off the boards
 
 Every socket signs in as the same admin: a room counts connections, not people.
 A room of 30: 5 drag elements, 2 create and delete them, 10 move the pointer, 13 watch.
@@ -33,6 +34,8 @@ ROLES = ["drag"] * 5 + ["create"] * 2 + ["move"] * 10 + ["watch"] * 13
 EMPTY_STEP1 = create_sync_message(Doc())
 PRESENCE_MARK = re.compile(rb'"t":(\d+\.\d+)')
 EDIT_MARK = re.compile(rb"ts:(\d+\.\d+);")
+# Ids of the elements the load makes, so they can be told from the board's own.
+MADE = "lt"
 
 
 def sign_in(args) -> str:
@@ -82,6 +85,28 @@ def setup(args) -> None:
     with open(args.file, "w") as out:
         json.dump(boards, out)
     print(f"{len(boards)} boards of {args.nodes} elements")
+
+
+def sweep(args, cookie: str, boards: list[str]) -> None:
+    """Takes off the boards what a step left behind: a socket that was closed or failed never
+    got to delete the elements it made."""
+    left = 0
+    with httpx.Client(base_url=args.base, timeout=120, headers={"Cookie": cookie}) as http:
+        for board_id in boards:
+            board = http.get(f"/api/boards/{board_id}").json()
+            nodes = board["doc"]["nodes"]
+            kept = [node for node in nodes if not node["id"].startswith(MADE)]
+            if len(kept) == len(nodes):
+                continue
+            doc = {**board["doc"], "nodes": kept}
+            saved = http.put(
+                f"/api/boards/{board_id}", json={"version": board["version"], "doc": doc}
+            )
+            if saved.status_code >= 400:
+                print(f"board {board_id} was not swept: {saved.status_code}; make the boards anew")
+            else:
+                left += len(nodes) - len(kept)
+    print(f"swept {left} leftover elements")
 
 
 def presence(client: int, clock: int, state: dict) -> bytes:
@@ -155,9 +180,10 @@ async def person(
                         seen += 1
                         # One in ten: a full room sends hundreds of presence frames a second.
                         if seen % 10 == 0:
-                            mark = PRESENCE_MARK.search(message)
-                            if mark:
-                                stats.record("presence", time.time() - float(mark.group(1)))
+                            # Every state in the frame: one frame may carry several tabs.
+                            now = time.time()
+                            for mark in PRESENCE_MARK.finditer(message):
+                                stats.record("presence", now - float(mark.group(1)))
 
             async def say(cursor, selected=(), drag=None) -> None:
                 nonlocal clock
@@ -187,7 +213,7 @@ async def person(
             await asyncio.wait_for(synced.wait(), 60)
             stats.record("join", time.perf_counter() - started)
             stats.online += 1
-            x, y, made = random.uniform(0, 5000), random.uniform(0, 5000), []
+            x, y, made, created = random.uniform(0, 5000), random.uniform(0, 5000), [], 0
             try:
                 while time.time() < until and not reader.done():
                     if role == "watch":
@@ -211,7 +237,8 @@ async def person(
                         await asyncio.sleep(random.uniform(1, 4))
                     else:
                         x, y = await wander(random.uniform(0.5, 1.5), x, y)
-                        node_id = f"lt{client:x}-{len(made)}"
+                        created += 1
+                        node_id = f"{MADE}{client:x}-{created}"
                         nodes[node_id] = Map(
                             {
                                 "type": "sticky",
@@ -226,6 +253,12 @@ async def person(
                             nodes.pop(made.pop(0))
                         await flush()
                         await asyncio.sleep(random.uniform(3, 7))
+                # The board goes back to its size, so the next step starts from the same one.
+                if made and not reader.done():
+                    for node_id in made:
+                        nodes.pop(node_id)
+                    await flush()
+                    await asyncio.sleep(0.5)
             finally:
                 stats.online -= 1
                 reader.cancel()
@@ -322,10 +355,11 @@ def run(args) -> None:
     for name, values in merged.items():
         print(line(name, values))
     print("errors:", dict(errors) or "none")
+    sweep(args, cookie, boards)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mode", choices=["setup", "run"])
+parser.add_argument("mode", choices=["setup", "run", "sweep"])
 parser.add_argument("--base", default="http://localhost:13000")
 parser.add_argument("--password", default="load-test-password")
 parser.add_argument("--file", default="boards.json")
@@ -341,4 +375,10 @@ parser.add_argument("--procs", type=int, default=4)
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    setup(args) if args.mode == "setup" else run(args)
+    if args.mode == "setup":
+        setup(args)
+    elif args.mode == "run":
+        run(args)
+    else:
+        with open(args.file) as source:
+            sweep(args, sign_in(args), json.load(source))
