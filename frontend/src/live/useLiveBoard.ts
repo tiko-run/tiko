@@ -11,9 +11,12 @@ import { remoteDrags } from '@/live/drags'
 import {
   colorOf,
   parsePeers,
+  pacer,
   presenceSender,
   selectedBy,
   setBoardPeers,
+  setBoardTravel,
+  TRAVEL_MS,
   type PresenceState,
   type PresenceUser,
 } from '@/live/presence'
@@ -162,7 +165,10 @@ export function useLiveBoard(
       })
     }
     let shown = { selections: '', drags: '' }
-    const onPresence = () => {
+    const pace = pacer()
+    const onPresence = (_changes: unknown, origin: unknown) => {
+      // This tab's own moves are not frames of the room.
+      if (origin !== 'local') setBoardTravel(pace(performance.now()))
       const next = parsePeers(awareness.getStates(), doc.clientID)
       setBoardPeers(next, meId)
       const texts = {
@@ -250,6 +256,7 @@ export function useLiveBoard(
       mine.cancel()
       setPresence(IDLE)
       setBoardPeers([], meId)
+      setBoardTravel(TRAVEL_MS)
       setSelections(NO_SELECTIONS)
       setDrags(NO_DRAGS)
       synced.current = false

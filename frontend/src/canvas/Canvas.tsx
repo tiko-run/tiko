@@ -52,7 +52,7 @@ import { useRefresh, type Guest } from '@/board/useRefresh'
 import { useDrawRect, type ScreenRect } from '@/canvas/useDrawRect'
 import { useGuides } from '@/canvas/useGuides'
 import { useRemoteMotion } from '@/live/motion'
-import { MAX_LIVE_DRAG } from '@/live/presence'
+import { MAX_LIVE_DRAG, useBoardTravel } from '@/live/presence'
 import { SelectedByContext, withPresence } from '@/live/PresenceRing'
 import { PresenceLayer } from '@/live/PresenceLayer'
 import { getAuthStatus } from '@/api/auth'
@@ -182,7 +182,7 @@ export function BoardCanvas({
     [flow],
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
-  const moving = useRemoteMotion(nodes, drags, live.glide, originOf)
+  const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
   const shown = useMemo(() => {
     const raised = raiseAnchors(moving, edges)
     if (!flashId && !hits) return raised

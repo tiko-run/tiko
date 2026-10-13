@@ -398,7 +398,8 @@
   box-shadow: 0 0 0 2px var(--primary);
 }
 
-/* Remote cursors move evenly between updates, one every 50 ms. Nodes moved by others are
+/* Remote cursors move evenly between updates; the cursor layer sets how long, by the pace the
+   room sends them at. Nodes moved by others are
    animated in their positions (live/motion.ts), never here: a transition on the element would
    leave its arrows and whatever it carries behind. */
 .presence-cursor {

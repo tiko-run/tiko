@@ -1,6 +1,6 @@
 import { ViewportPortal, useViewport } from '@xyflow/react'
 import { Avatar } from '@/live/Avatar'
-import { useBoardPeers } from '@/live/presence'
+import { useBoardPeers, useBoardTravel } from '@/live/presence'
 
 /**
  * Other people's cursors on the canvas. What they have selected is drawn by the nodes
@@ -11,6 +11,7 @@ import { useBoardPeers } from '@/live/presence'
  */
 export function PresenceLayer() {
   const peers = useBoardPeers()
+  const travel = useBoardTravel()
   const { zoom } = useViewport()
   if (peers.length === 0) return null
   const unscale = { transform: `scale(${1 / zoom})` }
@@ -24,6 +25,7 @@ export function PresenceLayer() {
               className="presence-cursor pointer-events-none absolute top-0 left-0"
               style={{
                 transform: `translate(${peer.cursor.x}px, ${peer.cursor.y}px)`,
+                transitionDuration: `${travel}ms`,
                 zIndex: 1001,
               }}
             >

@@ -7,6 +7,14 @@ const MAX_SELECTED = 200
 /** Past this many nodes a drag is not shown live; the others see the result on the drop. */
 export const MAX_LIVE_DRAG = 200
 export const CURSOR_INTERVAL_MS = 50
+/** How long a pointer or a dragged node takes to its next place: a little over the gap between
+ *  two presence frames, so it is still moving when the next one comes. */
+export const TRAVEL_MS = 80
+/** The same in a busy room, which sends presence half as often. */
+export const TRAVEL_BUSY_MS = 160
+// Frames further apart than this tell of people who paused, not of the room's pace.
+const PAUSE_MS = 250
+const BUSY_GAP_MS = 75
 
 const xy = z.object({ x: z.number(), y: z.number() })
 const stateSchema = z.object({
@@ -97,6 +105,21 @@ export function throttle<A extends unknown[]>(run: (...args: A) => void, interva
 }
 
 /**
+ * Tells how long a move should take from the moments presence frames arrive. The web app is not
+ * told the room's pace: it measures it, so it follows whatever the server sends.
+ */
+export function pacer() {
+  let last = -Infinity
+  let gap = CURSOR_INTERVAL_MS
+  return (now: number) => {
+    const passed = now - last
+    last = now
+    if (passed < PAUSE_MS) gap += (passed - gap) * 0.2
+    return gap > BUSY_GAP_MS ? TRAVEL_BUSY_MS : TRAVEL_MS
+  }
+}
+
+/**
  * What a tab tells the others. The cursor and the nodes it drags travel in one message, at most
  * every 50 ms, so on the other screens a dragged node keeps its place under the cursor.
  */
@@ -142,6 +165,7 @@ export function selectedBy(peers: Peer[]): Map<string, PresenceUser[]> {
 // the whole canvas.
 let people: PresenceUser[] = []
 let tabs: Peer[] = []
+let travel = TRAVEL_MS
 const listeners = new Set<() => void>()
 const NOBODY: PresenceUser[] = []
 const NO_TABS: Peer[] = []
@@ -158,6 +182,12 @@ export function setBoardPeers(next: Peer[], me: string | undefined) {
   for (const listener of listeners) listener()
 }
 
+export function setBoardTravel(ms: number) {
+  if (ms === travel) return
+  travel = ms
+  for (const listener of listeners) listener()
+}
+
 export function useBoardPeople() {
   return useSyncExternalStore(
     subscribe,
@@ -171,5 +201,14 @@ export function useBoardPeers() {
     subscribe,
     () => tabs,
     () => NO_TABS,
+  )
+}
+
+/** How long other people's pointers and drags take between two frames on the open board. */
+export function useBoardTravel() {
+  return useSyncExternalStore(
+    subscribe,
+    () => travel,
+    () => TRAVEL_MS,
   )
 }

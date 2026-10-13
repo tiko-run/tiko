@@ -59,6 +59,14 @@ test('a node someone drags moves evenly to each new place and stays held there',
   expect(a.position.x).toBe(0)
 })
 
+test('in a busy room a dragged node takes the longer time between two places', () => {
+  const a = node('a', 0)
+  const drags = new Map([['a', { x: 40, y: 0 }]])
+  const motion = plan([a], drags, NOBODY, STILL, was(a), 1000, noOrigin, false, 160)
+  expect(show([a], motion, 1080)[0].position.x).toBe(20)
+  expect(show([a], motion, 1160)[0].position.x).toBe(40)
+})
+
 test('a child is placed inside its frame, and what this person drags is theirs', () => {
   const child = node('in', 10, { parentId: 'f' })
   const mine = node('mine', 0, { dragging: true })
