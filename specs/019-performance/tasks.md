@@ -40,8 +40,8 @@ description: "Task list for the performance of live boards"
 
 ## Phase 5: Slice `perf-workers` (P5)
 
-- [ ] T050 Plan: what crosses processes (sign-out everywhere, role changes, limiters, REST save through a room) and how each is carried
-- [ ] T051 Several API processes, the proxy picks one by board id. Tests with two processes
+- [x] T050 Plan: what crosses processes (sign-out everywhere, role changes, limiters, REST save through a room) and how each is carried
+- [x] T051 Several API processes, the proxy picks one by board id. Tests with two processes
 
 ## Phase 6: Slice `perf-remeasure` (P6)
 
