@@ -660,8 +660,9 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     border-radius: calc(4 * var(--u));
     background: var(--todo);
     box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+    clip-path: inset(0 0 0 0 round calc(4 * var(--u)));
     transition:
-      width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+      clip-path 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
       background-color 0.3s;
   }
   .g-bar[data-status='progress'],
@@ -686,8 +687,7 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     --bw: 118;
   }
   .g-bar.out {
-    width: 0;
-    box-shadow: none;
+    clip-path: inset(0 100% 0 0 round calc(4 * var(--u)));
   }
   .g-today {
     position: absolute;

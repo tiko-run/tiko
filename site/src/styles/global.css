@@ -176,20 +176,11 @@ kbd {
   top: 1rem;
 }
 
-/* Section heads: a small label in the key's blue mono, a title, one muted line. */
+/* Section heads: a title and one muted line. */
 .section {
   padding-block: clamp(4rem, 9vw, 7rem);
 }
-.eyebrow {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--primary);
-}
 .h2 {
-  margin-top: 0.75rem;
   max-width: 22ch;
   font-size: clamp(1.75rem, 3.6vw, 2.5rem);
   font-weight: 600;
@@ -347,6 +338,12 @@ html:not(.js) .cmd-copy {
     transition-delay: var(--d, 0s);
   }
   .rising .reveal.in {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media print {
+  .rising .reveal {
     opacity: 1;
     transform: none;
   }
