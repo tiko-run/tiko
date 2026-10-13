@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/018-live-metrics",
+  "feature": "specs/019-performance",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
