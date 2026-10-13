@@ -135,19 +135,19 @@ Change it in Settings → Security. To pick your own from the start, put `TIKO_P
 
 ## Lost the password
 
-Where the first password is kept depends on how you installed tiko. The examples use the default folder, `~/tiko` or `%USERPROFILE%\tiko` on Windows.
+Where the first password is kept depends on how you installed tiko. The examples use the default folder: `~/tiko`, `%USERPROFILE%\tiko` on Windows, or `/opt/tiko` when the installer ran as root on Linux.
 
 **Installed with one command.** The password is the `TIKO_PASSWORD` line of the file `.env` in the tiko folder. The log does not have it.
 
 - Windows: press `Win+R`, type `notepad %USERPROFILE%\tiko\.env` and press Enter. Or in PowerShell, from any folder: `Select-String TIKO_PASSWORD $HOME\tiko\.env`.
 - Linux and macOS: `grep TIKO_PASSWORD ~/tiko/.env`, or `sudo grep TIKO_PASSWORD /opt/tiko/.env` when installed as root.
 
-**Installed step by step.** tiko generated the password and saved it to the file `data/password` in the tiko folder.
+**Installed step by step.** If you put `TIKO_PASSWORD` into `.env` before the first start, it is that line of `.env`; read it with the commands above. Otherwise tiko generated the password and saved it to the file `data/password` in the tiko folder.
 
 - Windows: press `Win+R`, type `notepad %USERPROFILE%\tiko\data\password` and press Enter. Or in PowerShell: `Get-Content $HOME\tiko\data\password`.
 - Linux and macOS: `cat ~/tiko/data/password`, with `sudo` if it says "Permission denied".
 
-**Changed it and forgot the new one.** Both files keep only the first password. Make a link that sets a new one.
+**Changed it and forgot the new one.** Both files keep only the first password. Make a link that sets a new one. If you changed the username, put it in place of `admin`.
 
 Windows, in PowerShell:
 
@@ -159,7 +159,7 @@ docker compose exec api python -m app.reset_password admin
 Linux and macOS:
 
 ```bash
-cd ~/tiko
+cd ~/tiko    # /opt/tiko when installed as root
 docker compose exec api python -m app.reset_password admin
 ```
 
@@ -167,7 +167,7 @@ The command prints a line like `/?reset=...`. Add it to your tiko address, for e
 
 ## Everyday commands
 
-Run these in the tiko folder. A new terminal opens somewhere else, and PowerShell started as administrator opens in `C:\Windows\system32`, so go to the folder first: `cd ~/tiko` on Linux and macOS, `cd $HOME\tiko` in PowerShell. Installed into another folder and forgot which? `docker compose ls` shows the path of a running tiko under "CONFIG FILES".
+Run these in the tiko folder. A new terminal opens somewhere else, and PowerShell started as administrator opens in `C:\Windows\system32`, so go to the folder first: `cd ~/tiko` on Linux and macOS (`cd /opt/tiko` when installed as root), `cd $HOME\tiko` in PowerShell. Installed into another folder and forgot which? `docker compose ls` shows the path of a running tiko under "CONFIG FILES".
 
 | Task | Command |
 |---|---|
@@ -184,7 +184,7 @@ The folder's `data/` holds your boards, so back it up before deleting anything. 
 - **"permission denied" on `/var/run/docker.sock` (Linux).** Your user is not in the `docker` group yet: run `sudo usermod -aG docker $USER`, sign out and back in, or prefix commands with `sudo`.
 - **"port is already allocated" or the installer says the port is taken.** Another program uses port 3000. Use `--port 8080` with the installer, or set `TIKO_PORT=8080` in `.env`, then open http://localhost:8080.
 - **"Cannot connect to the Docker daemon".** Docker is not running: open Docker Desktop, run `colima start` on macOS, or `sudo systemctl start docker` on Linux.
-- **"no configuration file provided: not found".** The terminal is not in the tiko folder, so `docker compose` does not know which install you mean. Go there first: `cd ~/tiko`, or `cd $HOME\tiko` in PowerShell.
+- **"no configuration file provided: not found".** The terminal is not in the tiko folder, so `docker compose` does not know which install you mean. Go there first: `cd ~/tiko`, `cd /opt/tiko` when installed as root, or `cd $HOME\tiko` in PowerShell.
 - **PowerShell does not recognize `grep`.** Windows has no `grep`. Use `Select-String` in its place: `docker compose logs api | Select-String 'tiko password'`.
 - **The password does not show up in the log.** After the one-line installer it is in `.env`, not in the log; see [Lost the password](#lost-the-password).
 - **WSL errors on Windows.** Run `wsl --update` in PowerShell as administrator and restart. Docker's [troubleshooting page](https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/) covers the rest.
