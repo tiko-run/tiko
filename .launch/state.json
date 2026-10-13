@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/017-task-card",
+  "feature": "specs/018-live-metrics",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -62,7 +62,8 @@
     "github-issues",
     "github-labels",
     "github-token",
-    "task-card"
+    "task-card",
+    "live-metrics"
   ],
   "gates": {
     "G1_scope": "approved",

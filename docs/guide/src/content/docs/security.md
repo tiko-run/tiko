@@ -3,7 +3,7 @@ title: Security and privacy
 description: Sign-in, people, board sharing, and what tiko stores and talks to.
 ---
 
-Every page and API route except `/health` and `/ready` asks you to sign in with a username and password, `/metrics` included.
+Every page and API route except `/health` and `/ready` asks you to sign in with a username and password. `/metrics` is for admins and for a monitoring system that sends `TIKO_METRICS_TOKEN`; see [Monitoring](../monitoring/).
 
 ## Signing in
 

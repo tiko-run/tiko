@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     github_token: SecretStr | None = None
     # Asks GitHub for the latest release every 6 hours to show "update available".
     update_check: bool = True
+    # Lets a monitoring system read /metrics with `Authorization: Bearer <token>`, no account.
+    tiko_metrics_token: SecretStr | None = None
     # Anyone starts without an account as a demo visitor, on the demo tasks, until they sign up.
     tiko_demo: bool = False
     # Demo visitors the instance keeps at once. Empty: 500.

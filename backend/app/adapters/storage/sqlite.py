@@ -2,6 +2,7 @@ import json
 import logging
 import sqlite3
 import threading
+import time
 import uuid
 from collections.abc import Callable
 from contextlib import closing, contextmanager
@@ -15,6 +16,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.tasks import Task, now_iso
+from app.observability import DB_HELD, DB_WAIT
 
 log = logging.getLogger(__name__)
 
@@ -105,14 +107,20 @@ class Database:
 
     @contextmanager
     def transaction(self):
+        asked = time.perf_counter()
         with self._lock:
-            self._conn.execute("BEGIN")
+            started = time.perf_counter()
+            DB_WAIT.observe(started - asked)
             try:
-                yield self._conn
-            except BaseException:
-                self._conn.execute("ROLLBACK")
-                raise
-            self._conn.execute("COMMIT")
+                self._conn.execute("BEGIN")
+                try:
+                    yield self._conn
+                except BaseException:
+                    self._conn.execute("ROLLBACK")
+                    raise
+                self._conn.execute("COMMIT")
+            finally:
+                DB_HELD.observe(time.perf_counter() - started)
 
     def ping(self) -> bool:
         try:

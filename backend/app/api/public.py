@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.api import deps
 from app.api.boards import RefreshOut
-from app.api.live import serve
+from app.api.live import close, serve
 from app.domain.boards import task_refs
 from app.domain.errors import DomainError, NotFound, TooManyAttempts
 from app.domain.live import ACCESS_CHANGED, ROOM_FULL
@@ -106,14 +106,14 @@ async def live_public_board(websocket: WebSocket, token: str) -> None:
     try:
         board_id, *_ = await anyio.to_thread.run_sync(links.find, token)
     except NotFound:
-        await websocket.close(ACCESS_CHANGED)
+        await close(websocket, ACCESS_CHANGED)
         return
     except TooManyAttempts:
-        await websocket.close(ROOM_FULL)
+        await close(websocket, ROOM_FULL)
         return
     guest = await state.live.join_guest(board_id)
     if isinstance(guest, int):
-        await websocket.close(guest)
+        await close(websocket, guest)
         return
     room = guest.room
 
@@ -123,7 +123,7 @@ async def live_public_board(websocket: WebSocket, token: str) -> None:
     try:
         # The link may have been turned off while this guest was on the way in.
         if not await anyio.to_thread.run_sync(alive):
-            await websocket.close(ACCESS_CHANGED)
+            await close(websocket, ACCESS_CHANGED)
             return
         await serve(
             websocket,
