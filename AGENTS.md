@@ -31,9 +31,18 @@ Before UI work read [DESIGN.md](DESIGN.md) (missing → create it per [10-design
 ## Code graph
 
 The repo is indexed by [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp),
-wired as the `codebase-memory` MCP server in `.mcp.json`. Install it once per machine
-(`codebase-memory-mcp install`, then restart the agent); the graph itself lives in a per-user
-cache, not in the repo. Prefer the graph over grep for structural questions:
+wired as the `codebase-memory` MCP server in `.mcp.json`. Per machine, once:
+
+```bash
+codebase-memory-mcp install                                   # binary to ~/.local/bin
+codebase-memory-mcp cli index_repository --repo-path .       # ~7s; empty cache finds nothing
+```
+
+Then restart the agent. The installer writes `~/.local/bin` to the shell profile; a client
+launched outside that shell cannot resolve the binary by name, so put it on `PATH` for that
+environment or set `.mcp.json`'s `command` to its absolute path. The graph itself lives in a
+per-user cache, never in the repo. A background watcher keeps it current afterwards, so reindex
+by hand only after changing `.cbmignore`. Prefer the graph over grep for structural questions:
 
 | Question | Tool |
 |---|---|
@@ -52,7 +61,7 @@ Grep stays for exact string and regex work. The graph wins on relationships: it 
 targets that grep reports falsely (e.g. a local variable sharing a function's name).
 
 Scope: `.cbmignore` keeps the graph to product code — `site/`, `brand/`, `specs/`, `.specify/`,
-`.agents/` and `install/` are scaffolding, not application code. Reindex after changing it:
+`.agents/` and `install/` are scaffolding, not application code. After changing it, reindex:
 `codebase-memory-mcp cli index_repository --repo-path .`
 
 ## Coding standards
