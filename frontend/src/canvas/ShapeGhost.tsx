@@ -1,12 +1,21 @@
 import { useViewport, type XYPosition } from '@xyflow/react'
 import { useEffect, useState } from 'react'
-import { SHAPE_SIZE, shapePath, type ShapeKind } from '@/canvas/shapes'
+import { SHAPE_MIN, SHAPE_SIZE, shapePath, type ShapeKind } from '@/canvas/shapes'
 import type { ScreenRect } from '@/canvas/useDrawRect'
 
 /** The shape about to be placed: under the pointer at its default size, or as large as the drag. */
-export function ShapeGhost({ kind, rect }: { kind: ShapeKind; rect: ScreenRect | null }) {
+export function ShapeGhost({
+  kind,
+  rect,
+  start,
+}: {
+  kind: ShapeKind
+  rect: ScreenRect | null
+  /** Where the pointer is when the shape is picked from the keyboard. */
+  start: () => XYPosition | null
+}) {
   const { zoom } = useViewport()
-  const [point, setPoint] = useState<XYPosition | null>(null)
+  const [point, setPoint] = useState(start)
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -19,7 +28,13 @@ export function ShapeGhost({ kind, rect }: { kind: ShapeKind; rect: ScreenRect |
 
   const width = SHAPE_SIZE.width * zoom
   const height = SHAPE_SIZE.height * zoom
-  const box = rect ?? (point && { x: point.x - width / 2, y: point.y - height / 2, width, height })
+  const box = rect
+    ? {
+        ...rect,
+        width: Math.max(rect.width, SHAPE_MIN.width * zoom),
+        height: Math.max(rect.height, SHAPE_MIN.height * zoom),
+      }
+    : point && { x: point.x - width / 2, y: point.y - height / 2, width, height }
   if (!box) return null
 
   return (

@@ -52,12 +52,21 @@ export function shapePath(kind: ShapeKind, w: number, h: number): string {
 
 // Top, right, bottom, left, in percent of the box: the largest area the outline leaves for text.
 const TEXT_INSET: Partial<Record<ShapeKind, [number, number, number, number]>> = {
+  rounded: [4, 4, 4, 4],
   ellipse: [14.6, 14.6, 14.6, 14.6],
   rhombus: [25, 25, 25, 25],
   triangle: [50, 25, 0, 25],
   parallelogram: [0, SLANT * 100, 0, SLANT * 100],
   hexagon: [0, SLANT * 100, 0, SLANT * 100],
   cylinder: [CAP * 200, 0, CAP * 100, 0],
+}
+
+// How far, in percent of the width, the outline is from the box at the middle of the left and right sides.
+const SIDE_INSET: Partial<Record<ShapeKind, number>> = { triangle: 25, parallelogram: SLANT * 50 }
+
+/** Where the left and right arrow handles sit so that they touch the outline. */
+export function sideInset(kind: ShapeKind): number {
+  return SIDE_INSET[kind] ?? 0
 }
 
 export function textInset(kind: ShapeKind): string {

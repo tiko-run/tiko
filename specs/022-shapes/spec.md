@@ -52,6 +52,6 @@ A person lays out a release: a rhombus "Certs valid?", a rectangle for each step
 - More shapes (star, block arrows, cloud, callouts, braces), packs by topic, uploaded SVG shapes.
 - Outline color, width and dash; text size and alignment.
 - Text that shrinks to fit, like a sticky note.
-- Arrows that end on the outline instead of the sides of the box; clicks that pass through the empty corners.
+- Arrows that follow the outline all the way round: they start at the middle of the four sides, moved in to the outline on a triangle and a parallelogram. Clicks that pass through the empty corners.
 - Rotation.
 - A shape item in the right-click menu.

@@ -1,3 +1,5 @@
+import pytest
+
 DOC = {
     "nodes": [
         {
@@ -92,12 +94,18 @@ def test_invalid_doc_rejected(client):
     assert response.json()["error"]["code"] == "validation_failed"
 
 
-def test_unknown_shape_rejected(client):
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"shape": "star", "text": "", "color": "none"},
+        {"shape": "rhombus", "text": "", "color": "red"},
+        {"shape": "rhombus", "text": "x" * 501, "color": "none"},
+    ],
+)
+def test_bad_shape_rejected(client, data):
     board = create(client)
-    star = DOC["nodes"][-1] | {"data": {"shape": "star", "text": "", "color": "none"}}
-    response = client.put(
-        f"/api/boards/{board['id']}", json={"version": 1, "doc": {"nodes": [star]}}
-    )
+    doc = {"nodes": [DOC["nodes"][-1] | {"data": data}]}
+    response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
     assert response.status_code == 422
 
 

@@ -101,8 +101,9 @@ const CASCADE_Y = 96
 // Duplicates land next to the original; a drag shorter than this places a default-size frame.
 const DUPLICATE_OFFSET = 24
 const MIN_DRAW = 8
+// A shape may be dragged out along one axis; the other one then takes the smallest size.
 const drawn = ({ width, height }: { width: number; height: number }) =>
-  width >= MIN_DRAW && height >= MIN_DRAW
+  width >= MIN_DRAW || height >= MIN_DRAW
 // Same floor as the frame resizer, so a thin drag still makes a usable frame.
 const MIN_FRAME = { width: 160, height: 120 }
 // An arrow released closer than this to where it started was a click on the handle, not a drag.
@@ -725,6 +726,7 @@ export function BoardCanvas({
         <ShapeGhost
           kind={shapeKind}
           rect={draw.preview && drawn(draw.preview) ? draw.preview : null}
+          start={() => pointer.current}
         />
       )}
       {tool !== 'shape' && draw.preview && (

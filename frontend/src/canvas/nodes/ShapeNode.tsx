@@ -2,7 +2,7 @@ import { NodeResizer, NodeToolbar, Position, useReactFlow, type NodeProps } from
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
-import { SHAPE_MAX_CHARS, SHAPE_MIN, shapePath, textInset } from '@/canvas/shapes'
+import { SHAPE_MAX_CHARS, SHAPE_MIN, shapePath, sideInset, textInset } from '@/canvas/shapes'
 import { SHAPE_COLORS, type ShapeNode as ShapeNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
@@ -78,7 +78,7 @@ function ShapeNodeView({
           placeholder="Text"
         />
       </div>
-      <Handles />
+      <Handles side={sideInset(data.shape)} />
     </div>
   )
 }

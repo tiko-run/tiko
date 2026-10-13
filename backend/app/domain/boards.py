@@ -73,8 +73,10 @@ ShapeKind = Literal[
 
 class ShapeData(_Strict):
     shape: ShapeKind
-    text: str = Field(default="", max_length=5000)
-    color: str = Field(default="none", max_length=20)
+    text: str = Field(default="", max_length=500)
+    color: Literal["none", "surface", "yellow", "orange", "pink", "violet", "blue", "green"] = (
+        "none"
+    )
 
 
 class TextData(_Strict):

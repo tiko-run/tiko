@@ -1,13 +1,14 @@
 import { expect, test } from 'vitest'
-import { SHAPES, shapePath, textInset } from '@/canvas/shapes'
+import { SHAPES, shapePath, sideInset, textInset } from '@/canvas/shapes'
 
 test('every shape has a closed outline inside its box', () => {
   for (const { kind } of SHAPES) {
-    const path = shapePath(kind, 160, 100)
+    // A square box: a coordinate past either side is past this one number.
+    const path = shapePath(kind, 120, 120)
     expect(path, kind).toMatch(/^M.*Z/)
     const numbers = path.match(/-?\d+(\.\d+)?/g)!.map(Number)
     expect(Math.min(...numbers), kind).toBeGreaterThanOrEqual(0)
-    expect(Math.max(...numbers), kind).toBeLessThanOrEqual(160)
+    expect(Math.max(...numbers), kind).toBeLessThanOrEqual(120)
   }
 })
 
@@ -22,4 +23,10 @@ test('text keeps clear of slanted and round sides', () => {
   expect(textInset('rectangle')).toBe('0% 0% 0% 0%')
   expect(textInset('rhombus')).toBe('25% 25% 25% 25%')
   expect(textInset('triangle')).toBe('50% 25% 0% 25%')
+})
+
+test('side handles move in to a slanted outline', () => {
+  expect(sideInset('rectangle')).toBe(0)
+  expect(sideInset('triangle')).toBe(25)
+  expect(sideInset('parallelogram')).toBe(10)
 })
