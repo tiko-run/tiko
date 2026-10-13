@@ -81,11 +81,43 @@ async def watch_loop(gauges: Callable[[], None]) -> None:
         gauges()
 
 
+METRICS_READ_TIMEOUT_S = 5
+METRICS_CONNECTIONS = 8
+METRICS_REFRESH_WAIT_S = 0.2
+
+
 class _MetricsServer(ThreadingMixIn, WSGIServer):
     daemon_threads = True
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # A scrape is one request at a time. Whoever reaches the port could otherwise hold a
+        # thread per connection without ever sending the token.
+        self._places = threading.BoundedSemaphore(METRICS_CONNECTIONS)
+
+    def process_request(self, request: Any, client_address: Any) -> None:
+        if not self._places.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        super().process_request(request, client_address)
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._places.release()
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        # A connection that sent nothing in time, or left halfway: not worth a traceback.
+        pass
+
 
 class _Quiet(WSGIRequestHandler):
+    def setup(self) -> None:
+        # Read here and not from a class attribute, so the limit can be changed while running.
+        self.timeout = METRICS_READ_TIMEOUT_S
+        super().setup()
+
     def log_message(self, format: str, *args: Any) -> None:
         pass
 
@@ -94,6 +126,13 @@ def serve_metrics(port: int, token: str, refresh: Callable[[], None]) -> WSGISer
     """Serves /metrics to the token from a thread of its own: a busy event loop cannot hold it."""
     expected = f"Bearer {token}".encode()
     render = make_wsgi_app()
+    refreshing = threading.Lock()
+
+    def refresh_once() -> None:
+        try:
+            refresh()
+        finally:
+            refreshing.release()
 
     def app(environ: dict[str, Any], start_response: Callable[..., Any]) -> Any:
         sent = environ.get("HTTP_AUTHORIZATION", "").encode()
@@ -102,7 +141,12 @@ def serve_metrics(port: int, token: str, refresh: Callable[[], None]) -> WSGISer
         elif not secrets.compare_digest(sent, expected):
             status = "401 Unauthorized"
         else:
-            refresh()
+            # `refresh` may wait for the database. A scrape gives it a moment and then answers
+            # with the numbers it has: the last known ones beat none.
+            if refreshing.acquire(blocking=False):
+                worker = threading.Thread(target=refresh_once, name="metrics-refresh", daemon=True)
+                worker.start()
+                worker.join(METRICS_REFRESH_WAIT_S)
             return render(environ, start_response)
         start_response(status, [("Content-Type", "text/plain")])
         return [status.encode()]

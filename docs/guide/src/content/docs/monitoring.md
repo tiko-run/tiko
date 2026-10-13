@@ -37,7 +37,7 @@ TIKO_METRICS_TOKEN=<openssl rand -hex 24>
 TIKO_METRICS_PORT=9464
 ```
 
-Point Prometheus at `api:9464` instead of `api:8000`, with the same token. The port serves `/metrics` to the token and nothing else, and stays closed when no token is set. On this port the gauges of open boards and sockets are up to a quarter of a second old, longer when the server runs late.
+Point Prometheus at `api:9464` instead of `api:8000`, with the same token. The port serves `/metrics` to the token and nothing else, and stays closed when no token is set. It holds 8 connections at once and drops one that sends no request within 5 seconds; keep it on the private network all the same, like port 8000. On this port the gauges of open boards and sockets are up to a quarter of a second old, longer when the server runs late. On a demo the count of visitors is the last known one when the database is slow to answer.
 
 `/health` answers as soon as the process is up. `/ready` also asks the database and answers 503 when it does not reply; point an uptime check at `/ready`.
 
