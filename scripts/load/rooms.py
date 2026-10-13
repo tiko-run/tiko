@@ -232,7 +232,9 @@ async def person(
                             spot = {"x": place["x"], "y": place["y"]}
                             await say(spot, [node_id], {node_id: spot})
                             await asyncio.sleep(1 / args.fps)
-                        nodes[node_id].update({"place": place})
+                        # Whoever made the element may have deleted it during the drag.
+                        if node_id in nodes:
+                            nodes[node_id].update({"place": place})
                         await flush()
                         await asyncio.sleep(random.uniform(1, 4))
                     else:

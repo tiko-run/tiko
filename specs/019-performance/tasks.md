@@ -45,9 +45,9 @@ description: "Task list for the performance of live boards"
 
 ## Phase 6: Slice `perf-remeasure` (P6)
 
-- [ ] T060 Tables A, B and C again on the final code, same setup, plus a host with 4 cores
-- [ ] T061 `results.md`: baseline and result side by side, what each slice was worth, what is left to 100 rooms
+- [x] T060 Tables A, B and C again on the final code, same setup, plus a host with 4 cores
+- [x] T061 `results.md`: baseline and result side by side, what each slice was worth, what is left to 100 rooms
 
 ## Phase 7: Slice `perf-socket-path` (P7), only if P6 asks for it
 
-- [ ] T070 If nginx is still over 10% of the host: options with a measurement each, owner decides at G2
+- [ ] T070 nginx is at 16 to 20% of the host at the heaviest passing step ([results.md](results.md)): options with a measurement each, owner decides at G2
