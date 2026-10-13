@@ -57,16 +57,6 @@ test('double-click edits the text up to the limit', () => {
   expect(field.maxLength).toBe(SHAPE_MAX_CHARS)
 })
 
-test('a selected shape takes a fill color', () => {
-  const { container } = renderBoard({ selected: true })
-  const path = container.querySelector('.react-flow__node-shape path')
-  expect(path?.getAttribute('fill')).toBe('none')
-  fireEvent.click(screen.getByRole('button', { name: 'plain fill' }))
-  expect(path?.getAttribute('fill')).toBe('var(--card)')
-  fireEvent.click(screen.getByRole('button', { name: 'blue fill' }))
-  expect(path?.getAttribute('fill')).toBe('var(--sticky-blue)')
-})
-
 test('a read-only board opens no editor', () => {
   renderBoard({ readOnly: true })
   fireEvent.doubleClick(screen.getByText('Valid?'))

@@ -52,6 +52,8 @@ class TaskCardData(_Strict):
 
 class FrameData(_Strict):
     title: str = Field(default="", max_length=200)
+    # Absent on a frame nobody filled, so a board saved before frames took a fill stays as it was.
+    color: Literal["none", "yellow", "orange", "pink", "violet", "blue", "green"] | None = None
 
 
 class StickyData(_Strict):

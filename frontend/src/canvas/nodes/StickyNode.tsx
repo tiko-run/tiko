@@ -1,25 +1,17 @@
-import { NodeResizer, NodeToolbar, Position, useReactFlow, type NodeProps } from '@xyflow/react'
+import { NodeResizer, type NodeProps } from '@xyflow/react'
 import { Ban } from 'lucide-react'
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canvas/fit'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
-import { STICKY_COLORS, type StickyNode as StickyNodeType } from '@/canvas/types'
+import type { StickyNode as StickyNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
 
 const TEXT = 'sticky-text'
 
-function StickyNodeView({
-  id,
-  data,
-  selected,
-  dragging,
-  width,
-  height,
-}: NodeProps<StickyNodeType>) {
+function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyNodeType>) {
   const readOnly = useReadOnly()
-  const { updateNodeData } = useReactFlow()
   const box = useRef<HTMLDivElement>(null)
   const [fontSize, setFontSize] = useState(STICKY_FONT)
   // Bumped on every blocked edit so the sign's animation restarts.
@@ -68,27 +60,6 @@ function StickyNodeView({
       }}
     >
       <NodeResizer isVisible={selected && !readOnly} minWidth={80} minHeight={60} />
-      <NodeToolbar
-        // Hidden while dragging: it covers the guides and the elements next to it.
-        isVisible={readOnly || dragging ? false : undefined}
-        position={Position.Top}
-        className="flex gap-1 rounded-md border bg-card p-1 shadow-md"
-      >
-        {STICKY_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={`${color} note`}
-            aria-pressed={data.color === color}
-            onClick={() => updateNodeData(id, { color })}
-            className={cn(
-              'size-5 rounded-full border',
-              data.color === color && 'ring-primary ring-2 ring-offset-1',
-            )}
-            style={{ background: `var(--sticky-${color})` }}
-          />
-        ))}
-      </NodeToolbar>
       <EditableText
         nodeId={id}
         value={data.text}

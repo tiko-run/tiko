@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- A bar above the selection, one for any element: pick a fill for several sticky notes and shapes at once, with one Undo for all of them, and see a color on the board before you pick it. A mixed selection can be narrowed to one kind of element. The bar also collapses cards, adds a timer, duplicates and deletes. It replaces the color pickers of the sticky note and the shape.
+- Frames take a fill: one of the six colors, shown as a light tint under the elements inside.
 - Shapes: rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one in the toolbar (`S`), drag to set its size or click to place it, type text, pick a fill. Shapes take arrows, timers and frames like sticky notes, and search finds their text.
 - `TIKO_SOCKET_DIR` lets the web container reach the API over Unix sockets in a directory both share, instead of the Docker network: about a tenth less CPU on busy boards in our measurement. Off by default. See "A Unix socket between the containers" in the guide's Configuration page.
 - `tiko.run` gets a landing page instead of a redirect to the guide: what tiko is, a board that plays in the first screen, three ways to lay a board out drawn as small boards, the demo and the install command one click away. A shared `tiko.run` link previews with the headline over the board. `tiko.run/install.sh`, `tiko.run/install.ps1` and the old links to guide pages keep working.

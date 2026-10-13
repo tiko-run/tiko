@@ -5,11 +5,14 @@ import type { ShapeKind } from '@/canvas/shapes'
 export type TaskCardData = { key: string; source?: string; collapsed?: boolean }
 export type TaskCardNode = Node<TaskCardData, 'task_card'>
 
-export type FrameData = { title: string }
-export type FrameNode = Node<FrameData, 'frame'>
-
 export const STICKY_COLORS = ['yellow', 'orange', 'pink', 'violet', 'blue', 'green'] as const
 export type StickyColor = (typeof STICKY_COLORS)[number]
+
+// A frame saved before frames took a fill has no `color`; it reads as `none`.
+export const FRAME_COLORS = ['none', ...STICKY_COLORS] as const
+export type FrameData = { title: string; color?: (typeof FRAME_COLORS)[number] }
+export type FrameNode = Node<FrameData, 'frame'>
+
 export type StickyData = { text: string; color: StickyColor }
 export type StickyNode = Node<StickyData, 'sticky'>
 

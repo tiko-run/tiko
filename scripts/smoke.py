@@ -115,7 +115,7 @@ try:
                 "position": {"x": -40, "y": -40},
                 "width": 400,
                 "height": 300,
-                "data": {"title": "Now"},
+                "data": {"title": "Now", "color": "blue"},
             },
             {
                 "id": "a",
@@ -172,7 +172,7 @@ try:
 
     status, body = call("GET", f"{API}/api/boards/{board['id']}")
     check(
-        body["doc"] == doc, "board with frame, sticky, text, shape and arrow reopens unchanged"
+        body["doc"] == doc, "board with filled frame, sticky, text, shape and arrow reopens unchanged"
     )
     check(
         set(body["tasks"]) == {"demo:DEMO-1", "demo:DEMO-2"},

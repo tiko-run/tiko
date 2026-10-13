@@ -27,10 +27,12 @@ Click a card for assignee, priority, last update and a link to the task. Collaps
 
 ## Around the cards
 
-- **Frames** (`F`) group cards. Drag cards in and out; moving a frame moves everything inside.
+- **Frames** (`F`) group cards. Drag cards in and out; moving a frame moves everything inside. A frame takes a fill color.
 - **Sticky notes** (`N`) hold up to 2000 characters, and the text shrinks to fit the note.
 - **Shapes** (`S`): rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one, then drag to set its size or click to place it. A shape holds a short text and takes a fill color.
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.
+
+Select one element or many, and a bar appears above the selection. It shows what every selected element has in common: pick a fill and all of them take it, with one Undo to bring them back. Rest the pointer on a color to see it on the board before you pick. A selection of several kinds starts with "N objects": open it and choose a kind to keep only those selected. The bar also collapses cards, adds a timer, duplicates and deletes.
 
 The board is saved on the server and reopens exactly as you left it. Keep several boards and switch between them from the menu or the palette.
