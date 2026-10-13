@@ -25,7 +25,7 @@ logs:  ## follow container logs
 	docker compose logs -f --tail=100
 
 dev-api:  ## run API locally with reload
-	cd backend && uv run uvicorn --factory app.main:create_app --reload --port 8000
+	cd backend && uv run uvicorn --factory app.main:create_app --ws-per-message-deflate false --reload --port 8000
 
 dev-web:  ## run UI locally with hot reload (proxies /api to :8000)
 	cd frontend && npm run dev
