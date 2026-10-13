@@ -145,6 +145,14 @@ try:
                 "width": 240,
                 "data": {"text": "Risks"},
             },
+            {
+                "id": "d",
+                "type": "shape",
+                "position": {"x": 600, "y": 240},
+                "width": 160,
+                "height": 100,
+                "data": {"shape": "rhombus", "text": "Valid?", "color": "none"},
+            },
         ],
         "edges": [
             {
@@ -164,7 +172,7 @@ try:
 
     status, body = call("GET", f"{API}/api/boards/{board['id']}")
     check(
-        body["doc"] == doc, "board with frame, sticky, text and arrow reopens unchanged"
+        body["doc"] == doc, "board with frame, sticky, text, shape and arrow reopens unchanged"
     )
     check(
         set(body["tasks"]) == {"demo:DEMO-1", "demo:DEMO-2"},

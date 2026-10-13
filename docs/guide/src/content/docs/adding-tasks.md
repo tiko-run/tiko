@@ -29,6 +29,7 @@ Click a card for assignee, priority, last update and a link to the task. Collaps
 
 - **Frames** (`F`) group cards. Drag cards in and out; moving a frame moves everything inside.
 - **Sticky notes** (`N`) hold up to 2000 characters, and the text shrinks to fit the note.
+- **Shapes** (`S`): rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one, then drag to set its size or click to place it. A shape holds a short text and takes a fill color.
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.
 

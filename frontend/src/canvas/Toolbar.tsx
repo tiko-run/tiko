@@ -5,6 +5,7 @@ import {
   Hand,
   LayoutTemplate,
   MousePointer2,
+  Shapes,
   StickyNote,
   TicketPlus,
   Type,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { searchTasks, type Task } from '@/api/tasks'
+import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
 import { errorMessage, MAX_REFS, REF_RE, resolveAll, splitRefs, type Resolved } from '@/canvas/refs'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -22,9 +24,9 @@ import { useCommands } from '@/search/commands'
 import { JqlInput, keepOpenWhileSuggesting, useJqlCount } from '@/canvas/JqlInput'
 import { SHORTCUTS, useShortcut, withShortcut } from '@/lib/shortcuts'
 
-export type Tool = 'select' | 'hand' | 'frame' | 'sticky' | 'text' | 'timer'
+export type Tool = 'select' | 'hand' | 'frame' | 'sticky' | 'text' | 'shape' | 'timer'
 
-const TOOLS: { tool: Tool; Icon: LucideIcon }[] = [
+const TOOLS: { tool: Exclude<Tool, 'shape'>; Icon: LucideIcon }[] = [
   { tool: 'select', Icon: MousePointer2 },
   { tool: 'hand', Icon: Hand },
   { tool: 'frame', Icon: Frame },
@@ -138,12 +140,31 @@ export function AddCardForm({
 type Props = {
   tool: Tool
   onTool: (tool: Tool) => void
+  /** Picks a shape and switches to the shape tool. */
+  onShape: (kind: ShapeKind) => void
   onAddCards: (tasks: Task[]) => void
   onAddModule: (kind: string) => void
 }
 
-export function Toolbar({ tool, onTool, onAddCards, onAddModule }: Props) {
+const ICON = { width: 20, height: 14 }
+
+function ShapeIcon({ kind }: { kind: ShapeKind }) {
+  return (
+    <svg aria-hidden className="overflow-visible" {...ICON}>
+      <path
+        d={shapePath(kind, ICON.width, ICON.height)}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Props) {
   const [open, setOpen] = useState(false)
+  const [shapesOpen, setShapesOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
 
   useShortcut('select', () => onTool('select'))
@@ -151,6 +172,7 @@ export function Toolbar({ tool, onTool, onAddCards, onAddModule }: Props) {
   useShortcut('frame', () => onTool('frame'))
   useShortcut('sticky', () => onTool('sticky'))
   useShortcut('text', () => onTool('text'))
+  useShortcut('shape', () => setShapesOpen(true))
   useShortcut('timer', () => onTool('timer'))
   useShortcut('card', () => setOpen(true))
   useShortcut('module', () => setModulesOpen(true))
@@ -162,6 +184,14 @@ export function Toolbar({ tool, onTool, onAddCards, onAddModule }: Props) {
       Icon,
       shortcut: value,
       run: () => onTool(value),
+    })),
+    ...SHAPES.map(({ kind, name }) => ({
+      id: `shape:${kind}`,
+      title: `Add ${name.toLowerCase()}`,
+      group: 'Commands' as const,
+      Icon: Shapes,
+      keywords: 'shape',
+      run: () => onShape(kind),
     })),
     {
       id: 'tool:card',
@@ -205,6 +235,36 @@ export function Toolbar({ tool, onTool, onAddCards, onAddModule }: Props) {
           <Icon className="size-[18px]" strokeWidth={1.75} />
         </Button>
       ))}
+      <Popover open={shapesOpen} onOpenChange={setShapesOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={shapesOpen || tool === 'shape' ? 'secondary' : 'ghost'}
+            size="icon"
+            aria-label={SHORTCUTS.shape.label}
+            aria-pressed={tool === 'shape'}
+            title={withShortcut('shape')}
+          >
+            <Shapes className="size-[18px]" strokeWidth={1.75} />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent side="top" sideOffset={10} className="grid w-auto grid-cols-4 gap-0.5 p-1">
+          {SHAPES.map(({ kind, name }) => (
+            <Button
+              key={kind}
+              variant="ghost"
+              size="icon"
+              aria-label={name}
+              title={name}
+              onClick={() => {
+                onShape(kind)
+                setShapesOpen(false)
+              }}
+            >
+              <ShapeIcon kind={kind} />
+            </Button>
+          ))}
+        </PopoverContent>
+      </Popover>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

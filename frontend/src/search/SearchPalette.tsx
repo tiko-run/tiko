@@ -5,6 +5,7 @@ import {
   LayoutTemplate,
   Rows3,
   Search,
+  Shapes,
   StickyNote,
   Type,
   X,
@@ -34,6 +35,7 @@ import { suggestionsFor, taskFacets, viewFor, type View } from './view'
 
 const ICONS: Record<Exclude<Entry['kind'], 'card' | 'module'>, LucideIcon> = {
   sticky: StickyNote,
+  shape: Shapes,
   text: Type,
   frame: Frame,
   timer: AlarmClock,

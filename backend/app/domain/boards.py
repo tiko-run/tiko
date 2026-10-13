@@ -59,6 +59,24 @@ class StickyData(_Strict):
     color: str = Field(default="yellow", max_length=20)
 
 
+ShapeKind = Literal[
+    "rectangle",
+    "rounded",
+    "ellipse",
+    "rhombus",
+    "triangle",
+    "parallelogram",
+    "hexagon",
+    "cylinder",
+]
+
+
+class ShapeData(_Strict):
+    shape: ShapeKind
+    text: str = Field(default="", max_length=5000)
+    color: str = Field(default="none", max_length=20)
+
+
 class TextData(_Strict):
     text: str = Field(default="", max_length=5000)
 
@@ -95,6 +113,11 @@ class FrameNode(_NodeBase):
 class StickyNode(_NodeBase):
     type: Literal["sticky"]
     data: StickyData
+
+
+class ShapeNode(_NodeBase):
+    type: Literal["shape"]
+    data: ShapeData
 
 
 class TextNode(_NodeBase):
@@ -148,7 +171,14 @@ class TimerNode(_NodeBase):
 
 
 Node = Annotated[
-    TaskCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode,
+    TaskCardNode
+    | FrameNode
+    | StickyNode
+    | ShapeNode
+    | TextNode
+    | ModuleNode
+    | AnchorNode
+    | TimerNode,
     Field(discriminator="type"),
 ]
 

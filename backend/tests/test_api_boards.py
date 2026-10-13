@@ -37,6 +37,14 @@ DOC = {
             "width": 240,
             "data": {"text": "Q4 risks"},
         },
+        {
+            "id": "d",
+            "type": "shape",
+            "position": {"x": 600, "y": 200},
+            "width": 160,
+            "height": 100,
+            "data": {"shape": "rhombus", "text": "Certs valid?", "color": "none"},
+        },
     ],
     "edges": [
         {"id": "e", "source": "a", "target": "b", "sourceHandle": "r", "targetHandle": "l"},
@@ -82,6 +90,15 @@ def test_invalid_doc_rejected(client):
     response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": nested})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
+
+
+def test_unknown_shape_rejected(client):
+    board = create(client)
+    star = DOC["nodes"][-1] | {"data": {"shape": "star", "text": "", "color": "none"}}
+    response = client.put(
+        f"/api/boards/{board['id']}", json={"version": 1, "doc": {"nodes": [star]}}
+    )
+    assert response.status_code == 422
 
 
 def test_child_before_its_frame_rejected(client):

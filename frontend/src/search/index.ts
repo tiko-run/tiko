@@ -7,7 +7,7 @@ import { normalize, rank, type Searchable } from './match'
 import { compileFilters, FIELDS, passes, type Facets, type Filter } from './query'
 
 export type EntryKind =
-  'card' | 'sticky' | 'text' | 'frame' | 'timer' | 'module' | 'row' | 'milestone'
+  'card' | 'sticky' | 'shape' | 'text' | 'frame' | 'timer' | 'module' | 'row' | 'milestone'
 
 export type Entry = Searchable & {
   /** Unique per entry; a module's rows share the module's node. */
@@ -85,6 +85,7 @@ export function buildIndex(nodes: AppNode[], tasks: Record<string, Task>): Entry
     const base = { id: node.id, target: node.id }
     switch (node.type) {
       case 'sticky':
+      case 'shape':
       case 'text':
         if (node.data.text.trim()) {
           push({ ...base, kind: node.type, text: node.data.text, context: frameOf(node) })

@@ -20,10 +20,21 @@ const task = {
 
 afterEach(() => vi.unstubAllGlobals())
 
-function renderToolbar(onAddCards = vi.fn(), onTool = vi.fn(), onAddModule = vi.fn()) {
+function renderToolbar(
+  onAddCards = vi.fn(),
+  onTool = vi.fn(),
+  onAddModule = vi.fn(),
+  onShape = vi.fn(),
+) {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <Toolbar tool="select" onTool={onTool} onAddCards={onAddCards} onAddModule={onAddModule} />
+      <Toolbar
+        tool="select"
+        onTool={onTool}
+        onShape={onShape}
+        onAddCards={onAddCards}
+        onAddModule={onAddModule}
+      />
     </QueryClientProvider>,
   )
   return onAddCards
@@ -124,4 +135,13 @@ test('adds a module picked from the gallery', async () => {
   fireEvent.click(await screen.findByRole('button', { name: /Gantt/ }))
   expect(onAddModule).toHaveBeenCalledWith('gantt')
   await waitFor(() => expect(screen.queryByRole('button', { name: /Gantt/ })).toBeNull())
+})
+
+test('picks a shape from the gallery and closes it', async () => {
+  const onShape = vi.fn()
+  renderToolbar(vi.fn(), vi.fn(), vi.fn(), onShape)
+  fireEvent.keyDown(document, { key: 's', code: 'KeyS' })
+  fireEvent.click(await screen.findByRole('button', { name: 'Rhombus' }))
+  expect(onShape).toHaveBeenCalledWith('rhombus')
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Rhombus' })).toBeNull())
 })

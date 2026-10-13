@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Shapes: rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one in the toolbar (`S`), drag to set its size or click to place it, type a text, pick a fill. Shapes take arrows, timers and frames like sticky notes, and search finds their text.
 - `TIKO_SOCKET_DIR` lets the web container reach the API over Unix sockets in a directory both share, instead of the Docker network: about a tenth less CPU on busy boards in our measurement. Off by default. See "A Unix socket between the containers" in the guide's Configuration page.
 - `tiko.run` gets a landing page instead of a redirect to the guide: what tiko is, a board that plays in the first screen, three ways to lay a board out drawn as small boards, the demo and the install command one click away. A shared `tiko.run` link previews with the headline over the board. `tiko.run/install.sh`, `tiko.run/install.ps1` and the old links to guide pages keep working.
 - Monitoring: `/metrics` now tells how busy an instance is. Open boards and sockets, live messages and bytes, sockets the server closed, the time to check and save a board, the delay of the event loop, the wait for the database, busy worker threads and, on a demo, visitors against the limit. `TIKO_METRICS_TOKEN` lets Prometheus read them without an account. See "Monitoring" in the guide.

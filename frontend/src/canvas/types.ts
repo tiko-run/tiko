@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
+import type { ShapeKind } from '@/canvas/shapes'
 
 // `source` is the tracker of `key`; cards saved before trackers could be mixed have none.
 export type TaskCardData = { key: string; source?: string; collapsed?: boolean }
@@ -11,6 +12,11 @@ export const STICKY_COLORS = ['yellow', 'orange', 'pink', 'violet', 'blue', 'gre
 export type StickyColor = (typeof STICKY_COLORS)[number]
 export type StickyData = { text: string; color: StickyColor }
 export type StickyNode = Node<StickyData, 'sticky'>
+
+// A shape is filled with a sticky color or, with `none`, with the card surface.
+export const SHAPE_COLORS = ['none', ...STICKY_COLORS] as const
+export type ShapeData = { shape: ShapeKind; text: string; color: (typeof SHAPE_COLORS)[number] }
+export type ShapeNode = Node<ShapeData, 'shape'>
 
 export type TextData = { text: string }
 export type TextNode = Node<TextData, 'text'>
@@ -36,5 +42,5 @@ export type TimerData = {
 export type TimerNode = Node<TimerData, 'timer'>
 
 export type AppNode =
-  TaskCardNode | FrameNode | StickyNode | TextNode | ModuleNode | AnchorNode | TimerNode
+  TaskCardNode | FrameNode | StickyNode | ShapeNode | TextNode | ModuleNode | AnchorNode | TimerNode
 export type AppEdge = Edge

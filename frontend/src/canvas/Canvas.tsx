@@ -63,6 +63,8 @@ import { readViewport, saveViewport } from '@/live/viewport'
 import type { AppEdge, AppNode, TaskCardNode as TaskCardNodeType, TimerData } from '@/canvas/types'
 import { newId } from '@/lib/id'
 import { STICKY_MAX_CHARS } from '@/canvas/fit'
+import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
+import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { resolveAll } from '@/canvas/refs'
@@ -84,6 +86,7 @@ const nodeTypes = {
   task_card: withPresence(TaskCardNode),
   frame: withPresence(FrameNode),
   sticky: withPresence(StickyNode),
+  shape: withPresence(ShapeNode),
   text: withPresence(TextNode),
   module: withPresence(ModuleNode),
   anchor: AnchorNode,
@@ -166,7 +169,10 @@ export function BoardCanvas({
   const flow = useReactFlow<AppNode, AppEdge>()
   const { screenToFlowPosition, deleteElements, getNodes, getEdges } = flow
   const theme = useTheme().resolved
-  const placing = tool === 'frame' || tool === 'sticky' || tool === 'text' || tool === 'timer'
+  const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle')
+  // Frames and shapes are drawn by dragging; the other creation tools place on a click.
+  const drawing = tool === 'frame' || tool === 'shape'
+  const placing = drawing || tool === 'sticky' || tool === 'text' || tool === 'timer'
   // Last pointer position over the canvas, where pasted items land.
   const pointer = useRef<XYPosition | null>(null)
   // Screen point where the current arrow drag started.
@@ -499,12 +505,34 @@ export function BoardCanvas({
       data: { title: '' },
     })
   }
-  const draw = useDrawRect(tool === 'frame', drawFrame)
+  // A drag sets the size; a click places the default size centered on the point.
+  const drawShape = ({ x, y, width, height }: ScreenRect) => {
+    setTool('select')
+    const start = screenToFlowPosition({ x, y })
+    const end = screenToFlowPosition({ x: x + width, y: y + height })
+    const drawn = width >= MIN_DRAW && height >= MIN_DRAW
+    const size = drawn
+      ? {
+          width: Math.max(end.x - start.x, SHAPE_MIN.width),
+          height: Math.max(end.y - start.y, SHAPE_MIN.height),
+        }
+      : SHAPE_SIZE
+    const node: AppNode = {
+      id: newId(),
+      type: 'shape',
+      position: drawn ? start : { x: start.x - size.width / 2, y: start.y - size.height / 2 },
+      ...size,
+      data: { shape: shapeKind, text: '', color: 'none' },
+    }
+    markFresh(node.id)
+    setNodes((current) => reparent([...current, node], [node.id]))
+  }
+  const draw = useDrawRect(drawing, tool === 'shape' ? drawShape : drawFrame)
 
   // A creation tool places its element where the user clicks, then hands back to Select.
-  // Frames are drawn by dragging instead.
+  // Frames and shapes are drawn by dragging instead.
   const place = (event: { clientX: number; clientY: number }) => {
-    if (!placing || tool === 'frame') return
+    if (!placing || drawing) return
     placeAt(tool, { x: event.clientX, y: event.clientY })
     setTool('select')
   }
@@ -765,6 +793,10 @@ export function BoardCanvas({
             <Toolbar
               tool={tool}
               onTool={setTool}
+              onShape={(kind) => {
+                setShapeKind(kind)
+                setTool('shape')
+              }}
               onAddCards={addCards}
               onAddModule={(kind) => addModule(kind, viewportCenter())}
             />
