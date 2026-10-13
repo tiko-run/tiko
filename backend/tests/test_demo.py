@@ -470,6 +470,26 @@ def test_a_visitor_who_changed_nothing_goes_within_the_hour(app):
     assert busy.get("/api/boards").status_code == 200
 
 
+def test_a_visitor_who_only_opened_the_board_changed_nothing(app):
+    app.state.live.save_idle_s = 0.01
+    idle = visitor(app)
+    board_id = welcome(idle)
+    boards = app.state.boards
+    with TestClient(app) as sockets:
+        cookie = idle.cookies.get("tiko_session")
+        with sockets.websocket_connect(
+            f"/api/boards/{board_id}/live", headers={"cookie": f"tiko_session={cookie}"}
+        ) as socket:
+            socket.receive_bytes()
+            deadline = time.time() + 5
+            while boards.load(board_id)[1] is None and time.time() < deadline:
+                time.sleep(0.01)
+    assert boards.load(board_id)[1] is not None
+    assert boards.get(board_id).version == 1
+    assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 1
+    assert idle.get("/api/boards").status_code == 401
+
+
 def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch):
     monkeypatch.setattr(app.state.visitors, "max_alive", 2)
     ann, bob = visitor(app), visitor(app, "203.0.113.2")
@@ -484,6 +504,45 @@ def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch
     assert response.json()["error"]["code"] == "demo_full"
     assert ann.get("/api/boards").status_code == 200
     assert bob.get("/api/boards").status_code == 200
+
+
+def test_places_keep_being_found_behind_visitors_who_changed_something(app, monkeypatch):
+    monkeypatch.setattr(app.state.visitors, "max_alive", 3)
+    busy, first, second = (visitor(app, f"203.0.113.{n}") for n in (1, 2, 3))
+    edit(busy, welcome(busy))
+    welcome(first), welcome(second)
+
+    third = visitor(app, "203.0.113.4")
+    fourth = visitor(app, "203.0.113.5")
+    gone = [who.get("/api/boards").status_code for who in (busy, first, second)]
+    assert gone == [200, 401, 401]
+
+    edit(third, welcome(third))
+    edit(fourth, welcome(fourth))
+    full = TestClient(app).post("/api/auth/demo", headers={"x-real-ip": "203.0.113.6"})
+    assert full.json()["error"]["code"] == "demo_full"
+
+    # A place opens and an idle visitor takes it: the next one to come still finds them.
+    monkeypatch.setattr(app.state.visitors, "max_alive", 4)
+    idle = visitor(app, "203.0.113.7")
+    visitor(app, "203.0.113.8")
+    assert idle.get("/api/boards").status_code == 401
+    assert all(who.get("/api/boards").status_code == 200 for who in (busy, third, fourth))
+
+
+def test_an_idle_visitor_behind_the_last_search_is_found_before_the_demo_is_full(app, monkeypatch):
+    monkeypatch.setattr(app.state.visitors, "max_alive", 2)
+    users = app.state.visitors._users
+    busy, idle = visitor(app, "203.0.113.1"), visitor(app, "203.0.113.2")
+    edit(busy, welcome(busy))
+    welcome(idle)
+    # A request that waited its turn brings an older clock: its visitor expires before the
+    # place the last search stopped at.
+    users._changed_until = demo.iso(time.time() + 30 * DAY)
+
+    visitor(app, "203.0.113.3")
+    assert idle.get("/api/boards").status_code == 401
+    assert busy.get("/api/boards").status_code == 200
 
 
 def test_a_visitor_deleted_between_the_read_and_the_touch_is_signed_out(app, monkeypatch):

@@ -31,6 +31,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Demo: a visitor who only opened their board counted as one who changed it, so they kept their place for a week and a full demo could not give it to a newcomer. Opening a board no longer gives it a new version; such a visitor leaves within the hour and makes room at once when the demo is full.
 - An instance no longer stops at about 510 open boards. The web container's nginx kept its stock limit of 1024 connections per worker, and past it every request answered 500. The limit is now 16384.
 - An instance on a Linux host no longer stops at about 1000 open boards: the compose files raise the API container's limit of open files from the host's 1024 to 65536. If you run tiko from your own compose file, add `ulimits: nofile: 65536` to the `api` service.
 - From source, `docker compose up` brings the containers back after a crash or a reboot of the host, as `compose.release.yml` already did.

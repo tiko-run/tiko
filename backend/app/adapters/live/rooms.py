@@ -113,6 +113,9 @@ class Room:
         self._presence_sent = float("-inf")
         self._sender: Connection | None = None
         self._dirty_since: float | None = None
+        # Opening a board is not a change of it: a state built here is stored as it is, and the
+        # board keeps its version until somebody edits.
+        self._state_only = state is None
         if state is None:
             live.apply_json(doc)
             # The first save stores the state, so later rooms share its history.
@@ -137,6 +140,7 @@ class Room:
                 connection.push(message)
         loop = asyncio.get_running_loop()
         self._dirty_since = self._dirty_since or loop.time()
+        self._state_only = False
         # Checked once per burst: validating a big board on every keystroke would stall the loop.
         if self._check_timer is None:
             self._check_timer = loop.call_later(self._rooms.check_delay_s, self.check)
@@ -296,17 +300,24 @@ class Room:
             if self._dirty_since is None:
                 return
             self._dirty_since = None
+            state_only, self._state_only = self._state_only, False
             doc, state = self.last, self.live.state()
             LIVE_NODES.observe(len(doc.nodes))
             started = time.perf_counter()
             try:
-                self.version = await anyio.to_thread.run_sync(
-                    self._rooms.boards.save_live, self.board_id, doc, state
-                )
+                if state_only:
+                    await anyio.to_thread.run_sync(
+                        self._rooms.boards.keep_live_state, self.board_id, state
+                    )
+                else:
+                    self.version = await anyio.to_thread.run_sync(
+                        self._rooms.boards.save_live, self.board_id, doc, state
+                    )
             except NotFound:
                 self.close(ACCESS_CHANGED)
             except Exception:
                 log.exception("live board %s was not saved", self.board_id)
+                self._state_only = state_only and self._dirty_since is None
                 self._dirty_since = asyncio.get_running_loop().time()
                 self._plan_save()
             finally:
@@ -319,6 +330,7 @@ class Room:
         self.live.apply_json(doc)
         # A save even when nothing differs, so the caller gets a new version as it always did.
         self._dirty_since = self._dirty_since or asyncio.get_running_loop().time()
+        self._state_only = False
         await self.save()
         return self.version
 

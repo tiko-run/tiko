@@ -87,6 +87,10 @@ class BoardRepo(Protocol):
         """Saves an open board whatever the stored version; raises NotFound, returns new version."""
         ...
 
+    def keep_live_state(self, board_id: str, ydoc: bytes) -> None:
+        """Stores the first live state of a board nobody edited: no new version; raises NotFound."""
+        ...
+
     def rename(self, board_id: str, name: str) -> None:
         """Leaves the doc version alone so open tabs keep saving; raises NotFound."""
         ...

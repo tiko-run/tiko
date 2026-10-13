@@ -31,6 +31,22 @@ Measured on a laptop with Docker, 200 visitors joining a database of 4400 people
 
 The sweep of expired sessions at sign-in read every session; it has an index now (0.59 ms to 0.17 ms). 500 visitors at once were not measured on their own: that run crossed the limit of demo visitors, where making room for a new visitor is a transaction of its own kind. It is left for the owner to decide.
 
+## Phase 1b: Slice `perf2-demo-room`, added by the owner on 2026-10-13
+
+Found in Phase 1: making room for a new demo visitor at the limit grew with the number of visitors, and a visitor who only opened their board counted as one who changed it.
+
+- [x] T015 The search for a visitor who changed nothing goes on from where the last one ended. Test: places keep being found behind visitors who changed something
+- [x] T016 A room that opens a board stores its live state without a new version. Test: a visitor who only opened the board goes within the hour
+- [x] T017 Local number at the limit
+
+Measured on a laptop with Docker: 3000 demo visitors at a limit of 3000, half of them only looking, then 300 more arrive. One run each.
+
+| | Before | After |
+|---|---|---|
+| Newcomers let in | 0 of 300 | 300 of 300 |
+| Looking for a place, average | 9.8 ms | 3.4 ms, the visitor and their board deleted in it |
+| Boards of the 3000 still at their first version | 23 | 1304 |
+
 ## Phase 2: Slice `perf2-metrics-cost` (R2)
 
 - [ ] T020 A step with and without a scrape, three runs each
