@@ -19,6 +19,7 @@ GUIDE = Path(__file__).parents[2] / "docs/guide/src/content/docs/privacy.md"
 
 def app_with(sender=None, **settings):
     sender = sender or MockStatsSender()
+    settings = {"tiko_error_reports": None, **settings}
     app = create_app(Settings(db_path=":memory:", **settings), stats_sender=sender)
     return app, sender
 

@@ -13,15 +13,19 @@ DSN = "https://public@o1.ingest.de.sentry.io/1"
 
 class Captured(Transport):
     events: list[dict] = []
+    kinds: list[str] = []
 
     def capture_envelope(self, envelope) -> None:
         for item in envelope.items:
+            Captured.kinds.append(item.headers.get("type"))
             if item.headers.get("type") == "event":
                 Captured.events.append(item.payload.json)
 
 
 def app_with(**settings):
     Captured.events = []
+    Captured.kinds = []
+    settings = {"tiko_error_reports": None, **settings}
     app = create_app(
         Settings(db_path=":memory:", tiko_error_reports_dsn=DSN, **settings),
         stats_sender=MockStatsSender(),
@@ -67,11 +71,16 @@ def test_clean_keeps_only_the_error():
     assert exc["stacktrace"]["frames"][0] == {"filename": "app/main.py", "abs_path": "app/main.py"}
 
 
-def test_off_by_default_sends_nothing():
+def test_off_by_default_sends_nothing_at_all():
     app = app_with()
     assert app.state.usage.errors_enabled() is False
+    client = signed_in(app)
+    for _ in range(3):
+        client.get("/api/boards")
     boom("nothing leaves")
-    assert Captured.events == []
+    sentry_sdk.flush()
+    # Not even sessions or client reports, which count requests.
+    assert Captured.kinds == []
 
 
 def test_turned_on_by_an_admin_sends_without_a_restart():
@@ -90,6 +99,13 @@ def test_turned_on_by_an_admin_sends_without_a_restart():
 
 
 def test_env_locks_the_switch():
+    app = app_with(tiko_error_reports=True)
+    admin = signed_in(app)
+    assert admin.get("/api/privacy").json()["locked"] == ["error_reports"]
+    assert admin.put("/api/privacy", json={"error_reports": False}).status_code == 422
+
+
+def test_env_off_locks_the_switch_off():
     app = app_with(tiko_error_reports=False)
     admin = signed_in(app)
     assert admin.get("/api/privacy").json()["locked"] == ["error_reports"]
@@ -97,7 +113,10 @@ def test_env_locks_the_switch():
 
 
 def test_without_a_dsn_the_switch_cannot_turn_on():
-    app = create_app(Settings(db_path=":memory:"), stats_sender=MockStatsSender())
+    app = create_app(
+        Settings(db_path=":memory:", tiko_error_reports_dsn="", tiko_error_reports=None),
+        stats_sender=MockStatsSender(),
+    )
     admin = signed_in(app)
     assert admin.get("/api/privacy").json()["error_reports_available"] is False
     assert admin.put("/api/privacy", json={"error_reports": True}).status_code == 422

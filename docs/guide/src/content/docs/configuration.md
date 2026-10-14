@@ -28,7 +28,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_USAGE_STATS` | Daily usage counts without personal data, listed in [Usage stats](../privacy/). `false` turns them off and locks the switch in Settings → Privacy; unset, an admin decides there | unset (on) |
 | `TIKO_STATS_URL` | Where the usage stats go, for your own collector; see [Usage stats](../privacy/#closed-networks-and-your-own-collector) | `https://t.tiko.run/v1/events` |
 | `TIKO_ERROR_REPORTS` | Error reports, see [Error reports](../privacy/#error-reports). `true` turns them on, `false` off; either locks the switch in Settings → Privacy | unset (off) |
-| `TIKO_ERROR_REPORTS_DSN` | Where error reports go: a Sentry DSN, yours or ours. Empty: no error reports at all | the tiko project's Sentry |
+| `TIKO_ERROR_REPORTS_DSN` | Where error reports go: your own Sentry DSN instead of ours. `TIKO_ERROR_REPORTS=false` keeps the Sentry client from starting at all | the tiko project's Sentry (EU) |
 | `TIKO_DEPLOY` | How tiko runs, reported in the usage stats; the installer sets `installer`, Railway and Render are found on their own | unset (`compose`) |
 | `TIKO_PORT` | Port on your machine that Docker Compose gives the web UI | `3000` |
 | `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`. The release compose file does not publish the API | `8000` |

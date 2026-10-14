@@ -112,7 +112,7 @@ A report holds the error type, its message, the code lines it came through and t
 - the request, its headers, cookies and body, the page address, and who was signed in;
 - local variables, earlier log lines and clicks, and the host name of your server.
 
-Reports go to the tiko project's [Sentry](https://sentry.io) in the EU (Frankfurt). `TIKO_ERROR_REPORTS_DSN` sends them to your own Sentry or a compatible server such as GlitchTip instead; empty, the switch does not appear. Open pages start or stop sending after a reload.
+Reports go to the tiko project's [Sentry](https://sentry.io) in the EU (Frankfurt). `TIKO_ERROR_REPORTS_DSN` sends them to your own Sentry or a compatible server such as GlitchTip instead. With `TIKO_ERROR_REPORTS=false` the Sentry client does not start at all. Open pages start or stop sending after a reload.
 
 ## Closed networks and your own collector
 

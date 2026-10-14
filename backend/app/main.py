@@ -333,7 +333,8 @@ def create_app(
         errors_env=settings.tiko_error_reports,
         errors_dsn=settings.tiko_error_reports_dsn,
     )
-    if settings.tiko_error_reports_dsn:
+    # Turned off in the environment, the SDK is not even started.
+    if settings.tiko_error_reports_dsn and settings.tiko_error_reports is not False:
         error_reports.start(
             settings.tiko_error_reports_dsn,
             app.state.usage.errors_enabled,

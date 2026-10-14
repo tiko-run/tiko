@@ -89,6 +89,9 @@ def start(
         },
         include_local_variables=False,
         max_breadcrumbs=0,
+        # Sessions count requests and would go out even while reports are off.
+        auto_session_tracking=False,
+        send_client_reports=False,
         traces_sample_rate=0,
         before_send=before_send,
         before_send_transaction=lambda _event, _hint: None,

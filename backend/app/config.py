@@ -41,8 +41,9 @@ class Settings(BaseSettings):
     # Error reports, off unless this or an admin in Settings → Privacy turns them on; set, it
     # wins and locks the switch.
     tiko_error_reports: bool | None = None
-    # Where error reports go: the tiko project's Sentry, or your own. Empty: no error reports.
-    tiko_error_reports_dsn: str = ""
+    # Where error reports go: the tiko project's Sentry (EU), or your own. A DSN only lets a
+    # client send events, so it is not a secret.
+    tiko_error_reports_dsn: str = "https://279c5732c5a2f0d02c6faa6a431e5b17@o4512255017091072.ingest.de.sentry.io/4512255020433489"
     # The updater service of compose.release.yml, set there; empty: no one-click update.
     updater_url: str = ""
     # Set by the platforms themselves, so About can say how to update there.

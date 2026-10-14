@@ -70,6 +70,7 @@ export async function startErrorReports() {
       Sentry.dedupeIntegration(),
     ],
     maxBreadcrumbs: 0,
+    sendClientReports: false,
     beforeBreadcrumb: () => null,
     beforeSend: (event) => clean(event),
     initialScope: { tags: { deploy: page.deploy } },
