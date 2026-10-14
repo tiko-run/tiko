@@ -3,7 +3,7 @@ title: Data, backups and upgrades
 description: Where tiko keeps its data, how to back it up and how to upgrade.
 ---
 
-All data is one SQLite file in `./data`, which survives rebuilds and upgrades. A commit is not flushed to disk on its own, so a power cut or a crash of the host may lose the last edits; a crash of tiko loses nothing, and the file stays intact either way.
+All data is one SQLite file in `./data`, which survives rebuilds and upgrades. A commit is not flushed to disk on its own, so a power cut or a crash of the host may lose the last changes, of boards, settings or accounts alike; a crash of tiko loses nothing, and the file stays intact either way.
 
 ## Back up and restore
 

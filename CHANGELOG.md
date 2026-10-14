@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
-- Saving boards no longer queues behind the disk with several API processes: SQLite stops flushing to disk on every commit. In a load test of 2000 demo visitors on 4 cores, a board save went from 1.8 s on average to 18 ms. A crash of tiko loses nothing; a power cut or a crash of the host may lose the last edits.
+- Saving boards no longer queues behind the disk with several API processes: SQLite stops flushing to disk on every commit. In a load test of 2000 demo visitors on 4 cores, a board save went from 1.8 s on average to 18 ms. A crash of tiko loses nothing; a power cut or a crash of the host may lose the last changes to the database, of boards, settings or accounts alike.
 
 ## [2026.10.16] - 2026-10-14
 
