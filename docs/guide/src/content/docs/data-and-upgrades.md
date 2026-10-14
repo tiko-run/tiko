@@ -3,7 +3,7 @@ title: Data, backups and upgrades
 description: Where tiko keeps its data, how to back it up and how to upgrade.
 ---
 
-All data is one SQLite file in `./data`, which survives rebuilds and upgrades.
+All data is one SQLite file in `./data`, which survives rebuilds and upgrades. A commit is not flushed to disk on its own, so a power cut or a crash of the host may lose the last changes, of boards, settings or accounts alike; a crash of tiko loses nothing, and the file stays intact either way.
 
 ## Back up and restore
 
@@ -11,7 +11,11 @@ All data is one SQLite file in `./data`, which survives rebuilds and upgrades.
 - **Restore:** stop the stack and copy a backup over `data/app.db`.
 - **Before an upgrade that rewrites boards**, tiko copies the database itself to `data/backups/before-v<number>-<time>.db`, where the number is the version of the data format it moves to. It makes the copy once, on the first start of the new version, and never deletes it: remove it when you are sure of the upgrade. To go back, restore it and start the previous version.
 
-## Upgrade
+## Updates
+
+How tiko tells you about a new release and how an admin updates it from About: [Updates](../updates/).
+
+## Upgrade by hand
 
 From images:
 

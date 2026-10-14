@@ -19,6 +19,7 @@ from app.domain.errors import (
     JiraNotConfigured,
     JiraUnauthorized,
     LastAdmin,
+    NotEnoughSpace,
     NotFound,
     OwnerRequired,
     SecretKeyMissing,
@@ -26,6 +27,7 @@ from app.domain.errors import (
     TooManyAttempts,
     TooManyRepositories,
     TrackerRateLimited,
+    UpdateNotPossible,
     UsernameTaken,
     ValidationFailed,
     VersionConflict,
@@ -59,6 +61,8 @@ _STATUS = {
     TooManyAttempts: 429,
     DemoFull: 429,
     BoardLimit: 409,
+    UpdateNotPossible: 409,
+    NotEnoughSpace: 507,
 }
 
 

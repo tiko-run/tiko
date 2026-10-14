@@ -13,6 +13,8 @@ services:
     # API processes; the web container picks the one of a board, so both get the number.
     environment:
       TIKO_WORKERS: ${TIKO_WORKERS:-1}
+      # Answers only with the updater profile on; without it About shows how to update by hand.
+      UPDATER_URL: http://updater:8080
     volumes: ["./data:/app/data"]
     # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
     ulimits:
@@ -26,3 +28,15 @@ services:
     ports: ["${TIKO_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }
+
+  # One-click updates from About, on with COMPOSE_PROFILES=updater (the installers ask). The only
+  # service with the Docker socket, so the API never gets it; no port outside the compose network.
+  # It recreates api and web; it is itself updated when the installer runs again.
+  updater:
+    image: ghcr.io/tiko-run/tiko-updater:${TAG:-latest}
+    profiles: [updater]
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The install folder: data for the token and the backup, the compose file to pin the version.
+      - .:/install

@@ -9,6 +9,8 @@ import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { NewBoardForm } from '@/board/NewBoardForm'
 import { AboutButton } from '@/board/AboutButton'
+import { UpdateBanner } from '@/board/UpdateBanner'
+import { UpdatedNotice, UpdateProgress } from '@/board/UpdateProgress'
 import { FocusCapsule } from '@/focus/FocusCapsule'
 import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
@@ -84,6 +86,7 @@ export default function App() {
     enabled: mounted && !publicToken,
   })
   const signedIn = auth.data?.signed_in === true
+  const admin = auth.data?.me?.role === 'admin'
   const boards = useQuery({
     queryKey: ['boards'],
     queryFn: listBoards,
@@ -172,7 +175,10 @@ export default function App() {
         />
       )}
       {focusVisible && <FocusCapsule />}
-      {signedIn && <AboutButton />}
+      {signedIn && <AboutButton admin={admin} />}
+      {signedIn && <UpdatedNotice />}
+      {admin && <UpdateBanner />}
+      {admin && <UpdateProgress />}
       {signedIn && <SettingsDialog />}
     </main>
   )

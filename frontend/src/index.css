@@ -110,6 +110,8 @@
   --sticky-blue: oklch(0.94 0.05 240);
   --sticky-green: oklch(0.94 0.05 150);
   --sticky-foreground: oklch(0.24 0.01 260);
+  /* How much of a sticky color a filled frame takes: a tint under its elements, not a slab. */
+  --frame-tint: 60%;
   /* Focus capsule dial: hue and chroma come from the timer state, lightness from the theme. */
   --focus-fill-l: 0.945;
   --focus-ink-l: 0.4;
@@ -136,6 +138,7 @@
 }
 
 .dark {
+  --frame-tint: 20%;
   color-scheme: dark;
   /* Soft slate after GitHub's dark dimmed theme, not near-black. */
   --background: oklch(0.274 0.018 252);

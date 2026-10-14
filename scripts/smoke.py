@@ -53,6 +53,11 @@ check(status == 204, "sign in")
 status, auth = call("GET", f"{API}/api/auth/status")
 check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
 
+status, version = call("GET", f"{API}/api/version")
+check(status == 200 and {"level", "newer", "update_check"} <= set(version), "version with levels")
+status, update = call("GET", f"{API}/api/update")
+check(status == 200 and update["available"] is False, "no updater on a source build")
+
 # An invite is opened and revoked, not accepted, so a run adds no person to the instance.
 status, link = call("POST", f"{API}/api/invites", {"role": "member"})
 check(status == 201 and link["url"].startswith("/?invite="), "create invite link")
@@ -115,7 +120,7 @@ try:
                 "position": {"x": -40, "y": -40},
                 "width": 400,
                 "height": 300,
-                "data": {"title": "Now"},
+                "data": {"title": "Now", "color": "blue", "opacity": 80},
             },
             {
                 "id": "a",
@@ -151,7 +156,7 @@ try:
                 "position": {"x": 600, "y": 240},
                 "width": 160,
                 "height": 100,
-                "data": {"shape": "rhombus", "text": "Valid?", "color": "none"},
+                "data": {"shape": "rhombus", "text": "Valid?", "color": "none", "opacity": 60, "stroke": 3, "dash": True, "bold": True, "size": "large"},
             },
         ],
         "edges": [
@@ -172,7 +177,7 @@ try:
 
     status, body = call("GET", f"{API}/api/boards/{board['id']}")
     check(
-        body["doc"] == doc, "board with frame, sticky, text, shape and arrow reopens unchanged"
+        body["doc"] == doc, "board with styled frame, sticky, text, shape and arrow reopens unchanged"
     )
     check(
         set(body["tasks"]) == {"demo:DEMO-1", "demo:DEMO-2"},

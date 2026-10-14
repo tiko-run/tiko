@@ -5,20 +5,39 @@ import type { ShapeKind } from '@/canvas/shapes'
 export type TaskCardData = { key: string; source?: string; collapsed?: boolean }
 export type TaskCardNode = Node<TaskCardData, 'task_card'>
 
-export type FrameData = { title: string }
-export type FrameNode = Node<FrameData, 'frame'>
-
 export const STICKY_COLORS = ['yellow', 'orange', 'pink', 'violet', 'blue', 'green'] as const
 export type StickyColor = (typeof STICKY_COLORS)[number]
-export type StickyData = { text: string; color: StickyColor }
+
+// Style fields are left out until someone sets them, so an older board keeps its look.
+export const STROKES = [1, 1.5, 3] as const
+export type Stroke = (typeof STROKES)[number]
+export const TEXT_SIZES = ['small', 'medium', 'large'] as const
+export type TextSize = (typeof TEXT_SIZES)[number]
+/** Percent, 10 to 100 in steps of 5. */
+type Faded = { opacity?: number }
+
+// A frame saved before frames took a fill has no `color`; it reads as `none`.
+export const FRAME_COLORS = ['none', ...STICKY_COLORS] as const
+export type FrameData = { title: string; color?: (typeof FRAME_COLORS)[number] } & Faded
+export type FrameNode = Node<FrameData, 'frame'>
+
+export type StickyData = { text: string; color: StickyColor; bold?: boolean } & Faded
 export type StickyNode = Node<StickyData, 'sticky'>
 
 // `none` leaves a shape see-through, `surface` fills it with the card surface.
 export const SHAPE_COLORS = ['none', 'surface', ...STICKY_COLORS] as const
-export type ShapeData = { shape: ShapeKind; text: string; color: (typeof SHAPE_COLORS)[number] }
+export type ShapeData = {
+  shape: ShapeKind
+  text: string
+  color: (typeof SHAPE_COLORS)[number]
+  stroke?: Stroke
+  dash?: boolean
+  bold?: boolean
+  size?: TextSize
+} & Faded
 export type ShapeNode = Node<ShapeData, 'shape'>
 
-export type TextData = { text: string }
+export type TextData = { text: string; bold?: boolean; size?: TextSize } & Faded
 export type TextNode = Node<TextData, 'text'>
 
 export type ModuleData = { kind: string; title?: string; content: unknown }

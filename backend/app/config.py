@@ -4,6 +4,9 @@ from typing import Literal, Self
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The updater of compose.release.yml expects the database here, inside ./data.
+DEFAULT_DB_PATH = "data/app.db"
+
 
 class Settings(BaseSettings):
     # A variable left empty, as .env.example has them, means its default.
@@ -12,7 +15,7 @@ class Settings(BaseSettings):
     app_name: str = "tiko"
     app_env: str = "local"
     log_level: str = "info"
-    db_path: str = "data/app.db"
+    db_path: str = DEFAULT_DB_PATH
     tiko_secret_key: SecretStr | None = None
     tiko_password: SecretStr | None = None
     # Holds the generated password when TIKO_PASSWORD is empty.
@@ -25,8 +28,13 @@ class Settings(BaseSettings):
     # Optional and read-only: raises GitHub's request limit for public issues from 60 to 5000
     # an hour. It is shared by everyone, so private repositories are never read with it.
     github_token: SecretStr | None = None
-    # Asks GitHub for the latest release every 6 hours to show "update available".
+    # Asks GitHub for new releases every 30 minutes to show "update available".
     update_check: bool = True
+    # The updater service of compose.release.yml, set there; empty: no one-click update.
+    updater_url: str = ""
+    # Set by the platforms themselves, so About can say how to update there.
+    railway_environment_name: str | None = None
+    render: bool = False
     # Lets a monitoring system read /metrics with `Authorization: Bearer <token>`, no account.
     tiko_metrics_token: SecretStr | None = None
     # A second listener for /metrics, on a thread of its own, that answers the token while the

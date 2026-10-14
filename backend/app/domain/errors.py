@@ -134,3 +134,11 @@ class TooManyAttempts(DomainError):
     def __init__(self, message: str, retry_after: int) -> None:
         super().__init__(message)
         self.retry_after = retry_after
+
+
+class UpdateNotPossible(DomainError):
+    code = "update_not_possible"
+
+
+class NotEnoughSpace(DomainError):
+    code = "not_enough_space"

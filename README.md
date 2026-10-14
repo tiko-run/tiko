@@ -151,7 +151,7 @@ Everything else lives at [docs.tiko.run](https://docs.tiko.run/).
 | Get started | [Install](https://docs.tiko.run/install/) · [Quick start](https://docs.tiko.run/quick-start/) |
 | Use tiko | [Adding tasks](https://docs.tiko.run/adding-tasks/) · [Working together](https://docs.tiko.run/working-together/) · [Search](https://docs.tiko.run/search/) · [Gantt](https://docs.tiko.run/gantt/) · [Timers and focus](https://docs.tiko.run/focus-and-timers/) · [Shortcuts](https://docs.tiko.run/keyboard-shortcuts/) |
 | Trackers | [Supported trackers](https://docs.tiko.run/trackers/) · [Connect Jira Data Center](https://docs.tiko.run/jira-data-center/) |
-| Self-host | [Configuration](https://docs.tiko.run/configuration/) · [Data, backups and upgrades](https://docs.tiko.run/data-and-upgrades/) · [Security and privacy](https://docs.tiko.run/security/) |
+| Self-host | [Configuration](https://docs.tiko.run/configuration/) · [Data, backups and upgrades](https://docs.tiko.run/data-and-upgrades/) · [Updates](https://docs.tiko.run/updates/) · [Security and privacy](https://docs.tiko.run/security/) |
 | Project | [Roadmap](https://docs.tiko.run/roadmap/) · [Architecture](https://docs.tiko.run/architecture/) · [Changelog](CHANGELOG.md) |
 
 ## Community

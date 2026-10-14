@@ -15,10 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api, web]
+        service: [api, web, updater]
         include:
           - { service: api, context: backend }
           - { service: web, context: frontend }
+          - { service: updater, context: updater }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1

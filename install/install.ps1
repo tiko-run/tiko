@@ -5,13 +5,15 @@
 #   & ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Port 8080
 #
 # Env: TIKO_DIR, TIKO_PORT (3000), TIKO_VERSION (latest release), TIKO_YES=1,
+#      TIKO_UPDATER (yes or no: one-click updates, asked otherwise),
 #      TIKO_COMPOSE_URL (another compose file, for testing a branch).
 # ASCII only: irm decodes a response without a charset as Latin-1.
 param(
   [switch]$Yes,
   [string]$Dir,
   [int]$Port,
-  [string]$Version
+  [string]$Version,
+  [switch]$NoUpdater
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,6 +30,7 @@ $DockerDesktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
 $DockerDocs = 'https://docs.docker.com/desktop/setup/install/windows-install/'
 
 if ($env:TIKO_YES -eq '1') { $Yes = $true }
+$Updater = if ($NoUpdater) { 'no' } else { "$env:TIKO_UPDATER" }
 if (-not $Dir) { $Dir = if ($env:TIKO_DIR) { $env:TIKO_DIR } else { Join-Path $env:USERPROFILE 'tiko' } }
 if (-not $Port -and $env:TIKO_PORT) { $Port = [int]$env:TIKO_PORT }
 if (-not $Version) { $Version = if ($env:TIKO_VERSION) { $env:TIKO_VERSION } else { 'latest' } }
@@ -56,6 +59,29 @@ function Test-Native {
 function Read-Consent([string]$Question) {
   if ($Yes) { return $true }
   (Read-Host "$Question [y/N]") -match '^(y|yes)$'
+}
+
+# A question where yes is the usual answer.
+function Read-Approval([string]$Question) {
+  if ($Yes) { return $true }
+  (Read-Host "$Question [Y/n]") -notmatch '^(n|no)$'
+}
+
+# Asked once and kept in .env, so an upgrade does not ask again; TIKO_UPDATER or -NoUpdater
+# change the kept answer.
+function Initialize-Updater([string]$EnvFile) {
+  if (Select-String -Path $EnvFile -Pattern '^COMPOSE_PROFILES=' -Quiet) {
+    if (-not $Updater) { return }
+    Write-EnvFile $EnvFile @(Get-Content $EnvFile | Where-Object { $_ -notmatch '^COMPOSE_PROFILES=' })
+  }
+  if (-not $Updater) {
+    Say 'One-click updates add a small service with access to Docker, so an admin can update'
+    Say 'tiko from the About button. Without it you update by running this installer again.'
+    $script:Updater = if (Read-Approval 'Turn on one-click updates?') { 'yes' } else { 'no' }
+  }
+  $line = if ($Updater -eq 'yes') { 'COMPOSE_PROFILES=updater' } else { 'COMPOSE_PROFILES=' }
+  Write-EnvFile $EnvFile (@(Get-Content $EnvFile) + $line)
+  if ($Updater -eq 'yes') { Say 'One-click updates are on' }
 }
 
 function Get-RandomByte([int]$Count) {
@@ -118,7 +144,15 @@ function Install-Wsl {
   $script:NeedsRestart = $true
 }
 
+# On a new user profile winget is on the machine, but App Installer is not registered for that user yet.
+function Register-Winget {
+  if (Test-Command winget) { return }
+  try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop }
+  catch { Say "Could not register winget for this user: $($_.Exception.Message)" }
+}
+
 function Install-DockerDesktop {
+  Register-Winget
   if (-not (Test-Command winget)) {
     Say "Docker Desktop is not installed and winget is missing. Install Docker Desktop from $DockerDocs"
     Fail 'Docker Desktop is required; run the installer again once it is installed'
@@ -215,6 +249,7 @@ function Initialize-Folder {
   } elseif (-not (Select-String -Path $envFile -Pattern "^TIKO_PORT=$Port`$" -Quiet)) {
     Write-EnvFile $envFile (@(Get-Content $envFile | Where-Object { $_ -notmatch '^TIKO_PORT=' }) + "TIKO_PORT=$Port")
   }
+  Initialize-Updater $envFile
 
   $url = if ($env:TIKO_COMPOSE_URL) { $env:TIKO_COMPOSE_URL }
   elseif ($Version -eq 'latest') { "https://github.com/$Repo/releases/latest/download/compose.release.yml" }

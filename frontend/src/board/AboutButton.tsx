@@ -1,14 +1,24 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowUpCircle, BookOpen, Bug, Info } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowUpCircle, BookOpen, Bug, Info, ShieldAlert } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
-import { getVersion } from '@/api/version'
+import { checkVersionNow, useVersion, type ReleaseLevel } from '@/api/version'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { UpdateAction } from '@/board/UpdateAction'
+import { toastError } from '@/lib/toast'
+import { cn } from '@/lib/utils'
 
 const REPO = 'https://github.com/tiko-run/tiko'
 const DOCS = 'https://docs.tiko.run'
 const UPGRADE_DOCS = `${DOCS}/data-and-upgrades/`
+
+const LEVEL_LABEL: Record<ReleaseLevel, string | null> = {
+  feature: null,
+  hotfix: 'Hotfix',
+  breaking: 'Breaking changes',
+  security: 'Security',
+}
 
 // lucide dropped brand icons, so this is the Octicons mark (MIT).
 function GitHubIcon(props: ComponentProps<'svg'>) {
@@ -41,10 +51,25 @@ function AboutLink({
   )
 }
 
-export function AboutButton() {
-  // The server checks GitHub at most every few hours, so an hour of cache is plenty.
-  const info = useQuery({ queryKey: ['version'], queryFn: getVersion, staleTime: 3600_000 }).data
+export function AboutButton({ admin = false }: { admin?: boolean }) {
+  const queryClient = useQueryClient()
+  const info = useVersion().data
+  const check = useMutation({
+    mutationFn: checkVersionNow,
+    onSuccess: async (fresh) => {
+      // A poll still in flight would otherwise land after this and hide what it found.
+      await queryClient.cancelQueries({ queryKey: ['version'] })
+      queryClient.setQueryData(['version'], fresh)
+    },
+    onError: toastError,
+  })
   const update = info?.update_available ? info.latest : null
+  const security = info?.level === 'security'
+  const label = update
+    ? security
+      ? 'About tiko, security update available'
+      : 'About tiko, update available'
+    : 'About tiko'
   return (
     <Popover>
       <div className="bg-card absolute bottom-4 left-4 z-10 rounded-lg border p-1 shadow-md">
@@ -53,14 +78,17 @@ export function AboutButton() {
             variant="ghost"
             size="icon"
             className="relative"
-            aria-label={update ? 'About tiko, update available' : 'About tiko'}
+            aria-label={label}
             title={update ? `About tiko: v${update.version} is available` : 'About tiko'}
           >
             <Info className="size-[18px]" strokeWidth={1.75} />
             {update && (
               <span
                 aria-hidden
-                className="bg-primary ring-card absolute top-1 right-1 size-2 rounded-full ring-2"
+                className={cn(
+                  'ring-card absolute top-1 right-1 size-2 rounded-full ring-2',
+                  security ? 'bg-destructive' : 'bg-primary',
+                )}
               />
             )}
           </Button>
@@ -84,21 +112,68 @@ export function AboutButton() {
             </a>
           )}
         </div>
-        {update && (
+        {update && info && (
           <div className="bg-accent flex items-start gap-2 rounded-md p-2 text-[13px]">
-            <ArrowUpCircle className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
-            <div className="flex flex-col gap-0.5">
+            {security ? (
+              <ShieldAlert className="text-destructive mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+            ) : (
+              <ArrowUpCircle className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="font-medium">v{update.version} is available</span>
-              <span className="text-muted-foreground">
-                <a href={update.url} target="_blank" rel="noreferrer" className="text-primary">
-                  See what's new
-                </a>
-                {' · '}
-                <a href={UPGRADE_DOCS} target="_blank" rel="noreferrer" className="text-primary">
-                  How to upgrade
-                </a>
-              </span>
+              {security && (
+                <span className="text-destructive">Includes a security fix. Update soon.</span>
+              )}
+              <ul className="flex max-h-28 flex-col overflow-y-auto" aria-label="New releases">
+                {info.newer.map((release) => (
+                  <li key={release.version} className="flex items-baseline gap-2">
+                    <a
+                      href={release.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary font-mono text-[12px]"
+                    >
+                      v{release.version}
+                    </a>
+                    {LEVEL_LABEL[release.level] && (
+                      <span
+                        className={cn(
+                          'text-[12px]',
+                          release.level === 'security'
+                            ? 'text-destructive'
+                            : 'text-muted-foreground',
+                        )}
+                      >
+                        {LEVEL_LABEL[release.level]}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <UpdateAction info={info} admin={admin} />
+              <a href={UPGRADE_DOCS} target="_blank" rel="noreferrer" className="text-primary">
+                How to upgrade
+              </a>
             </div>
+          </div>
+        )}
+        {info?.update_check && (
+          <div className="text-muted-foreground -my-1 flex items-center justify-between text-[12px]">
+            <span>
+              {update
+                ? ''
+                : info.latest
+                  ? 'You are on the latest version'
+                  : 'No answer from GitHub yet'}
+            </span>
+            <Button
+              variant="ghost"
+              size="xs"
+              disabled={check.isPending}
+              onClick={() => check.mutate()}
+            >
+              {check.isPending ? 'Checking…' : 'Check now'}
+            </Button>
           </div>
         )}
         <p className="text-muted-foreground text-[13px] leading-normal">

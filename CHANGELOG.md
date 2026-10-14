@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The Windows installer installs Docker Desktop on a new user profile too: it registers winget for the profile instead of stopping with "winget is missing".
+- The download bar of a one-click update no longer jumps back: it moves by layers and images instead of bytes, whose total Docker learns only along the way.
+
+## [2026.10.17] - 2026-10-14
+
+### Added
+
+- One-click updates: an admin clicks **Update now** in About, watches the download and the restart, and the page comes back on the new version. tiko copies the database first, goes back to the previous version when the new one does not start, and keeps the disk to two releases and three such copies. The installers ask to turn it on, yes by default; it runs a small `updater` service, the only part of tiko with access to Docker.
+- About shows every release you missed and marks security releases, breaking changes and hotfixes. A security release turns the About dot red and shows admins a banner until they upgrade. **Check now** in About asks GitHub at once.
+- A bar above the selection, one for any element: pick a fill for several sticky notes and shapes at once, with one Undo for all of them, and see a color on the board before you pick it. A mixed selection can be narrowed to one kind of element. The bar also collapses cards, adds a timer, duplicates and deletes. It replaces the color pickers of the sticky note and the shape.
+- Frames take a fill: one of the six colors, shown as a light tint under the elements inside.
+- Style beyond color in the selection bar: opacity for sticky notes, shapes, frames and text, a 1, 1.5 or 3px or dashed outline for shapes, and text size and bold.
+
+### Changed
+
+- tiko checks for a new release every 30 minutes instead of every 6 hours, and About refreshes the answer every 5 minutes.
+- Saving boards no longer queues behind the disk with several API processes: SQLite stops flushing to disk on every commit. In a load test of 2000 demo visitors on 4 cores, a board save went from 1.8 s on average to 18 ms. A crash of tiko loses nothing; a power cut or a crash of the host may lose the last changes to the database, of boards, settings or accounts alike.
+
+## [2026.10.16] - 2026-10-14
+
 ### Added
 
 - Shapes: rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one in the toolbar (`S`), drag to set its size or click to place it, type text, pick a fill. Shapes take arrows, timers and frames like sticky notes, and search finds their text.
