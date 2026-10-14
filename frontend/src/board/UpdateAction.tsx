@@ -8,6 +8,9 @@ import { toastError } from '@/lib/toast'
 
 const PLATFORM = { railway: 'Railway', render: 'Render' }
 
+// Module state: About unmounts when it closes, the update goes on.
+let watchedTarget: string | null = null
+
 function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
   return (
     <div className="text-destructive flex flex-col gap-0.5">
@@ -36,9 +39,11 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
     onError: toastError,
   })
   const status = update?.status
-  // A finished update counts until the page runs its version; an older one is history.
+  if (status?.state === 'running' && status.target) watchedTarget = status.target
+  // Only an update this page saw running ends in a reload; an older finished one is history.
   const updating =
-    status?.state === 'running' || (status?.state === 'done' && status.target !== info.version)
+    status?.state === 'running' ||
+    (status?.state === 'done' && status.target === watchedTarget && status.target !== info.version)
   // The API is down while it restarts, so the last answer stays and the request fails.
   const restarting =
     updating && (query.isError || status?.step === 'restart' || status?.state === 'done')

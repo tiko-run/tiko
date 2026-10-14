@@ -182,6 +182,14 @@ test('a finished update to the running version is history, not a reload', async 
   expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull()
 })
 
+test('a finished update this page did not see running is history, not a reload', async () => {
+  const done = { ...idle, state: 'done', step: 'done', target: '2026.11.2' }
+  serve({ '/api/update': { available: true, hosting: null, status: done } })
+  renderWith(<UpdateAction info={info()} admin />)
+  expect(await screen.findByRole('button', { name: 'Update now' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull()
+})
+
 test('other pages learn about the new version', async () => {
   let version = '2026.10.6'
   serve({ '/api/version': () => ({ ...info(), version }) })
