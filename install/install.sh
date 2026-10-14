@@ -336,6 +336,7 @@ stats_notice() {
   else
     say "Usage stats:   off"
   fi
+  say "Error reports: off until an admin turns them on in Settings → Privacy"
 }
 
 json_string() {

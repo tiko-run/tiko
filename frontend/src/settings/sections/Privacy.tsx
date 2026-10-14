@@ -14,11 +14,12 @@ export function Privacy() {
   const privacy = useQuery({ queryKey: ['privacy'], queryFn: getPrivacy })
   const [shown, setShown] = useState(false)
   const save = useMutation({
-    mutationFn: (on: boolean) => savePrivacy({ usage_stats: on }),
+    mutationFn: savePrivacy,
     onSuccess: (saved) => queryClient.setQueryData(['privacy'], saved),
     onError: toastError,
   })
   const locked = privacy.data?.locked.includes('usage_stats') ?? false
+  const errorsLocked = privacy.data?.locked.includes('error_reports') ?? false
   return (
     <div className="flex flex-col gap-5">
       <SectionHeader title="Privacy" description="What this tiko sends about itself." />
@@ -29,7 +30,7 @@ export function Privacy() {
             id="usage-stats"
             checked={privacy.data?.usage_stats ?? false}
             disabled={!privacy.data || locked || save.isPending}
-            onCheckedChange={(on) => save.mutate(on)}
+            onCheckedChange={(on) => save.mutate({ usage_stats: on })}
           />
         </div>
         <p className="text-muted-foreground text-[13px]">
@@ -64,6 +65,30 @@ export function Privacy() {
           </pre>
         )}
       </Group>
+      {privacy.data?.error_reports_available && (
+        <Group title="Error reports">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="error-reports">Send error reports</Label>
+            <Switch
+              id="error-reports"
+              checked={privacy.data.error_reports}
+              disabled={errorsLocked || save.isPending}
+              onCheckedChange={(on) => save.mutate({ error_reports: on })}
+            />
+          </div>
+          <p className="text-muted-foreground text-[13px]">
+            When something breaks: the error type, where in the code it happened and the tiko
+            version. Addresses, host names and emails are removed from the message first; no request
+            data, people or board contents. Open pages start sending after a reload.
+          </p>
+          {errorsLocked && (
+            <p className="text-muted-foreground text-[13px]">
+              Set by the server with{' '}
+              <code className="font-mono text-[12px]">TIKO_ERROR_REPORTS</code>.
+            </p>
+          )}
+        </Group>
+      )}
     </div>
   )
 }

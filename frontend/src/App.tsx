@@ -16,6 +16,7 @@ import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { startErrorReports } from '@/lib/errorReports'
 
 const RELOADED = 'tiko.reloadedForChunk'
 
@@ -92,6 +93,10 @@ export default function App() {
     queryFn: listBoards,
     enabled: mounted && signedIn,
   })
+
+  useEffect(() => {
+    if (signedIn) void startErrorReports().catch(() => undefined)
+  }, [signedIn])
 
   const mine = boards.data?.boards
   const known = [...(mine ?? []), ...(boards.data?.all ?? [])].find((b) => b.id === boardId)

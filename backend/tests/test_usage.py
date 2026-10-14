@@ -9,7 +9,7 @@ from app.adapters.stats.http import HttpStatsSender
 from app.adapters.stats.mock import MockStatsSender
 from app.config import Settings
 from app.domain.errors import DependencyUnavailable
-from app.domain.usage import Ping, UsageStats, bucket
+from app.domain.usage import Ping, Privacy, bucket
 from app.main import create_app
 from app.version import VERSION
 from tests.conftest import signed_in
@@ -77,7 +77,7 @@ class Counts:
 
 def test_trackers_are_named_kinds_without_urls():
     sender = MockStatsSender()
-    stats = UsageStats(Repo(), Counts(), sender, "1", "compose", "arm64", updater=True)
+    stats = Privacy(Repo(), Counts(), sender, "1", "compose", "arm64", updater=True)
     ping = stats.ping()
     assert ping.trackers == ["github", "jira_dc"]
     assert (ping.people, ping.boards, ping.updater) == ("2-5", "0", True)

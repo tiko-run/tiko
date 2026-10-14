@@ -331,6 +331,7 @@ function Show-StatsNotice {
   } else {
     Say 'Usage stats:   off'
   }
+  Say 'Error reports: off until an admin turns them on in Settings > Privacy'
 }
 
 # One event about this install, listed at https://docs.tiko.run/privacy/; a failure to send is ignored.

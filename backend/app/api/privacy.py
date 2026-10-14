@@ -1,31 +1,31 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
 
-from app.api.deps import CurrentAdmin
-from app.domain.usage import PrivacyView, UsageStats
+from app.api.deps import CurrentAdmin, CurrentPerson
+from app.domain.usage import PageReports, Privacy, PrivacyIn, PrivacyView
 
 router = APIRouter(prefix="/privacy", tags=["privacy"])
 
 
-def _usage(request: Request) -> UsageStats:
+def _privacy(request: Request) -> Privacy:
     return request.app.state.usage
 
 
-Usage = Annotated[UsageStats, Depends(_usage)]
-
-
-class PrivacyIn(BaseModel):
-    usage_stats: bool
+Switches = Annotated[Privacy, Depends(_privacy)]
 
 
 @router.get("")
-def get_privacy(_: CurrentAdmin, usage: Usage) -> PrivacyView:
+def get_privacy(_: CurrentAdmin, privacy: Switches) -> PrivacyView:
     """The switches and the exact ping the instance sends next."""
-    return usage.view()
+    return privacy.view()
 
 
 @router.put("")
-def put_privacy(body: PrivacyIn, _: CurrentAdmin, usage: Usage) -> PrivacyView:
-    return usage.set_enabled(body.usage_stats)
+def put_privacy(body: PrivacyIn, _: CurrentAdmin, privacy: Switches) -> PrivacyView:
+    return privacy.update(body)
+
+
+@router.get("/page")
+def page_reports(_: CurrentPerson, privacy: Switches) -> PageReports:
+    return privacy.page_reports()

@@ -1,6 +1,6 @@
 ---
-title: Usage stats
-description: What tiko sends about an install, why, and how to turn it off.
+title: Usage stats and error reports
+description: What tiko sends about an install and its errors, why, and how to turn each off.
 ---
 
 tiko does not track people. It sends a few counts about the install itself, so we know how many instances run, on what, and which trackers to support first. Nothing in them says who you are, what your boards hold or where your tracker is.
@@ -101,6 +101,18 @@ Any one of these is enough:
 - The installer's `--no-stats` (`install.sh`) or `-NoStats` (`install.ps1`), or `TIKO_USAGE_STATS=false` in the environment when you run it. The installer then sends nothing and writes `TIKO_USAGE_STATS=false` into `.env`.
 
 Turned off, tiko sends nothing about the install. The release check (`UPDATE_CHECK`) is separate; see [Updates](../updates/).
+
+## Error reports
+
+Error reports are off until an admin turns on "Send error reports" in Settings → Privacy, or `TIKO_ERROR_REPORTS=true` is set. Then an error in the server or in the page sends a report, so we can fix what breaks in a release without waiting for an issue.
+
+A report holds the error type, its message, the code lines it came through and the tiko version and `deploy`. Before it leaves your server or browser, tiko removes:
+
+- web addresses, host names, IP addresses and emails from the message, which become `<url>`, `<host>`, `<ip>` and `<email>`;
+- the request, its headers, cookies and body, the page address, and who was signed in;
+- local variables, earlier log lines and clicks, and the host name of your server.
+
+Reports go to the tiko project's [Sentry](https://sentry.io) in the EU (Frankfurt). `TIKO_ERROR_REPORTS_DSN` sends them to your own Sentry or a compatible server such as GlitchTip instead; empty, the switch does not appear. Open pages start or stop sending after a reload.
 
 ## Closed networks and your own collector
 
