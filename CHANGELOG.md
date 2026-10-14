@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.17] - 2026-10-14
+
 ### Added
 
 - One-click updates: an admin clicks **Update now** in About, watches the download and the restart, and the page comes back on the new version. tiko copies the database first, goes back to the previous version when the new one does not start, and keeps the disk to two releases and three such copies. The installers ask to turn it on, yes by default; it runs a small `updater` service, the only part of tiko with access to Docker.
