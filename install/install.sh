@@ -110,9 +110,6 @@ check_system() {
   [ "$mem_mb" -ge "$MIN_MEM_MB" ] || die "tiko needs at least 1 GB of memory, this machine has ${mem_mb} MB"
   [ "$mem_mb" -ge "$WARN_MEM_MB" ] || say "Warning: ${mem_mb} MB of memory is tight; 2 GB or more is better."
 
-  if [ -z "$DIR" ]; then
-    if [ "$OS" = Linux ] && [ "$(id -u)" = 0 ]; then DIR=/opt/tiko; else DIR="$HOME/tiko"; fi
-  fi
   probe=$DIR
   while [ ! -d "$probe" ]; do probe=$(dirname "$probe"); done
   disk_mb=$(df -Pk "$probe" | awk 'NR == 2 { print int($4 / 1024) }')
@@ -121,8 +118,6 @@ check_system() {
   if [ -f "$DIR/.env" ]; then
     UPGRADE=1
     [ -n "$PORT" ] || PORT=$(sed -n 's/^TIKO_PORT=//p' "$DIR/.env")
-    # Turned off once, the install stays quiet on every upgrade.
-    if grep -q '^TIKO_USAGE_STATS=false' "$DIR/.env"; then STATS=false; fi
   else
     UPGRADE=0
   fi
@@ -250,11 +245,8 @@ prepare_dir() {
       } >.env
     )
     say "Created .env with a generated password and secret key"
-  elif ! grep -q "^TIKO_PORT=$PORT\$" .env; then
-    grep -v '^TIKO_PORT=' .env >.env.new
-    echo "TIKO_PORT=$PORT" >>.env.new
-    mv .env.new .env
-    chmod 600 .env
+  else
+    keep_env TIKO_PORT "$PORT"
   fi
 
   keep_env TIKO_DEPLOY installer
@@ -320,13 +312,24 @@ finish() {
   stats_notice
 }
 
-# Sets KEY=VALUE in .env, keeping the other lines.
+# Sets KEY=VALUE in .env, keeping the other lines; the copy holds secrets, so it is never readable.
 keep_env() {
   grep -q "^$1=$2\$" .env && return 0
-  grep -v "^$1=" .env >.env.new || true
-  echo "$1=$2" >>.env.new
+  (
+    umask 077
+    grep -v "^$1=" .env >.env.new || true
+    echo "$1=$2" >>.env.new
+  )
   mv .env.new .env
-  chmod 600 .env
+}
+
+# Where the install is, and whether an earlier run turned the usage stats off; read before the
+# notice, so it tells the truth on an upgrade.
+find_install() {
+  if [ -z "$DIR" ]; then
+    if [ "$(uname -s)" = Linux ] && [ "$(id -u)" = 0 ]; then DIR=/opt/tiko; else DIR="$HOME/tiko"; fi
+  fi
+  if grep -q '^TIKO_USAGE_STATS=false' "$DIR/.env" 2>/dev/null; then STATS=false; fi
 }
 
 stats_notice() {
@@ -349,9 +352,10 @@ send_install_event() {
   installed=$(sed -n 's/.*tiko-api:\${TAG:-\(.*\)}.*/\1/p' "$DIR/compose.yaml" 2>/dev/null | head -n 1) || installed=
   case "$(uname -m)" in x86_64 | amd64) arch=amd64 ;; aarch64 | arm64) arch=arm64 ;; *) arch=other ;; esac
   updater=false
-  [ "$UPDATER" = yes ] && updater=true
+  if [ "$UPDATER" = yes ] || grep -q '^COMPOSE_PROFILES=.*updater' "$DIR/.env" 2>/dev/null; then updater=true; fi
+  case "$(uname -s)" in Linux) os=linux ;; Darwin) os=darwin ;; *) os=other ;; esac
   body=$(printf '{"kind":"install","schema":1,"version":%s,"os":"%s","arch":"%s","installer":"sh","updater":%s,"failed_step":%s}' \
-    "$(json_string "$installed")" "$(uname -s | tr '[:upper:]' '[:lower:]')" "$arch" "$updater" "$(json_string "$1")")
+    "$(json_string "$installed")" "$os" "$arch" "$updater" "$(json_string "$1")")
   if has curl; then
     curl -fsS -m 3 -X POST -H 'Content-Type: application/json' -d "$body" "$STATS_URL" >/dev/null 2>&1 || true
   elif has wget; then
@@ -396,6 +400,7 @@ choose_updater() {
 main() {
   parse_args "$@"
   say "tiko installer: checks this machine, installs Docker if needed (after asking) and starts tiko."
+  find_install
   stats_notice
   STEP=docker-check
   trap on_exit EXIT

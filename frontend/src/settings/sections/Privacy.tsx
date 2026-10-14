@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { toastError } from '@/lib/toast'
 import { Group, SectionHeader } from '@/settings/sections/Section'
 
-export const USAGE_STATS_GUIDE = 'https://docs.tiko.run/privacy/'
+const USAGE_STATS_GUIDE = 'https://docs.tiko.run/privacy/'
 
 export function Privacy() {
   const queryClient = useQueryClient()

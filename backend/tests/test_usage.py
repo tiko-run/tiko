@@ -1,3 +1,4 @@
+import asyncio
 import re
 from pathlib import Path
 
@@ -19,7 +20,8 @@ GUIDE = Path(__file__).parents[2] / "docs/guide/src/content/docs/privacy.md"
 
 def app_with(sender=None, **settings):
     sender = sender or MockStatsSender()
-    app = create_app(Settings(db_path=":memory:", **settings), stats_sender=sender)
+    settings = {"db_path": ":memory:", **settings}
+    app = create_app(Settings(**settings), stats_sender=sender)
     return app, sender
 
 
@@ -172,4 +174,38 @@ def test_guide_lists_every_field():
     text = GUIDE.read_text()
     for field in ["kind", "schema", *Ping.model_fields]:
         name = "schema" if field == "schema_version" else field
+        assert f"`{name}`" in text, f"privacy.md does not list `{name}`"
+
+
+def test_ping_schedule_first_after_10_minutes_then_daily():
+    from app.domain import usage
+    from app.main import ping_daily
+
+    app, sender = app_with()
+    waits: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        waits.append(seconds)
+        if len(waits) == 3:
+            raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(ping_daily(app.state.usage, sleep=sleep))
+    assert waits[0] == usage.FIRST_PING_S
+    assert all(
+        usage.PING_EVERY_S <= w <= usage.PING_EVERY_S + usage.PING_JITTER_S for w in waits[1:]
+    )
+    assert len(sender.sent) == 2
+
+
+def test_processes_of_one_instance_share_the_id(tmp_path):
+    db = str(tmp_path / "app.db")
+    first, _ = app_with(db_path=db)
+    second, _ = app_with(db_path=db)
+    assert first.state.usage.instance_id() == second.state.usage.instance_id()
+
+
+def test_guide_lists_every_install_field():
+    text = GUIDE.read_text()
+    for name in ["kind", "schema", "version", "os", "arch", "installer", "updater", "failed_step"]:
         assert f"`{name}`" in text, f"privacy.md does not list `{name}`"

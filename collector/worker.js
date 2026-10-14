@@ -2,7 +2,7 @@
 
 const MAX_BODY = 2048
 const PINGS_A_DAY = 10
-const OS = ['linux', 'darwin', 'windows']
+const OS = ['linux', 'darwin', 'windows', 'other']
 const DEPLOY = ['installer', 'compose', 'railway', 'render', 'source', 'demo']
 const BUCKET = ['0', '1', '2-5', '6-20', '21-100', '100+']
 const TRACKER = ['demo', 'jira_dc', 'github']
@@ -24,7 +24,7 @@ const FIELDS = {
     arch: matches(ARCH),
     installer: oneOf(['sh', 'ps1']),
     updater: bool,
-    failed_step: (v) => v === null || STEP.includes(v),
+    failed_step: (v) => v === null || oneOf(STEP)(v),
   },
   ping: {
     instance_id: matches(UUID),
@@ -45,12 +45,8 @@ export function clean(body) {
   if (!fields) return null
   const payload = {}
   for (const [name, valid] of Object.entries(fields)) {
-    const value =
-      body[name] === undefined &&
-      (name === 'failed_step' || name === 'version') &&
-      body.kind === 'install'
-        ? null
-        : body[name]
+    // A missing field is null: only the fields that allow null pass.
+    const value = body[name] === undefined ? null : body[name]
     if (!valid(value)) return null
     payload[name] = value
   }
@@ -83,21 +79,22 @@ async function store(env, event, country) {
 }
 
 async function rollUp(env) {
-  // Rows older than 13 months become monthly totals; runs on the 1st, so a month goes at once.
+  // Months older than 13 full months become totals in one statement, so a failure moves nothing
+  // and a month is counted once; runs on the 1st.
   await sql(
     env,
-    `INSERT INTO events_monthly (month, kind, dims, events, instances)
-     SELECT date_trunc('month', received_at)::date, kind, payload - 'instance_id',
+    `WITH moved AS (
+       DELETE FROM events WHERE received_at < date_trunc('month', now()) - interval '13 months'
+       RETURNING received_at, kind, instance_id, country, payload
+     )
+     INSERT INTO events_monthly (month, kind, dims, events, instances)
+     SELECT date_trunc('month', received_at)::date, kind,
+            (payload - 'instance_id') || jsonb_build_object('country', country),
             count(*), count(DISTINCT instance_id)
-     FROM events WHERE received_at < date_trunc('month', now()) - interval '12 months'
-     GROUP BY 1, 2, 3
+     FROM moved GROUP BY 1, 2, 3
      ON CONFLICT (month, kind, dims) DO UPDATE
        SET events = events_monthly.events + excluded.events,
            instances = events_monthly.instances + excluded.instances`,
-  )
-  await sql(
-    env,
-    `DELETE FROM events WHERE received_at < date_trunc('month', now()) - interval '12 months'`,
   )
 }
 
