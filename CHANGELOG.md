@@ -7,10 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - About shows the download of a one-click update under "Updating to", instead of a separate card the panel covered, and names the new versions once.
-
-### Fixed
-
-- After a one-click update the page reloads by itself even when a status request hangs during the restart.
+- After a one-click update About offers a **Reload** button as soon as the new version serves the page, instead of reloading by itself once the updater has cleaned up.
 
 ## [2026.10.18] - 2026-10-14
 

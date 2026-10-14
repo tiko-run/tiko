@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { startUpdate, useUpdate, type UpdateInfo } from '@/api/update'
 import type { VersionInfo } from '@/api/version'
-import { UpdateSteps } from '@/board/UpdateProgress'
+import { UpdateSteps, useNewBuildServed } from '@/board/UpdateProgress'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
 
@@ -35,11 +35,27 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
     onSuccess: (fresh) => queryClient.setQueryData(['update'], fresh),
     onError: toastError,
   })
+  const status = update?.status
+  // A finished update counts until the page runs its version; an older one is history.
+  const updating =
+    status?.state === 'running' || (status?.state === 'done' && status.target !== info.version)
+  // The API is down while it restarts, so the last answer stays and the request fails.
+  const restarting =
+    updating && (query.isError || status?.step === 'restart' || status?.state === 'done')
+  // The updater reports done only after it cleans up; the new page is there before that.
+  const served = useNewBuildServed(restarting)
   if (!update) return null
-  const status = update.status
-  if (status?.state === 'running') {
-    // The API is down while it restarts, so the last answer stays and the request fails.
-    const restarting = query.isError || status.step === 'restart'
+  if (status && updating) {
+    if (served || status.state === 'done') {
+      return (
+        <div role="status" className="flex flex-col gap-1.5">
+          <span>v{status.target} is ready.</span>
+          <Button size="sm" className="self-start" onClick={() => window.location.reload()}>
+            Reload
+          </Button>
+        </div>
+      )
+    }
     return (
       <div role="status" className="flex flex-col gap-1.5">
         <span>Updating to v{status.target}…</span>

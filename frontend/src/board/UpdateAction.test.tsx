@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import type { ReleaseLevel, VersionInfo } from '@/api/version'
 import { UpdateAction } from '@/board/UpdateAction'
 import { getUpdate } from '@/api/update'
-import { ReloadAfterUpdate, UpdatedNotice } from '@/board/UpdateProgress'
+import { UpdatedNotice } from '@/board/UpdateProgress'
 
 const { toast } = vi.hoisted(() => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
 vi.mock('sonner', () => ({ toast }))
@@ -127,7 +127,7 @@ test('a failed update shows its log', async () => {
   expect(screen.getByText('Rolling back')).toBeInTheDocument()
 })
 
-test('About follows the download, then the page reloads once the update is done', async () => {
+test('About follows the download, then offers a reload once the update is done', async () => {
   const reload = vi.fn()
   vi.stubGlobal('location', { ...window.location, reload })
   let phase = 'download'
@@ -144,31 +144,42 @@ test('About follows the download, then the page reloads once the update is done'
       if (phase === 'restart') return new Error('api restarting')
       return { available: true, hosting: null, status: { ...running, state: 'done', step: 'done' } }
     },
-    '/api/version': { ...info(), version: '2026.11.1' },
   })
-  renderWith(
-    <>
-      <UpdateAction info={info()} admin />
-      <ReloadAfterUpdate />
-    </>,
-  )
+  renderWith(<UpdateAction info={info()} admin />)
   expect(await screen.findByText('Downloading the new version · 25%')).toBeInTheDocument()
   phase = 'restart'
-  await act(() => new Promise((resolve) => setTimeout(resolve, 1700)))
-  expect(
-    await screen.findByText('Restarting tiko. The page reloads by itself.'),
-  ).toBeInTheDocument()
-  expect(reload).not.toHaveBeenCalled()
+  expect(await screen.findByText('Restarting tiko…', {}, { timeout: 3000 })).toBeInTheDocument()
   phase = 'done'
-  await waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 5000 })
-}, 12_000)
+  fireEvent.click(await screen.findByRole('button', { name: 'Reload' }, { timeout: 3000 }))
+  expect(screen.getByText('v2026.11.1 is ready.')).toBeInTheDocument()
+  expect(reload).toHaveBeenCalled()
+}, 10_000)
 
-test('the reload watcher shows nothing of its own', async () => {
-  const running = { ...idle, state: 'running', step: 'download', target: '2026.11.1' }
-  const fetch = serve({ '/api/update': { available: true, hosting: null, status: running } })
-  const { container } = renderWith(<ReloadAfterUpdate />)
-  await waitFor(() => expect(fetch).toHaveBeenCalled())
-  expect(container).toBeEmptyDOMElement()
+test('the reload is offered once the new page is served, before the updater is done', async () => {
+  const script = document.createElement('script')
+  script.src = '/assets/index-old1.js'
+  document.head.append(script)
+  const restart = { ...idle, state: 'running', step: 'restart', target: '2026.11.1' }
+  let html = '<script type="module" src="/assets/index-old1.js"></script>'
+  serve({
+    '/api/update': { available: true, hosting: null, status: restart },
+    '/': () => html,
+  })
+  renderWith(<UpdateAction info={info()} admin />)
+  expect(await screen.findByText('Restarting tiko…')).toBeInTheDocument()
+  html = '<script type="module" src="/assets/index-new2.js"></script>'
+  expect(
+    await screen.findByRole('button', { name: 'Reload' }, { timeout: 3000 }),
+  ).toBeInTheDocument()
+  script.remove()
+})
+
+test('a finished update to the running version is history, not a reload', async () => {
+  const done = { ...idle, state: 'done', step: 'done', target: '2026.10.6' }
+  serve({ '/api/update': { available: true, hosting: null, status: done } })
+  renderWith(<UpdateAction info={info()} admin />)
+  expect(await screen.findByRole('button', { name: 'Update now' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull()
 })
 
 test('other pages learn about the new version', async () => {
