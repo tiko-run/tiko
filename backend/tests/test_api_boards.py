@@ -8,7 +8,7 @@ DOC = {
             "position": {"x": 0, "y": 0},
             "width": 400,
             "height": 300,
-            "data": {"title": "Now"},
+            "data": {"title": "Now", "color": "blue"},
         },
         {
             "id": "a",
@@ -105,6 +105,22 @@ def test_invalid_doc_rejected(client):
 def test_bad_shape_rejected(client, data):
     board = create(client)
     doc = {"nodes": [DOC["nodes"][-1] | {"data": data}]}
+    response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
+    assert response.status_code == 422
+
+
+def test_frame_without_a_fill_stays_as_saved(client):
+    board = create(client)
+    frame = DOC["nodes"][0] | {"data": {"title": "Old"}}
+    saved = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": {"nodes": [frame]}})
+    assert saved.status_code == 200
+    assert client.get(f"/api/boards/{board['id']}").json()["doc"]["nodes"] == [frame]
+
+
+@pytest.mark.parametrize("color", ["surface", None])
+def test_unknown_frame_fill_rejected(client, color):
+    board = create(client)
+    doc = {"nodes": [DOC["nodes"][0] | {"data": {"title": "", "color": color}}]}
     response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
     assert response.status_code == 422
 

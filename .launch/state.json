@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/021-performance-2",
+  "feature": "specs/023-selection-bar",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -79,7 +79,8 @@
     "perf2-presence-rate",
     "shapes",
     "perf2-remeasure",
-    "perf2-verdict"
+    "perf2-verdict",
+    "selection-bar"
   ],
   "gates": {
     "G1_scope": "approved",

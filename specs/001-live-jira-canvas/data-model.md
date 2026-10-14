@@ -36,7 +36,7 @@ Key-value rows: `provider` (`demo` default), `refresh_interval_s` (30 default, 3
 
 Node  = {id, type, position:{x,y}, width?, height?, parentId?, data}
   type "jira_card" data {key, collapsed}
-  type "frame"     data {title}
+  type "frame"     data {title, color?}   # color: none or a sticky color; absent reads as none
   type "sticky"    data {text, color}
   type "text"      data {text}
 Edge  = {id, source, target, sourceHandle?, targetHandle?}

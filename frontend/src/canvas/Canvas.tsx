@@ -69,6 +69,8 @@ import { ShapeGhost } from '@/canvas/ShapeGhost'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { resolveAll } from '@/canvas/refs'
+import { SelectionBar } from '@/canvas/SelectionBar'
+import { barNodes, withFill, type Fill, type Kind } from '@/canvas/selection-props'
 import { ModuleHostContext } from '@/modules/host-context'
 import { findModule } from '@/modules/registry'
 import type { ModuleHost } from '@/modules/types'
@@ -193,8 +195,12 @@ export function BoardCanvas({
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
+  // A fill tried on the selection from the bar: drawn here only, never saved or sent.
+  const [preview, setPreview] = useState<Fill | null>(null)
   const shown = useMemo(() => {
-    const raised = raiseAnchors(moving, edges)
+    const painted =
+      preview === null ? moving : moving.map((n) => (n.selected ? withFill(n, preview) : n))
+    const raised = raiseAnchors(painted, edges)
     if (!flashId && !hits) return raised
     return {
       ...raised,
@@ -211,7 +217,7 @@ export function BoardCanvas({
         }
       }),
     }
-  }, [moving, edges, flashId, hits])
+  }, [moving, preview, edges, flashId, hits])
 
   // What the others see of this person: what is selected, and nodes on their way while dragged.
   const { presence } = live
@@ -361,14 +367,11 @@ export function BoardCanvas({
       document.removeEventListener('paste', paste)
     }
   }, [])
-  useShortcut(
-    'duplicate',
-    () => {
-      const snippet = copySelection(nodes, edges, tasks)
-      if (snippet) insert(snippet, { x: DUPLICATE_OFFSET, y: DUPLICATE_OFFSET })
-    },
-    { enabled: !readOnly },
-  )
+  const duplicate = () => {
+    const snippet = copySelection(nodes, edges, tasks)
+    if (snippet) insert(snippet, { x: DUPLICATE_OFFSET, y: DUPLICATE_OFFSET })
+  }
+  useShortcut('duplicate', duplicate, { enabled: !readOnly })
   useShortcut('selectAll', () => {
     setNodes((current) => current.map((n) => ({ ...n, selected: true })))
     setEdges((current) => current.map((e) => ({ ...e, selected: true })))
@@ -573,7 +576,21 @@ export function BoardCanvas({
       ),
     )
 
+  // One call, so a fill on many elements is one undo step.
+  const setFill = (fill: Fill) =>
+    setNodes((current) => current.map((n) => (n.selected ? withFill(n, fill) : n)))
+  const narrowTo = (kind: Kind) => {
+    setNodes((current) =>
+      current.map((n) => (n.selected && n.type !== kind ? { ...n, selected: false } : n)),
+    )
+    setEdges((current) => current.map((e) => (e.selected ? { ...e, selected: false } : e)))
+  }
+
   const selected = nodes.filter((n) => n.selected)
+  const inBar = barNodes(nodes)
+  // Hidden while the selection moves or changes size: it would cover the guides and the neighbors.
+  const barShown =
+    !readOnly && !placing && inBar.length > 0 && !nodes.some((n) => n.dragging || n.resizing)
   const timerHolder = selected.length === 1 && holdsTimers(selected[0]) ? selected[0] : undefined
 
   const deleteSelection = () =>
@@ -722,6 +739,18 @@ export function BoardCanvas({
         <Guides guides={guides.guides} />
         <PresenceLayer />
       </ReactFlow>
+      {barShown && (
+        <SelectionBar
+          nodes={inBar}
+          onFill={setFill}
+          onPreview={setPreview}
+          onNarrow={narrowTo}
+          onCollapse={setCollapsed}
+          onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+          onDuplicate={duplicate}
+          onDelete={deleteSelection}
+        />
+      )}
       {tool === 'shape' && (
         <ShapeGhost
           kind={shapeKind}

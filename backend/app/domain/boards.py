@@ -7,6 +7,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StringConstraints,
+    field_validator,
     model_validator,
 )
 
@@ -50,8 +51,21 @@ class TaskCardData(_Strict):
         return self
 
 
+FrameFill = Literal["none", "yellow", "orange", "pink", "violet", "blue", "green"]
+
+
 class FrameData(_Strict):
     title: str = Field(default="", max_length=200)
+    # Absent on a frame nobody filled, so a board saved before frames took a fill stays as it was.
+    color: FrameFill | None = None
+
+    @field_validator("color", mode="before", json_schema_input_type=FrameFill)
+    @classmethod
+    def _color(cls, value: Any) -> Any:
+        # The default skips this, so only an explicit null lands here.
+        if value is None:
+            raise ValueError("color must be a fill name")
+        return value
 
 
 class StickyData(_Strict):

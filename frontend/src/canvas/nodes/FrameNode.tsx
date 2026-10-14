@@ -8,13 +8,21 @@ import { useReadOnly } from '@/canvas/readonly'
 
 function FrameNodeView({ id, data, selected }: NodeProps<FrameNodeType>) {
   const readOnly = useReadOnly()
+  // A tint, not the full color: the elements inside keep their own surfaces readable.
+  const tint =
+    data.color && data.color !== 'none'
+      ? `color-mix(in oklch, var(--sticky-${data.color}) var(--frame-tint), transparent)`
+      : undefined
   // Title sits above the border, like Miro, so it never covers the cards inside.
   return (
     <div
       className={cn(
-        'bg-muted/40 relative h-full w-full rounded-md border',
-        selected && 'bg-accent border-primary',
+        'relative h-full w-full rounded-md border',
+        !tint && 'bg-muted/40',
+        selected && 'border-primary',
+        selected && !tint && 'bg-accent',
       )}
+      style={{ background: tint }}
     >
       <NodeResizer isVisible={selected && !readOnly} minWidth={160} minHeight={120} />
       <div className="absolute bottom-full left-0 mb-1 max-w-full text-[13px] font-medium">
