@@ -86,6 +86,7 @@ An admin opens About, sees v2026.10.20 with a security fix, clicks "Update now",
 - **FR-006**: Only an admin MUST be able to start an update, and only one update at a time.
 - **FR-007**: An update MUST back up the database first and MUST roll back to the old images and the backup when the new `api` is not healthy.
 - **FR-008**: An install without the updater MUST keep working as today and show the steps to update by hand.
+- **FR-009**: An update MUST keep at most 3 of its own backups and the images of two releases, and MUST check free space before it starts.
 
 ## Out of scope
 
