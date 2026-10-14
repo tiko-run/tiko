@@ -87,7 +87,15 @@ test('a shape and a frame share no fill and the six colors, a shape alone adds t
   renderBar([shape, frame])
   fireEvent.click(button('Fill'))
   expect(button('no fill')).toBeTruthy()
+  for (const color of ['yellow', 'orange', 'pink', 'violet', 'blue', 'green'])
+    expect(button(`${color} fill`)).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'plain fill' })).toBeNull()
+})
+
+test('a shape alone offers the plain fill', () => {
+  renderBar([shape])
+  fireEvent.click(button('Fill'))
+  expect(button('plain fill')).toBeTruthy()
 })
 
 test('a mixed selection narrows to one type', () => {

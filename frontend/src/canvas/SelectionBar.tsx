@@ -180,8 +180,9 @@ export function SelectionBar({
       ref={bar}
       role="toolbar"
       aria-label="Selection"
-      className="bg-card absolute z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border p-1 shadow-md"
-      style={{ left, top }}
+      className="bg-card absolute z-10 flex w-max -translate-x-1/2 flex-wrap items-center justify-center gap-0.5 rounded-lg border p-1 shadow-md"
+      // A canvas narrower than the bar wraps it instead of pushing controls off screen.
+      style={{ left, top, maxWidth: laidOut ? box.width - 2 * EDGE : undefined }}
     >
       {kinds.length === 1 ? (
         <span className="text-muted-foreground flex items-center gap-1.5 px-2 text-xs whitespace-nowrap">

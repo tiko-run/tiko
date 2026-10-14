@@ -117,9 +117,10 @@ def test_frame_without_a_fill_stays_as_saved(client):
     assert client.get(f"/api/boards/{board['id']}").json()["doc"]["nodes"] == [frame]
 
 
-def test_unknown_frame_fill_rejected(client):
+@pytest.mark.parametrize("color", ["surface", None])
+def test_unknown_frame_fill_rejected(client, color):
     board = create(client)
-    doc = {"nodes": [DOC["nodes"][0] | {"data": {"title": "", "color": "surface"}}]}
+    doc = {"nodes": [DOC["nodes"][0] | {"data": {"title": "", "color": color}}]}
     response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
     assert response.status_code == 422
 

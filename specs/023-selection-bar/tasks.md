@@ -25,7 +25,7 @@ Slice `selection-bar`.
 Slice `element-style`.
 
 - [ ] T008 [US2] Data and API: `opacity`, `stroke`, `dash`, `bold`, `size` as optional fields with their listed values
-- [ ] T009 [US2] Nodes draw them: opacity on sticky, shape, frame and text; outline on the shape; bold and size on text
+- [ ] T009 [US2] Nodes draw them: opacity on sticky, shape, frame and text; outline on the shape; bold on sticky, shape and text; size on shape and text
 - [ ] T010 [US2] Bar: opacity slider with one undo step per drag, outline popover, text size and bold
 - [ ] T011 [US2] Tests: each property on each type, "Mixed" values, API refusals
 - [ ] T012 [US2] Data model, DESIGN.md, guide, changelog
@@ -37,5 +37,5 @@ Slice `color-names`.
 - [ ] T013 [US3] Board doc: `colorNames`, API validation, live edit for a rename
 - [ ] T014 [US3] Fill popover: name a color, named colors as rows
 - [ ] T015 [US3] Legend: rows with counts, select by color, rename in place, collapse; read-only on a view-only board
-- [ ] T016 [US3] Tests: doc round trip, rename between two clients, legend counts and selection
+- [ ] T016 [US3] Tests: doc round trip, rename between two clients, legend counts and selection, API refusals for an unknown color and a name over 24 characters
 - [ ] T017 [US3] Contracts, DESIGN.md, guide, changelog

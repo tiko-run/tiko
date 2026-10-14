@@ -91,7 +91,7 @@ A team agrees that pink is "Blocker" and green is "Decided". A newcomer opens th
 
 ## Requirements *(mandatory)*
 
-- **FR-001**: The board MUST show one bar for any selection that an editor can change, with only the properties every selected element has.
+- **FR-001**: The board MUST show one bar for any selection of elements that an editor can change (arrows alone get none; they are deleted with the key), with only the properties every selected element has.
 - **FR-002**: A property picked in the bar MUST apply to every selected element as one undo step and reach other people on the board like any other edit.
 - **FR-003**: A preview on hover MUST stay local: nothing is saved or sent before the pick.
 - **FR-004**: A frame MUST take one of the six colors or none; the API MUST accept the field, default it to none and refuse an unknown value.
