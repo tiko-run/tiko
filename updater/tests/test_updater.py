@@ -10,7 +10,7 @@ from urllib.error import HTTPError
 import pytest
 
 import updater
-from updater import DockerError, Job, container_body, run_update, split_ref, wait_healthy
+from updater import DockerError, Job, container_body, pull, run_update, split_ref, wait_healthy
 
 REPO = "ghcr.io/tiko-run/tiko"
 COMPOSE = """services:
@@ -196,7 +196,7 @@ def test_update_replaces_api_then_web_and_cleans_up(install: Path):
     docker = FakeDocker(install)
     status = update(docker, install).snapshot()
     assert (status["state"], status["error"]) == ("done", None)
-    assert (status["downloaded"], status["total"]) == (20, 20)
+    assert status["downloaded"] == status["total"] > 0
     steps = [c for c in docker.calls if c[0] in ("create", "start", "stop")]
     assert steps == [
         ("stop", "api0123456789abcdef"),
@@ -352,3 +352,38 @@ def test_server_starts_one_update(server):
 def test_server_refuses_odd_requests(server, body):
     url, _ = server
     assert ask(url, "/update", "tok", body)[0] == 400
+
+
+class LayeredPull:
+    """Docker's order: cached layers first, then the rest, a size once a download starts."""
+
+    def pull(self, repo, tag):
+        yield {"status": "Pulling from " + repo, "id": tag}
+        yield {"status": "Already exists", "id": "cached"}
+        for layer in ("small", "big"):
+            yield {"status": "Pulling fs layer", "id": layer, "progressDetail": {}}
+        yield {"status": "Downloading", "id": "small", "progressDetail": {"current": 1, "total": 2}}
+        yield {"status": "Download complete", "id": "small"}
+        for current in (10, 900):
+            detail = {"current": current, "total": 900}
+            yield {"status": "Downloading", "id": "big", "progressDetail": detail}
+        yield {"status": "Pull complete", "id": "big"}
+
+
+def test_progress_moves_forward_through_layers_and_images():
+    job = Job()
+    job.begin("2026.10.7")
+    seen = []
+    record = job.set
+
+    def spy(**fields):
+        record(**fields)
+        seen.append(fields["downloaded"] / fields["total"])
+
+    job.set = spy
+    refs = ["ghcr.io/tiko-run/tiko-api:2026.10.7", "ghcr.io/tiko-run/tiko-web:2026.10.7"]
+    pull(LayeredPull(), job, refs)
+    assert seen == sorted(seen)
+    # The cached layer counts for nothing, so the first image is half done once its small one is.
+    assert seen[:6] == [0, 0, 0, 0, 0.125, 0.25]
+    assert seen[-1] == 1

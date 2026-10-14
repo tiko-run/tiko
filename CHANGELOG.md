@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - The Windows installer installs Docker Desktop on a new user profile too: it registers winget for the profile instead of stopping with "winget is missing".
+- The download bar of a one-click update no longer jumps back: it moves by layers and images instead of bytes, whose total Docker learns only along the way.
 
 ## [2026.10.17] - 2026-10-14
 
