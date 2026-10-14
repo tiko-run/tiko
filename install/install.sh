@@ -6,6 +6,7 @@
 #   curl -fsSL https://tiko.run/install.sh | sh -s -- --yes --port 8080
 #
 # Env: TIKO_DIR, TIKO_PORT (3000), TIKO_VERSION (latest release), TIKO_YES=1,
+#      TIKO_UPDATER (yes or no: one-click updates, asked otherwise),
 #      TIKO_COMPOSE_URL (another compose file, for testing a branch).
 set -eu
 
@@ -20,7 +21,7 @@ die() { printf '\nError: %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
-  say "Usage: install.sh [--yes] [--dir DIR] [--port PORT] [--version VERSION]"
+  say "Usage: install.sh [--yes] [--dir DIR] [--port PORT] [--version VERSION] [--no-updater]"
   say "Installs tiko with Docker, or upgrades the install in DIR."
 }
 
@@ -29,12 +30,14 @@ parse_args() {
   DIR=${TIKO_DIR:-}
   PORT=${TIKO_PORT:-}
   VERSION=${TIKO_VERSION:-latest}
+  UPDATER=${TIKO_UPDATER:-}
   while [ $# -gt 0 ]; do
     case "$1" in
       -y | --yes) YES=1 ;;
       --dir) DIR=${2:?--dir needs a value}; shift ;;
       --port) PORT=${2:?--port needs a value}; shift ;;
       --version) VERSION=${2:?--version needs a value}; shift ;;
+      --no-updater) UPDATER=no ;;
       -h | --help) usage; exit 0 ;;
       *) usage; die "unknown option: $1" ;;
     esac
@@ -52,6 +55,15 @@ ask() {
   printf '%s [y/N] ' "$1" >/dev/tty
   read -r answer </dev/tty || answer=
   case "$answer" in y | Y | yes | Yes) return 0 ;; *) return 1 ;; esac
+}
+
+# A question where yes is the usual answer; without a terminal it is yes.
+ask_yes() {
+  [ "$YES" = 1 ] && return 0
+  { : </dev/tty; } 2>/dev/null || return 0
+  printf '%s [Y/n] ' "$1" >/dev/tty
+  read -r answer </dev/tty || answer=
+  case "$answer" in n | N | no | No) return 1 ;; *) return 0 ;; esac
 }
 
 fetch() {
@@ -238,6 +250,8 @@ prepare_dir() {
     chmod 600 .env
   fi
 
+  choose_updater
+
   if [ -n "${TIKO_COMPOSE_URL:-}" ]; then
     url=$TIKO_COMPOSE_URL
   elif [ "$VERSION" = latest ]; then
@@ -289,6 +303,22 @@ finish() {
   say "Logs:      cd $DIR && $HINT compose logs -f"
   say "Upgrade:   run this installer again"
   say "Guide:     https://docs.tiko.run/"
+}
+
+# Asked once and kept in .env, so an upgrade does not ask again.
+choose_updater() {
+  grep -q '^COMPOSE_PROFILES=' .env && return 0
+  if [ -z "$UPDATER" ]; then
+    say "One-click updates add a small service with access to Docker, so an admin can update"
+    say "tiko from the About button. Without it you update by running this installer again."
+    if ask_yes "Turn on one-click updates?"; then UPDATER=yes; else UPDATER=no; fi
+  fi
+  if [ "$UPDATER" = yes ]; then
+    echo "COMPOSE_PROFILES=updater" >>.env
+    say "One-click updates are on"
+  else
+    echo "COMPOSE_PROFILES=" >>.env
+  fi
 }
 
 main() {

@@ -100,7 +100,7 @@ test('check now asks the server at once', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Check now' }))
   expect(await screen.findByText('v2026.11.1 is available')).toBeInTheDocument()
-  expect(fetch).toHaveBeenLastCalledWith(
+  expect(fetch).toHaveBeenCalledWith(
     '/api/version/check',
     expect.objectContaining({ method: 'POST' }),
   )

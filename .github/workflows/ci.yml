@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker compose up --build -d --wait
       - run: make smoke
+      - run: docker build -q updater
       - if: failure()
         run: docker compose logs --tail=100
 
@@ -51,6 +52,8 @@ jobs:
     env:
       TIKO_DIR: /tmp/tiko-install
       TIKO_COMPOSE_URL: file://${{ github.workspace }}/compose.release.yml
+      # The updater image is published from the first release that has it; until then, off.
+      TIKO_UPDATER: "no"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: shellcheck -s sh install/install.sh

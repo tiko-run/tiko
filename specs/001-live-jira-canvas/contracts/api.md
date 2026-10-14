@@ -75,6 +75,8 @@ Backoff is per tracker on the server: `jira_rate_limited` and Jira 5xx double th
 |---|---|---|---|
 | `GET /version` | – | `{version, update_check, latest: Release \| null, update_available, level: Level \| null, newer: Release[]}`, `Release = {version, url, level}`, `Level = feature \| hotfix \| breaking \| security` (`version` is the running release; `latest` is the newest of the last 100 GitHub releases, asked every 30 min per API process with `If-None-Match`, retried after 10 min on failure; a failed check keeps the last answer, so `latest` is `null` only when `UPDATE_CHECK=false` or no check has succeeded yet; `newer` lists the releases after the running one, newest first, and `level` is the highest of theirs; a release's level is the first line of its notes, see [spec 024](../../024-updates/spec.md)) | |
 | `POST /version/check` | – | as `GET /version`, asking GitHub at once, at most once in 5 minutes per API process | |
+| `GET /update` | – | `{available, hosting: railway \| render \| null, status: UpdaterStatus \| null}`, `UpdaterStatus = {state: idle \| running \| done \| failed, step, target, downloaded, total, error, log: string[]}`; `available` is false and `status` null when no updater answers ([spec 024](../../024-updates/spec.md)) | |
+| `POST /update` | – | as `GET /update`; the API copies the database aside, then the updater moves to the newest release | 403 `forbidden` (not an admin), 409 `update_not_possible` (no updater, no newer release, one running), 507 `not_enough_space` |
 
 ## Demo
 

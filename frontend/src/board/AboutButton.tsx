@@ -5,6 +5,7 @@ import { checkVersionNow, useVersion, type ReleaseLevel } from '@/api/version'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { UpdateAction } from '@/board/UpdateAction'
 import { toastError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -50,7 +51,7 @@ function AboutLink({
   )
 }
 
-export function AboutButton() {
+export function AboutButton({ admin = false }: { admin?: boolean }) {
   const queryClient = useQueryClient()
   const info = useVersion().data
   const check = useMutation({
@@ -149,6 +150,7 @@ export function AboutButton() {
                   </li>
                 ))}
               </ul>
+              <UpdateAction info={info} admin={admin} />
               <a href={UPGRADE_DOCS} target="_blank" rel="noreferrer" className="text-primary">
                 How to upgrade
               </a>

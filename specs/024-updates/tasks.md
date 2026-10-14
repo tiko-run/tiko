@@ -24,10 +24,10 @@ Slice `update-check`.
 
 Slice `one-click-update`.
 
-- [ ] T008 [US2] `updater` service and image: token check, one update at a time, free space check, backup, new compose file, pull with layer progress, recreate `api` and `web`, health wait, rollback, cleanup of old backups and images
-- [ ] T009 [US2] `compose.release.yml` profile `updater`; release workflow builds and publishes its image
-- [ ] T010 [US2] API: updater port with a mock adapter, `POST /api/update` and update status for admins, the token in `data/`
-- [ ] T011 [US2] About: "Update now", confirm for `breaking`, steps and download bar, "tiko is updating" and reload for everyone, failure with the log; manual steps without the updater
-- [ ] T012 [US2] `install.sh` and `install.ps1` ask about one-click updates
-- [ ] T013 [US2] Tests: API with the mock updater, updater steps, rollback, cleanup and the free space refusal with a fake Docker; an update and a failed update on a clean VM from the previous release
-- [ ] T014 [US2] Guide (update page, security of the updater), `THIRD_PARTY.md`, changelog
+- [x] T008 [US2] `updater` service and image: token check, one update at a time, free space check, backup, new compose file, pull with layer progress, recreate `api` and `web`, health wait, rollback, cleanup of old backups and images
+- [x] T009 [US2] `compose.release.yml` profile `updater`; release workflow builds and publishes its image
+- [x] T010 [US2] API: updater port with a mock adapter, `POST /api/update` and update status for admins, the token in `data/`
+- [x] T011 [US2] About: "Update now", confirm for `breaking`, steps and download bar, "tiko is updating" and reload for everyone, failure with the log; manual steps without the updater
+- [x] T012 [US2] `install.sh` and `install.ps1` ask about one-click updates
+- [x] T013 [US2] Tests: API with the mock updater, updater steps, rollback, cleanup and the free space refusal with a fake Docker; an update and a failed update from the previous release through `install.sh` with a local registry (done on Docker Desktop on 2026-10-14; the run on a clean VM against GHCR waits for the first release with the updater image)
+- [x] T014 [US2] Guide (update page, security of the updater), `THIRD_PARTY.md`, changelog

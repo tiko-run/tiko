@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.tasks import Task
-    from app.domain.updates import Release
+    from app.domain.updates import Release, UpdaterStatus
 
 
 class TaskProvider(Protocol):
@@ -261,6 +261,25 @@ class DemoStatusRepo(Protocol):
 class ReleaseFeed(Protocol):
     def releases(self) -> list[Release]:
         """Recent published releases; raises DependencyUnavailable when they can't be fetched."""
+        ...
+
+
+class Updater(Protocol):
+    """The service that swaps the running containers for a release; DependencyUnavailable when
+    it does not answer, as on an install without it."""
+
+    def status(self) -> UpdaterStatus: ...
+
+    def start(self, version: str, current: str, backup: str) -> UpdaterStatus: ...
+
+
+class UpdateBackups(Protocol):
+    def free_and_needed(self) -> tuple[int, int]:
+        """Free bytes next to the database and the bytes a copy of it needs."""
+        ...
+
+    def copy_before_update(self, version: str) -> str:
+        """Copies the database aside before an update from `version`; returns the file name."""
         ...
 
 

@@ -32,14 +32,17 @@ dev-web:  ## run UI locally with hot reload (proxies /api to :8000)
 
 test:  ## unit and API tests
 	cd backend && uv run pytest -q
+	cd updater && uv run --project ../backend pytest -q
 	cd frontend && npm test
 
 lint:  ## linters and format check
 	cd backend && uv run ruff check . && uv run ruff format --check .
+	cd updater && uv run --project ../backend ruff check . && uv run --project ../backend ruff format --check .
 	cd frontend && npm run lint && npx tsc -b
 
 fmt:  ## auto-format
 	cd backend && uv run ruff check --fix . && uv run ruff format .
+	cd updater && uv run --project ../backend ruff check --fix . && uv run --project ../backend ruff format .
 	cd frontend && npm run fmt
 
 check: lint test  ## gate before every merge to main
