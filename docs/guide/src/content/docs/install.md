@@ -18,7 +18,7 @@ The installer:
 1. Checks the machine: 64-bit Linux or macOS, at least 1 GB of memory (2 GB is better), 2 GB of free disk, a free port.
 2. Installs Docker if it is missing, after asking: Docker Engine from [get.docker.com](https://get.docker.com) on Linux, [Colima](https://github.com/abiosoft/colima) with Homebrew on macOS.
 3. Creates the folder `~/tiko` (`/opt/tiko` when run as root on Linux) with a generated password and secret key in `.env`.
-4. Asks whether to turn on one-click updates (yes by default), see [Update from About](../data-and-upgrades/#update-from-about).
+4. Asks whether to turn on one-click updates (yes by default), see [Updates](../updates/).
 5. Starts the latest release and prints the address, the username `admin` and the password.
 
 Options go after `sh -s --`, for example `curl -fsSL https://tiko.run/install.sh | sh -s -- --yes --port 8080`:
