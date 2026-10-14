@@ -26,6 +26,12 @@ export type ModuleViewProps<C> = {
   host: ModuleHost
 }
 
+/** What the module's controls in the selection bar read and write. */
+export type ModuleControlsProps<C> = Pick<ModuleViewProps<C>, 'content' | 'onChange'> & {
+  /** Where their popovers open: away from the selection, like the bar's own. */
+  side: 'top' | 'bottom'
+}
+
 export type ModuleDef<C> = {
   kind: string
   name: string
@@ -40,8 +46,8 @@ export type ModuleDef<C> = {
   /** Live tasks inside the content, refreshed with the board's cards. */
   keys: (content: C) => TaskLink[]
   View: ComponentType<ModuleViewProps<C>>
-  /** Controls shown above the module while it is selected. */
-  Controls?: ComponentType<ModuleViewProps<C>>
+  /** Controls in the selection bar while the module is selected alone. */
+  Controls?: ComponentType<ModuleControlsProps<C>>
   /**
    * Takes in a card dropped at a point of the body (module coordinates, below the header).
    * Null leaves the card on the board.

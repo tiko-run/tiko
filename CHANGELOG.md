@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- A selected Gantt chart shows one bar: the scale, dates and milestone buttons moved into the selection bar instead of a second bar under it.
+
 ## [2026.10.18] - 2026-10-14
 
 ### Fixed

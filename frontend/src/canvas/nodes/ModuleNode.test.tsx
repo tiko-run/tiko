@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { ReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react'
+import { ReactFlow, ReactFlowProvider, useNodesState, useReactFlow } from '@xyflow/react'
 import { beforeAll, expect, test } from 'vitest'
+import { moduleControls } from '@/canvas/module-controls'
 import { ModuleNode } from '@/canvas/nodes/ModuleNode'
 import type { AppNode, ModuleNode as ModuleNodeType } from '@/canvas/types'
 
@@ -37,7 +38,18 @@ function Board({ data }: { data: ModuleNodeType['data'] }) {
       data,
     },
   ])
-  return <ReactFlow nodes={nodes} nodeTypes={nodeTypes} onNodesChange={onNodesChange} />
+  const { updateNodeData } = useReactFlow()
+  return (
+    <>
+      {/* The canvas puts these in the selection bar. */}
+      {moduleControls(
+        nodes[0] as ModuleNodeType,
+        (content) => updateNodeData('m', { content }),
+        'top',
+      )}
+      <ReactFlow nodes={nodes} nodeTypes={nodeTypes} onNodesChange={onNodesChange} />
+    </>
+  )
 }
 
 function renderModule(data: ModuleNodeType['data']) {
