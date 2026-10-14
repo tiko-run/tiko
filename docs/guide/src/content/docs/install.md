@@ -18,7 +18,8 @@ The installer:
 1. Checks the machine: 64-bit Linux or macOS, at least 1 GB of memory (2 GB is better), 2 GB of free disk, a free port.
 2. Installs Docker if it is missing, after asking: Docker Engine from [get.docker.com](https://get.docker.com) on Linux, [Colima](https://github.com/abiosoft/colima) with Homebrew on macOS.
 3. Creates the folder `~/tiko` (`/opt/tiko` when run as root on Linux) with a generated password and secret key in `.env`.
-4. Starts the latest release and prints the address, the username `admin` and the password.
+4. Asks whether to turn on one-click updates (yes by default), see [Updates](../updates/).
+5. Starts the latest release and prints the address, the username `admin` and the password.
 
 Options go after `sh -s --`, for example `curl -fsSL https://tiko.run/install.sh | sh -s -- --yes --port 8080`:
 
@@ -28,6 +29,7 @@ Options go after `sh -s --`, for example `curl -fsSL https://tiko.run/install.sh
 | `--dir DIR` | `TIKO_DIR` | Install into another folder |
 | `--port PORT` | `TIKO_PORT` | Serve on another port instead of 3000 |
 | `--version 2026.10.12` | `TIKO_VERSION` | Install a specific release |
+| `--no-updater` | `TIKO_UPDATER=no` | No one-click updates; `TIKO_UPDATER=yes` turns them on without asking |
 
 Run the same command again to upgrade: it keeps your boards, accounts and `.env`.
 
@@ -44,7 +46,7 @@ The Windows installer does the same, with Docker Desktop instead of Docker Engin
 3. Installs [Docker Desktop](https://docs.docker.com/desktop/) with `winget`, after asking, and starts it. On its first start Docker Desktop opens a few windows: press **Skip** on "Welcome to Docker" (tiko needs no Docker account), close "Welcome to Windows Subsystem for Linux", and answer the Windows Firewall question about "Docker Desktop Backend": **Allow** lets other devices on your network open tiko, **Cancel** keeps it on this computer.
 4. Creates the folder `%USERPROFILE%\tiko`, starts the latest release, prints the address, the username and the password, and opens the browser.
 
-Options: `& ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Port 8080`, with `-Dir` and `-Version` as well, or the same environment variables as above.
+Options: `& ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Port 8080`, with `-Dir`, `-Version` and `-NoUpdater` as well, or the same environment variables as above.
 
 ## Step by step
 
@@ -174,7 +176,7 @@ Run these in the tiko folder. A new terminal opens somewhere else, and PowerShel
 | Stop | `docker compose down` |
 | Start again | `docker compose up -d` |
 | See logs | `docker compose logs -f` |
-| Upgrade | the one-line installer again; the folder's `compose.yaml` is pinned to its release, so `docker compose pull` alone fetches nothing new |
+| Upgrade | **Update now** in About with one-click updates on; otherwise the one-line installer again. The folder's `compose.yaml` is pinned to its release, so `docker compose pull` alone fetches nothing new |
 | Uninstall | `docker compose down`, then delete the folder |
 
 The folder's `data/` holds your boards, so back it up before deleting anything. More in [Data and upgrades](../data-and-upgrades/).

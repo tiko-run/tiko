@@ -117,6 +117,10 @@ class Database:
             self._conn.backup(copy)
         log.info("database copied to %s before migration %s", target, number)
 
+    @property
+    def path(self) -> str:
+        return self._path
+
     def transaction(self):
         # Named after the method that asked, so a slow kind of work can be told from the rest.
         return self._transaction(sys._getframe(1).f_code.co_qualname)

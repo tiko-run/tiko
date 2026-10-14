@@ -4,6 +4,7 @@ import ssl
 import time
 from contextlib import asynccontextmanager
 from functools import partial
+from pathlib import Path
 
 import anyio.to_thread
 import httpx
@@ -29,24 +30,26 @@ from app.adapters.storage.sqlite import (
     SqliteSnapshotRepo,
     SqliteUserRepo,
 )
+from app.adapters.storage.update_backups import SqliteUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_dc import JiraDcProvider
+from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
-from app.config import Settings, get_settings
+from app.config import DEFAULT_DB_PATH, Settings, get_settings
 from app.domain import demo
 from app.domain.accounts import Accounts
 from app.domain.errors import NotFound
 from app.domain.invites import Invites
 from app.domain.members import Members
-from app.domain.ports import ReleaseFeed
+from app.domain.ports import ReleaseFeed, Updater
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
 from app.domain.settings import LockedField, SettingsService, normalize_base_url
-from app.domain.updates import UpdateService
+from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.observability import (
     DEMO_LIMIT,
@@ -109,6 +112,7 @@ def create_app(
     jira_transport: httpx.BaseTransport | None = None,
     github_transport: httpx.BaseTransport | None = None,
     release_feed: ReleaseFeed | None = None,
+    updater: Updater | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     setup_logging(settings.log_level)
@@ -261,6 +265,22 @@ def create_app(
     if release_feed is None and settings.update_check:
         release_feed = GitHubReleaseFeed("tiko-run/tiko", httpx.Client(timeout=5.0))
     app.state.updates = UpdateService(VERSION, release_feed if settings.update_check else None)
+    # The updater sees the install folder, so it finds the database and the token only at the
+    # default path; a demo instance is updated by its operator, never from the page.
+    if (
+        updater is None
+        and settings.updater_url
+        and not settings.tiko_demo
+        and Path(settings.db_path) == Path(DEFAULT_DB_PATH)
+    ):
+        token = ensure_token(Path(db.path).parent / "updater-token")
+        updater = HttpUpdater(settings.updater_url, token, httpx.Client(timeout=5.0))
+    hosting = (
+        "railway" if settings.railway_environment_name else "render" if settings.render else None
+    )
+    app.state.one_click = OneClickUpdate(
+        app.state.updates, updater, SqliteUpdateBackups(db.path), VERSION, hosting
+    )
     app.include_router(router)
 
     @app.get("/health", include_in_schema=False)

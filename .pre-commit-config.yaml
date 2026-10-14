@@ -18,8 +18,8 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.9
     hooks:
-      - { id: ruff, args: [--fix], files: ^backend/ }
-      - { id: ruff-format, files: ^backend/ }
+      - { id: ruff, args: [--fix], files: ^(backend|updater)/ }
+      - { id: ruff-format, files: ^(backend|updater)/ }
   - repo: local
     hooks:
       - id: make-check

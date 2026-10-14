@@ -5,8 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.domain.errors import DependencyUnavailable
-from app.domain.ports import ReleaseFeed
+from app.domain.errors import DependencyUnavailable, NotEnoughSpace, UpdateNotPossible
+from app.domain.ports import ReleaseFeed, UpdateBackups, Updater
 
 CHECK_EVERY_S = 1800
 # A failed check (offline, GitHub blocked) is retried sooner, but not on every page load.
@@ -111,3 +111,69 @@ class UpdateService:
                 except DependencyUnavailable:
                     self._next_check = now + RETRY_FAILED_S
             return self._releases
+
+
+class UpdaterStatus(BaseModel):
+    state: Literal["idle", "running", "done", "failed"]
+    step: str | None = None
+    target: str | None = None
+    downloaded: int = 0
+    total: int = 0
+    error: str | None = None
+    log: list[str] = []
+
+
+class UpdateView(BaseModel):
+    # False: no updater answers, so About shows how to update by hand.
+    available: bool
+    # Where the instance runs when a platform says so; it updates by a redeploy there.
+    hosting: Literal["railway", "render"] | None
+    status: UpdaterStatus | None
+
+
+class OneClickUpdate:
+    """Starts an update through the updater service, which copies the database first."""
+
+    def __init__(
+        self,
+        updates: UpdateService,
+        updater: Updater | None,
+        backups: UpdateBackups,
+        current: str,
+        hosting: Literal["railway", "render"] | None = None,
+    ) -> None:
+        self._updates = updates
+        self._updater = updater
+        self._backups = backups
+        self._current = current
+        self._hosting = hosting
+
+    def view(self) -> UpdateView:
+        if self._updater is None:
+            return UpdateView(available=False, hosting=self._hosting, status=None)
+        try:
+            status = self._updater.status()
+        except DependencyUnavailable:
+            return UpdateView(available=False, hosting=self._hosting, status=None)
+        return UpdateView(available=True, hosting=self._hosting, status=status)
+
+    def start(self) -> UpdateView:
+        if self._updater is None:
+            raise UpdateNotPossible("One-click updates are off on this instance.")
+        latest = self._updates.view().latest
+        if latest is None or not is_newer(latest.version, self._current):
+            raise UpdateNotPossible("There is no newer release to update to.")
+        if self._updater.status().state == "running":
+            raise UpdateNotPossible("An update is already running.")
+        free, needed = self._backups.free_and_needed(self._current)
+        if free < needed:
+            raise NotEnoughSpace(
+                f"The backup before the update needs {_mb(needed)}, "
+                f"and only {_mb(free)} is free next to the database."
+            )
+        status = self._updater.start(latest.version, self._current)
+        return UpdateView(available=True, hosting=self._hosting, status=status)
+
+
+def _mb(size: int) -> str:
+    return f"{max(1, round(size / 1_000_000))} MB"

@@ -1,5 +1,6 @@
 import { ShieldAlert, X } from 'lucide-react'
 import { useState } from 'react'
+import { useUpdate } from '@/api/update'
 import { useVersion } from '@/api/version'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,9 @@ function closedRecently(): boolean {
 export function UpdateBanner() {
   const info = useVersion().data
   const [closed, setClosed] = useState(closedRecently)
-  if (info?.level !== 'security' || !info.latest || closed) return null
+  // The progress of the update takes this place while it runs.
+  const updating = useUpdate(true).data?.status?.state === 'running'
+  if (info?.level !== 'security' || !info.latest || closed || updating) return null
   const close = () => {
     try {
       localStorage.setItem(CLOSED_AT, String(Date.now()))
