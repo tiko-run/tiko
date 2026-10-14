@@ -53,10 +53,10 @@ The README, the site and About say "no telemetry". tiko does not track people an
    - `send_default_pii=False`, no request bodies, headers, cookies, query strings or local variables;
    - no breadcrumbs, no session replay, no performance tracing;
    - URLs, host names and emails in exception messages replaced with `<url>`, `<host>`, `<email>`;
-   - the page reports the route pattern (`/board/:id`), not the address;
+   - no page address at all, and script names without the host (`app:///assets/…`);
    - tags: `version`, `deploy` and nothing else.
 
-   The switch is read at send time (`before_send`), so turning it on or off needs no restart. If we later move to GlitchTip, only the DSN changes.
+   The API reads the switch at send time (`before_send`), so it needs no restart; an open page picks it up on its next load. `TIKO_ERROR_REPORTS_DSN` points reports at another Sentry or at GlitchTip; empty, there is no switch.
 
 8. **Settings → Privacy.** Admins see two toggles for the whole instance. Under each: one line on what is sent and why, a link to the guide page, and for usage stats a "Show what is sent" box with the exact JSON of the next ping. Only admins see the section.
 
@@ -105,7 +105,7 @@ An admin turns on error reports. A Jira sync throws in `v2026.10.20`; Sentry sho
 1. **Given** error reports off (the default), **When** the API or the page throws, **Then** nothing is sent.
 2. **Given** an admin turns the toggle on, **Then** the next error is sent without a restart.
 3. **Given** an exception message with a URL, a host name or an email, **Then** the sent event has placeholders instead.
-4. **Given** an error on `/board/42`, **Then** the event carries `/board/:id`.
+4. **Given** an error on a board, **Then** the event carries no page address and names scripts without the host.
 
 ### User Story 3 - Know what is collected before trusting it (Priority: P1)
 
