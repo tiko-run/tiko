@@ -256,10 +256,10 @@ function Initialize-Folder {
     )
     Say 'Created .env with a generated password and secret key'
   } else {
-    Set-EnvLine $envFile 'TIKO_PORT' "$Port"
+    Write-EnvLine $envFile 'TIKO_PORT' "$Port"
   }
-  Set-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
-  if (-not $Stats) { Set-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
+  Write-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
+  if (-not $Stats) { Write-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
   Initialize-Updater $envFile
 
   $script:StepName = 'download'
@@ -320,7 +320,7 @@ function Show-Result {
 }
 
 # Sets KEY=VALUE in .env, keeping the other lines.
-function Set-EnvLine([string]$EnvFile, [string]$Key, [string]$Value) {
+function Write-EnvLine([string]$EnvFile, [string]$Key, [string]$Value) {
   if (Select-String -Path $EnvFile -Pattern "^$Key=$Value`$" -Quiet) { return }
   Write-EnvFile $EnvFile (@(Get-Content $EnvFile | Where-Object { $_ -notmatch "^$Key=" }) + "$Key=$Value")
 }
@@ -353,7 +353,7 @@ function Send-InstallEvent([string]$FailedStep) {
   } | ConvertTo-Json -Compress
   try {
     Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Method Post -ContentType 'application/json' -Body $body -Uri $StatsUrl | Out-Null
-  } catch { }
+  } catch { Write-Verbose "usage stats not sent: $_" }
 }
 
 function Install-Tiko {
