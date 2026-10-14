@@ -12,7 +12,7 @@
 
 Today we cannot tell how many instances exist. GitHub shows downloads of `compose.release.yml` per release, without the OS and mixed with our own test installs; the GHCR counter mixes installs, updates and CI. When a release breaks on someone's machine we learn about it only if they open an issue.
 
-The README, the site and About say "no telemetry". That stays true for tracking people, but we want two things that a self-hosted project needs to grow and to fix bugs: a count of installs and running instances, and error reports. We collect them the way Homebrew, Grafana and GitLab do: anonymous counts on by default, fully documented, off with one setting; error reports off until an admin turns them on.
+The README, the site and About say "no telemetry". tiko does not track people and will not, but two things help a self-hosted project decide what to support and what to fix: a count of installs and running instances, and error reports. The wording changes to say exactly what is sent. Counts are on by default, documented field by field and off with one setting, as in Homebrew, Grafana and GitLab; error reports stay off until an admin turns them on.
 
 ## Decisions
 
@@ -43,7 +43,7 @@ The README, the site and About say "no telemetry". That stays true for tracking 
 
    Adding a field is a deliberate change: it bumps `schema`, the guide page and `CHANGELOG.md`.
 
-4. **What is never sent**: IP addresses (the collector reads the country from Cloudflare's `CF-IPCountry` and does not store the address), host names, tracker URLs, board names or contents, task data, usernames, names, emails, tokens, file paths, error messages from the installer.
+4. **What is never sent or stored**: IP addresses (Cloudflare sees the address of a request like any web host; the collector reads only the country from `CF-IPCountry` and does not store the address), host names, tracker URLs, board names or contents, task data, usernames, names, emails, tokens, file paths, error messages from the installer.
 
 5. **Collector.** A Cloudflare Worker at `t.tiko.run`, its code in `collector/` in this repository, so anyone can read what is kept. It accepts only the known fields of a known `schema`, drops anything else, limits the body to 2 KB and each `instance_id` to 10 pings a day, adds `received_at` and `country`, and writes one row into Postgres (Neon). Raw rows are kept 13 months, then deleted; monthly counts are kept.
 
@@ -60,21 +60,21 @@ The README, the site and About say "no telemetry". That stays true for tracking 
 
 8. **Settings → Privacy.** Admins see two toggles for the whole instance. Under each: one line on what is sent and why, a link to the guide page, and for usage stats a "Show what is sent" box with the exact JSON of the next ping. People who are not admins see the state read-only.
 
-9. **Installers tell, they do not ask.** At the end both installers print:
+9. **Installers tell before they send.** Both installers print this before the first step, so it is on screen before anything is sent, and again at the end:
 
    ```text
-   Anonymous usage stats: on   (version, OS, install count; no personal data)
-   Error reports:         off
+   Usage stats:   on   (version, OS, install count; no personal data)
+   Error reports: off
    Details and how to change: https://tiko.run/docs/privacy/
    ```
 
-   `--no-stats` (`-NoStats`) writes `TIKO_USAGE_STATS=false` into `.env` and sends no install event.
+   `--no-stats` (`-NoStats`) or `TIKO_USAGE_STATS=false` in the environment writes `TIKO_USAGE_STATS=false` into `.env` and sends no install event.
 
 10. **Honest wording everywhere.** "No telemetry" goes away from `README.md`, the site (Hero, SelfHost, FAQ), About and the guide's security page. It becomes "No tracking" with a link to a new guide page **Privacy: usage stats and error reports**, which explains, in this order: why we collect (scale, which platforms and trackers to support first, what breaks after a release), what is sent field by field with a sample JSON, what is never sent, where it goes and how long it is kept, how to turn each stream off, and a link to `collector/`.
 
-11. **Our own instances.** `demo.tiko.run` and future hosted instances run with `TIKO_DEPLOY=demo` or `hosted`, so they do not count as self-hosted installs. Infrastructure metrics of a hosted tiko (Prometheus, node_exporter) are a separate topic.
+11. **Our own instances.** `demo.tiko.run` runs with `TIKO_DEPLOY=demo`, so it does not count as a self-hosted install.
 
-12. **Rule.** The project constitution records it: usage stats are anonymous counts, on by default, documented and off with one setting; error reports are off by default. The playbook's profile line ("telemetry off by default") is methodology from launchpad and is not edited here.
+12. **Rule.** The project constitution records it: usage stats carry no personal data, are on by default, documented and off with one setting; error reports are off by default.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -132,7 +132,7 @@ A person reads "No tracking" on the site, follows the link and in two minutes kn
 
 ## Out of scope
 
-- Metabase and Grafana dashboards; infrastructure metrics of a hosted tiko.
+- Metabase and Grafana dashboards.
 - Product analytics in the page: clicks, screens, sessions, funnels.
 - Usage stats per person or per board.
 - A public stats page.

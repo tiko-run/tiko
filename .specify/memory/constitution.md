@@ -32,7 +32,7 @@ Every task has a checkable done criterion (test, curl, screenshot). Unit tests c
 - Deferred by default: auth, roles, multi-tenancy, payments, admin panels, i18n — unless the hypothesis cannot be tested without them.
 - Every third-party library, model and dataset is disclosed in `THIRD_PARTY.md`.
 - Secrets never enter git; configuration comes from environment variables with safe defaults.
-- Usage stats are anonymous counts, on by default, documented field by field in the guide and off with one setting; error reports are off by default. Nothing personal leaves an instance (spec 025).
+- Usage stats carry no personal data, are on by default, documented field by field in the guide and off with one setting; error reports are off by default. Nothing personal leaves an instance (spec 025).
 
 ## Development Workflow
 
