@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.19] - 2026-10-14
+
 ### Changed
 
 - About shows the download of a one-click update under "Updating to", instead of a separate card the panel covered, and names the new versions once.
