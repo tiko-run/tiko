@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The Windows installer installs Docker Desktop on a new user profile too: it registers winget for the profile instead of stopping with "winget is missing".
+
 ## [2026.10.17] - 2026-10-14
 
 ### Added
