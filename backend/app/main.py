@@ -119,12 +119,25 @@ def _deploy(settings: Settings, hosting: str | None) -> Deploy:
         return "demo"
     if settings.tiko_deploy:
         return settings.tiko_deploy
-    return "railway" if hosting == "railway" else "render" if hosting == "render" else "compose"
+    return hosting if hosting in ("railway", "render") else "compose"
 
 
 def _arch() -> str:
     machine = platform.machine().lower()
-    return {"x86_64": "amd64", "aarch64": "arm64"}.get(machine, machine or "unknown")
+    return {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}.get(
+        machine, "other"
+    )
+
+
+async def ping_daily(stats: Privacy, sleep=asyncio.sleep) -> None:
+    await sleep(usage.FIRST_PING_S)
+    while True:
+        try:
+            await anyio.to_thread.run_sync(stats.send_ping)
+        except Exception:
+            # Usage stats never make noise in the log of the instance they describe.
+            log.debug("usage ping failed", exc_info=True)
+        await sleep(usage.PING_EVERY_S + random.uniform(0, usage.PING_JITTER_S))
 
 
 def create_app(
@@ -152,15 +165,6 @@ def create_app(
             except Exception:
                 log.exception("demo cleanup failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
-
-    async def ping_daily(stats: Privacy) -> None:
-        await asyncio.sleep(usage.FIRST_PING_S)
-        while True:
-            try:
-                await anyio.to_thread.run_sync(stats.send_ping)
-            except Exception:
-                log.exception("usage ping failed")
-            await asyncio.sleep(usage.PING_EVERY_S + random.uniform(0, usage.PING_JITTER_S))
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

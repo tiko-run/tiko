@@ -32,6 +32,7 @@ test('refuses values outside the documented ones', () => {
   assert.equal(clean({ ...ping, version: 'my-fork' }), null)
   assert.equal(clean({ ...ping, schema: 2 }), null)
   assert.equal(clean({ ...ping, kind: 'click' }), null)
+  assert.equal(clean({ ...ping, people: undefined }), null)
 })
 
 test('an install without failed_step stores null', () => {

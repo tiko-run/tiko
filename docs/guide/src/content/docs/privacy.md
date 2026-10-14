@@ -37,8 +37,8 @@ The installer sends one event at the end, or when a step fails.
 | `kind` | `install` |
 | `schema` | version of this format |
 | `version` | the tiko release being installed |
-| `os` | `linux`, `darwin` or `windows` |
-| `arch` | processor type, `amd64` or `arm64` |
+| `os` | `linux`, `darwin`, `windows` or `other` |
+| `arch` | processor type: `amd64`, `arm64` or `other` |
 | `installer` | `sh` or `ps1` |
 | `updater` | whether one-click updates were turned on |
 | `failed_step` | empty, or the step that failed: `docker-check`, `download`, `pull`, `start`, `health`; never the error text |
@@ -69,7 +69,7 @@ A running instance sends one ping 10 minutes after it starts and then once a day
 | `instance_id` | a random id made on the first start and kept in the database. It is not built from anything about the host or its people, so it only tells pings of one instance from those of another |
 | `version` | the tiko release that runs |
 | `deploy` | how it runs: `installer`, `compose`, `railway`, `render`, `source` or `demo` |
-| `arch` | processor type |
+| `arch` | processor type: `amd64`, `arm64` or `other` |
 | `trackers` | kinds of trackers the cards come from: `demo`, `jira_dc`, `github`. No addresses |
 | `people` | active accounts as a range: `1`, `2-5`, `6-20`, `21-100`, `100+` |
 | `boards` | boards as a range, the same ranges plus `0` |
@@ -88,7 +88,7 @@ The collector runs on Cloudflare, which sees the IP address of the request as an
 
 ## Where it goes
 
-Events go to `https://t.tiko.run/v1/events`, a small Cloudflare Worker whose code is in [`collector/`](https://github.com/tiko-run/tiko/tree/main/collector). It keeps only the fields above and adds the time it got them and the country. The rows sit in a Postgres database in the EU (Frankfurt), and only the tiko maintainers read them. We delete single rows after 13 months and keep monthly totals.
+Events go to `https://t.tiko.run/v1/events`, a small Cloudflare Worker whose code is in [`collector/`](https://github.com/tiko-run/tiko/tree/main/collector). It keeps only the fields above and adds the time it got them and the country. The rows sit in a Postgres database in the EU (Frankfurt), and only the tiko maintainers read them. We delete single rows after 13 months and keep monthly totals per field value and country.
 
 A new field means a new `schema`, a line in the changelog and an update of this page.
 

@@ -23,8 +23,10 @@ _TRACKERS: dict[str, Tracker] = {"demo": "demo", "jira": "jira_dc", "github": "g
 
 
 def bucket(count: int) -> Bucket:
-    if count <= 1:
-        return "0" if count <= 0 else "1"
+    if count <= 0:
+        return "0"
+    if count == 1:
+        return "1"
     if count <= 5:
         return "2-5"
     if count <= 20:

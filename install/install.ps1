@@ -41,6 +41,9 @@ if (-not $Port -and $env:TIKO_PORT) { $Port = [int]$env:TIKO_PORT }
 if (-not $Version) { $Version = if ($env:TIKO_VERSION) { $env:TIKO_VERSION } else { 'latest' } }
 $Version = $Version -replace '^v', ''
 $Dir = [IO.Path]::GetFullPath($Dir).TrimEnd('\')
+# Turned off once, the install stays quiet on every upgrade; read before the notice.
+$OldEnv = Join-Path $Dir '.env'
+if ((Test-Path $OldEnv) -and (Select-String -Path $OldEnv -Pattern '^TIKO_USAGE_STATS=false' -Quiet)) { $Stats = $false }
 $Upgrade = $false
 $NeedsRestart = $false
 $FreshDocker = $false
@@ -118,8 +121,6 @@ function Test-Machine {
 
   $envFile = Join-Path $Dir '.env'
   $script:Upgrade = Test-Path $envFile
-  # Turned off once, the install stays quiet on every upgrade.
-  if ($Upgrade -and (Select-String -Path $envFile -Pattern '^TIKO_USAGE_STATS=false' -Quiet)) { $script:Stats = $false }
   if ($Upgrade -and -not $Port) {
     $match = Select-String -Path $envFile -Pattern '^TIKO_PORT=(\d+)' | Select-Object -First 1
     if ($match) { $script:Port = [int]$match.Matches[0].Groups[1].Value }
@@ -254,11 +255,11 @@ function Initialize-Folder {
       'TIKO_DEPLOY=installer'
     )
     Say 'Created .env with a generated password and secret key'
-  } elseif (-not (Select-String -Path $envFile -Pattern "^TIKO_PORT=$Port`$" -Quiet)) {
-    Write-EnvFile $envFile (@(Get-Content $envFile | Where-Object { $_ -notmatch '^TIKO_PORT=' }) + "TIKO_PORT=$Port")
+  } else {
+    Write-EnvLine $envFile 'TIKO_PORT' "$Port"
   }
-  Set-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
-  if (-not $Stats) { Set-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
+  Write-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
+  if (-not $Stats) { Write-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
   Initialize-Updater $envFile
 
   $script:StepName = 'download'
@@ -319,7 +320,7 @@ function Show-Result {
 }
 
 # Sets KEY=VALUE in .env, keeping the other lines.
-function Set-EnvLine([string]$EnvFile, [string]$Key, [string]$Value) {
+function Write-EnvLine([string]$EnvFile, [string]$Key, [string]$Value) {
   if (Select-String -Path $EnvFile -Pattern "^$Key=$Value`$" -Quiet) { return }
   Write-EnvFile $EnvFile (@(Get-Content $EnvFile | Where-Object { $_ -notmatch "^$Key=" }) + "$Key=$Value")
 }
@@ -347,12 +348,13 @@ function Send-InstallEvent([string]$FailedStep) {
   $body = [ordered]@{
     kind = 'install'; schema = 1; version = $installed; os = 'windows'
     arch = $(if ($cpu -eq 'ARM64') { 'arm64' } elseif ($cpu -eq 'AMD64') { 'amd64' } else { 'other' })
-    installer = 'ps1'; updater = ($Updater -eq 'yes')
+    installer = 'ps1'
+    updater = ($Updater -eq 'yes') -or ((Test-Path $OldEnv) -and (Select-String -Path $OldEnv -Pattern '^COMPOSE_PROFILES=.*updater' -Quiet))
     failed_step = $(if ($FailedStep) { $FailedStep } else { $null })
   } | ConvertTo-Json -Compress
   try {
     Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Method Post -ContentType 'application/json' -Body $body -Uri $StatsUrl | Out-Null
-  } catch { }
+  } catch { Write-Verbose "usage stats not sent: $_" }
 }
 
 function Install-Tiko {

@@ -21,4 +21,4 @@ Body `{ "usage_stats": false }`. Answers like `GET`. `422` when the switch is lo
 
 ## Collector: `POST https://t.tiko.run/v1/events`
 
-The install event and the ping as listed in the guide. `204` when stored, `400` for anything else.
+The install event and the ping as listed in the guide. `204` when accepted, `400` for an event it does not know; other methods and paths are refused.
