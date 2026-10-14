@@ -28,7 +28,7 @@ backend/app/
     storage/  sqlite.py, migrations/*.sql (PRAGMA user_version)
     secrets/  fernet.py (token encryption with TIKO_SECRET_KEY)
     live/     rooms.py (open boards and their sockets)
-    releases/ github.py (latest release for "update available")
+    releases/ github.py (recent releases and their level for "update available")
   config.py   ENV, the single entry point
 ```
 

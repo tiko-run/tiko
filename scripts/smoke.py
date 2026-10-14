@@ -53,6 +53,9 @@ check(status == 204, "sign in")
 status, auth = call("GET", f"{API}/api/auth/status")
 check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
 
+status, version = call("GET", f"{API}/api/version")
+check(status == 200 and {"level", "newer", "update_check"} <= set(version), "version with levels")
+
 # An invite is opened and revoked, not accepted, so a run adds no person to the instance.
 status, link = call("POST", f"{API}/api/invites", {"role": "member"})
 check(status == 201 and link["url"].startswith("/?invite="), "create invite link")

@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/023-selection-bar",
+  "feature": "specs/024-updates",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -81,7 +81,8 @@
     "perf2-remeasure",
     "perf2-verdict",
     "selection-bar",
-    "element-style"
+    "element-style",
+    "update-check"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -179,7 +180,10 @@
     "G3_perf-workers": "approved",
     "G1_landing": "approved",
     "G3_landing": "approved",
-    "G3_perf-remeasure": "approved"
+    "G3_perf-remeasure": "approved",
+    "G1_updates": "approved",
+    "G2_updates": "approved",
+    "G3_update-check": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -255,6 +259,9 @@
     "2026-10-13 performance 2: slice perf2-socket-path merged under the owner's ok for the slices of spec 021 (PR 159). TIKO_SOCKET_DIR, off by default: each API process also listens on a Unix socket in a directory shared with the web container, and nginx reaches it there. On a laptop, three rooms of 30: about a tenth less CPU in both containers, the ranges touch. Whether the compose files turn it on, and the host's network (T031), wait for the reference run. Found before building perf2-edit-batch: of 643 to 650 messages a second a room sent in spec 019, 600 were presence and about 45 edits, so merging edits into the tick has almost nothing to merge. Proposed to the owner: skip R4, do R6 (presence at 10 Hz with pointers interpolated in the web app) next, R5 only if the remeasure asks. Waits for the owner's answer.",
     "2026-10-13 performance 2: owner agreed to the new order: R4 (perf2-edit-batch) is not built, R6 goes next, R5 only if the remeasure asks. Slice perf2-presence-rate approved at G3 (PR 160). A room of 10 sockets or more sends presence at most once in 100 ms; the web app measures the gap between frames and moves pointers and dragged elements over 160 ms instead of 80, without knowing the rule. On a laptop, three rooms of 30: presence frames out 2270 to 1206 a second, the API container 21.4% to 18.5% of a core, the web container 12.1% to 9.2%, pointer p95 54 to 56 ms. Owner's decisions: the web app and the server ship in one release, not a release apart as the spec first said; no release yet. The threshold of 10 sockets is the agent's choice and has no ENV. Next: slice perf2-remeasure on DigitalOcean, ask the owner before spending.",
     "2026-10-13 shapes: owner asked for a standard pack of shapes like the basic ones in Miro and told the agent to build it now in a worktree, next to spec 021. Spec 022, slice shapes approved at G3 after the owner's look at a local stack. Eight shapes as one node type `shape` (rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon, cylinder), a toolbar gallery on S, drawn by dragging or placed by a click with the outline following the pointer, see-through by default with the card surface and the six sticky colors as fills. The brief's Won't now names shapes outside the fixed pack. Owner's idea for later, a slice of its own: one edit panel for every element, like Miro's, in place of the separate toolbars of sticky notes and shapes. The feature in work stays spec 021.",
-    "2026-10-13 perf2-remeasure and perf2-verdict: R7 Tables A-C are recorded in specs/021-performance-2/results.md against the 019-end and R6 builds. Six DigitalOcean test droplets, the load-test firewall and SSH key were removed after collection. 8 vCPU was unavailable. R8 finds SQLite still affects many-visitor response with CPU available; the proxy remains above 10% host CPU but bridge, Unix socket and host network are within spread. Owner decision: whether to spec a direct browser-to-API socket or first size a larger host; do not start a new spec without G1."
+    "2026-10-13 perf2-remeasure and perf2-verdict: R7 Tables A-C are recorded in specs/021-performance-2/results.md against the 019-end and R6 builds. Six DigitalOcean test droplets, the load-test firewall and SSH key were removed after collection. 8 vCPU was unavailable. R8 finds SQLite still affects many-visitor response with CPU available; the proxy remains above 10% host CPU but bridge, Unix socket and host network are within spread. Owner decision: whether to spec a direct browser-to-API socket or first size a larger host; do not start a new spec without G1.",
+    "2026-10-14 G1 updates: owner asked for a release check every 30 minutes, a one-click update with progress and release levels (security, breaking, hotfix, feature); two slices, update-check first. On the updater the owner asked to follow the big self-hosted projects: an opt-in updater service with the Docker socket, chosen at install. Spec 024 awaits G2.",
+    "2026-10-14 G2 updates: owner approved spec 024: security banner for admins only, one-click updates on by default in the installers. Owner worried about disk: an update keeps 3 pre-update backups and the images of two releases and checks free space first.",
+    "2026-10-14 update-check: slice approved at G3 (PR 174): release check every 30 minutes with ETag, Check now, release levels from the first line of the notes (make release LEVEL=), security dot and admin banner. Next: one-click-update."
   ]
 }

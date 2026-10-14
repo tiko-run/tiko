@@ -174,7 +174,7 @@ Run these in the tiko folder. A new terminal opens somewhere else, and PowerShel
 | Stop | `docker compose down` |
 | Start again | `docker compose up -d` |
 | See logs | `docker compose logs -f` |
-| Upgrade | the one-line installer again, or `docker compose pull && docker compose up -d` |
+| Upgrade | the one-line installer again; the folder's `compose.yaml` is pinned to its release, so `docker compose pull` alone fetches nothing new |
 | Uninstall | `docker compose down`, then delete the folder |
 
 The folder's `data/` holds your boards, so back it up before deleting anything. More in [Data and upgrades](../data-and-upgrades/).

@@ -9,6 +9,7 @@ import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { NewBoardForm } from '@/board/NewBoardForm'
 import { AboutButton } from '@/board/AboutButton'
+import { UpdateBanner } from '@/board/UpdateBanner'
 import { FocusCapsule } from '@/focus/FocusCapsule'
 import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
@@ -173,6 +174,7 @@ export default function App() {
       )}
       {focusVisible && <FocusCapsule />}
       {signedIn && <AboutButton />}
+      {auth.data?.me?.role === 'admin' && <UpdateBanner />}
       {signedIn && <SettingsDialog />}
     </main>
   )

@@ -73,7 +73,8 @@ Backoff is per tracker on the server: `jira_rate_limited` and Jira 5xx double th
 
 | Method, path | Request | Response | Errors |
 |---|---|---|---|
-| `GET /version` | – | `{version, latest: {version, url} \| null, update_available}` (`version` is the running release; `latest` comes from GitHub, cached 6 h, retried after 1 h on failure, `null` when `UPDATE_CHECK=false` or GitHub is unreachable) | |
+| `GET /version` | – | `{version, update_check, latest: Release \| null, update_available, level: Level \| null, newer: Release[]}`, `Release = {version, url, level}`, `Level = feature \| hotfix \| breaking \| security` (`version` is the running release; `latest` is the newest of the last 100 GitHub releases, asked every 30 min per API process with `If-None-Match`, retried after 10 min on failure; a failed check keeps the last answer, so `latest` is `null` only when `UPDATE_CHECK=false` or no check has succeeded yet; `newer` lists the releases after the running one, newest first, and `level` is the highest of theirs; a release's level is the first line of its notes, see [spec 024](../../024-updates/spec.md)) | |
+| `POST /version/check` | – | as `GET /version`, asking GitHub at once, at most once in 5 minutes per API process | |
 
 ## Demo
 
