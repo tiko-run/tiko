@@ -28,6 +28,42 @@ Profile: **oss** ([strategy](docs/playbook/01-strategy.md)). Research: [docs/res
 
 Before UI work read [DESIGN.md](DESIGN.md) (missing → create it per [10-design.md](docs/playbook/10-design.md)). Components come from shadcn in `frontend/src/components/ui/`, colors from theme tokens. New screen — `/hallmark`, polish — `/impeccable`, slice check — `/ui-review`.
 
+## Code graph
+
+The repo is indexed by [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp),
+wired as the `codebase-memory` MCP server in `.mcp.json`. Per machine, once:
+
+```bash
+codebase-memory-mcp install                                   # binary to ~/.local/bin
+codebase-memory-mcp cli index_repository --repo-path .       # ~7s; empty cache finds nothing
+```
+
+Then restart the agent. The installer writes `~/.local/bin` to the shell profile; a client
+launched outside that shell cannot resolve the binary by name, so put it on `PATH` for that
+environment or set `.mcp.json`'s `command` to its absolute path. The graph itself lives in a
+per-user cache, never in the repo. A background watcher keeps it current afterwards, so reindex
+by hand only after changing `.cbmignore`. Prefer the graph over grep for structural questions:
+
+| Question | Tool |
+|---|---|
+| Who calls this / what breaks if I change it? | `trace_path` (`direction: inbound\|outbound`) |
+| What is this codebase? Which layers, entry points, hotspots? | `get_architecture` (`aspects: all`) |
+| Find a symbol by name | `search_graph` with `query` (BM25) |
+| Where is this concept / text? | `search_code` |
+| What does my branch change affect? | `detect_changes` (`scope: impact`) |
+| Is this change architecturally safe? | `query_graph` for `IMPORTS` edges |
+
+**Do not use `search_graph`'s `semantic_query`** — vector search returns noise on this version
+(upstream [#1417](https://github.com/DeusData/codebase-memory-mcp/issues/1417), [#1402](https://github.com/DeusData/codebase-memory-mcp/issues/1402)
+for non-English). Use BM25 `query` or `search_code` instead; it ranks correctly.
+
+Grep stays for exact string and regex work. The graph wins on relationships: it resolves call
+targets that grep reports falsely (e.g. a local variable sharing a function's name).
+
+Scope: `.cbmignore` keeps the graph to product code — `site/`, `brand/`, `specs/`, `.specify/`,
+`.agents/` and `install/` are scaffolding, not application code. After changing it, reindex:
+`codebase-memory-mcp cli index_repository --repo-path .`
+
 ## Coding standards
 
 In full: [docs/playbook/04-coding-standards.md](docs/playbook/04-coding-standards.md). In short:

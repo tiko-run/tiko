@@ -1,0 +1,21 @@
+# Non-product code: keep the graph about the product, not the scaffolding.
+# Mirrors the indexer's own discovery walk (same syntax as .gitignore).
+
+# Marketing/docs site, not shipped code
+site/
+
+# Brand asset generation, one-off Python
+brand/
+
+# Spec-kit scaffolding: shell templates, not application code
+.specify/
+specs/
+.agents/
+
+# Installer scripts (PowerShell), not part of the app
+install/
+
+# Local agent/tool state
+.claude/
+.playwright-mcp/
+.ruff_cache/
