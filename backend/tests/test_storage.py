@@ -195,3 +195,9 @@ def test_the_connection_for_reads_cannot_write(tmp_path):
     db = Database(str(tmp_path / "app.db"))
     with pytest.raises(sqlite3.OperationalError), db.read() as conn:
         conn.execute("DELETE FROM boards")
+
+
+def test_a_commit_does_not_wait_for_its_own_fsync(tmp_path):
+    db = Database(str(tmp_path / "app.db"))
+    with db.transaction() as conn:
+        assert conn.execute("PRAGMA synchronous").fetchone()[0] == 1

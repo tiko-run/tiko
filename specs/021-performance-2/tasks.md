@@ -119,3 +119,4 @@ In two tabs of a browser, with a room made busy at two sockets: the other tab we
 
 - [x] T070 Tables A to C by the rules of the spec, against the code of 019's end on the same VM. Not run: the target with 8 cores, a size the account does not allow, and a repeat of the profile of table C
 - [x] T071 `results.md` with the verdict table
+- [x] T072 Follow-up on 2026-10-14: the wait for SQLite under many visitors isolated and removed with `synchronous=NORMAL`; the visitor rows judged by echo, see [results.md](results.md)

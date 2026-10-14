@@ -17,7 +17,7 @@ Room steps use 30 sockets per room on 1000-element boards. Visitor steps use 15-
 | 4 | 2000 | 019 | 2867 `[2730..3344]` ms | 22718 `[13567..23580]` ms | 27793 `[26926..28497]` ms | 454 `[430..697]` | 73.3% | 205.0% | 295.4 ms |
 | 4 | 2000 | R6 | 988 `[880..1074]` ms | 1078 `[826..1999]` ms | 1432 `[965..4051]` ms | 0 `[0..4]` | 80.1% | 232.2% | 772.4 ms |
 
-The 1000-visitor R6 row still misses the 150 ms socket-sync target while the host is 56% busy; average database wait is 16.7 ms. At 2000 visitors, R6 improves the response and board-open results substantially, but socket sync remains over the limit and the spread includes up to four errors. The database wait grows sharply at that load.
+Socket sync is the time to open a board's socket and receive its first sync, measured through the ramp, so it falls under the 2 s board-open limit, not the 150 ms limit for a pointer or an edit; see "Follow-up: SQLite on 2026-10-14". By that rule the 1000-visitor R6 row passes. At 2000 visitors, R6 improves the response and board-open results substantially; the spread includes up to four errors. The database wait grows sharply at that load.
 
 ## Table B: rooms of 30
 
@@ -72,7 +72,7 @@ The socket-write path is well below the 50% trigger for a different WebSocket se
 
 | Part | Trigger evidence | Result and next step |
 |---|---|---|
-| SQLite | At 1000 visitors on 4 vCPU, average DB wait is 16.7 ms while host busy is 55.8%; socket-sync p95 is 490 ms. At 2000 visitors the wait is 772 ms. | **Candidate limit for many visitors.** R1 improved the wait, but the 1000-visitor row still misses. Isolate DB wait in a focused follow-up before choosing a second storage adapter. |
+| SQLite | At 2000 visitors on 4 vCPU the average DB wait is 772 ms with CPU to spare. | **Limit found and removed.** The follow-up of 2026-10-14 traced the wait to the write lock held through an fsync per commit while four processes compete for it; `synchronous=NORMAL` takes the save from 1763 ms to 18 ms on average. No second storage adapter is needed for this load. |
 | Uvicorn socket layer | `live.write` is 16.4% inclusive in the API profile, below the “over half” trigger. | **Not triggered**, on one capture at four rooms, where the process is far from full. Do not prototype a replacement server from this evidence. |
 | Python room core | The spec considers this only if a socket-server prototype fails to move the limit; that prototype was not triggered. | **Not triggered / not tested.** |
 | Proxy | The web container uses 15.1–16.7% of the host in the 24-room path comparison, above the 10% trigger. | **Triggered.** Bridge, Unix socket, and host networking are indistinguishable within spread. A direct browser-to-API socket is a possible next experiment, but adds TLS/port and install complexity; owner decision required. |
@@ -82,6 +82,33 @@ The socket-write path is well below the 50% trigger for a different WebSocket se
 
 The R6 build's average save reaches 93 ms at 7 rooms on 1 vCPU and 115 ms at 28 rooms on 4 vCPU. The four-room profile attributes 0.9% of samples to `save_live`, while room checks use 7.1%. These data do not isolate save cost at the capacity edge. Before building R5, profile the save path under a load that crosses the room limit and compare it with the event-loop and proxy work.
 
+## Follow-up: SQLite on 2026-10-14
+
+**Measured:** 2026-10-14 on DigitalOcean `fra1`, one `s-4vcpu-8gb` target with `TIKO_WORKERS=4` and one generator. **Build:** release `v2026.10.16`, with `PRAGMA synchronous` set by an environment variable for the run only. `FULL` is SQLite's default and what the release ran; `NORMAL` is the change. Two runs of each, taking turns.
+
+First, commits of an 8 KB row on the target's disk, 15 s each:
+
+| Writers | Commits a second | `FULL` p99 / max | `NORMAL` p99 / max |
+|---|---:|---:|---:|
+| 1 process | 1500 | 1.7 / 8 ms | 0.3 / 31 ms |
+| 4 processes | 500 | 11.2 / 184 ms | 1.4 / 16 ms |
+| 4 processes | 1500 | 54.2 / 833 ms | 5.1 / 79 ms |
+
+One process on its own reaches about 2000 commits a second with `FULL`, so the disk is fast. Four processes sharing the write lock wait behind each fsync, and a waiting process retries after sleeps of up to 100 ms; with no pacing at all, two of four writers gave up after 5 s with `database is locked`.
+
+Then `visitors.py` with `--rate 50 --hold 40`:
+
+| Visitors | Sync | Echo p95 | Board open p95 | Socket sync p95 | Host busy | Save avg | DB wait avg | Errors |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 1000 | `FULL` | 11.4 `[10.1..12.8]` ms | 322 `[288..355]` ms | 488 `[465..511]` ms | 48.7% | 7.6 ms | 0.9 ms | 0 |
+| 1000 | `NORMAL` | 10.9 `[9.3..12.6]` ms | 311 `[295..327]` ms | 482 `[453..510]` ms | 45.5% | 3.6 ms | 0.2 ms | 0 |
+| 2000 | `FULL` | 59.3 `[43.6..75.0]` ms | 546 `[495..597]` ms | 811 `[781..842]` ms | 75.2% | 1763 `[52..3474]` ms | 414 `[31..798]` ms | 0 |
+| 2000 | `NORMAL` | 69.5 `[58.0..81.1]` ms | 571 `[510..632]` ms | 909 `[803..1014]` ms | 64.9% | 18.3 `[8.1..28.5]` ms | 7.0 `[1.4..12.6]` ms | 0 |
+
+Echo is a visitor's pointer coming back through the server, the number the 150 ms limit is about. Both rows pass with either setting; at 2000 the generator's own lag reaches 47 to 94 ms at p99, so the echo there is partly the generator's. Socket sync does not move with the setting: it is the cost of opening a socket while 50 visitors arrive each second, not of the database.
+
+`FULL` at 2000 visitors is unstable: one run saved in 52 ms, the other in 3.5 s, the collapse R7 measured. With `NORMAL` the database holds the lock for saves 610 ms in a second instead of 2381, the host is 10 points less busy and the event loop's p95 lag halves, from 21.5 to 11.8 ms. The cost: a power cut or a crash of the host may lose the last commits; the database itself stays intact, and a crash of tiko loses nothing.
+
 ## Run files
 
-Raw generator outputs and the profile are kept in the git-ignored `tmp/do/r7/` directory for this checkout. The six temporary droplets, their firewall, and their DigitalOcean SSH key were deleted after collection; the private key was removed locally.
+Raw generator outputs and the profile are kept in the git-ignored `tmp/do/r7/` directory for this checkout, the follow-up's in `tmp/do/r9/`. The temporary droplets of both runs, their firewalls and their DigitalOcean SSH keys were deleted after collection; the private keys were removed locally.

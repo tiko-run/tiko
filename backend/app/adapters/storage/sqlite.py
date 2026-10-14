@@ -75,6 +75,9 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.Lock()
         self._conn.execute("PRAGMA journal_mode=WAL")
+        # A commit without its own fsync: with several processes each fsync held the write lock
+        # and the others queued behind it. WAL stays intact; a power cut may lose the last commits.
+        self._conn.execute("PRAGMA synchronous=NORMAL")
         self._migrate()
         # Reads have a connection of their own: in WAL they do not wait for a write, here or in
         # another process. An in-memory database belongs to one connection, so there they share.
