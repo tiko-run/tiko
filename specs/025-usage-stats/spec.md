@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-14
 
-**Status**: Draft, waiting for the owner at G2.
+**Status**: Approved by the owner at G2 on 2026-10-14: Sentry Cloud (EU), 13 months of raw rows, failed installs report their step, the strategy line changes.
 
 **Input**: Owner's idea: know how many people install and run tiko, on what, and where it breaks, without collecting anything personal, and say so honestly instead of "no telemetry".
 
@@ -74,7 +74,7 @@ The README, the site and About say "no telemetry". That stays true for tracking 
 
 11. **Our own instances.** `demo.tiko.run` and future hosted instances run with `TIKO_DEPLOY=demo` or `hosted`, so they do not count as self-hosted installs. Infrastructure metrics of a hosted tiko (Prometheus, node_exporter) are a separate topic.
 
-12. **Strategy.** The line "Telemetry: off by default; enabled only by an explicit user setting" in `docs/playbook/01-strategy.md` changes to "anonymous usage counts on by default, documented, off with one setting; error reports off by default". This needs the owner's approval at G2.
+12. **Rule.** The project constitution records it: usage stats are anonymous counts, on by default, documented and off with one setting; error reports are off by default. The playbook's profile line ("telemetry off by default") is methodology from launchpad and is not edited here.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -136,9 +136,3 @@ A person reads "No tracking" on the site, follows the link and in two minutes kn
 - Product analytics in the page: clicks, screens, sessions, funnels.
 - Usage stats per person or per board.
 - A public stats page.
-
-## Questions for the owner
-
-1. Sentry Cloud (EU) for error reports, or GlitchTip from the start?
-2. Retention: 13 months of raw rows, then monthly counts only. Enough?
-3. Should failed installs report their step (decision 2)? It is the main signal for "where it breaks on install".
