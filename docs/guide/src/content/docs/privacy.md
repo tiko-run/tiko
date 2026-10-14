@@ -101,3 +101,9 @@ Any one of these is enough:
 - The installer's `--no-stats` (`install.sh`) or `-NoStats` (`install.ps1`), or `TIKO_USAGE_STATS=false` in the environment when you run it. The installer then sends nothing and writes `TIKO_USAGE_STATS=false` into `.env`.
 
 Turned off, tiko sends nothing about the install. The release check (`UPDATE_CHECK`) is separate; see [Updates](../updates/).
+
+## Closed networks and your own collector
+
+tiko does not need the collector to work. Behind a firewall or without internet the ping fails quietly and nothing else changes; set `TIKO_USAGE_STATS=false` to skip even the attempt.
+
+To count your own instances instead, for a fork or many installs inside one company, run the Worker from [`collector/`](https://github.com/tiko-run/tiko/tree/main/collector) on your own Cloudflare account and database, and point tiko at it with `TIKO_STATS_URL` (the installers read the same variable). Its default is `https://t.tiko.run/v1/events`.

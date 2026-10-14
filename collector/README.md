@@ -6,4 +6,6 @@ The Cloudflare Worker behind `https://t.tiko.run/v1/events`. It accepts the inst
 - `schema.sql`: tables and the Worker's database role
 - `node --test`: checks what is kept and what is refused
 
-Deploy: run `schema.sql` on the database, then `wrangler secret put DATABASE_URL` with the `collector` role's connection string and `wrangler deploy`.
+Deploy: run `schema.sql` on the database, give the `collector` role a password, then `wrangler secret put DATABASE_URL` with that role's connection string and `wrangler deploy`.
+
+`wrangler.toml` routes the Worker to `t.tiko.run`, the tiko project's own collector. To run one for your fork or company, change `routes` to your domain and set `TIKO_STATS_URL` on your instances and when you run the installers.
