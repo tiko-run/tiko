@@ -45,7 +45,7 @@ The README, the site and About say "no telemetry". tiko does not track people an
 
 4. **What is never sent or stored**: IP addresses (Cloudflare sees the address of a request like any web host; the collector reads only the country from `CF-IPCountry` and does not store the address), host names, tracker URLs, board names or contents, task data, usernames, names, emails, tokens, file paths, error messages from the installer.
 
-5. **Collector.** A Cloudflare Worker at `t.tiko.run`, its code in `collector/` in this repository, so anyone can read what is kept. It accepts only the known fields of a known `schema`, drops anything else, limits the body to 2 KB and each `instance_id` to 10 pings a day, adds `received_at` and `country`, and writes one row into Postgres (Neon). Raw rows are kept 13 months, then deleted; monthly counts are kept.
+5. **Collector.** A Cloudflare Worker at `t.tiko.run`, its code in `collector/` in this repository, so anyone can read what is kept. It accepts only the known fields of a known `schema`, drops anything else, adds `received_at` and `country`, and writes one row into Postgres (Neon). Raw rows are kept 13 months, then deleted; monthly counts are kept.
 
 6. **Storage is built for dashboards later.** One table `events` (`id`, `received_at`, `kind`, `schema`, `instance_id`, `country`, `payload` as `jsonb`). Metabase and Grafana read Postgres directly; they are set up later and are not part of this feature. Until then, counts come from saved SQL queries kept outside the repository.
 
@@ -91,7 +91,7 @@ The owner opens a SQL query on Monday and sees: 140 installs last week, 60 % Lin
 3. **Given** the collector is down, **Then** the install finishes as usual within 3 extra seconds at most.
 4. **Given** `install.sh --no-stats`, **Then** no request is sent and `.env` has `TIKO_USAGE_STATS=false`.
 5. **Given** a running API, **Then** the first ping goes 10 minutes after start and the next ones every 24 hours, with the same `instance_id` across restarts.
-6. **Given** a payload with an unknown field or a body over 2 KB, **Then** the collector refuses it or stores only the known fields.
+6. **Given** a payload with an unknown field, **Then** the collector stores only the known fields.
 7. **Given** `TIKO_USAGE_STATS=false`, **Then** the API sends nothing and Settings shows the toggle locked with the variable's name.
 
 ### User Story 2 - See what breaks (Priority: P2)
