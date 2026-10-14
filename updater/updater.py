@@ -33,7 +33,7 @@ SETTLE_S = 5
 STOP_TIMEOUT_S = 10
 # Copies of the database taken before an update; older ones are deleted.
 KEEP_BACKUPS = 3
-PROGRESS_STEPS = 1000
+STEPS_PER_IMAGE = 1000
 LOG_LINES = 50
 VERSION = re.compile(r"^\d{4}\.\d{1,2}\.\d{1,3}$")
 TAG_DEFAULT = re.compile(r"\$\{TAG:-[^}]*\}")
@@ -255,7 +255,7 @@ def wait_healthy(
 def pull(docker: Docker, job: Job, refs: list[str]) -> None:
     # Every layer and image weighs the same: Docker names all layers of an image up front but
     # tells a layer's size only once it starts downloading, so a byte total would jump back.
-    total = PROGRESS_STEPS * len(refs)
+    total = STEPS_PER_IMAGE * len(refs)
     progress = 0
     for index, ref in enumerate(refs):
         job.note(f"Downloading {ref}")
@@ -269,14 +269,17 @@ def pull(docker: Docker, job: Job, refs: list[str]) -> None:
             status = event.get("status", "")
             if status == "Pulling fs layer":
                 layers.setdefault(layer, 0.0)
+            elif status == "Already exists":
+                # Nothing to download; often the first event, it would put the image at 100%.
+                layers.pop(layer, None)
             elif status == "Downloading" and detail.get("total"):
                 layers[layer] = detail.get("current", 0) / detail["total"]
-            elif status in ("Already exists", "Download complete", "Pull complete"):
+            elif status in ("Download complete", "Pull complete"):
                 layers[layer] = 1.0
             share = sum(layers.values()) / len(layers) if layers else 0.0
-            progress = max(progress, round(PROGRESS_STEPS * (index + share)))
+            progress = max(progress, round(STEPS_PER_IMAGE * (index + share)))
             job.set(downloaded=progress, total=total)
-        progress = PROGRESS_STEPS * (index + 1)
+        progress = STEPS_PER_IMAGE * (index + 1)
         job.set(downloaded=progress, total=total)
 
 

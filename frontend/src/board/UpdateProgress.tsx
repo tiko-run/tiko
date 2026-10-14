@@ -63,7 +63,6 @@ export function UpdateProgress() {
       ) : (
         <>
           <span className="text-muted-foreground">
-            {/* The updater counts layers, not bytes, so the bar never jumps back. */}
             Downloading the new version{status.total ? ` · ${percent}%` : '…'}
           </span>
           <div className="bg-muted h-1.5 overflow-hidden rounded-full">

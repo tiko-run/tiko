@@ -355,13 +355,13 @@ def test_server_refuses_odd_requests(server, body):
 
 
 class LayeredPull:
-    """Docker's real order: every layer announced first, a size only once its download starts."""
+    """Docker's order: cached layers first, then the rest, a size once a download starts."""
 
     def pull(self, repo, tag):
         yield {"status": "Pulling from " + repo, "id": tag}
-        for layer in ("small", "big", "cached"):
-            yield {"status": "Pulling fs layer", "id": layer, "progressDetail": {}}
         yield {"status": "Already exists", "id": "cached"}
+        for layer in ("small", "big"):
+            yield {"status": "Pulling fs layer", "id": layer, "progressDetail": {}}
         yield {"status": "Downloading", "id": "small", "progressDetail": {"current": 1, "total": 2}}
         yield {"status": "Download complete", "id": "small"}
         for current in (10, 900):
@@ -370,13 +370,20 @@ class LayeredPull:
         yield {"status": "Pull complete", "id": "big"}
 
 
-def test_progress_never_goes_back_across_layers_and_images():
+def test_progress_moves_forward_through_layers_and_images():
     job = Job()
     job.begin("2026.10.7")
     seen = []
     record = job.set
-    job.set = lambda **kw: (record(**kw), seen.append(kw["downloaded"] / kw["total"]))
+
+    def spy(**fields):
+        record(**fields)
+        seen.append(fields["downloaded"] / fields["total"])
+
+    job.set = spy
     refs = ["ghcr.io/tiko-run/tiko-api:2026.10.7", "ghcr.io/tiko-run/tiko-web:2026.10.7"]
     pull(LayeredPull(), job, refs)
     assert seen == sorted(seen)
-    assert seen[0] == 0 and 0 < seen[len(seen) // 4] < 0.5 and seen[-1] == 1
+    # The cached layer counts for nothing, so the first image is half done once its small one is.
+    assert seen[:6] == [0, 0, 0, 0, 0.125, 0.25]
+    assert seen[-1] == 1
