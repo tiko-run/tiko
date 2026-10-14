@@ -144,7 +144,14 @@ function Install-Wsl {
   $script:NeedsRestart = $true
 }
 
+# On a new user profile winget is on the machine, but App Installer is not registered for that user yet.
+function Register-Winget {
+  if (Test-Command winget) { return }
+  try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop } catch { return }
+}
+
 function Install-DockerDesktop {
+  Register-Winget
   if (-not (Test-Command winget)) {
     Say "Docker Desktop is not installed and winget is missing. Install Docker Desktop from $DockerDocs"
     Fail 'Docker Desktop is required; run the installer again once it is installed'
