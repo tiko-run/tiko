@@ -483,6 +483,26 @@ class SqliteSettingsRepo:
                     )
 
 
+class SqliteUsageCounts:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def people(self) -> int:
+        with self._db.read() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) FROM users WHERE demo_expires_at IS NULL AND disabled_at IS NULL"
+            ).fetchone()[0]
+
+    def boards(self) -> int:
+        with self._db.read() as conn:
+            return conn.execute("SELECT COUNT(*) FROM boards").fetchone()[0]
+
+    def sources(self) -> set[str]:
+        with self._db.read() as conn:
+            rows = conn.execute("SELECT DISTINCT source FROM task_snapshots_v3").fetchall()
+        return {row[0] for row in rows}
+
+
 _PERSON = "u.id, u.username, u.name, u.role, u.disabled_at, u.demo_expires_at"
 # A demo visitor who changed nothing: at most the welcome board, as it was made, and no task
 # status of their own. A rename leaves the version alone, so the time of the last change counts.

@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/024-updates",
+  "feature": "specs/025-usage-stats",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -84,7 +84,8 @@
     "element-style",
     "update-check",
     "sqlite-sync",
-    "one-click-update"
+    "one-click-update",
+    "usage-stats"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -267,6 +268,8 @@
     "2026-10-14 G2 updates: owner approved spec 024: security banner for admins only, one-click updates on by default in the installers. Owner worried about disk: an update keeps 3 pre-update backups and the images of two releases and checks free space first.",
     "2026-10-14 update-check: slice approved at G3 (PR 174): release check every 30 minutes with ETag, Check now, release levels from the first line of the notes (make release LEVEL=), security dot and admin banner. Next: one-click-update.",
     "2026-10-14 sqlite-sync: owner asked whether to move off SQLite and to keep runs short. A 45-minute follow-up on one 4 vCPU droplet: four API processes queue behind an fsync per commit; synchronous=NORMAL takes the save at 2000 visitors from 1763 ms to 18 ms and the DB wait from 414 to 7 ms. The R8 claim that visitor rows miss 150 ms applied the pointer limit to socket sync, a board-open cost; by echo both rows pass. No second storage adapter now; Postgres only if hosted tiko needs several hosts. nginx stays as it is. Results in specs/021-performance-2/results.md.",
-    "2026-10-14 one-click-update: slice approved at G3 (PR 176), spec 024 done: an optional updater service (Docker socket, compose profile updater, on by default in the installers) recreates api and web through the Docker API, copies the database after the old api stops, rolls back on a failed health check, keeps 3 copies and 2 releases of images. Checked end to end with a local registry; the run against GHCR and turning TIKO_UPDATER back on in the CI installer job wait for the first release with the tiko-updater image. The Azure Windows run stopped at the known winget bug #126. Hosted instances (demo, SaaS) should set UPDATE_CHECK=false."
+    "2026-10-14 one-click-update: slice approved at G3 (PR 176), spec 024 done: an optional updater service (Docker socket, compose profile updater, on by default in the installers) recreates api and web through the Docker API, copies the database after the old api stops, rolls back on a failed health check, keeps 3 copies and 2 releases of images. Checked end to end with a local registry; the run against GHCR and turning TIKO_UPDATER back on in the CI installer job wait for the first release with the tiko-updater image. The Azure Windows run stopped at the known winget bug #126. Hosted instances (demo, SaaS) should set UPDATE_CHECK=false.",
+    "2026-10-14 G2 usage stats: owner approved spec 025: anonymous install events and a daily ping on by default, documented field by field, off with TIKO_USAGE_STATS or Settings; error reports to Sentry Cloud (EU) off by default; raw rows kept 13 months; failed installs report the step name only. The strategy's telemetry line changed accordingly. Two slices, usage-stats first.",
+    "2026-10-14 usage-stats: slice merged (PR 190). Installers send one install event (step name on failure), the API one ping a day, fields in the guide's Usage stats page; Settings → Privacy, TIKO_USAGE_STATS, --no-stats turn it off, TIKO_STATS_URL points at another collector. Collector Worker on t.tiko.run with Neon tiko-stats in Frankfurt, role collector; raw rows 13 months, then monthly totals. Windows stand PASS before the review fixes; the fixes passed PSScriptAnalyzer in CI. The daily ping starts with the next release. Next: error-reports."
   ]
 }

@@ -9,6 +9,7 @@ from app.api import (
     live,
     me,
     people,
+    privacy,
     public,
     settings,
     tasks,
@@ -26,5 +27,6 @@ router.include_router(live.router)
 router.include_router(tasks.router)
 router.include_router(jql.router)
 router.include_router(settings.router)
+router.include_router(privacy.router)
 router.include_router(demo.router)
 router.include_router(version.router)

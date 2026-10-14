@@ -53,7 +53,7 @@ tiko puts the same tasks on an infinite canvas and keeps them current. What make
 
 - **Cards are live.** Each one shows the task's real status, refreshed while the board is open.
 - **Your tracker stays in charge.** tiko reads tasks and never edits them. Each person connects their own token and sees only what their tracker access allows.
-- **It is yours.** Self-hosted, one SQLite file, no telemetry.
+- **It is yours.** Self-hosted, one SQLite file, no tracking.
 
 Works with Jira Data Center and Server and with public GitHub issues today. Jira Cloud, Linear, Plane and others are planned: [all trackers](https://docs.tiko.run/trackers/).
 
@@ -164,7 +164,7 @@ Everything else lives at [docs.tiko.run](https://docs.tiko.run/).
 
 - Every page and API route asks you to sign in.
 - Tracker tokens are encrypted on the server and never sent back to the browser or written to logs.
-- tiko sends no telemetry. It talks to your tracker and, unless you turn it off, to GitHub to check for a new release.
+- tiko does not track people. It talks to your tracker, to GitHub to check for a new release, and once a day sends a few usage counts with no personal data. Each can be turned off; the fields are listed in [Usage stats](https://docs.tiko.run/privacy/).
 
 Details: [Security and privacy](https://docs.tiko.run/security/). Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 

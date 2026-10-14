@@ -1,0 +1,11 @@
+name = "tiko-collector"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = false
+routes = [{ pattern = "t.tiko.run", custom_domain = true }]
+
+# Old rows become monthly totals on the 1st of each month.
+[triggers]
+crons = ["0 3 1 * *"]
+
+# DATABASE_URL is a secret: wrangler secret put DATABASE_URL

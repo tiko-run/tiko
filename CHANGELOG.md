@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Usage stats: the installers send one event per install and a running instance sends one ping a day with its version, how it runs, the kinds of trackers in use and the number of people and boards as ranges. No personal data, board contents or addresses. Every field is listed in the guide's [Usage stats](https://docs.tiko.run/privacy/) page; turn them off in Settings → Privacy, with `TIKO_USAGE_STATS=false` or with the installer's `--no-stats` (`-NoStats`).
+
+### Changed
+
+- "No telemetry" in the README, the site and About now reads "No tracking", with a link to what is sent.
+
 ## [2026.10.19] - 2026-10-14
 
 ### Changed

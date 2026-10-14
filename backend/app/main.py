@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import platform
+import random
 import ssl
 import time
 from contextlib import asynccontextmanager
@@ -16,6 +18,7 @@ from app.adapters.live.rooms import LiveRooms
 from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
+from app.adapters.stats.http import HttpStatsSender
 from app.adapters.storage.lock import FileLock
 from app.adapters.storage.sqlite import (
     Database,
@@ -28,6 +31,7 @@ from app.adapters.storage.sqlite import (
     SqliteSessionRepo,
     SqliteSettingsRepo,
     SqliteSnapshotRepo,
+    SqliteUsageCounts,
     SqliteUserRepo,
 )
 from app.adapters.storage.update_backups import SqliteUpdateBackups
@@ -39,18 +43,19 @@ from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
-from app.domain import demo
+from app.domain import demo, usage
 from app.domain.accounts import Accounts
 from app.domain.errors import NotFound
 from app.domain.invites import Invites
 from app.domain.members import Members
-from app.domain.ports import ReleaseFeed, Updater
+from app.domain.ports import ReleaseFeed, StatsSender, Updater
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
 from app.domain.settings import LockedField, SettingsService, normalize_base_url
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
+from app.domain.usage import Deploy, UsageStats
 from app.observability import (
     DEMO_LIMIT,
     DEMO_VISITORS,
@@ -107,12 +112,39 @@ def _tracker_env(settings: Settings) -> dict[LockedField, str]:
     return env
 
 
+def _deploy(settings: Settings, hosting: str | None) -> Deploy:
+    if settings.tiko_demo:
+        return "demo"
+    if settings.tiko_deploy:
+        return settings.tiko_deploy
+    return hosting if hosting in ("railway", "render") else "compose"
+
+
+def _arch() -> str:
+    machine = platform.machine().lower()
+    return {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}.get(
+        machine, "other"
+    )
+
+
+async def ping_daily(stats: UsageStats, sleep=asyncio.sleep) -> None:
+    await sleep(usage.FIRST_PING_S)
+    while True:
+        try:
+            await anyio.to_thread.run_sync(stats.send_ping)
+        except Exception:
+            # Usage stats never make noise in the log of the instance they describe.
+            log.debug("usage ping failed", exc_info=True)
+        await sleep(usage.PING_EVERY_S + random.uniform(0, usage.PING_JITTER_S))
+
+
 def create_app(
     settings: Settings | None = None,
     jira_transport: httpx.BaseTransport | None = None,
     github_transport: httpx.BaseTransport | None = None,
     release_feed: ReleaseFeed | None = None,
     updater: Updater | None = None,
+    stats_sender: StatsSender | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     setup_logging(settings.log_level)
@@ -140,6 +172,10 @@ def create_app(
             else None
         )
         watcher = asyncio.create_task(watch_loop(live_gauges))
+        # One ping per instance, not per process.
+        pinger = (
+            asyncio.create_task(ping_daily(app.state.usage)) if settings.tiko_worker == 0 else None
+        )
         if workers:
             await workers.listen()
         # Each process counts its own, so each has a port: Prometheus reads them all.
@@ -156,6 +192,8 @@ def create_app(
             await anyio.to_thread.run_sync(listener.shutdown)
             listener.server_close()
         watcher.cancel()
+        if pinger:
+            pinger.cancel()
         if cleaner:
             cleaner.cancel()
         if workers:
@@ -280,6 +318,18 @@ def create_app(
     )
     app.state.one_click = OneClickUpdate(
         app.state.updates, updater, SqliteUpdateBackups(db.path), VERSION, hosting
+    )
+    if stats_sender is None:
+        stats_sender = HttpStatsSender(settings.tiko_stats_url, httpx.Client(timeout=5.0))
+    app.state.usage = UsageStats(
+        SqliteSettingsRepo(db),
+        SqliteUsageCounts(db),
+        stats_sender,
+        VERSION,
+        _deploy(settings, hosting),
+        _arch(),
+        updater=updater is not None,
+        env=settings.tiko_usage_stats,
     )
     app.include_router(router)
 

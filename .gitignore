@@ -44,3 +44,6 @@ site/public/_redirects
 site/public/favicon.svg
 site/public/apple-touch-icon.png
 site/public/og.png
+
+# wrangler cache of the collector Worker
+.wrangler/

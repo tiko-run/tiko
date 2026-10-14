@@ -42,6 +42,7 @@ Full list with versions: lock files (`backend/uv.lock`, `frontend/package-lock.j
 | Model / API | Provider | How it is used |
 |---|---|---|
 | Jira Data Center REST API v2 | the user's own Jira instance | Reads issue fields with the user's personal access token |
+| tiko usage stats collector | Cloudflare Workers and Neon Postgres (EU), run by the tiko project | Receives the install event and the daily ping described in the guide's Usage stats page; off with `TIKO_USAGE_STATS=false` |
 | GitHub REST API | github.com | Reads issues and pull requests of public repositories, without a token or with the server's read-only `GITHUB_TOKEN` |
 
 ## Data
