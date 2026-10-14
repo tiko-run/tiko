@@ -270,16 +270,15 @@ class Updater(Protocol):
 
     def status(self) -> UpdaterStatus: ...
 
-    def start(self, version: str, current: str, backup: str) -> UpdaterStatus: ...
+    def start(self, version: str, current: str) -> UpdaterStatus:
+        """The updater copies the database itself once the old API has stopped writing."""
+        ...
 
 
 class UpdateBackups(Protocol):
-    def free_and_needed(self) -> tuple[int, int]:
-        """Free bytes next to the database and the bytes a copy of it needs."""
-        ...
-
-    def copy_before_update(self, version: str) -> str:
-        """Copies the database aside before an update from `version`; returns the file name."""
+    def free_and_needed(self, version: str) -> tuple[int, int]:
+        """Free bytes next to the database and the bytes its copy before an update from
+        `version` needs."""
         ...
 
 

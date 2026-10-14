@@ -29,11 +29,11 @@ backend/app/
     secrets/  fernet.py (token encryption with TIKO_SECRET_KEY)
     live/     rooms.py (open boards and their sockets)
     releases/ github.py (recent releases and their level for "update available")
-    updater/  http.py (the updater service, with the token from data/updater-token)
+    updater/  http.py (client of the updater service in updater/, with the token from data/updater-token)
   config.py   ENV, the single entry point
 ```
 
-Everything external sits behind a port in `domain/ports.py`. `TaskProvider` is the tracker interface: `resolve`, `poll`, `search`, `check`, plus the query vocabulary and values. The other ports are repositories (`BoardRepo`, `MemberRepo`, `UserRepo`, `SessionRepo`, `InviteRepo`, `CredentialRepo`, `SnapshotRepo`, `SettingsRepo`), `SecretBox` for encryption, `LiveBoards` for the open sockets of live boards `ReleaseFeed` for the update check, and `Updater` and `UpdateBackups` for one-click updates. The tracker is a runtime setting (`demo` or `jira`), so connecting Jira needs no restart.
+Everything external sits behind a port in `domain/ports.py`. `TaskProvider` is the tracker interface: `resolve`, `poll`, `search`, `check`, plus the query vocabulary and values. The other ports are repositories (`BoardRepo`, `MemberRepo`, `UserRepo`, `SessionRepo`, `InviteRepo`, `CredentialRepo`, `SnapshotRepo`, `SettingsRepo`), `SecretBox` for encryption, `LiveBoards` for the open sockets of live boards, `ReleaseFeed` for the update check, and `Updater` and `UpdateBackups` for one-click updates. The tracker is a runtime setting (`demo` or `jira`), so connecting Jira needs no restart.
 
 The main tables:
 

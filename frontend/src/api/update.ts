@@ -28,13 +28,17 @@ export function startUpdate() {
   return fetchJson('/api/update', updateSchema, { method: 'POST' })
 }
 
-// Polled fast only while an update runs; the API is down for a while then, so no retries.
+// Polled fast while an update runs, and while the API does not answer: a page opened during the
+// restart picks the update up once the API is back.
 export function useUpdate(enabled: boolean) {
   return useQuery({
     queryKey: ['update'],
     queryFn: getUpdate,
     enabled,
     retry: false,
-    refetchInterval: (query) => (query.state.data?.status?.state === 'running' ? 1500 : false),
+    refetchInterval: (query) =>
+      query.state.data?.status?.state === 'running' || query.state.status === 'error'
+        ? 1500
+        : false,
   })
 }

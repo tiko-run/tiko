@@ -12,9 +12,11 @@ import re
 import secrets
 import shutil
 import socket
+import sqlite3
 import threading
 import time
 from collections.abc import Callable, Iterator
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -29,9 +31,10 @@ HEALTHY_WITHIN_S = 120
 # A container without a health check counts as up once it has run this long.
 SETTLE_S = 5
 STOP_TIMEOUT_S = 10
+# Copies of the database taken before an update; older ones are deleted.
+KEEP_BACKUPS = 3
 LOG_LINES = 50
 VERSION = re.compile(r"^\d{4}\.\d{1,2}\.\d{1,3}$")
-BACKUP = re.compile(r"^pre-update-[\d.]+\.db$")
 TAG_DEFAULT = re.compile(r"\$\{TAG:-[^}]*\}")
 # Settings the image brings: copied only when the container changed them, so the new image's apply.
 FROM_IMAGE = (
@@ -231,6 +234,8 @@ def wait_healthy(
     while clock() < deadline:
         state = docker.container(container)["State"]
         if not state.get("Running"):
+            # A container in a restart loop must run a whole SETTLE_S again.
+            running_since = None
             if state.get("Status") in ("exited", "dead"):
                 raise DockerError(f"exited with code {state.get('ExitCode')}")
         elif health := state.get("Health"):
@@ -281,6 +286,29 @@ def pin_compose(old_api: dict, target: str, install: Path) -> None:
             path.write_text(TAG_DEFAULT.sub(f"${{TAG:-{target}}}", path.read_text()))
 
 
+def backup_database(install: Path, version: str) -> str | None:
+    """Copies the database of the stopped api, so the copy holds every change made before it."""
+    data = install / "data"
+    if not (data / "app.db").exists():
+        return None
+    folder = data / "backups"
+    folder.mkdir(exist_ok=True)
+    name = f"pre-update-{version}.db"
+    partial = folder / f"{name}.partial"
+    partial.unlink(missing_ok=True)
+    with (
+        closing(sqlite3.connect(data / "app.db")) as source,
+        closing(sqlite3.connect(partial)) as copy,
+    ):
+        source.backup(copy)
+        copy.execute("PRAGMA journal_mode=DELETE")
+    partial.replace(folder / name)
+    kept = sorted(folder.glob("pre-update-*.db"), key=lambda p: p.stat().st_mtime)
+    for old in kept[:-KEEP_BACKUPS]:
+        old.unlink()
+    return name
+
+
 def restore_database(backup: str | None, install: Path) -> None:
     if not backup:
         return
@@ -296,7 +324,7 @@ def remove_old_images(docker: Docker, job: Job, repos: list[str], keep: set[str]
             tags = {
                 split_ref(t)[1] for t in image.get("RepoTags") or [] if t.startswith(f"{repo}:")
             }
-            if tags & (keep | {"latest"}):
+            if tags & keep:
                 continue
             try:
                 docker.remove_image(image["Id"])
@@ -311,12 +339,12 @@ def run_update(
     project: str,
     target: str,
     current: str,
-    backup: str | None,
     install: Path = INSTALL,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> None:
     replaced: list[tuple[dict, str, str | None]] = []
+    backup = None
     try:
         old = {s: service_container(docker, project, s) for s in SERVICES}
         refs = {s: f"{split_ref(c['Config']['Image'])[0]}:{target}" for s, c in old.items()}
@@ -331,26 +359,52 @@ def run_update(
             docker.rename(container["Id"], f"{name}-before-update")
             replaced.append((container, name, None))
             docker.stop(container["Id"])
+            if service == "api":
+                backup = backup_database(install, current)
+                job.note(f"Database copied to data/backups/{backup}")
             new = docker.create(name, body)
             replaced[-1] = (container, name, new)
             for network, endpoint in more_networks:
                 docker.connect(network, new, endpoint)
             docker.start(new)
             wait_healthy(docker, new, sleep, clock)
-
-        for container, _, _ in replaced:
-            docker.remove(container["Id"])
-        pin_compose(old["api"], target, install)
-        old_tags = {split_ref(c["Config"]["Image"])[1] for c in old.values()}
-        repos = [split_ref(ref)[0] for ref in refs.values()]
-        remove_old_images(docker, job, repos, {target, current, *old_tags})
-        job.note(f"Updated to v{target}")
-        job.set(state="done", step="done")
     except Exception as exc:
         job.note(f"Update failed: {exc}")
         if replaced:
             roll_back(docker, job, replaced, backup, install)
         job.set(state="failed", error=str(exc))
+        return
+
+    # The new version runs; nothing below may undo it, so a failure here is only noted.
+    tidy_up(docker, job, old, refs, target, current, install)
+    job.note(f"Updated to v{target}")
+    job.set(state="done", step="done")
+
+
+def tidy_up(
+    docker: Docker,
+    job: Job,
+    old: dict[str, dict],
+    refs: dict[str, str],
+    target: str,
+    current: str,
+    install: Path,
+) -> None:
+    for container in old.values():
+        try:
+            docker.remove(container["Id"])
+        except DockerError as exc:
+            job.note(f"Kept the old {container['Name'].lstrip('/')}: {exc}")
+    try:
+        pin_compose(old["api"], target, install)
+    except OSError as exc:
+        job.note(f"Could not write the new version into the compose file: {exc}")
+    old_tags = {split_ref(c["Config"]["Image"])[1] for c in old.values()}
+    repos = [split_ref(ref)[0] for ref in refs.values()]
+    try:
+        remove_old_images(docker, job, repos, {target, current, *old_tags})
+    except DockerError as exc:
+        job.note(f"Could not list old images: {exc}")
 
 
 def roll_back(
@@ -367,11 +421,7 @@ def roll_back(
                 docker.remove(new)
             docker.rename(container["Id"], name)
         # The new api may have migrated the database before it failed.
-        if any(
-            c["Config"].get("Labels", {}).get("com.docker.compose.service") == "api"
-            for c, _, _ in replaced
-        ):
-            restore_database(backup, install)
+        restore_database(backup, install)
         for container, _, _ in replaced:
             docker.start(container["Id"])
         job.note("The previous version runs again")
@@ -417,17 +467,15 @@ def make_handler(docker: Docker, job: Job, project: str, install: Path):
                 length = int(self.headers.get("Content-Length", "0"))
                 body = json.loads(self.rfile.read(min(length, 4096)) or b"{}")
                 target, current = str(body["version"]), str(body["current"])
-                backup = body.get("backup")
             except (ValueError, KeyError, TypeError):
                 return self._answer(400, {"error": "bad request"})
-            valid = VERSION.match(target) and VERSION.match(current)
-            if not valid or (backup is not None and not BACKUP.match(str(backup))):
+            if not (VERSION.match(target) and VERSION.match(current)):
                 return self._answer(400, {"error": "bad request"})
             if not job.begin(target):
                 return self._answer(409, {"error": "an update is already running"})
             threading.Thread(
                 target=run_update,
-                args=(docker, job, project, target, current, backup, install),
+                args=(docker, job, project, target, current, install),
                 daemon=True,
             ).start()
             self._answer(202, job.snapshot())

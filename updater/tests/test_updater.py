@@ -1,6 +1,8 @@
 import json
+import sqlite3
 import threading
 import urllib.request
+from contextlib import closing
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -8,7 +10,7 @@ from urllib.error import HTTPError
 import pytest
 
 import updater
-from updater import Job, container_body, run_update, split_ref
+from updater import DockerError, Job, container_body, run_update, split_ref, wait_healthy
 
 REPO = "ghcr.io/tiko-run/tiko"
 COMPOSE = """services:
@@ -19,6 +21,10 @@ COMPOSE = """services:
 """
 
 
+def short_id(service: str) -> str:
+    return f"{service}0123456789abcdef"[:12]
+
+
 def old_container(service: str, version: str = "2026.10.6") -> dict:
     return {
         "Id": f"{service}0123456789abcdef",
@@ -26,7 +32,7 @@ def old_container(service: str, version: str = "2026.10.6") -> dict:
         "Image": f"sha-{service}-{version}",
         "Config": {
             "Image": f"{REPO}-{service}:{version}",
-            "Hostname": f"{service}0123456789abcdef"[:12],
+            "Hostname": short_id(service),
             "Env": ["TIKO_WORKERS=1", "PATH=/usr/bin", "TIKO_PASSWORD=secret"],
             "Cmd": ["serve"],
             "Labels": {
@@ -41,27 +47,39 @@ def old_container(service: str, version: str = "2026.10.6") -> dict:
         "HostConfig": {"Binds": ["/home/ann/tiko/data:/app/data"]},
         "NetworkSettings": {
             "Networks": {
-                "tiko_default": {
-                    "Aliases": ["tiko-api-1", service, f"{service}0123456789abcdef"[:12]]
-                }
+                "tiko_default": {"Aliases": [f"tiko-{service}-1", service, short_id(service)]}
             }
         },
         "State": {"Running": True, "Status": "running"},
     }
 
 
+def rows(db: Path) -> list[str]:
+    with closing(sqlite3.connect(db)) as conn:
+        return [r[0] for r in conn.execute("SELECT note FROM notes ORDER BY note")]
+
+
+def add_row(db: Path, note: str) -> None:
+    with closing(sqlite3.connect(db)) as conn, conn:
+        conn.execute("INSERT INTO notes VALUES (?)", (note,))
+
+
 class FakeDocker:
-    def __init__(self, healthy: bool = True, pull_error: str | None = None) -> None:
+    """Docker as the updater sees it; starting the new api adds a row, as a migration would."""
+
+    def __init__(self, install: Path, healthy: bool = True, pull_error: str | None = None):
+        self.install = install
         self.calls: list[tuple] = []
         self.healthy = healthy
         self.pull_error = pull_error
         self.olds = {s: old_container(s) for s in updater.SERVICES}
-        self.created: dict[str, dict] = {}
         self.image_list = [
-            {"Id": "sha-api-2026.10.5", "RepoTags": [f"{REPO}-api:2026.10.5"]},
-            {"Id": "sha-api-2026.10.6", "RepoTags": [f"{REPO}-api:2026.10.6"]},
-            {"Id": "sha-api-2026.11.1", "RepoTags": [f"{REPO}-api:2026.11.1"]},
+            {"Id": f"sha-{s}-{v}", "RepoTags": [f"{REPO}-{s}:{v}"]}
+            for s in updater.SERVICES
+            for v in ("2026.10.4", "2026.10.5", "2026.10.6", "2026.11.1")
         ]
+        self.image_list.append({"Id": "sha-api-latest", "RepoTags": [f"{REPO}-api:latest"]})
+        self.fail_image_listing = False
 
     def containers(self, labels):
         service = labels[1].split("=")[1]
@@ -84,7 +102,9 @@ class FakeDocker:
         }
 
     def images(self, repo):
-        return [i for i in self.image_list if i["RepoTags"][0].startswith(repo)]
+        if self.fail_image_listing:
+            raise DockerError("images: 500")
+        return [i for i in self.image_list if i["RepoTags"][0].startswith(f"{repo}:")]
 
     def pull(self, repo, tag):
         self.calls.append(("pull", f"{repo}:{tag}"))
@@ -95,10 +115,8 @@ class FakeDocker:
         yield {"status": "Download complete", "id": "l1"}
 
     def create(self, name, body):
-        new = f"new-{name}"
-        self.created[new] = body
         self.calls.append(("create", name))
-        return new
+        return f"new-{name}"
 
     def connect(self, network, container, endpoint):
         self.calls.append(("connect", network, container))
@@ -108,6 +126,8 @@ class FakeDocker:
 
     def start(self, container):
         self.calls.append(("start", container))
+        if container == "new-tiko-api-1":
+            add_row(self.install / "data" / "app.db", "written by the new version")
 
     def stop(self, container):
         self.calls.append(("stop", container))
@@ -121,16 +141,17 @@ class FakeDocker:
 
 @pytest.fixture
 def install(tmp_path: Path) -> Path:
-    (tmp_path / "data" / "backups").mkdir(parents=True)
-    (tmp_path / "data" / "app.db").write_text("migrated")
-    (tmp_path / "data" / "app.db-wal").write_text("wal")
-    (tmp_path / "data" / "backups" / "pre-update-2026.10.6.db").write_text("before")
+    (tmp_path / "data").mkdir()
+    with closing(sqlite3.connect(tmp_path / "data" / "app.db")) as conn, conn:
+        conn.execute("CREATE TABLE notes (note TEXT)")
+        conn.execute("INSERT INTO notes VALUES ('saved before the update')")
     (tmp_path / "compose.yaml").write_text(COMPOSE)
     return tmp_path
 
 
 class Clock:
-    now = 0.0
+    def __init__(self) -> None:
+        self.now = 0.0
 
     def __call__(self) -> float:
         return self.now
@@ -143,17 +164,7 @@ def update(docker: FakeDocker, install: Path) -> Job:
     job = Job()
     assert job.begin("2026.11.1")
     clock = Clock()
-    run_update(
-        docker,
-        job,
-        "tiko",
-        "2026.11.1",
-        "2026.10.6",
-        "pre-update-2026.10.6.db",
-        install,
-        clock.sleep,
-        clock,
-    )
+    run_update(docker, job, "tiko", "2026.11.1", "2026.10.6", install, clock.sleep, clock)
     return job
 
 
@@ -164,26 +175,26 @@ def test_split_ref():
     assert split_ref("localhost:5000/r:2") == ("localhost:5000/r", "2")
 
 
-def test_new_container_keeps_own_settings_and_takes_the_image_defaults():
-    docker = FakeDocker()
-    body, more = container_body(docker, docker.olds["api"], f"{REPO}-api:2026.11.1")
-    assert body["Image"] == f"{REPO}-api:2026.11.1"
+@pytest.mark.parametrize("service", updater.SERVICES)
+def test_new_container_keeps_own_settings_and_takes_the_image_defaults(install, service):
+    docker = FakeDocker(install)
+    body, more = container_body(docker, docker.olds[service], f"{REPO}-{service}:2026.11.1")
+    assert body["Image"] == f"{REPO}-{service}:2026.11.1"
     assert "Hostname" not in body
     assert "Cmd" not in body
     assert body["Env"] == ["TIKO_WORKERS=1", "TIKO_PASSWORD=secret"]
     assert "org.opencontainers.image.version" not in body["Labels"]
     assert "com.docker.compose.image" not in body["Labels"]
-    assert body["Labels"]["com.docker.compose.service"] == "api"
+    assert body["Labels"]["com.docker.compose.service"] == service
     assert body["HostConfig"] == {"Binds": ["/home/ann/tiko/data:/app/data"]}
     aliases = body["NetworkingConfig"]["EndpointsConfig"]["tiko_default"]["Aliases"]
-    assert aliases == ["tiko-api-1", "api"]
+    assert aliases == [f"tiko-{service}-1", service]
     assert more == []
 
 
 def test_update_replaces_api_then_web_and_cleans_up(install: Path):
-    docker = FakeDocker()
-    job = update(docker, install)
-    status = job.snapshot()
+    docker = FakeDocker(install)
+    status = update(docker, install).snapshot()
     assert (status["state"], status["error"]) == ("done", None)
     assert (status["downloaded"], status["total"]) == (20, 20)
     steps = [c for c in docker.calls if c[0] in ("create", "start", "stop")]
@@ -196,35 +207,95 @@ def test_update_replaces_api_then_web_and_cleans_up(install: Path):
         ("start", "new-tiko-web-1"),
     ]
     assert ("remove", "api0123456789abcdef") in docker.calls
+    assert ("remove", "web0123456789abcdef") in docker.calls
     assert "${TAG:-2026.11.1}" in (install / "compose.yaml").read_text()
     assert "2026.10.6" not in (install / "compose.yaml").read_text()
-    removed = [c[1] for c in docker.calls if c[0] == "remove_image"]
-    assert removed == ["sha-api-2026.10.5"]
-    assert (install / "data" / "app.db").read_text() == "migrated"
+    removed = sorted(c[1] for c in docker.calls if c[0] == "remove_image")
+    assert removed == [
+        "sha-api-2026.10.4",
+        "sha-api-2026.10.5",
+        "sha-api-latest",
+        "sha-web-2026.10.4",
+        "sha-web-2026.10.5",
+    ]
+    backup = install / "data" / "backups" / "pre-update-2026.10.6.db"
+    assert rows(backup) == ["saved before the update"]
+    assert rows(install / "data" / "app.db") == [
+        "saved before the update",
+        "written by the new version",
+    ]
+
+
+def test_backup_holds_edits_made_until_the_old_api_stops(install: Path):
+    docker = FakeDocker(install)
+    stop = docker.stop
+
+    def stop_after_a_last_edit(container):
+        add_row(install / "data" / "app.db", "edited while downloading")
+        stop(container)
+
+    docker.stop = stop_after_a_last_edit
+    update(docker, install)
+    backup = install / "data" / "backups" / "pre-update-2026.10.6.db"
+    assert "edited while downloading" in rows(backup)
 
 
 def test_unhealthy_api_rolls_back_with_the_backup(install: Path):
-    docker = FakeDocker(healthy=False)
-    job = update(docker, install)
-    status = job.snapshot()
+    docker = FakeDocker(install, healthy=False)
+    status = update(docker, install).snapshot()
     assert status["state"] == "failed"
     assert "health check failed" in status["error"]
     assert ("remove", "new-tiko-api-1") in docker.calls
     assert ("rename", "api0123456789abcdef", "tiko-api-1") in docker.calls
     assert docker.calls[-1] == ("start", "api0123456789abcdef")
-    assert (install / "data" / "app.db").read_text() == "before"
+    assert rows(install / "data" / "app.db") == ["saved before the update"]
     assert not (install / "data" / "app.db-wal").exists()
     assert "2026.10.6" in (install / "compose.yaml").read_text()
     assert "The previous version runs again" in status["log"]
 
 
 def test_failed_download_touches_nothing(install: Path):
-    docker = FakeDocker(pull_error="no space left on device")
+    docker = FakeDocker(install, pull_error="no space left on device")
     status = update(docker, install).snapshot()
     assert status["state"] == "failed"
     assert "no space left on device" in status["error"]
     assert [c for c in docker.calls if c[0] != "pull"] == []
-    assert (install / "data" / "app.db").read_text() == "migrated"
+    assert not (install / "data" / "backups").exists()
+
+
+def test_tidying_up_never_undoes_a_good_update(install: Path):
+    docker = FakeDocker(install)
+    docker.fail_image_listing = True
+    status = update(docker, install).snapshot()
+    assert status["state"] == "done"
+    assert "Could not list old images: images: 500" in status["log"]
+    assert ("rename", "api0123456789abcdef", "tiko-api-1") not in docker.calls
+
+
+def test_backups_keep_the_newest_three(install: Path):
+    for version in ["2026.10.1", "2026.10.2", "2026.10.3", "2026.10.4"]:
+        updater.backup_database(install, version)
+    names = sorted(p.name for p in (install / "data" / "backups").iterdir())
+    assert names == [
+        "pre-update-2026.10.2.db",
+        "pre-update-2026.10.3.db",
+        "pre-update-2026.10.4.db",
+    ]
+
+
+def test_a_container_in_a_restart_loop_must_run_again_in_full():
+    # Up for 3 s, down once, then up: it counts from the restart, so it is up 5 s later.
+    states = [True] * 3 + [False] + [True] * 10
+    polls = iter(states)
+
+    class Looping:
+        def container(self, ref):
+            running = next(polls)
+            return {"State": {"Running": running, "Status": "running" if running else "restarting"}}
+
+    clock = Clock()
+    wait_healthy(Looping(), "web", clock.sleep, clock)
+    assert clock.now == 4 + updater.SETTLE_S
 
 
 def test_one_update_at_a_time():
@@ -238,9 +309,8 @@ def server(install: Path, monkeypatch: pytest.MonkeyPatch):
     (install / "data" / "updater-token").write_text("tok\n")
     started = threading.Event()
     monkeypatch.setattr(updater, "run_update", lambda *args: started.set())
-    httpd = ThreadingHTTPServer(
-        ("127.0.0.1", 0), updater.make_handler(FakeDocker(), Job(), "tiko", install)
-    )
+    handler = updater.make_handler(FakeDocker(install), Job(), "tiko", install)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{httpd.server_port}", started
     httpd.shutdown()
@@ -269,7 +339,7 @@ def test_server_needs_the_token(server):
 
 def test_server_starts_one_update(server):
     url, started = server
-    body = {"version": "2026.11.1", "current": "2026.10.6", "backup": "pre-update-2026.10.6.db"}
+    body = {"version": "2026.11.1", "current": "2026.10.6"}
     status, answer = ask(url, "/update", "tok", body)
     assert (status, answer["state"], answer["target"]) == (202, "running", "2026.11.1")
     assert started.wait(2)
@@ -277,12 +347,7 @@ def test_server_starts_one_update(server):
 
 
 @pytest.mark.parametrize(
-    "body",
-    [
-        {"version": "latest", "current": "2026.10.6"},
-        {"version": "2026.11.1", "current": "2026.10.6", "backup": "../app.db"},
-        {"version": "2026.11.1"},
-    ],
+    "body", [{"version": "latest", "current": "2026.10.6"}, {"version": "2026.11.1"}]
 )
 def test_server_refuses_odd_requests(server, body):
     url, _ = server

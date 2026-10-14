@@ -1,5 +1,7 @@
+import contextlib
 import os
 import secrets
+import tempfile
 from pathlib import Path
 
 import httpx
@@ -9,15 +11,25 @@ from app.domain.updates import UpdaterStatus
 
 
 def ensure_token(path: Path) -> str:
-    """The token the updater checks; made once, by whichever API process starts first."""
+    """The token the updater checks; made once, by whichever API process starts first. It is
+    written aside and linked into place, so a crash mid-write never leaves an empty token."""
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        return path.read_text().strip()
-    token = secrets.token_urlsafe(32)
-    with os.fdopen(fd, "w") as file:
-        file.write(token + "\n")
-    return token
+        token = path.read_text().strip()
+    except FileNotFoundError:
+        token = ""
+    if token:
+        return token
+    path.unlink(missing_ok=True)
+    fd, aside = tempfile.mkstemp(dir=path.parent, prefix=".updater-token-")
+    try:
+        with os.fdopen(fd, "w") as file:
+            file.write(secrets.token_urlsafe(32) + "\n")
+        # Another API process linked its token first: keep that one.
+        with contextlib.suppress(FileExistsError):
+            os.link(aside, path)
+    finally:
+        os.unlink(aside)
+    return path.read_text().strip()
 
 
 class HttpUpdater:
@@ -47,7 +59,5 @@ class HttpUpdater:
     def status(self) -> UpdaterStatus:
         return self._ask("GET", "/status")
 
-    def start(self, version: str, current: str, backup: str) -> UpdaterStatus:
-        return self._ask(
-            "POST", "/update", {"version": version, "current": current, "backup": backup}
-        )
+    def start(self, version: str, current: str) -> UpdaterStatus:
+        return self._ask("POST", "/update", {"version": version, "current": current})

@@ -67,9 +67,13 @@ function Read-Approval([string]$Question) {
   (Read-Host "$Question [Y/n]") -notmatch '^(n|no)$'
 }
 
-# Asked once and kept in .env, so an upgrade does not ask again.
+# Asked once and kept in .env, so an upgrade does not ask again; TIKO_UPDATER or -NoUpdater
+# change the kept answer.
 function Initialize-Updater([string]$EnvFile) {
-  if (Select-String -Path $EnvFile -Pattern '^COMPOSE_PROFILES=' -Quiet) { return }
+  if (Select-String -Path $EnvFile -Pattern '^COMPOSE_PROFILES=' -Quiet) {
+    if (-not $Updater) { return }
+    Write-EnvFile $EnvFile @(Get-Content $EnvFile | Where-Object { $_ -notmatch '^COMPOSE_PROFILES=' })
+  }
   if (-not $Updater) {
     Say 'One-click updates add a small service with access to Docker, so an admin can update'
     Say 'tiko from the About button. Without it you update by running this installer again.'

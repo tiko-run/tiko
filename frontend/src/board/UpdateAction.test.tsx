@@ -106,26 +106,23 @@ test('a failed update shows its log', async () => {
   expect(screen.getByText('Rolling back')).toBeInTheDocument()
 })
 
-test('progress follows the download, then reloads on the new version', async () => {
+test('progress follows the download, then reloads once the update is done', async () => {
   const reload = vi.fn()
   vi.stubGlobal('location', { ...window.location, reload })
   let phase = 'download'
+  const running = { ...idle, state: 'running', step: 'download', target: '2026.11.1' }
   serve({
-    '/api/update': () =>
-      phase === 'download'
-        ? {
-            available: true,
-            hosting: null,
-            status: {
-              ...idle,
-              state: 'running',
-              step: 'download',
-              target: '2026.11.1',
-              downloaded: 30,
-              total: 120,
-            },
-          }
-        : new Error('api restarting'),
+    '/api/update': () => {
+      if (phase === 'download') {
+        return {
+          available: true,
+          hosting: null,
+          status: { ...running, downloaded: 30, total: 120 },
+        }
+      }
+      if (phase === 'restart') return new Error('api restarting')
+      return { available: true, hosting: null, status: { ...running, state: 'done', step: 'done' } }
+    },
     '/api/version': { ...info(), version: '2026.11.1' },
   })
   renderWith(<UpdateProgress />)
@@ -135,8 +132,10 @@ test('progress follows the download, then reloads on the new version', async () 
   expect(
     await screen.findByText('Restarting tiko. The page reloads by itself.'),
   ).toBeInTheDocument()
-  await waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 4000 })
-}, 10_000)
+  expect(reload).not.toHaveBeenCalled()
+  phase = 'done'
+  await waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 5000 })
+}, 12_000)
 
 test('nothing shows when no update runs', async () => {
   const fetch = serve({ '/api/update': { available: true, hosting: null, status: idle } })
@@ -154,10 +153,10 @@ test('other pages learn about the new version', async () => {
       <UpdatedNotice />
     </QueryClientProvider>,
   )
-  await waitFor(() => expect(client.getQueryData(['version'])).toBeTruthy())
+  await waitFor(() => expect(client.getQueryData(['version', 'running'])).toBeTruthy())
   expect(toast).not.toHaveBeenCalled()
   version = '2026.11.1'
-  await act(() => client.refetchQueries({ queryKey: ['version'] }))
+  await act(() => client.refetchQueries({ queryKey: ['version', 'running'] }))
   await waitFor(() =>
     expect(toast).toHaveBeenCalledWith(
       'tiko was updated to v2026.11.1',

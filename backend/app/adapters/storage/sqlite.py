@@ -121,12 +121,6 @@ class Database:
     def path(self) -> str:
         return self._path
 
-    def copy_to(self, target: Path) -> None:
-        """A consistent copy of the live database in one self-contained file."""
-        with self._lock, closing(sqlite3.connect(target)) as copy:
-            self._conn.backup(copy)
-            copy.execute("PRAGMA journal_mode=DELETE")
-
     def transaction(self):
         # Named after the method that asked, so a slow kind of work can be told from the rest.
         return self._transaction(sys._getframe(1).f_code.co_qualname)

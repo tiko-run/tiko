@@ -132,7 +132,7 @@ class UpdateView(BaseModel):
 
 
 class OneClickUpdate:
-    """Starts an update through the updater service, after a backup of the database."""
+    """Starts an update through the updater service, which copies the database first."""
 
     def __init__(
         self,
@@ -165,14 +165,13 @@ class OneClickUpdate:
             raise UpdateNotPossible("There is no newer release to update to.")
         if self._updater.status().state == "running":
             raise UpdateNotPossible("An update is already running.")
-        free, needed = self._backups.free_and_needed()
+        free, needed = self._backups.free_and_needed(self._current)
         if free < needed:
             raise NotEnoughSpace(
                 f"The backup before the update needs {_mb(needed)}, "
                 f"and only {_mb(free)} is free next to the database."
             )
-        backup = self._backups.copy_before_update(self._current)
-        status = self._updater.start(latest.version, self._current, backup)
+        status = self._updater.start(latest.version, self._current)
         return UpdateView(available=True, hosting=self._hosting, status=status)
 
 

@@ -21,15 +21,15 @@ The check sends GitHub no data about you or your boards.
 
 An admin opens About and clicks **Update now**. tiko then:
 
-1. Copies the database to `data/backups/pre-update-<version>.db`. It keeps the 3 newest of these copies and leaves other backups alone.
-2. Downloads the new release and shows the progress in the bottom left.
-3. Restarts the `api` container on the new release, then the `web` container, and reloads your page. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
+1. Downloads the new release and shows the progress in the bottom left.
+2. Stops the `api` container and copies the database to `data/backups/pre-update-<version>.db`, so the copy holds every change made up to that moment. It keeps the 3 newest of these copies and leaves other backups alone.
+3. Starts `api` on the new release, then restarts the `web` container the same way, and reloads your page. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
 
 People who are not admins see "Ask an admin to update". A release marked **Breaking changes** asks you to read its notes first.
 
 ### When something goes wrong
 
-If the new version does not start within 2 minutes, tiko goes back on its own. It starts the previous containers again and puts the database copy back. About then says that the update failed and shows its log.
+If a new container does not start within 2 minutes, tiko goes back on its own. It starts the previous containers again and puts the database copy back. About then says that the update failed and shows its log.
 
 If the disk is too full for the database copy, the update does not start, and About tells you how much space it needs. If the disk fills up during the download, the download fails before any container is touched, and the running version stays as it was.
 
@@ -46,7 +46,7 @@ What the updater does:
 - downloads the `tiko-api` and `tiko-web` images of the new release from `ghcr.io`;
 - replaces the `api` and `web` containers of your tiko with the same settings, ports and volumes;
 - writes the new version into your `compose.yaml`, so a later `docker compose up` stays on it;
-- copies the database backup back if the new version fails;
+- copies the database aside once the old `api` has stopped, and back if the new version fails;
 - removes old tiko images.
 
 What it does not do:
@@ -59,7 +59,7 @@ What it does not do:
 
 ## Turn it on or off
 
-The one-line installers ask "Turn on one-click updates?", yes by default, and store the answer in `.env`. On later runs they do not ask again. To install without it, use `--no-updater` (`-NoUpdater` on Windows) or `TIKO_UPDATER=no`.
+The one-line installers ask "Turn on one-click updates?", yes by default, and store the answer in `.env`. On later runs they do not ask again. To install without it, use `--no-updater` (`-NoUpdater` on Windows) or `TIKO_UPDATER=no`. Running the installer again with `TIKO_UPDATER=yes` or `TIKO_UPDATER=no` changes the stored answer.
 
 To turn it off later, set this in `.env` in the tiko folder:
 
@@ -68,5 +68,7 @@ COMPOSE_PROFILES=
 ```
 
 Then run `docker compose up -d --remove-orphans`. To turn it on, set `COMPOSE_PROFILES=updater` and run `docker compose up -d`. Without the updater, About tells you to run the installer again, and the steps in [Upgrade by hand](../data-and-upgrades/#upgrade-by-hand) still work.
+
+With rootless Docker the updater cannot reach Docker, so the installer leaves it off.
 
 On Railway and Render the platform runs the containers, so there is no updater, and About says to redeploy the service instead. A build from source updates with `git pull`.

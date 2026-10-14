@@ -38,7 +38,7 @@ from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
-from app.config import Settings, get_settings
+from app.config import DEFAULT_DB_PATH, Settings, get_settings
 from app.domain import demo
 from app.domain.accounts import Accounts
 from app.domain.errors import NotFound
@@ -265,11 +265,13 @@ def create_app(
     if release_feed is None and settings.update_check:
         release_feed = GitHubReleaseFeed("tiko-run/tiko", httpx.Client(timeout=5.0))
     app.state.updates = UpdateService(VERSION, release_feed if settings.update_check else None)
+    # The updater sees the install folder, so it finds the database and the token only at the
+    # default path; a demo instance is updated by its operator, never from the page.
     if (
         updater is None
         and settings.updater_url
         and not settings.tiko_demo
-        and db.path != ":memory:"
+        and Path(settings.db_path) == Path(DEFAULT_DB_PATH)
     ):
         token = ensure_token(Path(db.path).parent / "updater-token")
         updater = HttpUpdater(settings.updater_url, token, httpx.Client(timeout=5.0))
@@ -277,7 +279,7 @@ def create_app(
         "railway" if settings.railway_environment_name else "render" if settings.render else None
     )
     app.state.one_click = OneClickUpdate(
-        app.state.updates, updater, SqliteUpdateBackups(db), VERSION, hosting
+        app.state.updates, updater, SqliteUpdateBackups(db.path), VERSION, hosting
     )
     app.include_router(router)
 

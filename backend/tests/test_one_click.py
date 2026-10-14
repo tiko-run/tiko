@@ -1,12 +1,8 @@
-import os
-import sqlite3
-import time
 from pathlib import Path
 
 import httpx
 import pytest
 
-from app.adapters.storage.sqlite import Database
 from app.adapters.storage.update_backups import SqliteUpdateBackups
 from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.config import Settings
@@ -29,15 +25,15 @@ class FakeUpdater:
     def __init__(self, state: str = "idle", down: bool = False) -> None:
         self.state = state
         self.down = down
-        self.started: list[tuple[str, str, str]] = []
+        self.started: list[tuple[str, str]] = []
 
     def status(self) -> UpdaterStatus:
         if self.down:
             raise DependencyUnavailable("no updater")
         return UpdaterStatus(state=self.state)
 
-    def start(self, version: str, current: str, backup: str) -> UpdaterStatus:
-        self.started.append((version, current, backup))
+    def start(self, version: str, current: str) -> UpdaterStatus:
+        self.started.append((version, current))
         self.state = "running"
         return UpdaterStatus(state="running", step="download", target=version)
 
@@ -45,14 +41,11 @@ class FakeUpdater:
 class FakeBackups:
     def __init__(self, free: int = 10**9, needed: int = 10**6) -> None:
         self.space = (free, needed)
-        self.copies: list[str] = []
+        self.asked: list[str] = []
 
-    def free_and_needed(self) -> tuple[int, int]:
+    def free_and_needed(self, version: str) -> tuple[int, int]:
+        self.asked.append(version)
         return self.space
-
-    def copy_before_update(self, version: str) -> str:
-        self.copies.append(version)
-        return f"pre-update-{version}.db"
 
 
 def one_click(updater=None, backups=None, latest="2026.11.1", hosting=None) -> OneClickUpdate:
@@ -60,12 +53,17 @@ def one_click(updater=None, backups=None, latest="2026.11.1", hosting=None) -> O
     return OneClickUpdate(updates, updater, backups or FakeBackups(), "2026.10.6", hosting)
 
 
-def test_starts_after_a_backup():
+def test_starts_after_checking_room_for_the_backup():
     updater, backups = FakeUpdater(), FakeBackups()
     view = one_click(updater, backups).start()
     assert (view.available, view.status.state, view.status.target) == (True, "running", "2026.11.1")
-    assert backups.copies == ["2026.10.6"]
-    assert updater.started == [("2026.11.1", "2026.10.6", "pre-update-2026.10.6.db")]
+    assert backups.asked == ["2026.10.6"]
+    assert updater.started == [("2026.11.1", "2026.10.6")]
+
+
+def test_unreachable_updater_answers_503():
+    with pytest.raises(DependencyUnavailable):
+        one_click(FakeUpdater(down=True)).start()
 
 
 def test_no_updater_means_by_hand():
@@ -83,40 +81,30 @@ def test_refuses_without_a_newer_release():
 
 def test_refuses_a_second_update():
     backups = FakeBackups()
+    updater = FakeUpdater(state="running")
     with pytest.raises(UpdateNotPossible, match="already running"):
-        one_click(FakeUpdater(state="running"), backups).start()
-    assert backups.copies == []
+        one_click(updater, backups).start()
+    assert updater.started == []
 
 
 def test_refuses_without_room_for_the_backup():
     backups = FakeBackups(free=2_000_000, needed=50_000_000)
+    updater = FakeUpdater()
     with pytest.raises(NotEnoughSpace, match="needs 50 MB, and only 2 MB is free"):
-        one_click(FakeUpdater(), backups).start()
-    assert backups.copies == []
+        one_click(updater, backups).start()
+    assert updater.started == []
 
 
-def test_backups_keep_the_newest_three(tmp_path: Path):
-    db = Database(str(tmp_path / "app.db"))
-    with db.transaction() as conn:
-        conn.execute("CREATE TABLE t (x)")
-    backups = SqliteUpdateBackups(db)
-    folder = tmp_path / "backups"
-    folder.mkdir()
-    (folder / "app-20261001-000000.db").write_text("make backup")
-    for n, version in enumerate(["2026.10.1", "2026.10.2", "2026.10.3", "2026.10.4"]):
-        name = backups.copy_before_update(version)
-        os.utime(folder / name, (time.time() + n, time.time() + n))
-    names = sorted(p.name for p in folder.iterdir())
-    assert names == [
-        "app-20261001-000000.db",
-        "pre-update-2026.10.2.db",
-        "pre-update-2026.10.3.db",
-        "pre-update-2026.10.4.db",
-    ]
-    with sqlite3.connect(folder / "pre-update-2026.10.4.db") as copy:
-        assert copy.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
-    free, needed = backups.free_and_needed()
-    assert free > 0 and needed > 0
+def test_room_for_the_backup(tmp_path: Path):
+    db = tmp_path / "app.db"
+    db.write_bytes(b"x" * 1000)
+    (tmp_path / "app.db-wal").write_bytes(b"x" * 500)
+    backups = SqliteUpdateBackups(str(db))
+    free, needed = backups.free_and_needed("2026.10.6")
+    assert needed == 1800
+    (tmp_path / "backups").mkdir()
+    (tmp_path / "backups" / "pre-update-2026.10.6.db").write_bytes(b"x" * 700)
+    assert backups.free_and_needed("2026.10.6")[0] >= free + 700 - 4096
 
 
 def test_token_is_made_once(tmp_path: Path):
@@ -124,6 +112,13 @@ def test_token_is_made_once(tmp_path: Path):
     first = ensure_token(path)
     assert len(first) > 30 and ensure_token(path) == first
     assert path.stat().st_mode & 0o777 == 0o600
+    assert [p.name for p in tmp_path.iterdir()] == ["updater-token"]
+
+
+def test_an_empty_token_is_made_again(tmp_path: Path):
+    path = tmp_path / "updater-token"
+    path.write_text("")
+    assert len(ensure_token(path)) > 30
 
 
 def test_http_updater_sends_the_token_and_reads_the_status():
@@ -137,7 +132,7 @@ def test_http_updater_sends_the_token_and_reads_the_status():
     updater = HttpUpdater("http://updater:8080/", "tok", client)
     assert updater.status().log == ["x"]
     with pytest.raises(UpdateNotPossible):
-        updater.start("2026.11.1", "2026.10.6", "pre-update-2026.10.6.db")
+        updater.start("2026.11.1", "2026.10.6")
 
 
 def test_http_updater_unreachable():

@@ -4,6 +4,9 @@ from typing import Literal, Self
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The updater of compose.release.yml expects the database here, inside ./data.
+DEFAULT_DB_PATH = "data/app.db"
+
 
 class Settings(BaseSettings):
     # A variable left empty, as .env.example has them, means its default.
@@ -12,7 +15,7 @@ class Settings(BaseSettings):
     app_name: str = "tiko"
     app_env: str = "local"
     log_level: str = "info"
-    db_path: str = "data/app.db"
+    db_path: str = DEFAULT_DB_PATH
     tiko_secret_key: SecretStr | None = None
     tiko_password: SecretStr | None = None
     # Holds the generated password when TIKO_PASSWORD is empty.

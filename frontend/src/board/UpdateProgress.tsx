@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useUpdate } from '@/api/update'
-import { getVersion, useVersion } from '@/api/version'
+import { getVersion } from '@/api/version'
 import { Button } from '@/components/ui/button'
 
 function reload() {
@@ -27,7 +27,8 @@ export function UpdateProgress() {
     refetchInterval: 2000,
     retry: false,
   })
-  const arrived = target !== undefined && version.data?.version === target
+  // web restarts after api, so the new API alone would still serve the old page.
+  const arrived = status?.state === 'done' && version.data?.version === target
   useEffect(() => {
     if (arrived) reload()
   }, [arrived])
@@ -79,7 +80,12 @@ export function UpdateProgress() {
 
 /** For everyone: the instance moved to a new version under an open page. */
 export function UpdatedNotice() {
-  const version = useVersion().data?.version
+  // Its own check, every minute: the release check of About is every 5 minutes.
+  const version = useQuery({
+    queryKey: ['version', 'running'],
+    queryFn: getVersion,
+    refetchInterval: 60_000,
+  }).data?.version
   const first = useRef<string | null>(null)
   useEffect(() => {
     if (!version) return

@@ -305,13 +305,25 @@ finish() {
   say "Guide:     https://docs.tiko.run/"
 }
 
-# Asked once and kept in .env, so an upgrade does not ask again.
+# Asked once and kept in .env, so an upgrade does not ask again; TIKO_UPDATER or --no-updater
+# change the kept answer.
 choose_updater() {
-  grep -q '^COMPOSE_PROFILES=' .env && return 0
+  if grep -q '^COMPOSE_PROFILES=' .env; then
+    [ -n "$UPDATER" ] || return 0
+    grep -v '^COMPOSE_PROFILES=' .env >.env.new
+    mv .env.new .env
+    chmod 600 .env
+  fi
   if [ -z "$UPDATER" ]; then
-    say "One-click updates add a small service with access to Docker, so an admin can update"
-    say "tiko from the About button. Without it you update by running this installer again."
-    if ask_yes "Turn on one-click updates?"; then UPDATER=yes; else UPDATER=no; fi
+    # Rootless Docker keeps its socket in the user's runtime folder, where the updater cannot see it.
+    if $DOCKER info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q rootless; then
+      say "Rootless Docker: one-click updates are off; update by running this installer again."
+      UPDATER=no
+    else
+      say "One-click updates add a small service with access to Docker, so an admin can update"
+      say "tiko from the About button. Without it you update by running this installer again."
+      if ask_yes "Turn on one-click updates?"; then UPDATER=yes; else UPDATER=no; fi
+    fi
   fi
   if [ "$UPDATER" = yes ]; then
     echo "COMPOSE_PROFILES=updater" >>.env
