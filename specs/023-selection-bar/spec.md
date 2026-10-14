@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Approved by the owner at G2 on 2026-10-13.
+**Status**: Approved by the owner at G2 on 2026-10-13. User stories 1 and 2 shipped; story 3 (colors with names) was deferred by the owner on 2026-10-14 and is not built.
 
 **Input**: Owner's idea: one shared control for the properties of whatever is selected, instead of a separate toolbar on each element type. The owner tried four throwaway prototypes (a bar above the selection, a chip that opens a panel, a pie menu, handles on the object) and picked the bar, together with named colors.
 
@@ -74,7 +74,7 @@ A person fades the frames of the finished phase to 40%, marks an optional step o
 5. **Given** a selection with a task card in it, **Then** the bar offers no opacity.
 6. **Given** a saved doc with an opacity, an outline width or a text size outside the listed values, **Then** the API answers 422.
 
-### User Story 3 - Colors with names (Priority: P3)
+### User Story 3 - Colors with names (Priority: P3, deferred)
 
 A team agrees that pink is "Blocker" and green is "Decided". A newcomer opens the board, reads the legend and clicks "Blocker" to see every blocker at once.
 

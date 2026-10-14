@@ -30,9 +30,9 @@ Slice `element-style`.
 - [x] T011 [US2] Tests: each property on each type, "Mixed" values, API refusals
 - [x] T012 [US2] Data model, DESIGN.md, guide, changelog
 
-## Phase 3: User Story 3 - Colors with names (P3)
+## Phase 3: User Story 3 - Colors with names (P3, deferred)
 
-Slice `color-names`.
+Slice `color-names`. Deferred by the owner on 2026-10-14: the bar works without it, and it adds a third shared map to the live document. Not built.
 
 - [ ] T013 [US3] Board doc: `colorNames`, API validation, live edit for a rename
 - [ ] T014 [US3] Fill popover: name a color, named colors as rows
