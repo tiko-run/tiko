@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import httpx
@@ -95,16 +96,19 @@ def test_refuses_without_room_for_the_backup():
     assert updater.started == []
 
 
-def test_room_for_the_backup(tmp_path: Path):
+def test_room_for_the_backup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "app.adapters.storage.update_backups.shutil.disk_usage",
+        lambda path: shutil._ntuple_diskusage(10_000, 5_000, 5_000),
+    )
     db = tmp_path / "app.db"
     db.write_bytes(b"x" * 1000)
     (tmp_path / "app.db-wal").write_bytes(b"x" * 500)
     backups = SqliteUpdateBackups(str(db))
-    free, needed = backups.free_and_needed("2026.10.6")
-    assert needed == 1800
+    assert backups.free_and_needed("2026.10.6") == (5_000, 1_800)
     (tmp_path / "backups").mkdir()
     (tmp_path / "backups" / "pre-update-2026.10.6.db").write_bytes(b"x" * 700)
-    assert backups.free_and_needed("2026.10.6")[0] >= free + 700 - 4096
+    assert backups.free_and_needed("2026.10.6") == (5_700, 1_800)
 
 
 def test_token_is_made_once(tmp_path: Path):
