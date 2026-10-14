@@ -1,79 +1,76 @@
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { useUpdate } from '@/api/update'
+import { POLL_TIMEOUT_MS, type UpdateInfo } from '@/api/update'
 import { getVersion } from '@/api/version'
-import { Button } from '@/components/ui/button'
 
-function reload() {
+export function reload() {
   window.location.reload()
 }
 
-/** For admins: the steps of a running update, then a reload on the new version. */
-export function UpdateProgress() {
-  const update = useUpdate(true)
-  const status = update.data?.status
-  const running = status?.state === 'running'
-  const [watching, setWatching] = useState(false)
-  if (running && !watching) setWatching(true)
-  const target = status?.target
-  // The API is down while it restarts, so the last answer stays and the request fails.
-  const restarting = running && (update.isError || status?.step === 'restart')
-  const version = useQuery({
-    queryKey: ['version', 'after-update'],
-    queryFn: getVersion,
-    enabled: watching && (restarting || status?.state === 'done'),
-    refetchInterval: 2000,
-    retry: false,
-  })
-  // web restarts after api, so the new API alone would still serve the old page.
-  const arrived = status?.state === 'done' && version.data?.version === target
-  useEffect(() => {
-    if (arrived) reload()
-  }, [arrived])
+// Module state: About unmounts when it closes, and the page's version info moves on when the
+// new API answers, while the update this page started still needs its Reload.
+let watched: string | null = null
 
-  if (!watching || !status) return null
-  if (status.state === 'failed') {
-    return (
-      <div className="bg-card absolute bottom-16 left-4 z-10 flex w-80 max-w-[calc(100%-2rem)] flex-col gap-1.5 rounded-lg border p-3 text-[13px] shadow-md">
-        <span className="text-destructive font-medium">The update failed</span>
-        <span>{status.error}</span>
-        <span className="text-muted-foreground">
-          tiko runs the previous version again. About has the log.
-        </span>
-        <Button size="sm" variant="ghost" className="self-end" onClick={() => setWatching(false)}>
-          Close
-        </Button>
-      </div>
-    )
+/** The target of the update this page saw running, if any. */
+export function watchedUpdate() {
+  return watched
+}
+
+export function watchUpdate(target: string) {
+  watched = target
+}
+
+const BUNDLE = /\/assets\/index-[\w-]+\.js/
+
+/** Whether the web container serves another build than the one this page runs. */
+export function useNewBuildServed(enabled: boolean) {
+  const [loaded] = useState(
+    () =>
+      document
+        .querySelector<HTMLScriptElement>('script[src*="/assets/index-"]')
+        ?.src.match(BUNDLE)?.[0] ?? null,
+  )
+  const served = useQuery({
+    queryKey: ['served-build'],
+    queryFn: async () => {
+      const page = await fetch('/', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(POLL_TIMEOUT_MS),
+      })
+      return (await page.text()).match(BUNDLE)?.[0] ?? null
+    },
+    enabled: enabled && loaded !== null,
+    refetchInterval: 1500,
+    retry: false,
+  }).data
+  return !!served && served !== loaded
+}
+
+/** The download bar of a running update, then the restart note. */
+export function UpdateSteps({
+  status,
+  restarting,
+}: {
+  status: NonNullable<UpdateInfo['status']>
+  restarting: boolean
+}) {
+  if (restarting) {
+    return <span className="text-muted-foreground">Restarting tiko…</span>
   }
   const percent = status.total ? Math.round((100 * status.downloaded) / status.total) : 0
   return (
-    <div
-      role="status"
-      className="bg-card absolute bottom-16 left-4 z-10 flex w-80 max-w-[calc(100%-2rem)] flex-col gap-2 rounded-lg border p-3 text-[13px] shadow-md"
-    >
-      <span className="flex items-center gap-2 font-medium">
-        <Loader2 className="size-4 animate-spin" />
-        Updating to v{target}
+    <>
+      <span className="text-muted-foreground">
+        Downloading the new version{status.total ? ` · ${percent}%` : '…'}
       </span>
-      {restarting || status.state === 'done' ? (
-        <span className="text-muted-foreground">Restarting tiko. The page reloads by itself.</span>
-      ) : (
-        <>
-          <span className="text-muted-foreground">
-            Downloading the new version{status.total ? ` · ${percent}%` : '…'}
-          </span>
-          <div className="bg-muted h-1.5 overflow-hidden rounded-full">
-            <div
-              className="bg-primary h-full rounded-full transition-[width]"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        </>
-      )}
-    </div>
+      <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+        <div
+          className="bg-primary h-full rounded-full transition-[width]"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </>
   )
 }
 

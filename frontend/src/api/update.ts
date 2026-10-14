@@ -20,8 +20,11 @@ const updateSchema = z.object({
 
 export type UpdateInfo = z.infer<typeof updateSchema>
 
+// A request caught by the restart can hang, and a poll waits for the request before it.
+export const POLL_TIMEOUT_MS = 5000
+
 export function getUpdate() {
-  return fetchJson('/api/update', updateSchema)
+  return fetchJson('/api/update', updateSchema, { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) })
 }
 
 export function startUpdate() {

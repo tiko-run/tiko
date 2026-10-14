@@ -66,7 +66,7 @@ test('lists the missed releases with their levels', async () => {
     }),
   )
   fireEvent.click(await screen.findByRole('button', { name: 'About tiko, update available' }))
-  expect(await screen.findByText('v2026.11.2 is available')).toBeInTheDocument()
+  expect(await screen.findByText('2 new versions available')).toBeInTheDocument()
   const list = screen.getByRole('list', { name: 'New releases' })
   expect(list).toHaveTextContent('v2026.11.2v2026.11.1Hotfix')
   expect(screen.getByRole('link', { name: 'v2026.11.1' })).toHaveAttribute(
@@ -99,7 +99,7 @@ test('check now asks the server at once', async () => {
   )
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Check now' }))
-  expect(await screen.findByText('v2026.11.1 is available')).toBeInTheDocument()
+  expect(await screen.findByText('New version available')).toBeInTheDocument()
   expect(fetch).toHaveBeenCalledWith(
     '/api/version/check',
     expect.objectContaining({ method: 'POST' }),
@@ -117,4 +117,47 @@ test('does not claim the latest version before GitHub answered', async () => {
   renderWith(info())
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   expect(await screen.findByText('No answer from GitHub yet')).toBeInTheDocument()
+})
+
+test('keeps the reload of a watched update when the new version already answers', async () => {
+  const before = info({
+    latest: release('2026.11.1'),
+    update_available: true,
+    newer: [release('2026.11.1')],
+  })
+  const after = info({ version: '2026.11.1', latest: release('2026.11.1') })
+  const running = {
+    state: 'running',
+    step: 'download',
+    target: '2026.11.1',
+    downloaded: 0,
+    total: 0,
+    error: null,
+    log: [],
+  }
+  let status: object = running
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string) => {
+      const body =
+        path === '/api/update'
+          ? { available: true, hosting: null, status }
+          : path === '/api/version/check'
+            ? after
+            : before
+      return new Response(JSON.stringify(body), { status: 200 })
+    }),
+  )
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <AboutButton admin />
+    </QueryClientProvider>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'About tiko, update available' }))
+  expect(await screen.findByText('Updating to v2026.11.1…')).toBeInTheDocument()
+  status = { ...running, state: 'done', step: 'done' }
+  fireEvent.click(screen.getByRole('button', { name: 'Check now' }))
+  expect(
+    await screen.findByRole('button', { name: 'Reload' }, { timeout: 3000 }),
+  ).toBeInTheDocument()
 })

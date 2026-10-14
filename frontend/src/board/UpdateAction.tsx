@@ -1,7 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { startUpdate, useUpdate, type UpdateInfo } from '@/api/update'
 import type { VersionInfo } from '@/api/version'
+import {
+  reload,
+  UpdateSteps,
+  useNewBuildServed,
+  watchedUpdate,
+  watchUpdate,
+} from '@/board/UpdateProgress'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
 
@@ -26,17 +33,45 @@ function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
 /** The way to update from About: the button for an admin, or what to do instead. */
 export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolean }) {
   const queryClient = useQueryClient()
-  const update = useUpdate(true).data
+  const query = useUpdate(true)
+  const update = query.data
   const [confirming, setConfirming] = useState(false)
   const start = useMutation({
     mutationFn: startUpdate,
     onSuccess: (fresh) => queryClient.setQueryData(['update'], fresh),
     onError: toastError,
   })
+  const status = update?.status
+  // Only an update this page saw running ends in a reload; an older finished one is history.
+  const updating =
+    status?.state === 'running' || (status?.state === 'done' && status.target === watchedUpdate())
+  // The API is down while it restarts, so the last answer stays and the request fails.
+  const restarting =
+    updating && (query.isError || status?.step === 'restart' || status?.state === 'done')
+  // The updater reports done only after it cleans up; the new page is there before that.
+  const served = useNewBuildServed(restarting)
+  const runningTarget = status?.state === 'running' ? status.target : null
+  useEffect(() => {
+    if (runningTarget) watchUpdate(runningTarget)
+  }, [runningTarget])
   if (!update) return null
-  const status = update.status
-  if (status?.state === 'running') {
-    return <span className="text-muted-foreground">Updating to v{status.target}…</span>
+  if (status && updating) {
+    if (served || status.state === 'done') {
+      return (
+        <div role="status" className="flex flex-col gap-1.5">
+          <span>v{status.target} is ready.</span>
+          <Button size="sm" className="self-start" onClick={reload}>
+            Reload
+          </Button>
+        </div>
+      )
+    }
+    return (
+      <div role="status" className="flex flex-col gap-1.5">
+        <span>Updating to v{status.target}…</span>
+        <UpdateSteps status={status} restarting={restarting} />
+      </div>
+    )
   }
   if (!admin) return <span className="text-muted-foreground">Ask an admin to update.</span>
   if (!update.available) {

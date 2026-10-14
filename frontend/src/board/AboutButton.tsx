@@ -6,6 +6,7 @@ import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { UpdateAction } from '@/board/UpdateAction'
+import { watchedUpdate } from '@/board/UpdateProgress'
 import { toastError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -112,7 +113,7 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
             </a>
           )}
         </div>
-        {update && info && (
+        {(update || watchedUpdate()) && info && (
           <div className="bg-accent flex items-start gap-2 rounded-md p-2 text-[13px]">
             {security ? (
               <ShieldAlert className="text-destructive mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
@@ -120,7 +121,11 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
               <ArrowUpCircle className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
             )}
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="font-medium">v{update.version} is available</span>
+              <span className="font-medium">
+                {info.newer.length > 1
+                  ? `${info.newer.length} new versions available`
+                  : 'New version available'}
+              </span>
               {security && (
                 <span className="text-destructive">Includes a security fix. Update soon.</span>
               )}

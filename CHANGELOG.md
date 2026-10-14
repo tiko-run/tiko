@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- About shows the download of a one-click update under "Updating to", instead of a separate card the panel covered, and names the new versions once.
+- After a one-click update About offers a **Reload** button as soon as the new version serves the page, instead of reloading by itself once the updater has cleaned up.
+
 ### Fixed
 
 - A selected Gantt chart shows one bar: the scale, dates and milestone buttons moved into the selection bar instead of a second bar under it.

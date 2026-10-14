@@ -21,9 +21,9 @@ The check sends GitHub no data about you or your boards.
 
 An admin opens About and clicks **Update now**. tiko then:
 
-1. Downloads the new release and shows the progress in the bottom left.
+1. Downloads the new release and shows the progress in About.
 2. Stops the `api` container and copies the database to `data/backups/pre-update-<version>.db`, so the copy holds every change made up to that moment. It keeps the 3 newest of these copies and leaves other backups alone.
-3. Starts `api` on the new release, then restarts the `web` container the same way, and reloads your page. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
+3. Starts `api` on the new release, then restarts the `web` container the same way. Once the new version serves the page, About shows a **Reload** button. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
 
 People who are not admins see "Ask an admin to update". A release marked **Breaking changes** asks you to read its notes first.
 
