@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { startUpdate, useUpdate, type UpdateInfo } from '@/api/update'
 import type { VersionInfo } from '@/api/version'
+import { UpdateSteps } from '@/board/UpdateProgress'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
 
@@ -26,7 +27,8 @@ function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
 /** The way to update from About: the button for an admin, or what to do instead. */
 export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolean }) {
   const queryClient = useQueryClient()
-  const update = useUpdate(true).data
+  const query = useUpdate(true)
+  const update = query.data
   const [confirming, setConfirming] = useState(false)
   const start = useMutation({
     mutationFn: startUpdate,
@@ -36,7 +38,14 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
   if (!update) return null
   const status = update.status
   if (status?.state === 'running') {
-    return <span className="text-muted-foreground">Updating to v{status.target}…</span>
+    // The API is down while it restarts, so the last answer stays and the request fails.
+    const restarting = query.isError || status.step === 'restart'
+    return (
+      <div role="status" className="flex flex-col gap-1.5">
+        <span>Updating to v{status.target}…</span>
+        <UpdateSteps status={status} restarting={restarting} />
+      </div>
+    )
   }
   if (!admin) return <span className="text-muted-foreground">Ask an admin to update.</span>
   if (!update.available) {

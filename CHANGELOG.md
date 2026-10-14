@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- About shows the download of a one-click update under "Updating to", instead of a separate card the panel covered, and names the new versions once.
+
+### Fixed
+
+- After a one-click update the page reloads by itself even when a status request hangs during the restart.
+
 ## [2026.10.18] - 2026-10-14
 
 ### Fixed

@@ -66,7 +66,7 @@ test('lists the missed releases with their levels', async () => {
     }),
   )
   fireEvent.click(await screen.findByRole('button', { name: 'About tiko, update available' }))
-  expect(await screen.findByText('v2026.11.2 is available')).toBeInTheDocument()
+  expect(await screen.findByText('2 new versions available')).toBeInTheDocument()
   const list = screen.getByRole('list', { name: 'New releases' })
   expect(list).toHaveTextContent('v2026.11.2v2026.11.1Hotfix')
   expect(screen.getByRole('link', { name: 'v2026.11.1' })).toHaveAttribute(
@@ -99,7 +99,7 @@ test('check now asks the server at once', async () => {
   )
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   fireEvent.click(await screen.findByRole('button', { name: 'Check now' }))
-  expect(await screen.findByText('v2026.11.1 is available')).toBeInTheDocument()
+  expect(await screen.findByText('New version available')).toBeInTheDocument()
   expect(fetch).toHaveBeenCalledWith(
     '/api/version/check',
     expect.objectContaining({ method: 'POST' }),

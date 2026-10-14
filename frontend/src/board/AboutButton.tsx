@@ -120,7 +120,11 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
               <ArrowUpCircle className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
             )}
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="font-medium">v{update.version} is available</span>
+              <span className="font-medium">
+                {info.newer.length > 1
+                  ? `${info.newer.length} new versions available`
+                  : 'New version available'}
+              </span>
               {security && (
                 <span className="text-destructive">Includes a security fix. Update soon.</span>
               )}

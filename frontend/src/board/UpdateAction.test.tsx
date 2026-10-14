@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { ReleaseLevel, VersionInfo } from '@/api/version'
 import { UpdateAction } from '@/board/UpdateAction'
-import { UpdatedNotice, UpdateProgress } from '@/board/UpdateProgress'
+import { getUpdate } from '@/api/update'
+import { ReloadAfterUpdate, UpdatedNotice } from '@/board/UpdateProgress'
 
 const { toast } = vi.hoisted(() => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
 vi.mock('sonner', () => ({ toast }))
@@ -72,6 +73,26 @@ test('an admin starts the update', async () => {
   expect(fetch).toHaveBeenCalledWith('/api/update', expect.objectContaining({ method: 'POST' }))
 })
 
+test('a running update shows its download in About', async () => {
+  serve({
+    '/api/update': {
+      available: true,
+      hosting: null,
+      status: {
+        ...idle,
+        state: 'running',
+        step: 'download',
+        target: '2026.11.1',
+        downloaded: 30,
+        total: 120,
+      },
+    },
+  })
+  renderWith(<UpdateAction info={info()} admin />)
+  expect(await screen.findByText('Updating to v2026.11.1…')).toBeInTheDocument()
+  expect(screen.getByText('Downloading the new version · 25%')).toBeInTheDocument()
+})
+
 test('a breaking update asks first', async () => {
   const fetch = serve({ '/api/update': { available: true, hosting: null, status: idle } })
   renderWith(<UpdateAction info={info('breaking')} admin />)
@@ -106,7 +127,7 @@ test('a failed update shows its log', async () => {
   expect(screen.getByText('Rolling back')).toBeInTheDocument()
 })
 
-test('progress follows the download, then reloads once the update is done', async () => {
+test('About follows the download, then the page reloads once the update is done', async () => {
   const reload = vi.fn()
   vi.stubGlobal('location', { ...window.location, reload })
   let phase = 'download'
@@ -125,7 +146,12 @@ test('progress follows the download, then reloads once the update is done', asyn
     },
     '/api/version': { ...info(), version: '2026.11.1' },
   })
-  renderWith(<UpdateProgress />)
+  renderWith(
+    <>
+      <UpdateAction info={info()} admin />
+      <ReloadAfterUpdate />
+    </>,
+  )
   expect(await screen.findByText('Downloading the new version · 25%')).toBeInTheDocument()
   phase = 'restart'
   await act(() => new Promise((resolve) => setTimeout(resolve, 1700)))
@@ -137,9 +163,10 @@ test('progress follows the download, then reloads once the update is done', asyn
   await waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 5000 })
 }, 12_000)
 
-test('nothing shows when no update runs', async () => {
-  const fetch = serve({ '/api/update': { available: true, hosting: null, status: idle } })
-  const { container } = renderWith(<UpdateProgress />)
+test('the reload watcher shows nothing of its own', async () => {
+  const running = { ...idle, state: 'running', step: 'download', target: '2026.11.1' }
+  const fetch = serve({ '/api/update': { available: true, hosting: null, status: running } })
+  const { container } = renderWith(<ReloadAfterUpdate />)
   await waitFor(() => expect(fetch).toHaveBeenCalled())
   expect(container).toBeEmptyDOMElement()
 })
@@ -164,3 +191,16 @@ test('other pages learn about the new version', async () => {
     ),
   )
 })
+
+test('a status request that hangs gives up, so the polling goes on', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      (_path: string, init?: RequestInit) =>
+        new Promise((_resolve, reject) =>
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason)),
+        ),
+    ),
+  )
+  await expect(getUpdate()).rejects.toThrow()
+}, 8000)

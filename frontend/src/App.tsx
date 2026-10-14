@@ -10,7 +10,7 @@ import { SettingsDialog } from '@/settings/SettingsDialog'
 import { NewBoardForm } from '@/board/NewBoardForm'
 import { AboutButton } from '@/board/AboutButton'
 import { UpdateBanner } from '@/board/UpdateBanner'
-import { UpdatedNotice, UpdateProgress } from '@/board/UpdateProgress'
+import { ReloadAfterUpdate, UpdatedNotice } from '@/board/UpdateProgress'
 import { FocusCapsule } from '@/focus/FocusCapsule'
 import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
@@ -178,7 +178,7 @@ export default function App() {
       {signedIn && <AboutButton admin={admin} />}
       {signedIn && <UpdatedNotice />}
       {admin && <UpdateBanner />}
-      {admin && <UpdateProgress />}
+      {admin && <ReloadAfterUpdate />}
       {signedIn && <SettingsDialog />}
     </main>
   )

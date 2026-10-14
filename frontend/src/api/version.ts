@@ -22,8 +22,8 @@ const versionSchema = z.object({
 export type ReleaseLevel = z.infer<typeof levelSchema>
 export type VersionInfo = z.infer<typeof versionSchema>
 
-export function getVersion() {
-  return fetchJson('/api/version', versionSchema)
+export function getVersion(init?: RequestInit) {
+  return fetchJson('/api/version', versionSchema, init)
 }
 
 export function checkVersionNow() {
