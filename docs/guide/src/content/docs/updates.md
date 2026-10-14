@@ -35,6 +35,8 @@ If the disk is too full for the database copy, the update does not start, and Ab
 
 After a good update tiko removes images older than the previous release. The disk then holds two releases: the one running and the one before it.
 
+The first `docker compose up -d` you run by hand after a one-click update recreates `api` and `web` once more, so tiko is down for about 10 seconds. Compose recognizes its containers by a hash of the whole service config, and the updater cannot compute that hash for the new version. Data is not affected, and the next `up` leaves the containers alone. Restarts of the host or of Docker do not trigger it.
+
 ## What the updater is
 
 A container cannot replace itself, so something outside the tiko containers has to stop them and start the new ones. That is the `updater`: a small service that runs next to tiko. It is one Python file with no dependencies, [`updater/updater.py`](https://github.com/tiko-run/tiko/blob/main/updater/updater.py), published as the image `ghcr.io/tiko-run/tiko-updater` with every release. Nextcloud All-in-One and Coolify update themselves the same way.

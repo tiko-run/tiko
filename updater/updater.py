@@ -213,7 +213,8 @@ def container_body(docker: Docker, old: dict, ref: str) -> tuple[dict, list[tupl
     config["Env"] = [e for e in config.get("Env") or [] if e not in image_env]
     image_labels = image.get("Labels") or {}
     labels = {k: v for k, v in (config.get("Labels") or {}).items() if image_labels.get(k) != v}
-    # Compose's record of the old image; compose writes it again on its next `up`.
+    # Compose's record of the old image is wrong now. So is the copied config hash, which only
+    # compose can compute: the next `compose up` recreates the container once (see Updates).
     labels.pop("com.docker.compose.image", None)
     config["Labels"] = labels
     config["HostConfig"] = old["HostConfig"]
