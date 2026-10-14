@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 license = "AGPL-3.0-only"
 dependencies = [
-    "fastapi>=0.141",
+    "fastapi>=0.143.0",
     "uvicorn[standard]>=0.54",
     "pydantic-settings>=2.15",
     "prometheus-client>=0.26",
@@ -18,7 +18,7 @@ dependencies = [
 dev = [
     "httpx>=0.28",
     "pytest>=9.1",
-    "ruff>=0.16",
+    "ruff>=0.17.0",
 ]
 
 [tool.uv]
