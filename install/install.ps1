@@ -6,6 +6,7 @@
 #
 # Env: TIKO_DIR, TIKO_PORT (3000), TIKO_VERSION (latest release), TIKO_YES=1,
 #      TIKO_UPDATER (yes or no: one-click updates, asked otherwise),
+#      TIKO_USAGE_STATS=false (send no usage stats, see https://docs.tiko.run/privacy/),
 #      TIKO_COMPOSE_URL (another compose file, for testing a branch).
 # ASCII only: irm decodes a response without a charset as Latin-1.
 param(
@@ -13,7 +14,8 @@ param(
   [string]$Dir,
   [int]$Port,
   [string]$Version,
-  [switch]$NoUpdater
+  [switch]$NoUpdater,
+  [switch]$NoStats
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,9 +30,12 @@ $MinDiskMB = 2048
 $DockerBin = Join-Path $env:ProgramFiles 'Docker\Docker\resources\bin'
 $DockerDesktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
 $DockerDocs = 'https://docs.docker.com/desktop/setup/install/windows-install/'
+$StatsUrl = if ($env:TIKO_STATS_URL) { $env:TIKO_STATS_URL } else { 'https://t.tiko.run/v1/events' }
 
 if ($env:TIKO_YES -eq '1') { $Yes = $true }
 $Updater = if ($NoUpdater) { 'no' } else { "$env:TIKO_UPDATER" }
+$Stats = -not ($NoStats -or $env:TIKO_USAGE_STATS -eq 'false')
+$StepName = 'docker-check'
 if (-not $Dir) { $Dir = if ($env:TIKO_DIR) { $env:TIKO_DIR } else { Join-Path $env:USERPROFILE 'tiko' } }
 if (-not $Port -and $env:TIKO_PORT) { $Port = [int]$env:TIKO_PORT }
 if (-not $Version) { $Version = if ($env:TIKO_VERSION) { $env:TIKO_VERSION } else { 'latest' } }
@@ -113,6 +118,8 @@ function Test-Machine {
 
   $envFile = Join-Path $Dir '.env'
   $script:Upgrade = Test-Path $envFile
+  # Turned off once, the install stays quiet on every upgrade.
+  if ($Upgrade -and (Select-String -Path $envFile -Pattern '^TIKO_USAGE_STATS=false' -Quiet)) { $script:Stats = $false }
   if ($Upgrade -and -not $Port) {
     $match = Select-String -Path $envFile -Pattern '^TIKO_PORT=(\d+)' | Select-Object -First 1
     if ($match) { $script:Port = [int]$match.Matches[0].Groups[1].Value }
@@ -243,14 +250,18 @@ function Initialize-Folder {
       '# Written by the tiko installer. The password is for the first admin only.',
       "TIKO_PASSWORD=$Password",
       "TIKO_SECRET_KEY=$([Convert]::ToBase64String((Get-RandomByte 32)))",
-      "TIKO_PORT=$Port"
+      "TIKO_PORT=$Port",
+      'TIKO_DEPLOY=installer'
     )
     Say 'Created .env with a generated password and secret key'
   } elseif (-not (Select-String -Path $envFile -Pattern "^TIKO_PORT=$Port`$" -Quiet)) {
     Write-EnvFile $envFile (@(Get-Content $envFile | Where-Object { $_ -notmatch '^TIKO_PORT=' }) + "TIKO_PORT=$Port")
   }
+  Set-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
+  if (-not $Stats) { Set-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
   Initialize-Updater $envFile
 
+  $script:StepName = 'download'
   $url = if ($env:TIKO_COMPOSE_URL) { $env:TIKO_COMPOSE_URL }
   elseif ($Version -eq 'latest') { "https://github.com/$Repo/releases/latest/download/compose.release.yml" }
   else { "https://github.com/$Repo/releases/download/v$Version/compose.release.yml" }
@@ -264,11 +275,14 @@ function Invoke-Tiko {
   $ErrorActionPreference = 'Continue'
   Push-Location $Dir
   try {
+    $script:StepName = 'pull'
     & docker compose pull --quiet
     if ($LASTEXITCODE -ne 0) { Fail 'could not download the tiko images; check the internet connection and run the installer again' }
+    $script:StepName = 'start'
     & docker compose up -d --remove-orphans
     if ($LASTEXITCODE -ne 0) { Fail "tiko did not start; see the logs: cd $Dir; docker compose logs" }
   } finally { Pop-Location }
+  $script:StepName = 'health'
   Say "Waiting for tiko to answer on port $Port..."
   for ($i = 0; $i -lt 90; $i++) {
     try {
@@ -299,11 +313,50 @@ function Show-Result {
   Say "Logs:      cd $Dir; docker compose logs -f"
   Say 'Upgrade:   run this installer again'
   Say 'Guide:     https://docs.tiko.run/'
+  Say ''
+  Show-StatsNotice
   Start-Process $address
+}
+
+# Sets KEY=VALUE in .env, keeping the other lines.
+function Set-EnvLine([string]$EnvFile, [string]$Key, [string]$Value) {
+  if (Select-String -Path $EnvFile -Pattern "^$Key=$Value`$" -Quiet) { return }
+  Write-EnvFile $EnvFile (@(Get-Content $EnvFile | Where-Object { $_ -notmatch "^$Key=" }) + "$Key=$Value")
+}
+
+function Show-StatsNotice {
+  if ($Stats) {
+    Say 'Usage stats:   on  (version, OS, install count; no personal data)'
+    Say '               off with -NoStats or in Settings > Privacy: https://docs.tiko.run/privacy/'
+  } else {
+    Say 'Usage stats:   off'
+  }
+}
+
+# One event about this install, listed at https://docs.tiko.run/privacy/; a failure to send is ignored.
+function Send-InstallEvent([string]$FailedStep) {
+  if (-not $Stats) { return }
+  $installed = $null
+  $compose = Join-Path $Dir 'compose.yaml'
+  if (Test-Path $compose) {
+    $match = Select-String -Path $compose -Pattern 'tiko-api:\$\{TAG:-([^}]+)\}' | Select-Object -First 1
+    if ($match) { $installed = $match.Matches[0].Groups[1].Value }
+  }
+  $cpu = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+  $body = [ordered]@{
+    kind = 'install'; schema = 1; version = $installed; os = 'windows'
+    arch = $(if ($cpu -eq 'ARM64') { 'arm64' } elseif ($cpu -eq 'AMD64') { 'amd64' } else { 'other' })
+    installer = 'ps1'; updater = ($Updater -eq 'yes')
+    failed_step = $(if ($FailedStep) { $FailedStep } else { $null })
+  } | ConvertTo-Json -Compress
+  try {
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Method Post -ContentType 'application/json' -Body $body -Uri $StatsUrl | Out-Null
+  } catch { }
 }
 
 function Install-Tiko {
   Say 'tiko installer: checks this machine, installs WSL 2 and Docker Desktop if needed (after asking) and starts tiko.'
+  Show-StatsNotice
   Test-Machine
   Confirm-Docker
   if ($NeedsRestart) {
@@ -317,6 +370,7 @@ function Install-Tiko {
   }
   Initialize-Folder
   Invoke-Tiko
+  Send-InstallEvent ''
   Show-Result
 }
 
@@ -326,4 +380,5 @@ try {
 } catch {
   Write-Host ''
   Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+  Send-InstallEvent $StepName
 }

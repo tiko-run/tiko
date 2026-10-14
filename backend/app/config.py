@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     github_token: SecretStr | None = None
     # Asks GitHub for new releases every 30 minutes to show "update available".
     update_check: bool = True
+    # Daily usage counts without personal data, listed on the guide's privacy page. Empty: on,
+    # and an admin turns them off in Settings → Privacy; set, it wins and locks the switch.
+    tiko_usage_stats: bool | None = None
+    # How tiko runs, set by the installer and the templates; empty: found from the platform.
+    tiko_deploy: Literal["installer", "compose", "railway", "render", "source", "demo"] | None = (
+        None
+    )
+    tiko_stats_url: str = "https://t.tiko.run/v1/events"
     # The updater service of compose.release.yml, set there; empty: no one-click update.
     updater_url: str = ""
     # Set by the platforms themselves, so About can say how to update there.

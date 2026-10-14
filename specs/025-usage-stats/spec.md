@@ -34,11 +34,11 @@ The README, the site and About say "no telemetry". tiko does not track people an
    | `schema` | `1` | payload version |
    | `instance_id` | `0b6f…` | random UUID made on first start, stored in the database, not derived from anything |
    | `version` | `2026.10.19` | tiko version |
-   | `deploy` | `installer`, `compose`, `railway`, `render`, `source` | how it runs, from `TIKO_DEPLOY` set by the installer and templates; `compose` when unset |
+   | `deploy` | `installer`, `compose`, `railway`, `render`, `source`, `demo` | how it runs: `TIKO_DEPLOY` set by the installer, else found from the platform, else `compose` |
    | `arch` | `arm64` | CPU architecture |
-   | `trackers` | `["jira_dc", "github"]` | tracker kinds in use, no URLs |
+   | `trackers` | `["github", "jira_dc"]` | tracker kinds the cards come from (`demo`, `jira_dc`, `github`), no URLs |
    | `people` | `2-5` | active accounts, bucket: `1`, `2-5`, `6-20`, `21-100`, `100+` |
-   | `boards` | `6-20` | boards, same buckets |
+   | `boards` | `6-20` | boards, same buckets plus `0` |
    | `updater` | `true` | one-click updates on |
 
    Adding a field is a deliberate change: it bumps `schema`, the guide page and `CHANGELOG.md`.
@@ -58,21 +58,21 @@ The README, the site and About say "no telemetry". tiko does not track people an
 
    The switch is read at send time (`before_send`), so turning it on or off needs no restart. If we later move to GlitchTip, only the DSN changes.
 
-8. **Settings → Privacy.** Admins see two toggles for the whole instance. Under each: one line on what is sent and why, a link to the guide page, and for usage stats a "Show what is sent" box with the exact JSON of the next ping. People who are not admins see the state read-only.
+8. **Settings → Privacy.** Admins see two toggles for the whole instance. Under each: one line on what is sent and why, a link to the guide page, and for usage stats a "Show what is sent" box with the exact JSON of the next ping. Only admins see the section.
 
 9. **Installers tell before they send.** Both installers print this before the first step, so it is on screen before anything is sent, and again at the end:
 
    ```text
    Usage stats:   on   (version, OS, install count; no personal data)
    Error reports: off
-   Details and how to change: https://tiko.run/docs/privacy/
+   Details and how to change: https://docs.tiko.run/privacy/
    ```
 
    `--no-stats` (`-NoStats`) or `TIKO_USAGE_STATS=false` in the environment writes `TIKO_USAGE_STATS=false` into `.env` and sends no install event.
 
 10. **Honest wording everywhere.** "No telemetry" goes away from `README.md`, the site (Hero, SelfHost, FAQ), About and the guide's security page. It becomes "No tracking" with a link to a new guide page **Privacy: usage stats and error reports**, which explains, in this order: why we collect (scale, which platforms and trackers to support first, what breaks after a release), what is sent field by field with a sample JSON, what is never sent, where it goes and how long it is kept, how to turn each stream off, and a link to `collector/`.
 
-11. **Our own instances.** `demo.tiko.run` runs with `TIKO_DEPLOY=demo`, so it does not count as a self-hosted install.
+11. **Our own instances.** `demo.tiko.run` runs with `TIKO_DEMO`, which reports `deploy: demo`, so it does not count as a self-hosted install.
 
 12. **Rule.** The project constitution records it: usage stats carry no personal data, are on by default, documented and off with one setting; error reports are off by default.
 

@@ -7,6 +7,7 @@
 #
 # Env: TIKO_DIR, TIKO_PORT (3000), TIKO_VERSION (latest release), TIKO_YES=1,
 #      TIKO_UPDATER (yes or no: one-click updates, asked otherwise),
+#      TIKO_USAGE_STATS=false (send no usage stats, see https://docs.tiko.run/privacy/),
 #      TIKO_COMPOSE_URL (another compose file, for testing a branch).
 set -eu
 
@@ -14,6 +15,7 @@ REPO=tiko-run/tiko
 MIN_MEM_MB=1024
 WARN_MEM_MB=2048
 MIN_DISK_MB=2048
+STATS_URL=${TIKO_STATS_URL:-https://t.tiko.run/v1/events}
 
 say() { printf '%s\n' "$*"; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -21,7 +23,7 @@ die() { printf '\nError: %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
-  say "Usage: install.sh [--yes] [--dir DIR] [--port PORT] [--version VERSION] [--no-updater]"
+  say "Usage: install.sh [--yes] [--dir DIR] [--port PORT] [--version VERSION] [--no-updater] [--no-stats]"
   say "Installs tiko with Docker, or upgrades the install in DIR."
 }
 
@@ -31,6 +33,7 @@ parse_args() {
   PORT=${TIKO_PORT:-}
   VERSION=${TIKO_VERSION:-latest}
   UPDATER=${TIKO_UPDATER:-}
+  STATS=${TIKO_USAGE_STATS:-true}
   while [ $# -gt 0 ]; do
     case "$1" in
       -y | --yes) YES=1 ;;
@@ -38,6 +41,7 @@ parse_args() {
       --port) PORT=${2:?--port needs a value}; shift ;;
       --version) VERSION=${2:?--version needs a value}; shift ;;
       --no-updater) UPDATER=no ;;
+      --no-stats) STATS=false ;;
       -h | --help) usage; exit 0 ;;
       *) usage; die "unknown option: $1" ;;
     esac
@@ -117,6 +121,8 @@ check_system() {
   if [ -f "$DIR/.env" ]; then
     UPGRADE=1
     [ -n "$PORT" ] || PORT=$(sed -n 's/^TIKO_PORT=//p' "$DIR/.env")
+    # Turned off once, the install stays quiet on every upgrade.
+    if grep -q '^TIKO_USAGE_STATS=false' "$DIR/.env"; then STATS=false; fi
   else
     UPGRADE=0
   fi
@@ -240,6 +246,7 @@ prepare_dir() {
         echo "TIKO_PASSWORD=$PASSWORD"
         echo "TIKO_SECRET_KEY=$(random_key)"
         echo "TIKO_PORT=$PORT"
+        echo "TIKO_DEPLOY=installer"
       } >.env
     )
     say "Created .env with a generated password and secret key"
@@ -250,8 +257,11 @@ prepare_dir() {
     chmod 600 .env
   fi
 
+  keep_env TIKO_DEPLOY installer
+  [ "$STATS" = true ] || keep_env TIKO_USAGE_STATS false
   choose_updater
 
+  STEP=download
   if [ -n "${TIKO_COMPOSE_URL:-}" ]; then
     url=$TIKO_COMPOSE_URL
   elif [ "$VERSION" = latest ]; then
@@ -265,8 +275,11 @@ prepare_dir() {
 
 start_tiko() {
   step "Starting tiko"
+  STEP=pull
   $DOCKER compose pull --quiet
+  STEP=start
   $DOCKER compose up -d --remove-orphans
+  STEP=health
   say "Waiting for tiko to answer on port $PORT..."
   i=0
   while [ $i -lt 90 ]; do
@@ -303,6 +316,53 @@ finish() {
   say "Logs:      cd $DIR && $HINT compose logs -f"
   say "Upgrade:   run this installer again"
   say "Guide:     https://docs.tiko.run/"
+  say ""
+  stats_notice
+}
+
+# Sets KEY=VALUE in .env, keeping the other lines.
+keep_env() {
+  grep -q "^$1=$2\$" .env && return 0
+  grep -v "^$1=" .env >.env.new || true
+  echo "$1=$2" >>.env.new
+  mv .env.new .env
+  chmod 600 .env
+}
+
+stats_notice() {
+  if [ "$STATS" = true ]; then
+    say "Usage stats:   on  (version, OS, install count; no personal data)"
+    say "               off with --no-stats or in Settings → Privacy: https://docs.tiko.run/privacy/"
+  else
+    say "Usage stats:   off"
+  fi
+}
+
+json_string() {
+  if [ -n "$1" ]; then printf '"%s"' "$1"; else printf 'null'; fi
+}
+
+# One event about this install, listed at https://docs.tiko.run/privacy/; a failure to send is ignored.
+send_install_event() {
+  [ "$STATS" = true ] || return 0
+  # shellcheck disable=SC2016  # matches the literal  in the compose file
+  installed=$(sed -n 's/.*tiko-api:\${TAG:-\(.*\)}.*/\1/p' "$DIR/compose.yaml" 2>/dev/null | head -n 1) || installed=
+  case "$(uname -m)" in x86_64 | amd64) arch=amd64 ;; aarch64 | arm64) arch=arm64 ;; *) arch=other ;; esac
+  updater=false
+  [ "$UPDATER" = yes ] && updater=true
+  body=$(printf '{"kind":"install","schema":1,"version":%s,"os":"%s","arch":"%s","installer":"sh","updater":%s,"failed_step":%s}' \
+    "$(json_string "$installed")" "$(uname -s | tr '[:upper:]' '[:lower:]')" "$arch" "$updater" "$(json_string "$1")")
+  if has curl; then
+    curl -fsS -m 3 -X POST -H 'Content-Type: application/json' -d "$body" "$STATS_URL" >/dev/null 2>&1 || true
+  elif has wget; then
+    wget -q -T 3 -t 1 -O /dev/null --header='Content-Type: application/json' --post-data="$body" "$STATS_URL" >/dev/null 2>&1 || true
+  fi
+}
+
+# Any exit before the end is a failed install; Ctrl-C is not.
+on_exit() {
+  status=$?
+  [ "$status" = 0 ] || [ "$status" = 130 ] || send_install_event "$STEP"
 }
 
 # Asked once and kept in .env, so an upgrade does not ask again; TIKO_UPDATER or --no-updater
@@ -336,10 +396,16 @@ choose_updater() {
 main() {
   parse_args "$@"
   say "tiko installer: checks this machine, installs Docker if needed (after asking) and starts tiko."
+  stats_notice
+  STEP=docker-check
+  trap on_exit EXIT
+  trap 'exit 130' INT
   check_system
   ensure_docker
   prepare_dir
   start_tiko
+  trap - EXIT
+  send_install_event ""
   finish
 }
 

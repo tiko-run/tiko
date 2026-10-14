@@ -45,9 +45,10 @@ Every page and API route except `/health` and `/ready` asks you to sign in with 
 
 - The tracker URL you configure.
 - The GitHub API for the latest tiko release, unless `UPDATE_CHECK=false`. No data about you or your boards is sent.
+- The usage stats collector, once a day, unless `TIKO_USAGE_STATS=false` or an admin turns it off in Settings → Privacy. It gets a few counts with no personal data; every field is in [Usage stats](../privacy/).
 
 With one-click updates on, the `updater` service mounts the Docker socket, which gives it control of Docker on the host. It is off unless the installer turned it on or `COMPOSE_PROFILES=updater` is set and publishes no port. It answers only requests with the token in `data/updater-token`, which the `api` container sends when an admin starts an update, and it replaces the `api` and `web` containers. See [Updates](../updates/).
 
-There is no telemetry. Fonts and icons ship with the app.
+Fonts and icons ship with the app.
 
 Report vulnerabilities privately as described in [SECURITY.md](https://github.com/tiko-run/tiko/blob/main/SECURITY.md), not in a public issue.

@@ -25,6 +25,8 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `DB_PATH` | SQLite file inside the container | `data/app.db` |
 | `APP_ENV` | Environment name: `local`, `stage` or `production` | `local` |
 | `UPDATE_CHECK` | Ask GitHub every 30 minutes for new releases to show "update available" in About, and how much the update matters; `false` turns it off | `true` |
+| `TIKO_USAGE_STATS` | Daily usage counts without personal data, listed in [Usage stats](../privacy/). `false` turns them off and locks the switch in Settings → Privacy; unset, an admin decides there | unset (on) |
+| `TIKO_DEPLOY` | How tiko runs, reported in the usage stats; the installer sets `installer`, Railway and Render are found on their own | unset (`compose`) |
 | `TIKO_PORT` | Port on your machine that Docker Compose gives the web UI | `3000` |
 | `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`. The release compose file does not publish the API | `8000` |
 

@@ -264,6 +264,24 @@ class ReleaseFeed(Protocol):
         ...
 
 
+class UsageCounts(Protocol):
+    def people(self) -> int:
+        """Active accounts: no demo visitors, no disabled people."""
+        ...
+
+    def boards(self) -> int: ...
+
+    def sources(self) -> set[str]:
+        """Trackers the cards on this instance were read from."""
+        ...
+
+
+class StatsSender(Protocol):
+    def send(self, body: dict) -> None:
+        """Raises DependencyUnavailable when the collector cannot be reached."""
+        ...
+
+
 class Updater(Protocol):
     """The service that swaps the running containers for a release; DependencyUnavailable when
     it does not answer, as on an install without it."""

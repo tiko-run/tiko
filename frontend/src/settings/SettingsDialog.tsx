@@ -5,6 +5,7 @@ import {
   KeyRound,
   Link2,
   Plug,
+  ShieldCheck,
   ListTodo,
   SlidersHorizontal,
   UserRound,
@@ -25,6 +26,7 @@ import { cn } from 'cn'
 import { MyTracker } from '@/settings/sections/MyTracker'
 import { People } from '@/settings/sections/People'
 import { Preferences } from '@/settings/sections/Preferences'
+import { Privacy } from '@/settings/sections/Privacy'
 import { Profile } from '@/settings/sections/Profile'
 import { Security } from '@/settings/sections/Security'
 import { Sharing } from '@/settings/sections/Sharing'
@@ -63,6 +65,7 @@ const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
       { id: 'task-source', label: 'Task source', Icon: ListTodo, render: () => <TaskSource /> },
       { id: 'people', label: 'People', Icon: Users, render: (me) => <People me={me} /> },
       { id: 'sharing', label: 'Sharing', Icon: Link2, render: () => <Sharing /> },
+      { id: 'privacy', label: 'Privacy', Icon: ShieldCheck, render: () => <Privacy /> },
     ],
   },
 ]

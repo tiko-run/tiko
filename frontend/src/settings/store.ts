@@ -8,6 +8,7 @@ export const SECTIONS = [
   'task-source',
   'people',
   'sharing',
+  'privacy',
 ] as const
 export type Section = (typeof SECTIONS)[number]
 

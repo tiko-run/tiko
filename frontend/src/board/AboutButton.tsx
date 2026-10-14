@@ -183,7 +183,7 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
         )}
         <p className="text-muted-foreground text-[13px] leading-normal">
           An infinite canvas for your tasks: live cards from your tracker, arranged the way you
-          think. Open source, self-hosted, no telemetry.
+          think. Open source, self-hosted, no tracking.
         </p>
         <nav className="-mx-2 flex flex-col" aria-label="tiko links">
           <AboutLink href={REPO} icon={<GitHubIcon />}>
