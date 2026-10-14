@@ -70,7 +70,7 @@ import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
-import { barNodes, withFill, type Fill, type Kind } from '@/canvas/selection-props'
+import { barNodes, withStyle, type Kind, type Style } from '@/canvas/selection-props'
 import { ModuleHostContext } from '@/modules/host-context'
 import { findModule } from '@/modules/registry'
 import type { ModuleHost } from '@/modules/types'
@@ -195,11 +195,11 @@ export function BoardCanvas({
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
-  // A fill tried on the selection from the bar: drawn here only, never saved or sent.
-  const [preview, setPreview] = useState<Fill | null>(null)
+  // A style tried on the selection from the bar: drawn here only, never saved or sent.
+  const [preview, setPreview] = useState<Style | null>(null)
   const shown = useMemo(() => {
     const painted =
-      preview === null ? moving : moving.map((n) => (n.selected ? withFill(n, preview) : n))
+      preview === null ? moving : moving.map((n) => (n.selected ? withStyle(n, preview) : n))
     const raised = raiseAnchors(painted, edges)
     if (!flashId && !hits) return raised
     return {
@@ -576,9 +576,9 @@ export function BoardCanvas({
       ),
     )
 
-  // One call, so a fill on many elements is one undo step.
-  const setFill = (fill: Fill) =>
-    setNodes((current) => current.map((n) => (n.selected ? withFill(n, fill) : n)))
+  // One call, so a style on many elements is one undo step.
+  const setStyle = (style: Style) =>
+    setNodes((current) => current.map((n) => (n.selected ? withStyle(n, style) : n)))
   const narrowTo = (kind: Kind) => {
     setNodes((current) =>
       current.map((n) => (n.selected && n.type !== kind ? { ...n, selected: false } : n)),
@@ -742,7 +742,7 @@ export function BoardCanvas({
       {barShown && (
         <SelectionBar
           nodes={inBar}
-          onFill={setFill}
+          onStyle={setStyle}
           onPreview={setPreview}
           onNarrow={narrowTo}
           onCollapse={setCollapsed}

@@ -23,6 +23,8 @@ const shape: AppNode = {
   data: { shape: 'ellipse', text: '', color: 'none' },
 }
 const frame: AppNode = { id: 'f', type: 'frame', ...at, data: { title: '' } }
+const text = (id: string, data: object = {}): AppNode =>
+  ({ id, type: 'text', ...at, data: { text: '', ...data } }) as AppNode
 const card = (id: string, collapsed: boolean): AppNode => ({
   id,
   type: 'task_card',
@@ -32,7 +34,7 @@ const card = (id: string, collapsed: boolean): AppNode => ({
 
 function renderBar(nodes: AppNode[], withTimer = false) {
   const on = {
-    onFill: vi.fn(),
+    onStyle: vi.fn(),
     onPreview: vi.fn(),
     onNarrow: vi.fn(),
     onCollapse: vi.fn(),
@@ -61,7 +63,7 @@ test('one sticky note: its name, the fill and the actions', () => {
   expect(button('yellow fill').getAttribute('aria-pressed')).toBe('true')
   expect(screen.queryByRole('button', { name: 'no fill' })).toBeNull()
   fireEvent.click(button('blue fill'))
-  expect(on.onFill).toHaveBeenCalledWith('blue')
+  expect(on.onStyle).toHaveBeenCalledWith({ color: 'blue' })
   fireEvent.click(button('Add timer'))
   fireEvent.click(button('Duplicate'))
   fireEvent.click(button('Delete'))
@@ -77,8 +79,8 @@ test('notes in two colors: no swatch is picked, and a swatch previews on hover',
   expect(button('yellow fill').getAttribute('aria-pressed')).toBe('false')
   expect(button('pink fill').getAttribute('aria-pressed')).toBe('false')
   fireEvent.pointerEnter(button('green fill'))
-  expect(on.onPreview).toHaveBeenLastCalledWith('green')
-  expect(on.onFill).not.toHaveBeenCalled()
+  expect(on.onPreview).toHaveBeenLastCalledWith({ color: 'green' })
+  expect(on.onStyle).not.toHaveBeenCalled()
   fireEvent.pointerLeave(button('green fill').parentElement!)
   expect(on.onPreview).toHaveBeenLastCalledWith(null)
 })
@@ -122,4 +124,44 @@ test('collapsed cards offer Expand', () => {
   const on = renderBar([card('a', true)])
   fireEvent.click(button('Expand card'))
   expect(on.onCollapse).toHaveBeenCalledWith(false)
+})
+
+test('elements at different opacity read Mixed, and the slider starts at the highest', () => {
+  renderBar([sticky('a', 'yellow'), { ...shape, data: { ...shape.data, opacity: 40 } } as AppNode])
+  fireEvent.click(button('Opacity'))
+  expect(button('Opacity').textContent).toBe('Mixed')
+  expect(screen.getByRole('slider', { name: 'Opacity' }).getAttribute('aria-valuenow')).toBe('100')
+})
+
+test('a task card in the selection takes no opacity', () => {
+  renderBar([card('a', false), sticky('s', 'yellow')])
+  expect(screen.queryByRole('button', { name: 'Opacity' })).toBeNull()
+})
+
+test('a shape offers the outline: widths and dashed, previewed before the pick', () => {
+  const on = renderBar([shape])
+  fireEvent.click(button('Outline'))
+  expect(button('1.5px outline').getAttribute('aria-pressed')).toBe('true')
+  fireEvent.pointerEnter(button('3px outline'))
+  expect(on.onPreview).toHaveBeenLastCalledWith({ stroke: 3 })
+  fireEvent.click(button('Dashed'))
+  expect(on.onStyle).toHaveBeenCalledWith({ dash: true })
+})
+
+test('text takes size and bold, no outline; a note has bold only', () => {
+  const on = renderBar([text('a', { size: 'large', bold: true }), text('b', { size: 'large' })])
+  expect(screen.queryByRole('button', { name: 'Outline' })).toBeNull()
+  expect(button('Bold').getAttribute('aria-pressed')).toBe('false')
+  fireEvent.click(button('Bold'))
+  expect(on.onStyle).toHaveBeenLastCalledWith({ bold: true })
+  fireEvent.click(button('Text size'))
+  expect(button('Large').getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(button('Small'))
+  expect(on.onStyle).toHaveBeenLastCalledWith({ size: 'small' })
+})
+
+test('a note has bold but no text size', () => {
+  renderBar([sticky('a', 'yellow')])
+  expect(button('Bold')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Text size' })).toBeNull()
 })

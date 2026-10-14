@@ -3,13 +3,16 @@ import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
 import { SHAPE_MAX_CHARS, SHAPE_MIN, shapePath, sideInset, textInset } from '@/canvas/shapes'
-import { fillCss } from '@/canvas/selection-props'
+import { fillCss, textPx } from '@/canvas/selection-props'
 import type { ShapeNode as ShapeNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
 
 function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeNodeType>) {
   const readOnly = useReadOnly()
+  const stroke = data.stroke ?? 1.5
+  // On the drawing and the text, not the node, so the selection outline and handles stay solid.
+  const opacity = data.opacity === undefined ? undefined : data.opacity / 100
 
   return (
     <div
@@ -27,18 +30,25 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
         minWidth={SHAPE_MIN.width}
         minHeight={SHAPE_MIN.height}
       />
-      <svg aria-hidden className="absolute inset-0 size-full overflow-visible">
+      <svg aria-hidden className="absolute inset-0 size-full overflow-visible" style={{ opacity }}>
         <path
           d={shapePath(data.shape, width, height)}
           fill={fillCss(data.color)}
           stroke="currentColor"
-          strokeWidth={1.5}
+          strokeWidth={stroke}
+          // Dashes scale with the width, so a 3px dash reads like a 1px one.
+          strokeDasharray={data.dash ? `${stroke * 4} ${stroke * 3}` : undefined}
           strokeLinejoin="round"
         />
       </svg>
       <div
         className={cn('shape-text', !data.text && !selected && 'shape-text-empty')}
-        style={{ inset: textInset(data.shape) }}
+        style={{
+          inset: textInset(data.shape),
+          fontSize: textPx('shape', data.size),
+          fontWeight: data.bold ? 600 : undefined,
+          opacity,
+        }}
       >
         <EditableText
           nodeId={id}

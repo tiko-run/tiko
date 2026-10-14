@@ -33,6 +33,6 @@ Click a card for assignee, priority, last update and a link to the task. Collaps
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.
 
-Select one element or many, and a bar appears next to it: above the selection, or below it when there is no room. It shows what every selected element has in common: pick a fill and all of them take it, with one Undo to bring them back. Rest the pointer on a color to see it on the board before you pick. A selection of several kinds starts with "N objects": open it and choose a kind to keep only those selected. The bar also collapses cards, adds a timer, duplicates and deletes.
+Select one element or many, and a bar appears next to it: above the selection, or below it when there is no room. It shows what every selected element has in common: pick a fill and all of them take it, with one Undo to bring them back. Rest the pointer on a color to see it on the board before you pick. The bar also fades elements with an opacity slider, gives shapes a thicker or dashed outline, and sets text size and bold, each only where every selected element can take it. A selection of several kinds starts with "N objects": open it and choose a kind to keep only those selected. The bar also collapses cards, adds a timer, duplicates and deletes.
 
 The board is saved on the server and reopens exactly as you left it. Keep several boards and switch between them from the menu or the palette.

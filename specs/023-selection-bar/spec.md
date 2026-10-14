@@ -70,7 +70,7 @@ A person fades the frames of the finished phase to 40%, marks an optional step o
 1. **Given** a selection where every element takes opacity, **When** the slider moves, **Then** the elements follow it live and releasing it makes one undo step.
 2. **Given** elements with different opacity, **Then** the button reads "Mixed" and the slider starts at the highest value.
 3. **Given** a selected shape, **Then** the outline popover offers 1, 1.5 and 3px and dashed; the outline keeps the shape's corners and joins.
-4. **Given** a text element or a shape, **Then** small, medium and large set the text to 12, 14 and 20px, and Bold toggles 600 weight; a sticky note has Bold only.
+4. **Given** a text element or a shape, **Then** small, medium and large set shape text to 12, 14 and 20px and a text element to 12, 16 and 24px (medium is each type's size before this feature), and Bold toggles 600 weight; a sticky note has Bold only.
 5. **Given** a selection with a task card in it, **Then** the bar offers no opacity.
 6. **Given** a saved doc with an opacity, an outline width or a text size outside the listed values, **Then** the API answers 422.
 

@@ -1,4 +1,11 @@
-import { FRAME_COLORS, SHAPE_COLORS, STICKY_COLORS, type AppNode } from '@/canvas/types'
+import {
+  FRAME_COLORS,
+  SHAPE_COLORS,
+  STICKY_COLORS,
+  type AppNode,
+  type Stroke,
+  type TextSize,
+} from '@/canvas/types'
 
 export type Fill = (typeof SHAPE_COLORS)[number]
 
@@ -39,10 +46,74 @@ export function fillsOf(nodes: AppNode[]): Fill[] {
   return SHAPE_COLORS.filter((fill) => used.has(fill))
 }
 
-/** The node in that fill, or the node itself when it does not take it. */
-export function withFill(node: AppNode, fill: Fill): AppNode {
-  if (!FILLS[node.type ?? '']?.includes(fill) || fillOf(node) === fill) return node
-  return { ...node, data: { ...node.data, color: fill } } as AppNode
+export type Style = {
+  color?: Fill
+  opacity?: number
+  stroke?: Stroke
+  dash?: boolean
+  bold?: boolean
+  size?: TextSize
+}
+export type StyleProp = Exclude<keyof Style, 'color'>
+
+// The element types that take each property; a task card stays opaque, it shows live data.
+const TAKES: Record<StyleProp, readonly string[]> = {
+  opacity: ['sticky', 'shape', 'frame', 'text'],
+  stroke: ['shape'],
+  dash: ['shape'],
+  bold: ['sticky', 'shape', 'text'],
+  size: ['shape', 'text'],
+}
+
+// What a field left out means: the look elements had before they took the property.
+const STYLE_DEFAULTS: Required<Pick<Style, StyleProp>> = {
+  opacity: 100,
+  stroke: 1.5,
+  dash: false,
+  bold: false,
+  size: 'medium',
+}
+
+// Medium is each type's own size from before, so text saved without a size keeps it.
+const TEXT_PX: Record<string, Record<TextSize, number>> = {
+  shape: { small: 12, medium: 14, large: 20 },
+  text: { small: 12, medium: 16, large: 24 },
+}
+/** A color at the element's opacity; fading colors, not the node, keeps its selection ring and handles solid. */
+export const faded = (color: string, opacity: number | undefined) =>
+  opacity === undefined || opacity === 100
+    ? color
+    : `color-mix(in oklch, ${color} ${opacity}%, transparent)`
+
+export const textPx = (kind: 'shape' | 'text', size: TextSize | undefined) =>
+  TEXT_PX[kind][size ?? 'medium']
+
+/** Whether every one of the nodes takes the property. */
+export const shares = (nodes: AppNode[], prop: StyleProp) =>
+  nodes.length > 0 && nodes.every((n) => TAKES[prop].includes(n.type ?? ''))
+
+export function styleOf<P extends StyleProp>(node: AppNode, prop: P): Required<Style>[P] {
+  const value = (node.data as Style)[prop]
+  return (value ?? STYLE_DEFAULTS[prop]) as Required<Style>[P]
+}
+
+/** The different values of the property among the nodes, in the order they first appear. */
+export const stylesOf = <P extends StyleProp>(nodes: AppNode[], prop: P) => [
+  ...new Set(nodes.map((n) => styleOf(n, prop))),
+]
+
+/** The node with what of the style it takes, or the node itself when nothing changes. */
+export function withStyle(node: AppNode, style: Style): AppNode {
+  const kind = node.type ?? ''
+  let data = node.data as Record<string, unknown>
+  for (const [prop, value] of Object.entries(style) as [keyof Style, unknown][]) {
+    if (value === undefined) continue
+    const takes =
+      prop === 'color' ? FILLS[kind]?.includes(value as Fill) : TAKES[prop].includes(kind)
+    const now = prop === 'color' ? fillOf(node) : styleOf(node, prop)
+    if (takes && now !== value) data = { ...data, [prop]: value }
+  }
+  return data === node.data ? node : ({ ...node, data } as AppNode)
 }
 
 export type Kind = Exclude<NonNullable<AppNode['type']>, 'anchor'>

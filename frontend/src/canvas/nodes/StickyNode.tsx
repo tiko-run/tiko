@@ -2,6 +2,7 @@ import { NodeResizer, type NodeProps } from '@xyflow/react'
 import { Ban } from 'lucide-react'
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canvas/fit'
+import { faded } from '@/canvas/selection-props'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
 import type { StickyNode as StickyNodeType } from '@/canvas/types'
@@ -30,7 +31,8 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
     setFontSize(size)
   }, [])
 
-  useLayoutEffect(fit, [fit, data.text, width, height])
+  // Bold text is wider, so it takes another fit.
+  useLayoutEffect(fit, [fit, data.text, data.bold, width, height])
 
   const block = () => setBlocked((n) => n + 1)
 
@@ -42,9 +44,10 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
         selected && 'ring-primary ring-2',
       )}
       style={{
-        background: `var(--sticky-${data.color})`,
-        color: 'var(--sticky-foreground)',
+        background: faded(`var(--sticky-${data.color})`, data.opacity),
+        color: faded('var(--sticky-foreground)', data.opacity),
         fontSize,
+        fontWeight: data.bold ? 600 : undefined,
       }}
       onInput={fit}
       onFocus={fit}
