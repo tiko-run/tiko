@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The download bar of a one-click update no longer jumps back: it moves by layers and images instead of bytes, whose total Docker learns only along the way.
+
 ## [2026.10.17] - 2026-10-14
 
 ### Added

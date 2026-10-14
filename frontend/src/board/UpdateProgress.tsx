@@ -63,7 +63,7 @@ export function UpdateProgress() {
       ) : (
         <>
           <span className="text-muted-foreground">
-            {/* Docker counts bytes only for large layers; small ones just complete. */}
+            {/* The updater counts layers, not bytes, so the bar never jumps back. */}
             Downloading the new version{status.total ? ` · ${percent}%` : '…'}
           </span>
           <div className="bg-muted h-1.5 overflow-hidden rounded-full">
