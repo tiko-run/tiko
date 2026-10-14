@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.16] - 2026-10-14
+
 ### Added
 
 - Shapes: rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one in the toolbar (`S`), drag to set its size or click to place it, type text, pick a fill. Shapes take arrows, timers and frames like sticky notes, and search finds their text.
