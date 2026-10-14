@@ -147,7 +147,8 @@ function Install-Wsl {
 # On a new user profile winget is on the machine, but App Installer is not registered for that user yet.
 function Register-Winget {
   if (Test-Command winget) { return }
-  try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop } catch { return }
+  try { Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop }
+  catch { Say "Could not register winget for this user: $($_.Exception.Message)" }
 }
 
 function Install-DockerDesktop {
