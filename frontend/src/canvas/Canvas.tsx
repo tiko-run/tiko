@@ -36,7 +36,7 @@ import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/
 import { Guides } from '@/canvas/Guides'
 import { gridPositions } from '@/canvas/layout'
 import { absorbCards } from '@/canvas/modules'
-import { moduleControls } from '@/canvas/ModuleControls'
+import { moduleControls } from '@/canvas/module-controls'
 import { AnchorNode } from '@/canvas/nodes/AnchorNode'
 import { FrameNode } from '@/canvas/nodes/FrameNode'
 import { TaskCardNode } from '@/canvas/nodes/TaskCardNode'
@@ -593,11 +593,16 @@ export function BoardCanvas({
   const barShown =
     !readOnly && !placing && inBar.length > 0 && !nodes.some((n) => n.dragging || n.resizing)
   const timerHolder = selected.length === 1 && holdsTimers(selected[0]) ? selected[0] : undefined
-  const only = inBar.length === 1 ? inBar[0] : undefined
+  const soleSelected = inBar.length === 1 ? inBar[0] : undefined
   const controls =
-    only?.type === 'module'
-      ? moduleControls(only, (content) => flow.updateNodeData(only.id, { content }))
-      : null
+    soleSelected?.type === 'module'
+      ? (side: 'top' | 'bottom') =>
+          moduleControls(
+            soleSelected,
+            (content) => flow.updateNodeData(soleSelected.id, { content }),
+            side,
+          )
+      : undefined
 
   const deleteSelection = () =>
     void deleteElements({

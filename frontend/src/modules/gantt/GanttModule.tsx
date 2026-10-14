@@ -396,7 +396,7 @@ function formatRange(start: string, end: string) {
 }
 
 /** Scale switch, range dates and milestones, in the selection bar. */
-export function GanttControls({ content, onChange }: ModuleControlsProps<GanttContent>) {
+export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
   return (
     <>
       {SCALES.map(({ scale, label }) => (
@@ -410,7 +410,7 @@ export function GanttControls({ content, onChange }: ModuleControlsProps<GanttCo
           {label}
         </Button>
       ))}
-      <RangePopover content={content} onChange={onChange} />
+      <RangePopover content={content} onChange={onChange} side={side} />
       <Button
         size="sm"
         variant="ghost"
@@ -428,7 +428,7 @@ export function GanttControls({ content, onChange }: ModuleControlsProps<GanttCo
   )
 }
 
-function RangePopover({ content, onChange }: Pick<Props, 'content' | 'onChange'>) {
+function RangePopover({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState({ start: content.start, end: content.end })
   const valid =
@@ -455,7 +455,7 @@ function RangePopover({ content, onChange }: Pick<Props, 'content' | 'onChange'>
           Dates
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="top" className="w-64 p-3">
+      <PopoverContent side={side} className="w-64 p-3">
         <form onSubmit={submit} className="flex flex-col gap-2">
           {(['start', 'end'] as const).map((field) => (
             <div key={field} className="flex flex-col gap-1">

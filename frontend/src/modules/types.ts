@@ -27,7 +27,10 @@ export type ModuleViewProps<C> = {
 }
 
 /** What the module's controls in the selection bar read and write. */
-export type ModuleControlsProps<C> = Pick<ModuleViewProps<C>, 'content' | 'onChange'>
+export type ModuleControlsProps<C> = Pick<ModuleViewProps<C>, 'content' | 'onChange'> & {
+  /** Where their popovers open: away from the selection, like the bar's own. */
+  side: 'top' | 'bottom'
+}
 
 export type ModuleDef<C> = {
   kind: string

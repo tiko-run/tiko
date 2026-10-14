@@ -114,8 +114,8 @@ type Props = {
   onAddTimer?: () => void
   onDuplicate: () => void
   onDelete: () => void
-  /** The selected module's own controls, right after its name. */
-  controls?: ReactNode
+  /** The selected module's own controls, right after its name; null when it has none. */
+  controls?: (side: 'top' | 'bottom') => ReactNode
 }
 
 /** One bar for whatever is selected: only the properties every selected element has. */
@@ -196,6 +196,7 @@ export function SelectionBar({
   // Away from the selection, so a popover never covers what it changes.
   const side = above ? 'top' : 'bottom'
   const KindIcon = KIND_ICONS[kinds[0].kind]
+  const own = controls?.(side)
 
   return (
     <div
@@ -247,10 +248,10 @@ export function SelectionBar({
           </PopoverContent>
         </Popover>
       )}
-      {controls && (
+      {own && (
         <>
           <Divider />
-          {controls}
+          {own}
         </>
       )}
       {styled && <Divider />}

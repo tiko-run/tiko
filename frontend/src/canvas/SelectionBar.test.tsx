@@ -33,7 +33,11 @@ const card = (id: string, collapsed: boolean): AppNode => ({
   data: { key: 'DEMO-1', collapsed },
 })
 
-function renderBar(nodes: AppNode[], withTimer = false, controls?: ReactNode) {
+function renderBar(
+  nodes: AppNode[],
+  withTimer = false,
+  controls?: (side: 'top' | 'bottom') => ReactNode,
+) {
   const on = {
     onStyle: vi.fn(),
     onPreview: vi.fn(),
@@ -169,8 +173,9 @@ test('a note has bold but no text size', () => {
 
 test('a module brings its own controls into the bar', () => {
   const gantt = { id: 'g', type: 'module', ...at, data: { kind: 'gantt', content: {} } } as AppNode
-  renderBar([gantt], true, <button type="button">Weeks</button>)
+  renderBar([gantt], false, (side) => <button type="button">{`Weeks ${side}`}</button>)
   const bar = screen.getByRole('toolbar', { name: 'Selection' })
-  expect(within(bar).getByRole('button', { name: 'Weeks' })).toBeTruthy()
+  // No room above a module at the top of the canvas: the bar and its popovers go below.
+  expect(within(bar).getByRole('button', { name: 'Weeks bottom' })).toBeTruthy()
   expect(within(bar).getByRole('button', { name: 'Delete' })).toBeTruthy()
 })

@@ -4,7 +4,7 @@ import { ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Node } 
 import { useLayoutEffect } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { Task } from '@/api/tasks'
-import { moduleControls } from '@/canvas/ModuleControls'
+import { moduleControls } from '@/canvas/module-controls'
 import { ModuleNode } from '@/canvas/nodes/ModuleNode'
 import { TasksContext } from '@/canvas/tasks-context'
 import type { AppNode, ModuleNode as ModuleNodeType } from '@/canvas/types'
@@ -73,7 +73,11 @@ function Board({ start }: { start: GanttContent }) {
   return (
     <>
       {/* The canvas puts these in the selection bar. */}
-      {moduleControls(nodes[0] as ModuleNodeType, (content) => updateNodeData('g', { content }))}
+      {moduleControls(
+        nodes[0] as ModuleNodeType,
+        (content) => updateNodeData('g', { content }),
+        'top',
+      )}
       <ReactFlow nodes={nodes} nodeTypes={nodeTypes} onNodesChange={onNodesChange} />
     </>
   )
