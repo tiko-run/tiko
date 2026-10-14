@@ -62,7 +62,7 @@ function Read-Consent([string]$Question) {
 }
 
 # A question where yes is the usual answer.
-function Read-ConsentYes([string]$Question) {
+function Read-Approval([string]$Question) {
   if ($Yes) { return $true }
   (Read-Host "$Question [Y/n]") -notmatch '^(n|no)$'
 }
@@ -73,7 +73,7 @@ function Initialize-Updater([string]$EnvFile) {
   if (-not $Updater) {
     Say 'One-click updates add a small service with access to Docker, so an admin can update'
     Say 'tiko from the About button. Without it you update by running this installer again.'
-    $script:Updater = if (Read-ConsentYes 'Turn on one-click updates?') { 'yes' } else { 'no' }
+    $script:Updater = if (Read-Approval 'Turn on one-click updates?') { 'yes' } else { 'no' }
   }
   $line = if ($Updater -eq 'yes') { 'COMPOSE_PROFILES=updater' } else { 'COMPOSE_PROFILES=' }
   Write-EnvFile $EnvFile (@(Get-Content $EnvFile) + $line)
