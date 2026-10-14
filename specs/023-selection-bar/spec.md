@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Approved by the owner at G2 on 2026-10-13.
+**Status**: Approved by the owner at G2 on 2026-10-13. User stories 1 and 2 shipped; story 3 (colors with names) was deferred by the owner on 2026-10-14 and is not built.
 
 **Input**: Owner's idea: one shared control for the properties of whatever is selected, instead of a separate toolbar on each element type. The owner tried four throwaway prototypes (a bar above the selection, a chip that opens a panel, a pie menu, handles on the object) and picked the bar, together with named colors.
 
@@ -34,8 +34,8 @@ Color on a board already means something to the people who drew it: pink is a bl
 
    A sticky note keeps fitting its text to the note, so it has no text size. A task card stays fully opaque: it shows live data.
 7. **Actions at the end of the bar**: add a timer (one element that can hold one), duplicate, delete. Timer and delete do what the right-click menu does today; duplicate is the Duplicate shortcut as a button.
-8. **A color can carry a name on a board.** Each of the six colors takes a name of up to 24 characters, kept in the board doc and the same for everyone on the board. A named color shows its name next to the swatch in the bar. No names, no change: a board nobody named stays as it is today.
-9. **A legend builds itself.** While at least one named color is in use, a legend sits at the bottom left above the About button: a swatch, the name and the count of elements for each named color in use. A click on a row selects every element of that color; double-click renames it. It collapses to one button and remembers that per person.
+8. *(Deferred with story 3.)* **A color can carry a name on a board.** Each of the six colors takes a name of up to 24 characters, kept in the board doc and the same for everyone on the board. A named color shows its name next to the swatch in the bar. No names, no change: a board nobody named stays as it is today.
+9. *(Deferred with story 3.)* **A legend builds itself.** While at least one named color is in use, a legend sits at the bottom left above the About button: a swatch, the name and the count of elements for each named color in use. A click on a row selects every element of that color; double-click renames it. It collapses to one button and remembers that per person.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -70,11 +70,11 @@ A person fades the frames of the finished phase to 40%, marks an optional step o
 1. **Given** a selection where every element takes opacity, **When** the slider moves, **Then** the elements follow it live and releasing it makes one undo step.
 2. **Given** elements with different opacity, **Then** the button reads "Mixed" and the slider starts at the highest value.
 3. **Given** a selected shape, **Then** the outline popover offers 1, 1.5 and 3px and dashed; the outline keeps the shape's corners and joins.
-4. **Given** a text element or a shape, **Then** small, medium and large set the text to 12, 14 and 20px, and Bold toggles 600 weight; a sticky note has Bold only.
+4. **Given** a text element or a shape, **Then** small, medium and large set shape text to 12, 14 and 20px and a text element to 12, 16 and 24px (medium is each type's size before this feature), and Bold toggles 600 weight; a sticky note has Bold only.
 5. **Given** a selection with a task card in it, **Then** the bar offers no opacity.
 6. **Given** a saved doc with an opacity, an outline width or a text size outside the listed values, **Then** the API answers 422.
 
-### User Story 3 - Colors with names (Priority: P3)
+### User Story 3 - Colors with names (Priority: P3, deferred)
 
 A team agrees that pink is "Blocker" and green is "Decided". A newcomer opens the board, reads the legend and clicks "Blocker" to see every blocker at once.
 
@@ -96,8 +96,8 @@ A team agrees that pink is "Blocker" and green is "Decided". A newcomer opens th
 - **FR-003**: A preview on hover MUST stay local: nothing is saved or sent before the pick.
 - **FR-004**: A frame MUST take one of the six colors or none; the API MUST accept the field, default it to none and refuse an unknown value.
 - **FR-005**: Elements MUST take opacity, outline, bold and text size as listed in decision 6; the API MUST validate each against its listed values and default a missing one to today's look.
-- **FR-006**: A board doc MUST keep an optional name for each of the six colors, and the API MUST refuse an unknown color or a name over 24 characters.
-- **FR-007**: The legend MUST list the named colors in use with their counts and select by color.
+- **FR-006** *(deferred with story 3)*: A board doc MUST keep an optional name for each of the six colors, and the API MUST refuse an unknown color or a name over 24 characters.
+- **FR-007** *(deferred with story 3)*: The legend MUST list the named colors in use with their counts and select by color.
 - **FR-008**: A board saved before this feature MUST open and look the same.
 
 The board doc gains optional fields only. Node fields are listed in the [data model of spec 001](../001-live-jira-canvas/data-model.md); the color names also go into the live contract of [specs/009-realtime](../009-realtime/contracts/).

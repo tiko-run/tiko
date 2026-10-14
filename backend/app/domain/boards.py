@@ -4,10 +4,10 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     AwareDatetime,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     StringConstraints,
-    field_validator,
     model_validator,
 )
 
@@ -51,26 +51,34 @@ class TaskCardData(_Strict):
         return self
 
 
+def _not_null(value: Any) -> Any:
+    # A default is not validated, so only an explicit null lands here.
+    if value is None:
+        raise ValueError("leave the field out instead of sending null")
+    return value
+
+
+def absent_or(kind: Any) -> Any:
+    """A field a doc may leave out, never null: a board saved before the field stays as it was."""
+    return Annotated[kind | None, BeforeValidator(_not_null, json_schema_input_type=kind)]
+
+
 FrameFill = Literal["none", "yellow", "orange", "pink", "violet", "blue", "green"]
+Opacity = Annotated[int, Field(ge=10, le=100, multiple_of=5)]
+TextSize = Literal["small", "medium", "large"]
 
 
 class FrameData(_Strict):
     title: str = Field(default="", max_length=200)
-    # Absent on a frame nobody filled, so a board saved before frames took a fill stays as it was.
-    color: FrameFill | None = None
-
-    @field_validator("color", mode="before", json_schema_input_type=FrameFill)
-    @classmethod
-    def _color(cls, value: Any) -> Any:
-        # The default skips this, so only an explicit null lands here.
-        if value is None:
-            raise ValueError("color must be a fill name")
-        return value
+    color: absent_or(FrameFill) = None
+    opacity: absent_or(Opacity) = None
 
 
 class StickyData(_Strict):
     text: str = Field(default="", max_length=5000)
     color: str = Field(default="yellow", max_length=20)
+    opacity: absent_or(Opacity) = None
+    bold: absent_or(bool) = None
 
 
 ShapeKind = Literal[
@@ -91,10 +99,18 @@ class ShapeData(_Strict):
     color: Literal["none", "surface", "yellow", "orange", "pink", "violet", "blue", "green"] = (
         "none"
     )
+    opacity: absent_or(Opacity) = None
+    stroke: absent_or(Literal[1, 1.5, 3]) = None
+    dash: absent_or(bool) = None
+    bold: absent_or(bool) = None
+    size: absent_or(TextSize) = None
 
 
 class TextData(_Strict):
     text: str = Field(default="", max_length=5000)
+    opacity: absent_or(Opacity) = None
+    bold: absent_or(bool) = None
+    size: absent_or(TextSize) = None
 
 
 class ModuleData(_Strict):

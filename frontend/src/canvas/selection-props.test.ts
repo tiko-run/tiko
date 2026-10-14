@@ -5,7 +5,10 @@ import {
   fillsOf,
   kindCounts,
   selectionLabel,
-  withFill,
+  shares,
+  stylesOf,
+  textPx,
+  withStyle,
 } from '@/canvas/selection-props'
 import type { AppNode } from '@/canvas/types'
 
@@ -51,12 +54,34 @@ test('the fills in use come in palette order, a frame without one counts as none
 })
 
 test('a fill lands only on the elements that take it', () => {
-  expect(withFill(sticky('a'), 'blue').data).toMatchObject({ color: 'blue' })
-  expect(withFill(frame('f'), 'blue').data).toMatchObject({ color: 'blue' })
+  expect(withStyle(sticky('a'), { color: 'blue' }).data).toMatchObject({ color: 'blue' })
+  expect(withStyle(frame('f'), { color: 'blue' }).data).toMatchObject({ color: 'blue' })
   const note = sticky('a')
-  expect(withFill(note, 'none')).toBe(note)
+  expect(withStyle(note, { color: 'none' })).toBe(note)
   const task = card('c')
-  expect(withFill(task, 'blue')).toBe(task)
+  expect(withStyle(task, { color: 'blue' })).toBe(task)
+})
+
+test('a style lands only on the elements that take it, a missing field reads as before', () => {
+  const nodes = [sticky('a'), shape('b'), frame('f')]
+  expect(shares(nodes, 'opacity')).toBe(true)
+  expect(shares([...nodes, card('c')], 'opacity')).toBe(false)
+  expect(shares([sticky('a'), shape('b')], 'bold')).toBe(true)
+  expect(shares([sticky('a'), shape('b')], 'size')).toBe(false)
+  expect(stylesOf(nodes, 'opacity')).toEqual([100])
+  const faded = nodes.map((n) => withStyle(n, { opacity: 40, stroke: 3 }))
+  expect(stylesOf(faded, 'opacity')).toEqual([40])
+  expect(faded[0].data).not.toHaveProperty('stroke')
+  expect(faded[1].data).toMatchObject({ opacity: 40, stroke: 3 })
+  const note = sticky('a')
+  expect(withStyle(note, { opacity: 100, bold: false })).toBe(note)
+  expect(withStyle(note, { size: 'large' })).toBe(note)
+})
+
+test('medium is the size each type had before', () => {
+  expect(textPx('shape', undefined)).toBe(14)
+  expect(textPx('text', undefined)).toBe(16)
+  expect(textPx('text', 'large')).toBe(24)
 })
 
 test('the label names one type or counts objects', () => {

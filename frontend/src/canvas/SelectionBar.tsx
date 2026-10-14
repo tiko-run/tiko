@@ -1,12 +1,15 @@
 import { useStore } from '@xyflow/react'
 import {
+  ALargeSmall,
   AlarmClock,
+  Bold,
   ChevronDown,
   Copy,
   Frame,
   LayoutTemplate,
   Maximize2,
   Minimize2,
+  PenLine,
   Shapes,
   StickyNote,
   Ticket,
@@ -14,7 +17,7 @@ import {
   Type,
   type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import {
   fillChoices,
   fillCss,
@@ -24,12 +27,16 @@ import {
   kindCounts,
   NO_FILL,
   selectionLabel,
+  shares,
+  stylesOf,
   type Fill,
   type Kind,
+  type Style,
 } from '@/canvas/selection-props'
-import type { AppNode } from '@/canvas/types'
+import { STROKES, TEXT_SIZES, type AppNode } from '@/canvas/types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Slider } from '@/components/ui/slider'
 import { withShortcut } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 
@@ -98,9 +105,9 @@ const Divider = () => <span aria-hidden className="bg-border mx-0.5 h-5 w-px" />
 type Props = {
   /** The selected elements, without anchors. */
   nodes: AppNode[]
-  onFill: (fill: Fill) => void
-  /** A fill to show on the selection before it is picked; null takes it back. */
-  onPreview: (fill: Fill | null) => void
+  onStyle: (style: Style) => void
+  /** A style to show on the selection before it is picked; null takes it back. */
+  onPreview: (style: Style | null) => void
   onNarrow: (kind: Kind) => void
   onCollapse: (collapsed: boolean) => void
   /** Set when the selection is one element a timer can attach to. */
@@ -112,7 +119,7 @@ type Props = {
 /** One bar for whatever is selected: only the properties every selected element has. */
 export function SelectionBar({
   nodes,
-  onFill,
+  onStyle,
   onPreview,
   onNarrow,
   onCollapse,
@@ -125,7 +132,7 @@ export function SelectionBar({
   const selecting = useStore((s) => s.userSelectionActive)
   const bar = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 40 })
-  const [open, setOpen] = useState<'filter' | 'fill' | null>(null)
+  const [open, setOpen] = useState<Menu | null>(null)
 
   const mounted = box !== null && !selecting
   // Its own size places it: the bar grows and shrinks with what the selection shares.
@@ -164,7 +171,19 @@ export function SelectionBar({
   const fills = fillsOf(nodes)
   const cards = nodes.filter((n) => n.type === 'task_card')
   const expanded = cards.filter((n) => !n.data.collapsed).length
-  const popover = (name: 'filter' | 'fill') => ({
+  const opacities = shares(nodes, 'opacity') ? stylesOf(nodes, 'opacity') : []
+  const strokes = shares(nodes, 'stroke') ? stylesOf(nodes, 'stroke') : []
+  const dashed = nodes.every((n) => n.type === 'shape' && n.data.dash)
+  const sizes = shares(nodes, 'size') ? stylesOf(nodes, 'size') : []
+  const bold = shares(nodes, 'bold') ? stylesOf(nodes, 'bold') : []
+  const styled = [choices, opacities, strokes, sizes, bold].some((values) => values.length > 0)
+  // One value marks its choice as picked; several mark none.
+  const only = <T,>(values: T[], value: T) => values.length === 1 && values[0] === value
+  const pick = (style: Style) => {
+    onPreview(null)
+    onStyle(style)
+  }
+  const popover = (name: Menu) => ({
     open: open === name,
     onOpenChange: (next: boolean) => {
       setOpen(next ? name : null)
@@ -225,56 +244,158 @@ export function SelectionBar({
           </PopoverContent>
         </Popover>
       )}
+      {styled && <Divider />}
       {choices.length > 0 && (
-        <>
-          <Divider />
-          <Popover {...popover('fill')}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={open === 'fill' ? 'secondary' : 'ghost'}
-                size="icon"
-                aria-label="Fill"
-                title="Fill"
-              >
-                <span className="flex">
-                  {fills.slice(0, 3).map((fill) => (
-                    <span
-                      key={fill}
-                      className="-ml-2 size-4 rounded-full border first:ml-0"
-                      style={swatch(fill)}
-                    />
-                  ))}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              side={side}
-              sideOffset={8}
-              className="w-auto flex-row gap-1 p-1.5"
-              onPointerLeave={() => onPreview(null)}
+        <Popover {...popover('fill')}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={open === 'fill' ? 'secondary' : 'ghost'}
+              size="icon"
+              aria-label="Fill"
+              title="Fill"
             >
-              {choices.map((fill) => (
-                <button
-                  key={fill}
-                  type="button"
-                  aria-label={fillLabel(fill)}
-                  title={fillLabel(fill)}
-                  aria-pressed={fills.length === 1 && fills[0] === fill}
-                  onPointerEnter={() => onPreview(fill)}
-                  onClick={() => {
-                    onPreview(null)
-                    onFill(fill)
-                  }}
-                  className={cn(
-                    'size-5 rounded-full border',
-                    fills.length === 1 && fills[0] === fill && 'ring-primary ring-2 ring-offset-1',
-                  )}
-                  style={swatch(fill)}
-                />
-              ))}
-            </PopoverContent>
-          </Popover>
-        </>
+              <span className="flex">
+                {fills.slice(0, 3).map((fill) => (
+                  <span
+                    key={fill}
+                    className="-ml-2 size-4 rounded-full border first:ml-0"
+                    style={swatch(fill)}
+                  />
+                ))}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            side={side}
+            sideOffset={8}
+            className="w-auto flex-row gap-1 p-1.5"
+            onPointerLeave={() => onPreview(null)}
+          >
+            {choices.map((fill) => (
+              <button
+                key={fill}
+                type="button"
+                aria-label={fillLabel(fill)}
+                title={fillLabel(fill)}
+                aria-pressed={fills.length === 1 && fills[0] === fill}
+                onPointerEnter={() => onPreview({ color: fill })}
+                onClick={() => pick({ color: fill })}
+                className={cn(
+                  'size-5 rounded-full border',
+                  fills.length === 1 && fills[0] === fill && 'ring-primary ring-2 ring-offset-1',
+                )}
+                style={swatch(fill)}
+              />
+            ))}
+          </PopoverContent>
+        </Popover>
+      )}
+      {opacities.length > 0 && (
+        <Popover {...popover('opacity')}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={open === 'opacity' ? 'secondary' : 'ghost'}
+              className="w-14 px-2 text-xs tabular-nums"
+              aria-label="Opacity"
+              title="Opacity"
+            >
+              {opacities.length === 1 ? `${opacities[0]}%` : 'Mixed'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side={side} sideOffset={8} className="w-56 p-3">
+            <OpacitySlider
+              start={Math.max(...opacities)}
+              onSlide={(opacity) => onPreview({ opacity })}
+              onPick={(opacity) => pick({ opacity })}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+      {strokes.length > 0 && (
+        <Popover {...popover('outline')}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={open === 'outline' ? 'secondary' : 'ghost'}
+              size="icon"
+              aria-label="Outline"
+              title="Outline"
+            >
+              <PenLine className="size-[18px]" strokeWidth={1.75} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            side={side}
+            sideOffset={8}
+            className="w-auto flex-row items-center gap-0.5 p-1"
+            onPointerLeave={() => onPreview(null)}
+          >
+            {STROKES.map((stroke) => (
+              <Choice
+                key={stroke}
+                label={`${stroke}px outline`}
+                pressed={only(strokes, stroke)}
+                onPreview={() => onPreview({ stroke })}
+                onPick={() => pick({ stroke })}
+              >
+                <Line width={stroke} />
+              </Choice>
+            ))}
+            <Divider />
+            <Choice
+              label="Dashed"
+              pressed={dashed}
+              onPreview={() => onPreview({ dash: !dashed })}
+              onPick={() => pick({ dash: !dashed })}
+            >
+              <Line width={1.5} dashed />
+            </Choice>
+          </PopoverContent>
+        </Popover>
+      )}
+      {sizes.length > 0 && (
+        <Popover {...popover('size')}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={open === 'size' ? 'secondary' : 'ghost'}
+              size="icon"
+              aria-label="Text size"
+              title="Text size"
+            >
+              <ALargeSmall className="size-[18px]" strokeWidth={1.75} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            side={side}
+            sideOffset={8}
+            className="w-32 gap-0 p-1"
+            onPointerLeave={() => onPreview(null)}
+          >
+            {TEXT_SIZES.map((size) => (
+              <Choice
+                key={size}
+                label={SIZE_NAMES[size]}
+                pressed={only(sizes, size)}
+                onPreview={() => onPreview({ size })}
+                onPick={() => pick({ size })}
+                wide
+              >
+                {SIZE_NAMES[size]}
+              </Choice>
+            ))}
+          </PopoverContent>
+        </Popover>
+      )}
+      {bold.length > 0 && (
+        <Button
+          variant={only(bold, true) ? 'secondary' : 'ghost'}
+          size="icon"
+          aria-label="Bold"
+          title="Bold"
+          aria-pressed={only(bold, true)}
+          onClick={() => pick({ bold: !only(bold, true) })}
+        >
+          <Bold className="size-[18px]" strokeWidth={only(bold, true) ? 2.5 : 1.75} />
+        </Button>
       )}
       {cards.length === nodes.length && (
         <>
@@ -298,6 +419,89 @@ export function SelectionBar({
     </div>
   )
 }
+
+const SIZE_NAMES = { small: 'Small', medium: 'Medium', large: 'Large' } as const
+
+type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size'
+
+// The slider moves the selection for this person only; letting go saves it as one undo step.
+function OpacitySlider({
+  start,
+  onSlide,
+  onPick,
+}: {
+  start: number
+  onSlide: (opacity: number) => void
+  onPick: (opacity: number) => void
+}) {
+  const [value, setValue] = useState(start)
+  // An undo while the popover is open moves the selection under the slider.
+  const [was, setWas] = useState(start)
+  if (start !== was) {
+    setWas(start)
+    setValue(start)
+  }
+  return (
+    <div className="flex items-center gap-3">
+      <Slider
+        aria-label="Opacity"
+        min={10}
+        max={100}
+        step={5}
+        value={[value]}
+        onValueChange={([next]) => {
+          setValue(next)
+          onSlide(next)
+        }}
+        onValueCommit={([next]) => onPick(next)}
+      />
+      <span className="text-muted-foreground w-9 text-right text-xs tabular-nums">{value}%</span>
+    </div>
+  )
+}
+
+function Choice({
+  label,
+  pressed,
+  onPreview,
+  onPick,
+  wide = false,
+  children,
+}: {
+  label: string
+  pressed: boolean
+  onPreview: () => void
+  onPick: () => void
+  /** A word instead of an icon. */
+  wide?: boolean
+  children: ReactNode
+}) {
+  return (
+    <Button
+      variant={pressed ? 'secondary' : 'ghost'}
+      size={wide ? 'default' : 'icon'}
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onPointerEnter={onPreview}
+      onClick={onPick}
+      className={cn(wide && 'justify-start px-2 font-normal')}
+    >
+      {children}
+    </Button>
+  )
+}
+
+const Line = ({ width, dashed = false }: { width: number; dashed?: boolean }) => (
+  <svg aria-hidden width="18" height="18" viewBox="0 0 18 18">
+    <path
+      d="M2 9H16"
+      stroke="currentColor"
+      strokeWidth={width}
+      strokeDasharray={dashed ? '3 2.5' : undefined}
+    />
+  </svg>
+)
 
 function IconButton({
   Icon,

@@ -36,9 +36,10 @@ Key-value rows: `provider` (`demo` default), `refresh_interval_s` (30 default, 3
 
 Node  = {id, type, position:{x,y}, width?, height?, parentId?, data}
   type "jira_card" data {key, collapsed}
-  type "frame"     data {title, color?}   # color: none or a sticky color; absent reads as none
-  type "sticky"    data {text, color}
-  type "text"      data {text}
+  type "frame"     data {title, color?, opacity?}   # color: none or a sticky color; absent reads as none
+  type "sticky"    data {text, color, opacity?, bold?}
+  type "shape"     data {shape, text, color, opacity?, stroke?, dash?, bold?, size?}
+  type "text"      data {text, opacity?, bold?, size?}
 Edge  = {id, source, target, sourceHandle?, targetHandle?}
 ```
 
@@ -50,7 +51,8 @@ Validation rules:
 - `position` of a child is relative to its frame.
 - Unknown fields are dropped (`selected`, `dragging`, `measured`).
 - `key` matches `^[A-Z][A-Z0-9_]+-\d+$`.
-- Limits: up to 2000 nodes, `text` up to 5000 chars, `title` up to 200 chars.
+- Style fields are left out until set and never null; absent reads as today's look. `opacity` is 10 to 100 in steps of 5 (absent 100), `stroke` is 1, 1.5 or 3 (absent 1.5), `size` is `small`, `medium` or `large` (absent `medium`), `dash` and `bold` are booleans (absent false).
+- Limits: up to 2000 nodes, `text` up to 5000 chars (500 in a shape), `title` up to 200 chars.
 
 ## Domain types
 

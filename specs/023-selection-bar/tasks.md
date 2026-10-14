@@ -24,15 +24,15 @@ Slice `selection-bar`.
 
 Slice `element-style`.
 
-- [ ] T008 [US2] Data and API: `opacity`, `stroke`, `dash`, `bold`, `size` as optional fields with their listed values
-- [ ] T009 [US2] Nodes draw them: opacity on sticky, shape, frame and text; outline on the shape; bold on sticky, shape and text; size on shape and text
-- [ ] T010 [US2] Bar: opacity slider with one undo step per drag, outline popover, text size and bold
-- [ ] T011 [US2] Tests: each property on each type, "Mixed" values, API refusals
-- [ ] T012 [US2] Data model, DESIGN.md, guide, changelog
+- [x] T008 [US2] Data and API: `opacity`, `stroke`, `dash`, `bold`, `size` as optional fields with their listed values
+- [x] T009 [US2] Nodes draw them: opacity on sticky, shape, frame and text; outline on the shape; bold on sticky, shape and text; size on shape and text
+- [x] T010 [US2] Bar: opacity slider with one undo step per drag, outline popover, text size and bold
+- [x] T011 [US2] Tests: each property on each type, "Mixed" values, API refusals
+- [x] T012 [US2] Data model, DESIGN.md, guide, changelog
 
-## Phase 3: User Story 3 - Colors with names (P3)
+## Phase 3: User Story 3 - Colors with names (P3, deferred)
 
-Slice `color-names`.
+Slice `color-names`. Deferred by the owner on 2026-10-14: the bar works without it, and it adds a third shared map to the live document. Not built.
 
 - [ ] T013 [US3] Board doc: `colorNames`, API validation, live edit for a rename
 - [ ] T014 [US3] Fill popover: name a color, named colors as rows

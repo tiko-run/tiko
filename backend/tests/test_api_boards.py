@@ -125,6 +125,57 @@ def test_unknown_frame_fill_rejected(client, color):
     assert response.status_code == 422
 
 
+STYLED = [
+    {"type": "frame", "data": {"title": "Done", "opacity": 40}},
+    {"type": "sticky", "data": {"text": "Idea", "color": "pink", "opacity": 75, "bold": True}},
+    {
+        "type": "shape",
+        "data": {
+            "shape": "rhombus",
+            "text": "Maybe",
+            "color": "none",
+            "opacity": 10,
+            "stroke": 3,
+            "dash": True,
+            "bold": True,
+            "size": "small",
+        },
+    },
+    {"type": "text", "data": {"text": "Q4", "opacity": 100, "bold": False, "size": "large"}},
+]
+
+
+def test_style_round_trip(client):
+    board = create(client)
+    nodes = [{"id": f"n{i}", "position": {"x": i * 300, "y": 0}} | n for i, n in enumerate(STYLED)]
+    saved = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": {"nodes": nodes}})
+    assert saved.status_code == 200
+    assert client.get(f"/api/boards/{board['id']}").json()["doc"]["nodes"] == nodes
+
+
+@pytest.mark.parametrize(
+    ("kind", "style"),
+    [
+        ("sticky", {"opacity": 42}),
+        ("sticky", {"opacity": 5}),
+        ("sticky", {"opacity": None}),
+        ("shape", {"stroke": 2}),
+        ("shape", {"size": "huge"}),
+        ("text", {"opacity": 105}),
+    ],
+)
+def test_unknown_style_rejected(client, kind, style):
+    board = create(client)
+    node = next(n for n in STYLED if n["type"] == kind)
+    doc = {
+        "nodes": [
+            {"id": "n", "position": {"x": 0, "y": 0}, "type": kind, "data": node["data"] | style}
+        ]
+    }
+    response = client.put(f"/api/boards/{board['id']}", json={"version": 1, "doc": doc})
+    assert response.status_code == 422
+
+
 def test_child_before_its_frame_rejected(client):
     board = create(client)
     frame, card = DOC["nodes"][0], DOC["nodes"][1]

@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - A bar above the selection, one for any element: pick a fill for several sticky notes and shapes at once, with one Undo for all of them, and see a color on the board before you pick it. A mixed selection can be narrowed to one kind of element. The bar also collapses cards, adds a timer, duplicates and deletes. It replaces the color pickers of the sticky note and the shape.
 - Frames take a fill: one of the six colors, shown as a light tint under the elements inside.
+- Style beyond color in the selection bar: opacity for sticky notes, shapes, frames and text, a 1, 1.5 or 3px or dashed outline for shapes, and text size and bold.
 
 ## [2026.10.16] - 2026-10-14
 
