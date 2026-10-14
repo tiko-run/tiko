@@ -16,10 +16,10 @@ Hosted instances (`demo.tiko.run`, a future hosted tiko) are updated by us and a
 
 ## Decisions
 
-1. **Check every 30 minutes.** The API asks GitHub at most every 30 minutes and after a failure waits 10 minutes. It sends `If-None-Match` with the last `ETag`, so an unchanged answer is a `304` and does not count against GitHub's limit of 60 calls an hour per address. The page refreshes the answer every 5 minutes and when the tab comes back into view.
-2. **Check now.** About has a "Check now" button that asks GitHub at once, for anyone signed in, at most once a minute per instance.
+1. **Check every 30 minutes.** The API asks GitHub at most every 30 minutes and after a failure waits 10 minutes. It sends `If-None-Match` with the last `ETag`, so an unchanged answer is a `304` without a body. Without a token a `304` still counts against GitHub's limit of 60 calls an hour per address, which GitHub issue cards share, so the check stays at 2 calls an hour per API process plus Check now. The page refreshes the answer every 5 minutes and when the tab comes back into view.
+2. **Check now.** About has a "Check now" button that asks GitHub at once, for anyone signed in, at most once in 5 minutes per API process.
 3. **Release level.** Each release has one level: `security`, `breaking`, `hotfix` or `feature`. `make release LEVEL=<level>` writes it as the first line of the version's section in `CHANGELOG.md` (`**Security release.**`, `**Breaking changes.**`, `**Hotfix.**`; a feature release has no line), so people read it on GitHub and the API reads it from the release notes. No line means `feature`.
-4. **The highest level wins.** The API reads the releases newer than the running version (up to 20) and reports the newest version and the highest level among them: three releases behind with one security fix in the middle is a security update.
+4. **The highest level wins.** The API reads the releases newer than the running version (the last 100) and reports the newest version and the highest level among them: three releases behind with one security fix in the middle is a security update.
 5. **How a level shows:**
 
    | Level | About button | Banner above the About button |
@@ -51,7 +51,7 @@ An admin of a self-hosted instance gets a security release within half an hour: 
 
 1. **Given** a check 30 minutes ago, **When** the page asks for the version, **Then** the API asks GitHub again with the last `ETag`, and a `304` keeps the last answer.
 2. **Given** GitHub is unreachable, **Then** About shows the last known answer and the API tries again in 10 minutes.
-3. **Given** "Check now" pressed twice within a minute, **Then** GitHub is asked once.
+3. **Given** "Check now" pressed twice within 5 minutes, **Then** GitHub is asked once.
 4. **Given** two newer releases, `hotfix` and `security`, **Then** the version reports the newest version and level `security`, and About lists both.
 5. **Given** a security update and an admin on a board, **Then** a banner shows; closed, it comes back after 24 hours; a person who is not an admin sees no banner.
 6. **Given** release notes without a level line, **Then** the level is `feature`.
@@ -79,7 +79,7 @@ An admin opens About, sees v2026.10.20 with a security fix, clicks "Update now",
 ## Requirements *(mandatory)*
 
 - **FR-001**: The API MUST ask for releases at most every 30 minutes, with `If-None-Match`, and MUST keep the last answer when GitHub fails.
-- **FR-002**: "Check now" MUST ask at once, at most once a minute per instance.
+- **FR-002**: "Check now" MUST ask at once, at most once in 5 minutes per API process.
 - **FR-003**: The version answer MUST carry the newest release, the highest level of the releases newer than the running one, and their list with versions, levels and links.
 - **FR-004**: `make release` MUST take a level and write it into `CHANGELOG.md`; the release notes MUST carry it.
 - **FR-005**: The updater MUST be the only service with the Docker socket, MUST be off unless its profile is on, and MUST answer only the API with the token.

@@ -11,8 +11,9 @@ from app.domain.ports import ReleaseFeed
 CHECK_EVERY_S = 1800
 # A failed check (offline, GitHub blocked) is retried sooner, but not on every page load.
 RETRY_FAILED_S = 600
-# "Check now" is open to anyone signed in, so it shares one floor per instance.
-CHECK_NOW_FLOOR_S = 60
+# "Check now" is open to anyone signed in, and without a token GitHub counts every call, a 304 too,
+# against the 60 an hour this address also spends on GitHub issue cards.
+CHECK_NOW_FLOOR_S = 300
 
 Level = Literal["feature", "hotfix", "breaking", "security"]
 LEVELS: tuple[Level, ...] = ("feature", "hotfix", "breaking", "security")

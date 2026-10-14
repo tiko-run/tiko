@@ -55,7 +55,11 @@ export function AboutButton() {
   const info = useVersion().data
   const check = useMutation({
     mutationFn: checkVersionNow,
-    onSuccess: (fresh) => queryClient.setQueryData(['version'], fresh),
+    onSuccess: async (fresh) => {
+      // A poll still in flight would otherwise land after this and hide what it found.
+      await queryClient.cancelQueries({ queryKey: ['version'] })
+      queryClient.setQueryData(['version'], fresh)
+    },
     onError: toastError,
   })
   const update = info?.update_available ? info.latest : null
@@ -153,7 +157,13 @@ export function AboutButton() {
         )}
         {info?.update_check && (
           <div className="text-muted-foreground -my-1 flex items-center justify-between text-[12px]">
-            <span>{update ? '' : 'You are on the latest version'}</span>
+            <span>
+              {update
+                ? ''
+                : info.latest
+                  ? 'You are on the latest version'
+                  : 'No answer from GitHub yet'}
+            </span>
             <Button
               variant="ghost"
               size="xs"

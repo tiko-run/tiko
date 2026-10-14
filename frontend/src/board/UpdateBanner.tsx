@@ -30,7 +30,7 @@ export function UpdateBanner() {
   }
   return (
     // A wrapper places it: the alert's own `relative` would win over a class passed to it.
-    <div className="absolute bottom-16 left-4 z-10 w-80">
+    <div className="absolute bottom-16 left-4 z-10 w-80 max-w-[calc(100%-2rem)]">
       <Alert variant="destructive" className="shadow-md">
         <ShieldAlert />
         <AlertTitle>Security update available</AlertTitle>

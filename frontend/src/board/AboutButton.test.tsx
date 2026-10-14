@@ -38,7 +38,7 @@ function renderWith(body: object, ...more: object[]) {
 }
 
 test('shows the running version and project links', async () => {
-  renderWith(info())
+  renderWith(info({ latest: release('2026.10.6') }))
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   expect(await screen.findByRole('link', { name: 'v2026.10.6' })).toHaveAttribute(
     'href',
@@ -111,4 +111,10 @@ test('no check button when update checks are off', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   expect(await screen.findByRole('link', { name: 'v2026.10.6' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull()
+})
+
+test('does not claim the latest version before GitHub answered', async () => {
+  renderWith(info())
+  fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
+  expect(await screen.findByText('No answer from GitHub yet')).toBeInTheDocument()
 })

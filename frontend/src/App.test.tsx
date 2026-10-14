@@ -111,3 +111,38 @@ test('keeps the way into the demo when a visitor is signed out', async () => {
   })
   expect(await screen.findByRole('link', { name: 'Try the demo' })).toBeInTheDocument()
 })
+
+test.each([
+  ['admin', true],
+  ['member', false],
+])('security banner for %s: %s', async (role, shown) => {
+  localStorage.clear()
+  const release = { version: '2026.11.1', url: 'https://example.test/r', level: 'security' }
+  mockFetch(
+    200,
+    { boards: [], all: [] },
+    {
+      '/api/auth/status': {
+        status: 200,
+        body: { signed_in: true, me: { id: 'u1', username: 'ann', name: 'Ann', role } },
+      },
+      '/api/version': {
+        status: 200,
+        body: {
+          version: '2026.10.6',
+          update_check: true,
+          latest: release,
+          update_available: true,
+          level: 'security',
+          newer: [release],
+        },
+      },
+    },
+  )
+  renderApp()
+  // The About dot comes from the same answer, so once it shows the banner has had its chance.
+  expect(
+    await screen.findByRole('button', { name: 'About tiko, security update available' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByText('Security update available') !== null).toBe(shown)
+})

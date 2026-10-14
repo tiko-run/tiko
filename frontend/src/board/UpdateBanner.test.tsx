@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { UpdateBanner } from '@/board/UpdateBanner'
 
@@ -23,11 +23,15 @@ function renderWith(level: string | null) {
     'fetch',
     vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })),
   )
-  return render(
-    <QueryClientProvider client={new QueryClient()}>
+  const client = new QueryClient()
+  const view = render(
+    <QueryClientProvider client={client}>
       <UpdateBanner />
     </QueryClientProvider>,
   )
+  const loaded = () =>
+    waitFor(() => expect(client.getQueryState(['version'])?.status).toBe('success'))
+  return { ...view, loaded }
 }
 
 test('shows for a security update', async () => {
@@ -40,8 +44,8 @@ test('shows for a security update', async () => {
 })
 
 test('stays hidden for other levels', async () => {
-  const { container } = renderWith('breaking')
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  const { container, loaded } = renderWith('breaking')
+  await loaded()
   expect(container).toBeEmptyDOMElement()
 })
 
@@ -52,7 +56,7 @@ test('closes for a day, then comes back', async () => {
   view.unmount()
 
   const again = renderWith('security')
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await again.loaded()
   expect(screen.queryByText('Security update available')).toBeNull()
   again.unmount()
 

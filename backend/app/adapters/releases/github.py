@@ -15,11 +15,11 @@ class GitHubReleaseFeed:
 
     def releases(self) -> list[Release]:
         headers = {"Accept": "application/vnd.github+json"}
-        # A 304 does not count against the limit of 60 calls an hour per address.
+        # Without a token a 304 still counts against the limit, but it carries no body.
         if self._etag:
             headers["If-None-Match"] = self._etag
         try:
-            response = self._client.get(self._url, params={"per_page": 20}, headers=headers)
+            response = self._client.get(self._url, params={"per_page": 100}, headers=headers)
             if response.status_code == 304:
                 return self._releases
             response.raise_for_status()
