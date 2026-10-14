@@ -1,6 +1,6 @@
 ---
-title: Usage stats
-description: What tiko sends about an install, why, and how to turn it off.
+title: Usage stats and error reports
+description: What tiko sends about an install and its errors, why, and how to turn each off.
 ---
 
 tiko does not track people. It sends a few counts about the install itself, so we know how many instances run, on what, and which trackers to support first. Nothing in them says who you are, what your boards hold or where your tracker is.
@@ -101,6 +101,20 @@ Any one of these is enough:
 - The installer's `--no-stats` (`install.sh`) or `-NoStats` (`install.ps1`), or `TIKO_USAGE_STATS=false` in the environment when you run it. The installer then sends nothing and writes `TIKO_USAGE_STATS=false` into `.env`.
 
 Turned off, tiko sends nothing about the install. The release check (`UPDATE_CHECK`) is separate; see [Updates](../updates/).
+
+## Error reports
+
+Error reports are off until an admin turns on "Send error reports" in Settings → Privacy, or `TIKO_ERROR_REPORTS=true` is set. Then an error in the server or in the page sends a report, so we can fix what breaks in a release without waiting for an issue.
+
+A report holds only the error type (such as `KeyError`), the lines of tiko's own code it came through and the tiko version and `deploy`. It never holds:
+
+- the error message, which could contain a task, an address or a name;
+- the request, its headers, cookies and body, the page address, or who was signed in;
+- local variables, log lines, clicks, or the host name of your server.
+
+The page sends its reports through your tiko server, so Sentry does not see the address of your tiko. While reports are off, the Sentry client sends nothing at all and adds nothing to tiko's calls to your tracker.
+
+Reports go to the tiko project's [Sentry](https://sentry.io) in the EU (Frankfurt). `TIKO_ERROR_REPORTS_DSN` sends them to your own Sentry or a compatible server such as GlitchTip instead. With `TIKO_ERROR_REPORTS=false` the Sentry client does not start at all. Open pages start or stop sending after a reload.
 
 ## Closed networks and your own collector
 

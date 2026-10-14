@@ -8,10 +8,12 @@
 | Pydantic / pydantic-settings | MIT | Validation, config from ENV |
 | uvicorn | BSD-3 | ASGI server |
 | prometheus-client | Apache-2.0 | Metrics |
+| sentry-sdk | MIT | Error reports from the API, off unless an admin turns them on |
 | httpx | BSD-3-Clause | HTTP client for Jira Data Center |
 | cryptography | Apache-2.0 / BSD-3-Clause | Fernet encryption of the Jira token |
 | pycrdt | MIT | Shared document (CRDT) of a live board on the server; bundles Yrs (MIT) |
 | React | MIT | UI |
+| @sentry/browser | MIT | Error reports from the page, loaded only when they are on |
 | Vite | MIT | Build |
 | Tailwind CSS | MIT | Styles |
 | shadcn/ui, cn | MIT | Components, theme, class merging |

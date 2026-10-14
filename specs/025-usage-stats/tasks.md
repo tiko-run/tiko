@@ -26,8 +26,8 @@ Slice `usage-stats`.
 
 Slice `error-reports`.
 
-- [ ] T010 [US2] API: `sentry-sdk` behind a port with a mock adapter, `before_send` reads the switch, scrubbing of messages, no request data, no locals, no breadcrumbs, tags `version` and `deploy`
-- [ ] T011 [US2] Page: `@sentry/react`, route patterns, no replay and tracing, the switch from the API
-- [ ] T012 [US2] Settings → Privacy: error reports toggle, locked by `TIKO_ERROR_REPORTS`
-- [ ] T013 [US2] Tests: scrubbing with a fake transport, nothing sent when off, sent after turning on without a restart
-- [ ] T014 [US2] Guide page section on error reports, `THIRD_PARTY.md`, `make licenses`, changelog
+- [x] T010 [US2] API: `sentry-sdk` behind a port with a mock adapter, `before_send` reads the switch, scrubbing of messages, no request data, no locals, no breadcrumbs, tags `version` and `deploy`
+- [x] T011 [US2] Page: `@sentry/react`, route patterns, no replay and tracing, the switch from the API
+- [x] T012 [US2] Settings → Privacy: error reports toggle, locked by `TIKO_ERROR_REPORTS`
+- [x] T013 [US2] Tests: scrubbing with a fake transport, nothing sent when off, sent after turning on without a restart
+- [x] T014 [US2] Guide page section on error reports, `THIRD_PARTY.md`, `make licenses`, changelog

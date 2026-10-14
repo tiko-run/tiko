@@ -53,15 +53,34 @@ class Ping(BaseModel):
         return {"kind": "ping", **data}
 
 
+Switch = Literal["usage_stats", "error_reports"]
+
+
 class PrivacyView(BaseModel):
     usage_stats: bool
+    error_reports: bool
+    # False when the instance has no address to send error reports to.
+    error_reports_available: bool
     # Set in the environment, so the API does not change it.
-    locked: list[Literal["usage_stats"]]
+    locked: list[Switch]
     next_ping: dict
 
 
-class UsageStats:
-    """Counts without personal data, on unless the admin or TIKO_USAGE_STATS turns them off."""
+class PageReports(BaseModel):
+    """What the page needs to report its own errors; no DSN while reports are off."""
+
+    dsn: str | None
+    version: str
+    deploy: Deploy
+
+
+class PrivacyIn(BaseModel):
+    usage_stats: bool | None = None
+    error_reports: bool | None = None
+
+
+class Privacy:
+    """Usage counts (on unless turned off) and error reports (off unless turned on)."""
 
     def __init__(
         self,
@@ -72,7 +91,9 @@ class UsageStats:
         deploy: Deploy,
         arch: str,
         updater: bool,
-        env: bool | None = None,
+        usage_env: bool | None = None,
+        errors_env: bool | None = None,
+        errors_dsn: str = "",
     ) -> None:
         self._repo = repo
         self._counts = counts
@@ -81,7 +102,12 @@ class UsageStats:
         self._deploy = deploy
         self._arch = arch
         self._updater = updater
-        self._env = env
+        self._env: dict[Switch, bool | None] = {
+            "usage_stats": usage_env,
+            "error_reports": errors_env,
+        }
+        self._errors_dsn = errors_dsn
+        self._errors_available = bool(errors_dsn)
 
     def instance_id(self) -> str:
         """A random id made once; it says nothing about the host or the people on it."""
@@ -92,10 +118,18 @@ class UsageStats:
         self._repo.set_many({"instance_id": made})
         return made
 
+    def _on(self, switch: Switch, default: bool) -> bool:
+        if (env := self._env[switch]) is not None:
+            return env
+        stored = self._repo.get_all().get(switch)
+        return default if stored is None else stored == "1"
+
     def enabled(self) -> bool:
-        if self._env is not None:
-            return self._env
-        return self._repo.get_all().get("usage_stats") != "0"
+        return self._on("usage_stats", default=True)
+
+    def errors_enabled(self) -> bool:
+        """Read for every report, so a change in Settings needs no restart."""
+        return self._errors_available and self._on("error_reports", default=False)
 
     def ping(self) -> Ping:
         trackers = sorted({_TRACKERS[s] for s in self._counts.sources() if s in _TRACKERS})
@@ -124,12 +158,32 @@ class UsageStats:
     def view(self) -> PrivacyView:
         return PrivacyView(
             usage_stats=self.enabled(),
-            locked=["usage_stats"] if self._env is not None else [],
+            error_reports=self.errors_enabled(),
+            error_reports_available=self._errors_available,
+            locked=[switch for switch, env in self._env.items() if env is not None],
             next_ping=self.ping().body(),
         )
 
-    def set_enabled(self, on: bool) -> PrivacyView:
-        if self._env is not None:
-            raise ValidationFailed("This is set by the server in TIKO_USAGE_STATS.")
-        self._repo.set_many({"usage_stats": "1" if on else "0"})
+    def update(self, change: PrivacyIn) -> PrivacyView:
+        values = {
+            switch: on
+            for switch, on in (
+                ("usage_stats", change.usage_stats),
+                ("error_reports", change.error_reports),
+            )
+            if on is not None
+        }
+        for switch in values:
+            if self._env[switch] is not None:
+                raise ValidationFailed(f"This is set by the server in TIKO_{switch.upper()}.")
+        if values.get("error_reports") and not self._errors_available:
+            raise ValidationFailed("This instance has no address for error reports.")
+        self._repo.set_many({switch: "1" if on else "0" for switch, on in values.items()})
         return self.view()
+
+    def page_reports(self) -> PageReports:
+        return PageReports(
+            dsn=self._errors_dsn if self.errors_enabled() else None,
+            version=self._version,
+            deploy=self._deploy,
+        )

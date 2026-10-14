@@ -12,8 +12,10 @@ import anyio.to_thread
 import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from sentry_sdk.transport import Transport
 
 from app.adapters import password_file
+from app.adapters.errors import sentry as error_reports
 from app.adapters.live.rooms import LiveRooms
 from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
@@ -55,7 +57,7 @@ from app.domain.sessions import Sessions, iso
 from app.domain.settings import LockedField, SettingsService, normalize_base_url
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
-from app.domain.usage import Deploy, UsageStats
+from app.domain.usage import Deploy, Privacy
 from app.observability import (
     DEMO_LIMIT,
     DEMO_VISITORS,
@@ -127,11 +129,11 @@ def _arch() -> str:
     )
 
 
-async def ping_daily(stats: UsageStats, sleep=asyncio.sleep) -> None:
+async def ping_daily(privacy: Privacy, sleep=asyncio.sleep) -> None:
     await sleep(usage.FIRST_PING_S)
     while True:
         try:
-            await anyio.to_thread.run_sync(stats.send_ping)
+            await anyio.to_thread.run_sync(privacy.send_ping)
         except Exception:
             # Usage stats never make noise in the log of the instance they describe.
             log.debug("usage ping failed", exc_info=True)
@@ -145,6 +147,7 @@ def create_app(
     release_feed: ReleaseFeed | None = None,
     updater: Updater | None = None,
     stats_sender: StatsSender | None = None,
+    error_transport: type[Transport] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     setup_logging(settings.log_level)
@@ -174,7 +177,9 @@ def create_app(
         watcher = asyncio.create_task(watch_loop(live_gauges))
         # One ping per instance, not per process.
         pinger = (
-            asyncio.create_task(ping_daily(app.state.usage)) if settings.tiko_worker == 0 else None
+            asyncio.create_task(ping_daily(app.state.privacy))
+            if settings.tiko_worker == 0
+            else None
         )
         if workers:
             await workers.listen()
@@ -321,16 +326,32 @@ def create_app(
     )
     if stats_sender is None:
         stats_sender = HttpStatsSender(settings.tiko_stats_url, httpx.Client(timeout=5.0))
-    app.state.usage = UsageStats(
+    deploy = _deploy(settings, hosting)
+    app.state.privacy = Privacy(
         SqliteSettingsRepo(db),
         SqliteUsageCounts(db),
         stats_sender,
         VERSION,
-        _deploy(settings, hosting),
+        deploy,
         _arch(),
         updater=updater is not None,
-        env=settings.tiko_usage_stats,
+        usage_env=settings.tiko_usage_stats,
+        errors_env=settings.tiko_error_reports,
+        errors_dsn=settings.tiko_error_reports_dsn,
     )
+    # Turned off in the environment, the SDK is not even started.
+    app.state.error_tunnel = None
+    if settings.tiko_error_reports_dsn and settings.tiko_error_reports is not False:
+        app.state.error_tunnel = error_reports.SentryTunnel(
+            settings.tiko_error_reports_dsn, httpx.Client(timeout=5.0)
+        )
+        error_reports.start(
+            settings.tiko_error_reports_dsn,
+            app.state.privacy.errors_enabled,
+            VERSION,
+            deploy,
+            transport=error_transport,
+        )
     app.include_router(router)
 
     @app.get("/health", include_in_schema=False)
