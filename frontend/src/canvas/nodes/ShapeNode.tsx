@@ -11,7 +11,7 @@ import { useReadOnly } from '@/canvas/readonly'
 function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeNodeType>) {
   const readOnly = useReadOnly()
   const stroke = data.stroke ?? 1.5
-  // On the drawing and the text, not the node, so the selection outline and handles stay solid.
+  // On the drawing and the text as one layer, not the node, so the selection outline and handles stay solid.
   const opacity = data.opacity === undefined ? undefined : data.opacity / 100
 
   return (
@@ -30,33 +30,34 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
         minWidth={SHAPE_MIN.width}
         minHeight={SHAPE_MIN.height}
       />
-      <svg aria-hidden className="absolute inset-0 size-full overflow-visible" style={{ opacity }}>
-        <path
-          d={shapePath(data.shape, width, height)}
-          fill={fillCss(data.color)}
-          stroke="currentColor"
-          strokeWidth={stroke}
-          // Dashes scale with the width, so a 3px dash reads like a 1px one.
-          strokeDasharray={data.dash ? `${stroke * 4} ${stroke * 3}` : undefined}
-          strokeLinejoin="round"
-        />
-      </svg>
-      <div
-        className={cn('shape-text', !data.text && !selected && 'shape-text-empty')}
-        style={{
-          inset: textInset(data.shape),
-          fontSize: textPx('shape', data.size),
-          fontWeight: data.bold ? 600 : undefined,
-          opacity,
-        }}
-      >
-        <EditableText
-          nodeId={id}
-          value={data.text}
-          field="text"
-          maxLength={SHAPE_MAX_CHARS}
-          placeholder="Text"
-        />
+      <div className="absolute inset-0" style={{ opacity }}>
+        <svg aria-hidden className="absolute inset-0 size-full overflow-visible">
+          <path
+            d={shapePath(data.shape, width, height)}
+            fill={fillCss(data.color)}
+            stroke="currentColor"
+            strokeWidth={stroke}
+            // Dashes scale with the width, so a 3px dash reads like a 1px one.
+            strokeDasharray={data.dash ? `${stroke * 4} ${stroke * 3}` : undefined}
+            strokeLinejoin="round"
+          />
+        </svg>
+        <div
+          className={cn('shape-text', !data.text && !selected && 'shape-text-empty')}
+          style={{
+            inset: textInset(data.shape),
+            fontSize: textPx('shape', data.size),
+            fontWeight: data.bold ? 600 : undefined,
+          }}
+        >
+          <EditableText
+            nodeId={id}
+            value={data.text}
+            field="text"
+            maxLength={SHAPE_MAX_CHARS}
+            placeholder="Text"
+          />
+        </div>
       </div>
       <Handles side={sideInset(data.shape)} />
     </div>

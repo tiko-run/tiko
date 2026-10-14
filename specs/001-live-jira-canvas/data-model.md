@@ -52,7 +52,7 @@ Validation rules:
 - Unknown fields are dropped (`selected`, `dragging`, `measured`).
 - `key` matches `^[A-Z][A-Z0-9_]+-\d+$`.
 - Style fields are left out until set and never null; absent reads as today's look. `opacity` is 10 to 100 in steps of 5 (absent 100), `stroke` is 1, 1.5 or 3 (absent 1.5), `size` is `small`, `medium` or `large` (absent `medium`), `dash` and `bold` are booleans (absent false).
-- Limits: up to 2000 nodes, `text` up to 5000 chars, `title` up to 200 chars.
+- Limits: up to 2000 nodes, `text` up to 5000 chars (500 in a shape), `title` up to 200 chars.
 
 ## Domain types
 

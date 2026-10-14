@@ -435,6 +435,12 @@ function OpacitySlider({
   onPick: (opacity: number) => void
 }) {
   const [value, setValue] = useState(start)
+  // An undo while the popover is open moves the selection under the slider.
+  const [was, setWas] = useState(start)
+  if (start !== was) {
+    setWas(start)
+    setValue(start)
+  }
   return (
     <div className="flex items-center gap-3">
       <Slider

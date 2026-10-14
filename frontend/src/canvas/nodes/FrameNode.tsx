@@ -17,12 +17,14 @@ function FrameNodeView({ id, data, selected }: NodeProps<FrameNodeType>) {
   const opacity = data.opacity === undefined ? undefined : data.opacity / 100
   // Title sits above the border, like Miro, so it never covers the cards inside.
   return (
-    <div className="relative h-full w-full">
+    // The selection outline sits outside the faded layer, so a faint frame still shows it is picked.
+    <div
+      className={cn('relative h-full w-full rounded-md', selected && 'outline-primary outline-1')}
+    >
       <div
         className={cn(
           'absolute inset-0 rounded-md border',
           !tint && 'bg-muted/40',
-          selected && 'border-primary',
           selected && !tint && 'bg-accent',
         )}
         style={{ background: tint, opacity }}

@@ -80,7 +80,8 @@
     "shapes",
     "perf2-remeasure",
     "perf2-verdict",
-    "selection-bar"
+    "selection-bar",
+    "element-style"
   ],
   "gates": {
     "G1_scope": "approved",
