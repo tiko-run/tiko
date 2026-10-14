@@ -1,4 +1,4 @@
-import { NodeResizer, NodeToolbar, Position, useReactFlow, type NodeProps } from '@xyflow/react'
+import { NodeResizer, useReactFlow, type NodeProps } from '@xyflow/react'
 import { Puzzle } from 'lucide-react'
 import { memo, useCallback, useContext, useEffect } from 'react'
 import { MODULE_HEADER as HEADER } from '@/canvas/modules'
@@ -10,14 +10,7 @@ import { findModule } from '@/modules/registry'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
 
-function ModuleNodeView({
-  id,
-  data,
-  selected,
-  dragging,
-  width,
-  height,
-}: NodeProps<ModuleNodeType>) {
+function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleNodeType>) {
   const readOnly = useReadOnly()
   const { updateNodeData, updateNode } = useReactFlow()
   const host = useContext(ModuleHostContext)
@@ -64,16 +57,6 @@ function ModuleNodeView({
         minWidth={def?.minSize.width ?? 160}
         minHeight={Math.max(def?.minSize.height ?? 80, minHeight)}
       />
-      {view && def?.Controls && !readOnly && (
-        <NodeToolbar
-          // Hidden while dragging: it covers the guides and the elements next to it.
-          isVisible={dragging ? false : undefined}
-          position={Position.Top}
-          className="bg-card flex items-center gap-0.5 rounded-md border p-1 shadow-md"
-        >
-          <def.Controls {...view} />
-        </NodeToolbar>
-      )}
       <div
         className="flex shrink-0 items-center gap-2 border-b px-3 text-[13px] font-medium"
         style={{ height: HEADER }}
