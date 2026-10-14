@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - Frames take a fill: one of the six colors, shown as a light tint under the elements inside.
 - Style beyond color in the selection bar: opacity for sticky notes, shapes, frames and text, a 1, 1.5 or 3px or dashed outline for shapes, and text size and bold.
 
+### Changed
+
+- Saving boards no longer queues behind the disk with several API processes: SQLite stops flushing to disk on every commit. In a load test of 2000 demo visitors on 4 cores, a board save went from 1.8 s on average to 18 ms. A crash of tiko loses nothing; a power cut or a crash of the host may lose the last edits.
+
 ## [2026.10.16] - 2026-10-14
 
 ### Added
