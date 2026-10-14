@@ -62,7 +62,7 @@ import {
   type Span,
   type Scale,
 } from '@/modules/gantt/timeline'
-import type { ModuleViewProps } from '@/modules/types'
+import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
 import { cn } from '@/lib/utils'
 
 type Props = ModuleViewProps<GanttContent>
@@ -395,8 +395,8 @@ function formatRange(start: string, end: string) {
   return `${fmt(start, !sameYear)} – ${fmt(end, true)}`
 }
 
-/** Scale switch and range dates, above the module while it is selected. */
-export function GanttControls({ content, onChange }: Props) {
+/** Scale switch, range dates and milestones, in the selection bar. */
+export function GanttControls({ content, onChange }: ModuleControlsProps<GanttContent>) {
   return (
     <>
       {SCALES.map(({ scale, label }) => (

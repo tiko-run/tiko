@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
+import type { ReactNode } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { SelectionBar } from '@/canvas/SelectionBar'
 import type { AppNode } from '@/canvas/types'
@@ -32,7 +33,7 @@ const card = (id: string, collapsed: boolean): AppNode => ({
   data: { key: 'DEMO-1', collapsed },
 })
 
-function renderBar(nodes: AppNode[], withTimer = false) {
+function renderBar(nodes: AppNode[], withTimer = false, controls?: ReactNode) {
   const on = {
     onStyle: vi.fn(),
     onPreview: vi.fn(),
@@ -46,7 +47,7 @@ function renderBar(nodes: AppNode[], withTimer = false) {
     <ReactFlowProvider>
       <div style={{ width: 800, height: 600 }}>
         <ReactFlow nodes={nodes} />
-        <SelectionBar nodes={nodes} {...on} />
+        <SelectionBar nodes={nodes} {...on} controls={controls} />
       </div>
     </ReactFlowProvider>,
   )
@@ -164,4 +165,12 @@ test('a note has bold but no text size', () => {
   renderBar([sticky('a', 'yellow')])
   expect(button('Bold')).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'Text size' })).toBeNull()
+})
+
+test('a module brings its own controls into the bar', () => {
+  const gantt = { id: 'g', type: 'module', ...at, data: { kind: 'gantt', content: {} } } as AppNode
+  renderBar([gantt], true, <button type="button">Weeks</button>)
+  const bar = screen.getByRole('toolbar', { name: 'Selection' })
+  expect(within(bar).getByRole('button', { name: 'Weeks' })).toBeTruthy()
+  expect(within(bar).getByRole('button', { name: 'Delete' })).toBeTruthy()
 })

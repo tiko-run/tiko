@@ -1,12 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { ReactFlow, ReactFlowProvider, useNodesState, type Node } from '@xyflow/react'
+import { ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Node } from '@xyflow/react'
 import { useLayoutEffect } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { Task } from '@/api/tasks'
+import { moduleControls } from '@/canvas/ModuleControls'
 import { ModuleNode } from '@/canvas/nodes/ModuleNode'
 import { TasksContext } from '@/canvas/tasks-context'
-import type { AppNode } from '@/canvas/types'
+import type { AppNode, ModuleNode as ModuleNodeType } from '@/canvas/types'
 import { ModuleHostContext } from '@/modules/host-context'
 import type { GanttContent } from '@/modules/gantt/schema'
 import type { ModuleHost } from '@/modules/types'
@@ -65,10 +66,17 @@ function Board({ start }: { start: GanttContent }) {
       data: { kind: 'gantt', content: start },
     },
   ])
+  const { updateNodeData } = useReactFlow()
   useLayoutEffect(() => {
     latest = nodes
   }, [nodes])
-  return <ReactFlow nodes={nodes} nodeTypes={nodeTypes} onNodesChange={onNodesChange} />
+  return (
+    <>
+      {/* The canvas puts these in the selection bar. */}
+      {moduleControls(nodes[0] as ModuleNodeType, (content) => updateNodeData('g', { content }))}
+      <ReactFlow nodes={nodes} nodeTypes={nodeTypes} onNodesChange={onNodesChange} />
+    </>
+  )
 }
 
 function renderGantt(host: Partial<ModuleHost> = {}, start = content) {

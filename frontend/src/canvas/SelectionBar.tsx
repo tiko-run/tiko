@@ -114,6 +114,8 @@ type Props = {
   onAddTimer?: () => void
   onDuplicate: () => void
   onDelete: () => void
+  /** The selected module's own controls, right after its name. */
+  controls?: ReactNode
 }
 
 /** One bar for whatever is selected: only the properties every selected element has. */
@@ -126,6 +128,7 @@ export function SelectionBar({
   onAddTimer,
   onDuplicate,
   onDelete,
+  controls,
 }: Props) {
   const box = useScreenBox(nodes.map((n) => n.id))
   // A marquee in progress changes the selection under the bar.
@@ -243,6 +246,12 @@ export function SelectionBar({
             })}
           </PopoverContent>
         </Popover>
+      )}
+      {controls && (
+        <>
+          <Divider />
+          {controls}
+        </>
       )}
       {styled && <Divider />}
       {choices.length > 0 && (
