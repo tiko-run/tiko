@@ -259,8 +259,8 @@ class DemoStatusRepo(Protocol):
 
 
 class ReleaseFeed(Protocol):
-    def latest(self) -> Release:
-        """Newest published release; raises DependencyUnavailable when it can't be fetched."""
+    def releases(self) -> list[Release]:
+        """Recent published releases; raises DependencyUnavailable when they can't be fetched."""
         ...
 
 
