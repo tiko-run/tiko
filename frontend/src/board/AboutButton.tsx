@@ -6,6 +6,7 @@ import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { UpdateAction } from '@/board/UpdateAction'
+import { watchedUpdate } from '@/board/UpdateProgress'
 import { toastError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -112,7 +113,7 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
             </a>
           )}
         </div>
-        {update && info && (
+        {(update || watchedUpdate()) && info && (
           <div className="bg-accent flex items-start gap-2 rounded-md p-2 text-[13px]">
             {security ? (
               <ShieldAlert className="text-destructive mt-0.5 size-4 shrink-0" strokeWidth={1.75} />

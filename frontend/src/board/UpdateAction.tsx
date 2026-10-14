@@ -1,15 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { startUpdate, useUpdate, type UpdateInfo } from '@/api/update'
 import type { VersionInfo } from '@/api/version'
-import { UpdateSteps, useNewBuildServed } from '@/board/UpdateProgress'
+import {
+  reload,
+  UpdateSteps,
+  useNewBuildServed,
+  watchedUpdate,
+  watchUpdate,
+} from '@/board/UpdateProgress'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
 
 const PLATFORM = { railway: 'Railway', render: 'Render' }
-
-// Module state: About unmounts when it closes, the update goes on.
-let watchedTarget: string | null = null
 
 function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
   return (
@@ -39,23 +42,25 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
     onError: toastError,
   })
   const status = update?.status
-  if (status?.state === 'running' && status.target) watchedTarget = status.target
   // Only an update this page saw running ends in a reload; an older finished one is history.
   const updating =
-    status?.state === 'running' ||
-    (status?.state === 'done' && status.target === watchedTarget && status.target !== info.version)
+    status?.state === 'running' || (status?.state === 'done' && status.target === watchedUpdate())
   // The API is down while it restarts, so the last answer stays and the request fails.
   const restarting =
     updating && (query.isError || status?.step === 'restart' || status?.state === 'done')
   // The updater reports done only after it cleans up; the new page is there before that.
   const served = useNewBuildServed(restarting)
+  const runningTarget = status?.state === 'running' ? status.target : null
+  useEffect(() => {
+    if (runningTarget) watchUpdate(runningTarget)
+  }, [runningTarget])
   if (!update) return null
   if (status && updating) {
     if (served || status.state === 'done') {
       return (
         <div role="status" className="flex flex-col gap-1.5">
           <span>v{status.target} is ready.</span>
-          <Button size="sm" className="self-start" onClick={() => window.location.reload()}>
+          <Button size="sm" className="self-start" onClick={reload}>
             Reload
           </Button>
         </div>

@@ -1,21 +1,36 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { POLL_TIMEOUT_MS, type UpdateInfo } from '@/api/update'
 import { getVersion } from '@/api/version'
 
-function reload() {
+export function reload() {
   window.location.reload()
+}
+
+// Module state: About unmounts when it closes, and the page's version info moves on when the
+// new API answers, while the update this page started still needs its Reload.
+let watched: string | null = null
+
+/** The target of the update this page saw running, if any. */
+export function watchedUpdate() {
+  return watched
+}
+
+export function watchUpdate(target: string) {
+  watched = target
 }
 
 const BUNDLE = /\/assets\/index-[\w-]+\.js/
 
 /** Whether the web container serves another build than the one this page runs. */
 export function useNewBuildServed(enabled: boolean) {
-  const loaded =
-    document
-      .querySelector<HTMLScriptElement>('script[src*="/assets/index-"]')
-      ?.src.match(BUNDLE)?.[0] ?? null
+  const [loaded] = useState(
+    () =>
+      document
+        .querySelector<HTMLScriptElement>('script[src*="/assets/index-"]')
+        ?.src.match(BUNDLE)?.[0] ?? null,
+  )
   const served = useQuery({
     queryKey: ['served-build'],
     queryFn: async () => {
@@ -40,7 +55,7 @@ export function UpdateSteps({
   status: NonNullable<UpdateInfo['status']>
   restarting: boolean
 }) {
-  if (restarting || status.state === 'done') {
+  if (restarting) {
     return <span className="text-muted-foreground">Restarting tiko…</span>
   }
   const percent = status.total ? Math.round((100 * status.downloaded) / status.total) : 0

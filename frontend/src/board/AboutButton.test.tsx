@@ -118,3 +118,46 @@ test('does not claim the latest version before GitHub answered', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'About tiko' }))
   expect(await screen.findByText('No answer from GitHub yet')).toBeInTheDocument()
 })
+
+test('keeps the reload of a watched update when the new version already answers', async () => {
+  const before = info({
+    latest: release('2026.11.1'),
+    update_available: true,
+    newer: [release('2026.11.1')],
+  })
+  const after = info({ version: '2026.11.1', latest: release('2026.11.1') })
+  const running = {
+    state: 'running',
+    step: 'download',
+    target: '2026.11.1',
+    downloaded: 0,
+    total: 0,
+    error: null,
+    log: [],
+  }
+  let status: object = running
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string) => {
+      const body =
+        path === '/api/update'
+          ? { available: true, hosting: null, status }
+          : path === '/api/version/check'
+            ? after
+            : before
+      return new Response(JSON.stringify(body), { status: 200 })
+    }),
+  )
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <AboutButton admin />
+    </QueryClientProvider>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'About tiko, update available' }))
+  expect(await screen.findByText('Updating to v2026.11.1…')).toBeInTheDocument()
+  status = { ...running, state: 'done', step: 'done' }
+  fireEvent.click(screen.getByRole('button', { name: 'Check now' }))
+  expect(
+    await screen.findByRole('button', { name: 'Reload' }, { timeout: 3000 }),
+  ).toBeInTheDocument()
+})
