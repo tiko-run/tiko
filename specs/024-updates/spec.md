@@ -22,7 +22,7 @@ Hosted instances (`demo.tiko.run`, a future hosted tiko) are updated by us and a
 4. **The highest level wins.** The API reads the releases newer than the running version (up to 20) and reports the newest version and the highest level among them: three releases behind with one security fix in the middle is a security update.
 5. **How a level shows:**
 
-   | Level | About button | Banner at the top of the board |
+   | Level | About button | Banner above the About button |
    |---|---|---|
    | `feature` | dot, as today | - |
    | `hotfix` | dot | - |

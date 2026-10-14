@@ -24,7 +24,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `LOG_LEVEL` | Log level | `info` |
 | `DB_PATH` | SQLite file inside the container | `data/app.db` |
 | `APP_ENV` | Environment name: `local`, `stage` or `production` | `local` |
-| `UPDATE_CHECK` | Ask GitHub every 6 hours for the latest release to show "update available" in About; `false` turns it off | `true` |
+| `UPDATE_CHECK` | Ask GitHub every 30 minutes for new releases to show "update available" in About, and how much the update matters; `false` turns it off | `true` |
 | `TIKO_PORT` | Port on your machine that Docker Compose gives the web UI | `3000` |
 | `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`. The release compose file does not publish the API | `8000` |
 

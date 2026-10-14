@@ -12,13 +12,13 @@ description: "Task list for updates"
 
 Slice `update-check`.
 
-- [ ] T001 [US1] `UpdateService`: 30-minute check, 10-minute retry, "Check now" with a one-minute floor
-- [ ] T002 [US1] `GitHubReleaseFeed`: the release list with `ETag` and `304`, the level from the first line of the notes
-- [ ] T003 [US1] Version answer: newest release, highest level, list of newer releases; `POST /api/version/check`; contract
-- [ ] T004 [US1] `scripts/release.sh`: `LEVEL=` writes the level line, refuses an unknown one
-- [ ] T005 [US1] About: list of newer releases with levels, red dot for security, "Check now", refresh every 5 minutes and on focus; security banner for admins with a 24-hour close
-- [ ] T006 [US1] Tests: intervals with a fake clock, `304`, highest level, rate floor, banner for admins only; `scripts/smoke.py` reads the new fields
-- [ ] T007 [US1] Guide, `.env.example`, changelog
+- [x] T001 [US1] `UpdateService`: 30-minute check, 10-minute retry, "Check now" with a one-minute floor
+- [x] T002 [US1] `GitHubReleaseFeed`: the release list with `ETag` and `304`, the level from the first line of the notes
+- [x] T003 [US1] Version answer: newest release, highest level, list of newer releases; `POST /api/version/check`; contract
+- [x] T004 [US1] `scripts/release.sh`: `LEVEL=` writes the level line, refuses an unknown one
+- [x] T005 [US1] About: list of newer releases with levels, red dot for security, "Check now", refresh every 5 minutes and on focus; security banner for admins with a 24-hour close
+- [x] T006 [US1] Tests: intervals with a fake clock, `304`, highest level, rate floor, banner for admins only; `scripts/smoke.py` reads the new fields
+- [x] T007 [US1] Guide, `.env.example`, changelog
 
 ## Phase 2: User Story 2 - Update with one click (P2)
 

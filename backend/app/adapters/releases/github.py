@@ -1,23 +1,38 @@
 import httpx
 
 from app.domain.errors import DependencyUnavailable
-from app.domain.updates import Release
+from app.domain.updates import Release, level_of
 
 
 class GitHubReleaseFeed:
-    """Latest release of a public GitHub repository; no token, one call per check."""
+    """Recent releases of a public GitHub repository; no token, one call per check."""
 
     def __init__(self, repo: str, client: httpx.Client) -> None:
-        self._url = f"https://api.github.com/repos/{repo}/releases/latest"
+        self._url = f"https://api.github.com/repos/{repo}/releases"
         self._client = client
+        self._etag: str | None = None
+        self._releases: list[Release] = []
 
-    def latest(self) -> Release:
+    def releases(self) -> list[Release]:
+        headers = {"Accept": "application/vnd.github+json"}
+        # A 304 does not count against the limit of 60 calls an hour per address.
+        if self._etag:
+            headers["If-None-Match"] = self._etag
         try:
-            response = self._client.get(
-                self._url, headers={"Accept": "application/vnd.github+json"}
-            )
+            response = self._client.get(self._url, params={"per_page": 20}, headers=headers)
+            if response.status_code == 304:
+                return self._releases
             response.raise_for_status()
-            body = response.json()
-            return Release(version=body["tag_name"].removeprefix("v"), url=body["html_url"])
-        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            self._releases = [
+                Release(
+                    version=item["tag_name"].removeprefix("v"),
+                    url=item["html_url"],
+                    level=level_of(item.get("body") or ""),
+                )
+                for item in response.json()
+                if not item.get("draft") and not item.get("prerelease")
+            ]
+            self._etag = response.headers.get("ETag")
+            return self._releases
+        except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
             raise DependencyUnavailable("Could not check GitHub for a new release.") from exc
