@@ -20,7 +20,12 @@ GUIDE = Path(__file__).parents[2] / "docs/guide/src/content/docs/privacy.md"
 
 def app_with(sender=None, **settings):
     sender = sender or MockStatsSender()
-    settings = {"db_path": ":memory:", "tiko_error_reports": None, **settings}
+    settings = {
+        "db_path": ":memory:",
+        "tiko_error_reports": None,
+        "tiko_error_reports_dsn": "",
+        **settings,
+    }
     app = create_app(Settings(**settings), stats_sender=sender)
     return app, sender
 
@@ -41,7 +46,7 @@ def test_bucket(count, expected):
 def test_ping_sends_only_the_documented_fields():
     app, sender = app_with()
     signed_in(app)
-    assert app.state.usage.send_ping() is True
+    assert app.state.privacy.send_ping() is True
     body = sender.sent[0]
     assert set(body) == {
         "kind", "schema", "instance_id", "version", "deploy", "arch",
@@ -57,13 +62,13 @@ def test_ping_sends_only_the_documented_fields():
 
 def test_instance_id_is_random_and_kept():
     app, sender = app_with()
-    app.state.usage.send_ping()
-    app.state.usage.send_ping()
+    app.state.privacy.send_ping()
+    app.state.privacy.send_ping()
     first, second = (body["instance_id"] for body in sender.sent)
     assert first == second
     assert re.fullmatch(r"[0-9a-f-]{36}", first)
     other, _ = app_with()
-    assert other.state.usage.instance_id() != first
+    assert other.state.privacy.instance_id() != first
 
 
 class Counts:
@@ -100,7 +105,7 @@ def test_off_by_the_admin_sends_nothing():
     app, sender = app_with()
     client = signed_in(app)
     assert client.put("/api/privacy", json={"usage_stats": False}).json()["usage_stats"] is False
-    assert app.state.usage.send_ping() is False
+    assert app.state.privacy.send_ping() is False
     assert sender.sent == []
 
 
@@ -111,14 +116,14 @@ def test_off_by_env_locks_the_switch():
     assert view["usage_stats"] is False
     assert view["locked"] == ["usage_stats"]
     assert client.put("/api/privacy", json={"usage_stats": True}).status_code == 422
-    assert app.state.usage.send_ping() is False
+    assert app.state.privacy.send_ping() is False
     assert sender.sent == []
 
 
 def test_preview_is_the_next_ping():
     app, sender = app_with()
     preview = signed_in(app).get("/api/privacy").json()["next_ping"]
-    app.state.usage.send_ping()
+    app.state.privacy.send_ping()
     assert preview == sender.sent[0]
 
 
@@ -138,18 +143,18 @@ def test_only_admins_see_privacy():
 
 def test_collector_down_is_quiet():
     app, _ = app_with(Down())
-    assert app.state.usage.send_ping() is False
+    assert app.state.privacy.send_ping() is False
 
 
 def test_demo_instance_reports_demo():
     app, sender = app_with(tiko_demo=True)
-    app.state.usage.send_ping()
+    app.state.privacy.send_ping()
     assert sender.sent[0]["deploy"] == "demo"
 
 
 def test_deploy_from_env():
     app, sender = app_with(tiko_deploy="installer")
-    app.state.usage.send_ping()
+    app.state.privacy.send_ping()
     assert sender.sent[0]["deploy"] == "installer"
 
 
@@ -190,7 +195,7 @@ def test_ping_schedule_first_after_10_minutes_then_daily():
             raise asyncio.CancelledError
 
     with pytest.raises(asyncio.CancelledError):
-        asyncio.run(ping_daily(app.state.usage, sleep=sleep))
+        asyncio.run(ping_daily(app.state.privacy, sleep=sleep))
     assert waits[0] == usage.FIRST_PING_S
     assert all(
         usage.PING_EVERY_S <= w <= usage.PING_EVERY_S + usage.PING_JITTER_S for w in waits[1:]
@@ -202,7 +207,7 @@ def test_processes_of_one_instance_share_the_id(tmp_path):
     db = str(tmp_path / "app.db")
     first, _ = app_with(db_path=db)
     second, _ = app_with(db_path=db)
-    assert first.state.usage.instance_id() == second.state.usage.instance_id()
+    assert first.state.privacy.instance_id() == second.state.privacy.instance_id()
 
 
 def test_guide_lists_every_install_field():

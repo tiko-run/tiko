@@ -106,11 +106,13 @@ Turned off, tiko sends nothing about the install. The release check (`UPDATE_CHE
 
 Error reports are off until an admin turns on "Send error reports" in Settings → Privacy, or `TIKO_ERROR_REPORTS=true` is set. Then an error in the server or in the page sends a report, so we can fix what breaks in a release without waiting for an issue.
 
-A report holds the error type, its message, the code lines it came through and the tiko version and `deploy`. Before it leaves your server or browser, tiko removes:
+A report holds only the error type (such as `KeyError`), the lines of tiko's own code it came through and the tiko version and `deploy`. It never holds:
 
-- web addresses, host names, IP addresses and emails from the message, which become `<url>`, `<host>`, `<ip>` and `<email>`;
-- the request, its headers, cookies and body, the page address, and who was signed in;
-- local variables, earlier log lines and clicks, and the host name of your server.
+- the error message, which could contain a task, an address or a name;
+- the request, its headers, cookies and body, the page address, or who was signed in;
+- local variables, log lines, clicks, or the host name of your server.
+
+The page sends its reports through your tiko server, so Sentry does not see the address of your tiko. While reports are off, the Sentry client sends nothing at all and adds nothing to tiko's calls to your tracker.
 
 Reports go to the tiko project's [Sentry](https://sentry.io) in the EU (Frankfurt). `TIKO_ERROR_REPORTS_DSN` sends them to your own Sentry or a compatible server such as GlitchTip instead. With `TIKO_ERROR_REPORTS=false` the Sentry client does not start at all. Open pages start or stop sending after a reload.
 

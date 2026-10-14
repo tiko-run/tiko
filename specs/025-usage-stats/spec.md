@@ -49,14 +49,14 @@ The README, the site and About say "no telemetry". tiko does not track people an
 
 6. **Storage is built for dashboards later.** One table `events` (`id`, `received_at`, `kind`, `schema`, `instance_id`, `country`, `payload` as `jsonb`). Metabase and Grafana read Postgres directly; they are set up later and are not part of this feature. Until then, counts come from saved SQL queries kept outside the repository.
 
-7. **Error reports go to Sentry.** `sentry-sdk` in the API and `@sentry/react` in the page, Sentry Cloud in the EU region, free plan. The DSN ships in the image (a Sentry DSN only allows sending events). Reports are scrubbed before they leave:
-   - `send_default_pii=False`, no request bodies, headers, cookies, query strings or local variables;
-   - no breadcrumbs, no session replay, no performance tracing;
-   - URLs, host names and emails in exception messages replaced with `<url>`, `<host>`, `<email>`;
-   - no page address at all, and script names without the host (`app:///assets/…`);
-   - tags: `version`, `deploy` and nothing else.
+7. **Error reports go to Sentry.** `sentry-sdk` in the API and `@sentry/browser` in the page, loaded only when reports are on, to the project's Sentry in the EU region, free plan. The DSN ships in the image (a Sentry DSN only allows sending events). What a report holds is decided by keeping, not by cleaning:
+   - only the error type, the frames of tiko's code (file, function, line) and `release` and the `deploy` tag;
+   - no error message: a message can hold task data, an address or a name, and no pattern catches every case;
+   - no request, person, host name, breadcrumbs, local variables, sessions, client reports or traces; no trace headers on calls to trackers;
+   - only unhandled errors of requests in the API, no log capture;
+   - the page sends through the API (`POST /api/privacy/errors`, our project's DSN only), so Sentry never sees the instance's address.
 
-   The API reads the switch at send time (`before_send`), so it needs no restart; an open page picks it up on its next load. `TIKO_ERROR_REPORTS_DSN` points reports at another Sentry or at GlitchTip; empty, there is no switch.
+   The API reads the switch at send time, so it needs no restart; an open page picks it up on its next load. `TIKO_ERROR_REPORTS_DSN` points reports at another Sentry or at GlitchTip; `TIKO_ERROR_REPORTS=false` keeps the client from starting.
 
 8. **Settings → Privacy.** Admins see two toggles for the whole instance. Under each: one line on what is sent and why, a link to the guide page, and for usage stats a "Show what is sent" box with the exact JSON of the next ping. Only admins see the section.
 
@@ -98,13 +98,13 @@ The owner opens a SQL query on Monday and sees: 140 installs last week, 60 % Lin
 
 An admin turns on error reports. A Jira sync throws in `v2026.10.20`; Sentry shows the exception type, the stack and the version, from 12 instances, without the Jira URL.
 
-**Independent Test**: with a fake transport, raise an exception whose message holds a URL and an email: the captured event has `<url>` and `<email>`, no request data, no local variables, tags `version` and `deploy` only. With the toggle off nothing is captured. The same for the page with a thrown error on a board route.
+**Independent Test**: with a fake transport, raise an exception whose message holds a URL and an email: the captured event has the type and frames only, no message, no request data, no local variables, `release` and the tag `deploy`. With the toggle off nothing is captured. The same for the page with a thrown error on a board route.
 
 **Acceptance Scenarios**:
 
 1. **Given** error reports off (the default), **When** the API or the page throws, **Then** nothing is sent.
 2. **Given** an admin turns the toggle on, **Then** the next error is sent without a restart.
-3. **Given** an exception message with a URL, a host name or an email, **Then** the sent event has placeholders instead.
+3. **Given** an exception message with a URL, a host name or an email, **Then** the sent event has no message at all.
 4. **Given** an error on a board, **Then** the event carries no page address and names scripts without the host.
 
 ### User Story 3 - Know what is collected before trusting it (Priority: P1)
@@ -126,7 +126,7 @@ A person reads "No tracking" on the site, follows the link and in two minutes kn
 - **FR-003**: The install event and the ping MUST carry only the fields listed in this spec and the guide page.
 - **FR-004**: The collector MUST NOT store IP addresses and MUST drop fields it does not know.
 - **FR-005**: Sending MUST never block or fail an install, a start or a request; failures are logged at debug level only.
-- **FR-006**: Error reports MUST be scrubbed as in decision 7 before they leave the instance.
+- **FR-006**: Error reports MUST hold only what decision 7 keeps, and MUST send nothing while off.
 - **FR-007**: The guide page MUST document every field, the purpose, storage, retention and the switches, and MUST match the code.
 - **FR-008**: The app MUST work as today with the collector and Sentry unreachable; tests use mock adapters and send nothing.
 

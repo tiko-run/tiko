@@ -15,6 +15,7 @@ def instance_password(monkeypatch):
     # No test reaches the real collector.
     monkeypatch.setenv("TIKO_STATS_URL", "http://127.0.0.1:9/")
     monkeypatch.setenv("TIKO_ERROR_REPORTS", "false")
+    monkeypatch.setenv("TIKO_ERROR_REPORTS_DSN", "https://public@127.0.0.1:9/1")
 
 
 def signed_in(app, username: str = "admin", password: str = PASSWORD) -> TestClient:

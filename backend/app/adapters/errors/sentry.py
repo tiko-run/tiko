@@ -1,56 +1,30 @@
-import re
 from collections.abc import Callable
+from urllib.parse import urlsplit
 
+import httpx
 import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.transport import Transport
 
-_URL = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[^\s'\"<>]+")
-_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_HOST = re.compile(r"\b(?:[a-zA-Z0-9-]+\.)+(?:[a-zA-Z]{2,}|local|internal|lan|corp)\b")
-_IP = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
-# Python file names look like host names to _HOST.
-_FILE = re.compile(r"\b[\w./-]+\.(?:py|js|ts|tsx|json|sql|toml)\b")
+from app.domain.errors import DependencyUnavailable
 
 # What an event keeps; the rest (request, user, host name, breadcrumbs, extra data) is dropped.
-_KEEP = {"event_id", "timestamp", "platform", "level", "logger", "exception", "logentry",
-         "message", "release", "environment", "tags", "fingerprint", "sdk"}  # fmt: skip
+_KEEP = {"event_id", "timestamp", "platform", "level", "exception", "release", "environment",
+         "tags", "fingerprint", "sdk"}  # fmt: skip
+_FRAME = {"filename", "module", "function", "lineno", "colno", "in_app"}
 
 
-def scrub(text: str) -> str:
-    """Addresses, host names and emails out of a message, so a tracker URL never leaves."""
-    files: list[str] = []
-
-    def keep_file(match: re.Match[str]) -> str:
-        files.append(match.group(0))
-        return f"\0{len(files) - 1}\0"
-
-    text = _FILE.sub(keep_file, text)
-    text = _URL.sub("<url>", text)
-    text = _EMAIL.sub("<email>", text)
-    text = _IP.sub("<ip>", text)
-    text = _HOST.sub("<host>", text)
-    return re.sub(r"\0(\d+)\0", lambda m: files[int(m.group(1))], text)
-
-
-def clean(event: dict) -> dict:
+def clean(event: dict) -> dict | None:
+    """Only the error type and its code lines: messages can hold task data or addresses."""
+    if "exception" not in event:
+        return None
     event = {key: value for key, value in event.items() if key in _KEEP}
-    for exc in event.get("exception", {}).get("values", []):
-        if isinstance(exc.get("value"), str):
-            exc["value"] = scrub(exc["value"])
-        for frame in (exc.get("stacktrace") or {}).get("frames", []):
-            frame.pop("vars", None)
-            # The path inside the image, never the host's.
-            if isinstance(frame.get("abs_path"), str):
-                frame["abs_path"] = frame.get("filename", "")
-    for key in ("message", "logentry"):
-        entry = event.get(key)
-        if isinstance(entry, str):
-            event[key] = scrub(entry)
-        elif isinstance(entry, dict):
-            entry.pop("params", None)
-            for field in ("message", "formatted"):
-                if isinstance(entry.get(field), str):
-                    entry[field] = scrub(entry[field])
+    for exc in event["exception"].get("values", []):
+        exc.pop("value", None)
+        exc.pop("mechanism", None)
+        frames = (exc.get("stacktrace") or {}).get("frames", [])
+        exc["stacktrace"] = {"frames": [{k: f[k] for k in _FRAME if k in f} for f in frames]}
     return event
 
 
@@ -61,7 +35,7 @@ def start(
     deploy: str,
     transport: type[Transport] | None = None,
 ) -> None:
-    """Error reports, sent only while `enabled()` says so; see the guide's Usage stats page."""
+    """Error reports, sent only while `enabled()` says so; see the guide's privacy page."""
 
     def before_send(event: dict, _hint: dict) -> dict | None:
         try:
@@ -75,7 +49,16 @@ def start(
         release=version,
         environment="self-hosted",
         server_name="",
-        # Nothing about people or requests is collected; before_send drops the rest.
+        # Only unhandled errors of requests: no log capture, no patched HTTP clients.
+        default_integrations=False,
+        integrations=[StarletteIntegration(), FastApiIntegration()],
+        # No trace headers on calls to trackers, and nothing that counts requests.
+        trace_propagation_targets=[],
+        traces_sample_rate=0,
+        auto_session_tracking=False,
+        send_client_reports=False,
+        include_local_variables=False,
+        max_breadcrumbs=0,
         data_collection={
             "user_info": False,
             "gen_ai": {"inputs": False, "outputs": False},
@@ -87,14 +70,33 @@ def start(
             "http_headers": {"request": {"mode": "allowlist", "terms": []}},
             "url_query_params": {"mode": "allowlist", "terms": []},
         },
-        include_local_variables=False,
-        max_breadcrumbs=0,
-        # Sessions count requests and would go out even while reports are off.
-        auto_session_tracking=False,
-        send_client_reports=False,
-        traces_sample_rate=0,
         before_send=before_send,
         before_send_transaction=lambda _event, _hint: None,
         transport=transport,
     )
     sentry_sdk.set_tag("deploy", deploy)
+
+
+class SentryTunnel:
+    """Sends the page's reports from the server, so Sentry never sees the instance's address."""
+
+    def __init__(self, dsn: str, client: httpx.Client) -> None:
+        parts = urlsplit(dsn)
+        project = parts.path.rstrip("/").rsplit("/", 1)[-1]
+        self._dsn = dsn
+        self._url = f"{parts.scheme}://{parts.hostname}/api/{project}/envelope/"
+        self._client = client
+
+    def forward(self, envelope: bytes) -> None:
+        header = envelope.split(b"\n", 1)[0]
+        # Only envelopes for our own project; anything else would make this an open relay.
+        if f'"dsn":"{self._dsn}"'.encode() not in header.replace(b" ", b""):
+            raise ValueError("envelope for another project")
+        try:
+            self._client.post(
+                self._url,
+                content=envelope,
+                headers={"Content-Type": "application/x-sentry-envelope"},
+            ).raise_for_status()
+        except httpx.HTTPError as exc:
+            raise DependencyUnavailable("could not forward the error report") from exc

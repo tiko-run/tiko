@@ -77,9 +77,17 @@ export function Privacy() {
             />
           </div>
           <p className="text-muted-foreground text-[13px]">
-            When something breaks: the error type, where in the code it happened and the tiko
-            version. Addresses, host names and emails are removed from the message first; no request
-            data, people or board contents. Open pages start sending after a reload.
+            When something breaks: the error type, the lines of tiko's code it came through and the
+            version. No error text, addresses, people or board contents. Open pages start or stop
+            sending after a reload.{' '}
+            <a
+              className="text-foreground underline underline-offset-2"
+              href={USAGE_STATS_GUIDE + '#error-reports'}
+              target="_blank"
+              rel="noreferrer"
+            >
+              What is sent
+            </a>
           </p>
           {errorsLocked && (
             <p className="text-muted-foreground text-[13px]">

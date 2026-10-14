@@ -80,8 +80,7 @@ class PrivacyIn(BaseModel):
 
 
 class Privacy:
-    """What the instance sends about itself: usage counts, on unless turned off, and error
-    reports, off unless turned on. An ENV variable wins over the admin's setting."""
+    """Usage counts (on unless turned off) and error reports (off unless turned on)."""
 
     def __init__(
         self,
