@@ -65,8 +65,16 @@ const PLANS: Record<Exclude<Item, 'tracker'>, Plan> = {
   },
 }
 
-// Long enough to read the check before the hint goes.
-const DONE_MS = 1200
+// Long enough to read the check and see the confetti land before the hint goes.
+const DONE_MS = 1600
+const CONFETTI_COLORS = [
+  'var(--primary)',
+  'var(--timer)',
+  'var(--status-done-foreground)',
+  'var(--status-progress-foreground)',
+  'var(--destructive)',
+  'var(--sync-ok)',
+]
 const GAP = 12
 const WIDTH = 288
 
@@ -80,9 +88,9 @@ function hintsFor(item: Exclude<Item, 'tracker'>): Hint[] {
 }
 
 function place(target: HTMLElement | null): CSSProperties {
-  // Without a control to point at, the hint waits under the top bar, clear of the board's
-  // middle where the person clicks and of the toolbar's popovers.
-  if (!target) return { top: 76, left: 16 }
+  // Without a control to point at, the hint sits just above About, in sight but clear of the
+  // board's middle where the person clicks and of the toolbar's popovers.
+  if (!target) return { bottom: 72, left: 16 }
   const box = target.getBoundingClientRect()
   const left = Math.min(
     Math.max(box.left + box.width / 2 - WIDTH / 2, 16),
@@ -91,6 +99,40 @@ function place(target: HTMLElement | null): CSSProperties {
   return box.top > window.innerHeight / 2
     ? { bottom: window.innerHeight - box.top + GAP, left }
     : { top: box.bottom + GAP, left }
+}
+
+// A small burst from the check: fixed angles and colors, so every success looks the same.
+const BITS = Array.from({ length: 14 }, (_, i) => {
+  const angle = (i / 14) * 2 * Math.PI - Math.PI / 2
+  const reach = 26 + (i % 3) * 9
+  return {
+    x: Math.round(Math.cos(angle) * reach),
+    y: Math.round(Math.sin(angle) * reach),
+    turn: (i * 47) % 360,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    delay: (i % 4) * 30,
+  }
+})
+
+function Confetti() {
+  return (
+    <span aria-hidden className="coach-confetti">
+      {BITS.map((bit, i) => (
+        <i
+          key={i}
+          style={
+            {
+              '--x': `${bit.x}px`,
+              '--y': `${bit.y}px`,
+              '--turn': `${bit.turn}deg`,
+              background: bit.color,
+              animationDelay: `${bit.delay}ms`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </span>
+  )
 }
 
 /** Walks the person through doing one getting started item on the live board. */
@@ -105,7 +147,7 @@ export default function Coach({
   const [at, setAt] = useState(0)
   const [done, setDone] = useState(false)
   const hint = hints[at]
-  const target = done ? null : find(hint.anchor)
+  const target = find(hint.anchor)
   const [style, setStyle] = useState<CSSProperties>(() => place(target))
 
   useLayoutEffect(() => {
@@ -117,7 +159,7 @@ export default function Coach({
 
   // The control stays usable: a ring marks it, and opening or turning it on moves the hint on.
   useEffect(() => {
-    if (!target) return
+    if (!target || done) return
     target.classList.add('coach-target')
     const moved = () =>
       target.getAttribute('aria-expanded') === 'true' ||
@@ -130,7 +172,7 @@ export default function Coach({
       watch.disconnect()
       target.classList.remove('coach-target')
     }
-  }, [target, at, hints.length])
+  }, [target, done, at, hints.length])
 
   useEffect(() => onOnboardingDone((doneItem) => doneItem === item && setDone(true)), [item])
 
@@ -149,7 +191,10 @@ export default function Coach({
     >
       {done ? (
         <>
-          <Check className="text-primary mt-0.5 size-4 shrink-0" strokeWidth={2} aria-hidden />
+          <span className="relative mt-0.5 size-4 shrink-0">
+            <Check className="text-primary size-4" strokeWidth={2} aria-hidden />
+            <Confetti />
+          </span>
           <span className="flex-1 font-medium">Done</span>
         </>
       ) : (

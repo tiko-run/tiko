@@ -38,7 +38,7 @@ test('says done when the item is done, then goes', () => {
   render(<Coach item="set_timer" onClose={onClose} />)
   act(() => didOnboarding('set_timer'))
   expect(screen.getByRole('status')).toHaveTextContent('Done')
-  act(() => vi.advanceTimersByTime(1300))
+  act(() => vi.advanceTimersByTime(1700))
   expect(onClose).toHaveBeenCalled()
 })
 

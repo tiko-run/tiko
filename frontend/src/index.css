@@ -571,3 +571,38 @@
     animation: none;
   }
 }
+
+/* Confetti from a getting started hint's check: bits fly out, spin and fall away once. */
+.coach-confetti {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  pointer-events: none;
+}
+.coach-confetti i {
+  position: absolute;
+  width: 5px;
+  height: 8px;
+  margin: -4px 0 0 -2.5px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: coach-confetti 900ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes coach-confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(var(--turn)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), calc(var(--y) + 18px)) rotate(calc(var(--turn) + 90deg)) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-confetti {
+    display: none;
+  }
+}
