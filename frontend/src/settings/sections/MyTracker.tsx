@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toastError } from '@/lib/toast'
 import { SectionHeader } from '@/settings/sections/Section'
+import { didOnboarding } from '@/onboarding/done'
 
 const GITHUB_GUIDE = 'https://docs.tiko.run/github-issues/#your-own-token'
 
@@ -34,8 +35,10 @@ const HINT = {
 function useTokenChanged() {
   const queryClient = useQueryClient()
   return (next?: Tracker) => {
-    if (next) queryClient.setQueryData(['tracker'], next)
-    else void queryClient.invalidateQueries({ queryKey: ['tracker'] })
+    if (next) {
+      queryClient.setQueryData(['tracker'], next)
+      didOnboarding('tracker')
+    } else void queryClient.invalidateQueries({ queryKey: ['tracker'] })
     void queryClient.invalidateQueries({ queryKey: ['settings'] })
     void queryClient.invalidateQueries({ queryKey: ['board'] })
     void queryClient.invalidateQueries({ queryKey: ['refresh'] })

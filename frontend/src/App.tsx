@@ -181,8 +181,12 @@ export default function App() {
         />
       )}
       {focusVisible && <FocusCapsule />}
-      {signedIn && <AboutButton admin={admin} />}
-      {signedIn && <GettingStarted demo={!!auth.data?.me?.demo_expires_at} />}
+      {signedIn && (
+        <div className="absolute bottom-4 left-4 z-10 flex items-end gap-2">
+          <AboutButton admin={admin} />
+          <GettingStarted demo={!!auth.data?.me?.demo_expires_at} />
+        </div>
+      )}
       {signedIn && <UpdatedNotice />}
       {admin && <UpdateBanner />}
       {signedIn && <SettingsDialog />}

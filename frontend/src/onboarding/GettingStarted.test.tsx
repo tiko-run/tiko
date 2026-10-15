@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { didOnboarding, setChecklistOpen } from '@/onboarding/done'
+import { setChecklistOpen } from '@/onboarding/checklist-open'
+import { didOnboarding } from '@/onboarding/done'
 import { GettingStarted } from '@/onboarding/GettingStarted'
 
 const startTour = vi.hoisted(() => vi.fn())
@@ -102,4 +103,24 @@ test('with everything done the pill goes away by itself', async () => {
   expect(await screen.findByRole('button', { name: /7 of 7/ })).toBeInTheDocument()
   await waitFor(() => expect(patches(fetch)).toContainEqual({ hidden: true }), { timeout: 4000 })
   expect(screen.queryByRole('button', { name: /Getting started/ })).toBeNull()
+})
+
+test('a finished list brought back from About stays', async () => {
+  const all = ['add_card', 'paste_link', 'search_filter', 'set_timer', 'timer_list', 'gantt_task']
+  const done = Object.fromEntries([...all, 'focus'].map((i) => [i, 'then']))
+  const fetch = mount({ ...fresh, done }, true)
+  await screen.findByRole('button', { name: 'Getting started, 7 of 7 done' })
+  await new Promise((resolve) => setTimeout(resolve, 2600))
+  expect(patches(fetch)).toEqual([])
+  expect(screen.getByRole('button', { name: /7 of 7/ })).toBeInTheDocument()
+})
+
+test('an item done before the state loads is still saved, once', async () => {
+  const fetch = mount(fresh)
+  act(() => {
+    didOnboarding('add_card')
+    didOnboarding('add_card')
+  })
+  await screen.findByRole('button', { name: /Getting started/ })
+  await waitFor(() => expect(patches(fetch)).toEqual([{ done: ['add_card'] }]))
 })

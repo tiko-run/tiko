@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpCircle, BookOpen, Bug, Compass, Info, ListChecks, ShieldAlert } from 'lucide-react'
 import { useState, type ComponentProps, type ReactNode } from 'react'
-import { saveOnboarding } from '@/api/onboarding'
+import { saveOnboarding, type Onboarding } from '@/api/onboarding'
 import { checkVersionNow, useVersion, type ReleaseLevel } from '@/api/version'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { UpdateAction } from '@/board/UpdateAction'
 import { watchedUpdate } from '@/board/UpdateProgress'
 import { toastError } from '@/lib/toast'
-import { setChecklistOpen } from '@/onboarding/done'
+import { setChecklistOpen } from '@/onboarding/checklist-open'
 import { startTour } from '@/onboarding/start'
 import { cn } from '@/lib/utils'
 
@@ -75,10 +75,7 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
     : 'About tiko'
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div
-        data-tour="about"
-        className="bg-card absolute bottom-4 left-4 z-10 rounded-lg border p-1 shadow-md"
-      >
+      <div data-tour="about" className="bg-card rounded-lg border p-1 shadow-md">
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -207,7 +204,9 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
           onClick={() => {
             setOpen(false)
             saveOnboarding(queryClient, { hidden: false })
-            setChecklistOpen(true)
+            // Before the tour is over the list is not on screen to open.
+            if (queryClient.getQueryData<Onboarding>(['onboarding'])?.tour_seen)
+              setChecklistOpen(true)
           }}
         >
           <ListChecks strokeWidth={1.75} />

@@ -38,7 +38,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
 6. **Run it again from About.** The About popover gets two rows above the links: "Take the tour" and "Getting started". Settings does not change.
 
-7. **Getting started.** A small pill in the bottom left, next to About, reads "Getting started 3/8" and opens a list. Each item ticks itself when the person does the thing, and has a "Show me" button that runs only the matching tour step.
+7. **Getting started.** A small pill in the bottom left, next to About, reads "Getting started 3/8" and opens a list. Each item ticks itself when the person does the thing, and has a "Show me" button that runs only the matching tour step, with one "Got it" button; for the tracker it opens Settings → My tracker.
 
    | Item | Ticks when |
    |---|---|
@@ -47,11 +47,11 @@ The welcome board teaches by example, but the features people miss are the ones 
    | Search with a filter | a search with a `status:`, `@`, `type:` or `priority:` chip picks a result |
    | Set a reminder | a timer is placed (`addTimer`) |
    | Open the list of timers | the timer panel opens |
-   | Put a task into a Gantt chart | a Gantt gets a row from a card |
+   | Put a task into a Gantt chart | a Gantt gets a task row: a card dragged in or a task added from its form |
    | Start a focus session | the focus timer starts |
    | Connect your tracker | the person saves their own tracker token; not shown to demo visitors |
 
-   When all items are done the pill shows a short check animation once and goes away. "Hide" in the list hides it at any time; About brings it back.
+   When the last item is done the pill shows a short check animation once and goes away; a finished list brought back from About stays. "Hide" in the list hides it at any time; About brings it back.
 
 8. **State lives on the server, per person.** One JSON value per person in its own table, `{tour_seen, done: {item: done_at}, hidden}`, read with `GET /api/me/onboarding` and changed with `PATCH` ([contract](contracts/api.md)). A person sees the same progress in every browser.
 

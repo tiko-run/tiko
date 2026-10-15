@@ -280,9 +280,10 @@ function PaletteBody({
   const freshView = () => (deferred === text ? view : viewFor(index, text, recent, chips, commands))
 
   const selectAll = () => {
-    if (filtered) didOnboarding('search_filter')
     const { targets } = freshView()
-    if (targets.length) onSelectAll?.(targets)
+    if (!targets.length) return
+    if (filtered) didOnboarding('search_filter')
+    onSelectAll?.(targets)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

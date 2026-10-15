@@ -11,7 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { onOnboardingDone, setChecklistOpen, useChecklistOpen } from '@/onboarding/done'
+import { setChecklistOpen, useChecklistOpen } from '@/onboarding/checklist-open'
+import { onOnboardingDone } from '@/onboarding/done'
 import { startTour } from '@/onboarding/start'
 import type { StepId } from '@/onboarding/tour'
 import { openSettings } from '@/settings/store'
@@ -54,19 +55,35 @@ export function GettingStarted({ demo = false }: { demo?: boolean }) {
 
   const latest = useRef({ state, change })
   latest.current = { state, change }
+  // Items sent this session: two quick events for one item, or one before the state has
+  // loaded, still make one request. The server keeps an item's first time anyway.
+  const sent = useRef(new Set<Item>())
   useEffect(
     () =>
       onOnboardingDone((item) => {
         const { state: now, change: send } = latest.current
-        if (now && !now.done[item]) send({ done: [item] })
+        if (sent.current.has(item) || now?.done[item]) return
+        sent.current.add(item)
+        send({ done: [item] })
       }),
     [],
   )
 
+  // The list goes away by itself only when its last item is done now, not when About
+  // brings back a list that was finished before.
+  const wasAllDone = useRef<boolean | null>(null)
+  const finished = useRef(false)
+  if (state && wasAllDone.current !== allDone) {
+    if (wasAllDone.current === false && allDone) finished.current = true
+    wasAllDone.current = allDone
+  }
   const hidden = state?.hidden ?? true
   useEffect(() => {
-    if (hidden || !allDone) return
-    const timer = setTimeout(() => latest.current.change({ hidden: true }), ALL_DONE_MS)
+    if (hidden || !finished.current) return
+    const timer = setTimeout(() => {
+      finished.current = false
+      latest.current.change({ hidden: true })
+    }, ALL_DONE_MS)
     return () => clearTimeout(timer)
   }, [hidden, allDone])
 
@@ -82,12 +99,12 @@ export function GettingStarted({ demo = false }: { demo?: boolean }) {
 
   return (
     <Popover open={open} onOpenChange={setChecklistOpen}>
-      <div className="bg-card absolute bottom-4 left-[68px] z-10 rounded-lg border p-1 shadow-md">
+      <div className="bg-card rounded-lg border p-1 shadow-md">
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className={cn('gap-1.5 text-[13px]', allDone && 'getting-started-done')}
+            className={cn('gap-1.5 text-[13px]', finished.current && 'getting-started-done')}
             aria-label={`Getting started, ${done.length} of ${items.length} done`}
           >
             {allDone ? (

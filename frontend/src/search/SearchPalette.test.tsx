@@ -4,6 +4,7 @@ import { act } from 'react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { Task } from '@/api/tasks'
 import type { AppNode } from '@/canvas/types'
+import { onOnboardingDone } from '@/onboarding/done'
 import { buildIndex } from './index'
 import { SearchPalette } from './SearchPalette'
 
@@ -238,4 +239,18 @@ test('opens on commands with a prefix; mod+P narrows to commands, then closes', 
   expect(onOpenChange).not.toHaveBeenCalled()
   fireEvent.keyDown(input, { key: 'p', metaKey: true, shiftKey: true })
   expect(onOpenChange).toHaveBeenCalledWith(false)
+})
+
+test('picking a result of a filtered search ticks getting started, a plain search does not', () => {
+  const seen: string[] = []
+  const stop = onOnboardingDone((item) => seen.push(item))
+  const { input } = setup()
+  fireEvent.change(input, { target: { value: 'deploy' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(seen).toEqual([])
+  fireEvent.change(input, { target: { value: '@an' } })
+  fireEvent.keyDown(input, { key: 'Tab' })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  stop()
+  expect(seen).toEqual(['search_filter'])
 })

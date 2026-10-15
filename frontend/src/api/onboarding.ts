@@ -60,5 +60,9 @@ export function saveOnboarding(queryClient: QueryClient, change: OnboardingChang
   )
   changeOnboarding(change)
     .then((state) => queryClient.setQueryData(['onboarding'], state))
-    .catch(toastError)
+    .catch((error: Error) => {
+      // What the screen shows must not outlive a save that failed.
+      void queryClient.invalidateQueries({ queryKey: ['onboarding'] })
+      toastError(error)
+    })
 }
