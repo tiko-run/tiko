@@ -12,7 +12,7 @@ description: "Task list for the product tour and getting started"
 
 Slice `tour`.
 
-- [ ] T001 [US1] Backend: `onboarding` JSON on the user row, migration that marks existing people as seen and hidden; returned in `/api/me`, `PATCH /api/me/onboarding` with a schema for known keys only; contract
+- [ ] T001 [US1] Backend: `onboarding` JSON on the user row with a migration; returned in `/api/me`, `PATCH /api/me/onboarding` with a schema for known keys only; contract
 - [ ] T002 [US1] `data-tour` anchors on the Task card, Timer and Modules buttons, the focus capsule and About
 - [ ] T003 [US1] `frontend/src/onboarding/`: tour steps on driver.js behind `import()`, popover styled with theme tokens, centered fallback for a missing anchor, start rules (once, editable board, new person)
 - [ ] T004 [US1] Loops for the seven steps, ported from `site/src/components/Features.astro`, still frame under `prefers-reduced-motion`

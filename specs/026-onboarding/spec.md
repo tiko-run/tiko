@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-15
 
-**Status**: Draft, waiting for G2.
+**Status**: Approved by the owner at G2 on 2026-10-15: state on the server per person, no special case for people who signed up earlier, the tour starts by itself only on an editable board.
 
 **Input**: Owner's idea: a first-time user should see the main features in a short tour with small looping animations, and get a "Getting started" list of things to try. The tour can be run again from About, not from Settings. Nothing of it may slow down the board.
 
@@ -34,7 +34,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
 4. **Motion.** The highlight moves between anchors with driver.js's own transition (about 300 ms); the popover fades and scales in as other popovers do (100 ms). With `prefers-reduced-motion` the transition and the loops are off.
 
-5. **When the tour runs.** It starts once, by itself, the first time a person opens a board after their welcome board is made, and only on a board they can edit. Skip, Esc or the close button ends it and marks it seen. People who signed up before this release never see it start by itself.
+5. **When the tour runs.** It starts once, by itself, the first time a person opens a board after their welcome board is made, and only on a board they can edit. Skip, Esc or the close button ends it and marks it seen.
 
 6. **Run it again from About.** The About popover gets two rows above the links: "Take the tour" and "Getting started". Settings does not change.
 
@@ -53,7 +53,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
    When all items are done the pill shows a short check animation once and goes away. "Hide" in the list hides it at any time; About brings it back.
 
-8. **State lives on the server, per person.** One JSON value on the user row: `{tour: "seen" | null, checklist: {item: done_at}, hidden: bool}`, read with `/api/me` and written with `PATCH /api/me/onboarding`. A person sees the same progress in every browser. The migration marks the tour seen and the list hidden for every existing person.
+8. **State lives on the server, per person.** One JSON value on the user row: `{tour: "seen" | null, checklist: {item: done_at}, hidden: bool}`, read with `/api/me` and written with `PATCH /api/me/onboarding`. A person sees the same progress in every browser.
 
 9. **Budget.** The main chunk grows by at most 3 KB gzipped (the pill, the ticks and the About rows). The tour chunk with driver.js and the loops stays under 25 KB gzipped. Both are checked against `vite build` output before merge.
 
@@ -63,7 +63,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
 Anna installs tiko and opens her welcome board. A centered card says what tiko is; Next moves the highlight to the Task card button, where a loop types `DEMO-12`, then `project = DEMO`, then pastes a link, and cards drop onto the board. Six more steps later she knows where search, reminders, the Gantt chart and the focus timer are. A week later she opens About, clicks "Take the tour" and runs it again.
 
-**Independent Test**: as a new person on a fresh instance, open the first board: the tour starts; finish it, reload: it does not start again; About → "Take the tour" starts it. As a person created before the migration: it never starts by itself. The main chunk size grows by 3 KB gzipped at most; driver.js is in a separate chunk loaded only after the tour starts (network log).
+**Independent Test**: as a new person on a fresh instance, open the first board: the tour starts; finish it, reload: it does not start again; About → "Take the tour" starts it. The main chunk size grows by 3 KB gzipped at most; driver.js is in a separate chunk loaded only after the tour starts (network log).
 
 **Acceptance Scenarios**:
 
@@ -89,7 +89,7 @@ After the tour Anna sees "Getting started 0/8". She pastes a Jira link, sets a r
 ## Requirements *(mandatory)*
 
 - **FR-001**: The tour MUST load driver.js and its loops only when it starts.
-- **FR-002**: The tour MUST start by itself at most once per person, never on read-only or public boards, and never for people created before the migration.
+- **FR-002**: The tour MUST start by itself at most once per person, and never on read-only or public boards.
 - **FR-003**: The tour and the checklist MUST be reachable from About; Settings MUST NOT change.
 - **FR-004**: Checklist items MUST tick from the person's actions; there is no manual tick.
 - **FR-005**: Onboarding state MUST be stored per person on the server.
