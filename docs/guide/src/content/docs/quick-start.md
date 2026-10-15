@@ -53,4 +53,6 @@ To upgrade, redeploy `api` and `web`: they pull the latest release.
 
 Open http://localhost:3000, or the Railway or Render URL, and sign in as `admin`. On your machine the installer printed the password and keeps it in `.env` in the tiko folder. From source it is in the log: `docker compose logs api | grep 'tiko password'`, with `Select-String` in place of `grep` in PowerShell. If you lost it, see [Lost the password](../install/#lost-the-password). On Railway and Render it is the `TIKO_PASSWORD` variable of the API service, as described above. A fresh install opens on a sample board built from demo tasks. Move things around, then add more with the card tool at the bottom: type `DEMO-5` for one task, or `project = DEMO` for all twelve. Delete the sample board when you are done with it.
 
+On the first board you can edit, a short tour shows where adding tasks, search, timers, the Gantt chart and the focus timer live. Close it at any step; About (the ⓘ button in the bottom left) → Take the tour runs it again.
+
 No keys or accounts are needed for the demo. To see your real tasks, [connect Jira Data Center](../jira-data-center/).

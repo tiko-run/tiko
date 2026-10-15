@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Person, PersonRecord, Role
@@ -316,6 +316,10 @@ class UserRepo(Protocol):
         ...
 
     def set_password(self, user_id: str, password_hash: str) -> None: ...
+
+    def onboarding(self, user_id: str) -> dict[str, Any]: ...
+
+    def set_onboarding(self, user_id: str, state: dict[str, Any]) -> None: ...
 
     def get(self, user_id: str) -> Person | None: ...
 

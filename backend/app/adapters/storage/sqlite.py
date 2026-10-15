@@ -9,6 +9,7 @@ from collections.abc import Callable
 from contextlib import closing, contextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from app.domain.accounts import Person, PersonRecord, Role
 from app.domain.boards import CARD, LEGACY_CARD, BoardDoc, BoardRecord, BoardRow
@@ -549,6 +550,7 @@ def _delete_people(conn: sqlite3.Connection, user_ids: list[str]) -> list[str]:
             "task_snapshots_v3",
             "demo_statuses",
             "invites",
+            "onboarding",
         ):
             conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
@@ -607,6 +609,21 @@ class SqliteUserRepo:
         with self._db.transaction() as conn:
             conn.execute(
                 "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+            )
+
+    def onboarding(self, user_id: str) -> dict[str, Any]:
+        with self._db.read() as conn:
+            row = conn.execute(
+                "SELECT state FROM onboarding WHERE user_id = ?", (user_id,)
+            ).fetchone()
+        return json.loads(row["state"]) if row else {}
+
+    def set_onboarding(self, user_id: str, state: dict[str, Any]) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO onboarding (user_id, state) VALUES (?, ?)"
+                " ON CONFLICT (user_id) DO UPDATE SET state = excluded.state",
+                (user_id, json.dumps(state, separators=(",", ":"))),
             )
 
     def get(self, user_id: str) -> Person | None:

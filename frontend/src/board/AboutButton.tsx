@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpCircle, BookOpen, Bug, Info, ShieldAlert } from 'lucide-react'
-import type { ComponentProps, ReactNode } from 'react'
+import { ArrowUpCircle, BookOpen, Bug, Compass, Info, ShieldAlert } from 'lucide-react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import { checkVersionNow, useVersion, type ReleaseLevel } from '@/api/version'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { UpdateAction } from '@/board/UpdateAction'
 import { watchedUpdate } from '@/board/UpdateProgress'
 import { toastError } from '@/lib/toast'
+import { startTour } from '@/onboarding/start'
 import { cn } from '@/lib/utils'
 
 const REPO = 'https://github.com/tiko-run/tiko'
@@ -54,6 +55,7 @@ function AboutLink({
 
 export function AboutButton({ admin = false }: { admin?: boolean }) {
   const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
   const info = useVersion().data
   const check = useMutation({
     mutationFn: checkVersionNow,
@@ -72,8 +74,11 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
       : 'About tiko, update available'
     : 'About tiko'
   return (
-    <Popover>
-      <div className="bg-card absolute bottom-4 left-4 z-10 rounded-lg border p-1 shadow-md">
+    <Popover open={open} onOpenChange={setOpen}>
+      <div
+        data-tour="about"
+        className="bg-card absolute bottom-4 left-4 z-10 rounded-lg border p-1 shadow-md"
+      >
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -185,6 +190,17 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
           An infinite canvas for your tasks: live cards from your tracker, arranged the way you
           think. Open source, self-hosted, no tracking.
         </p>
+        <button
+          type="button"
+          className="hover:bg-accent -mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] [&_svg]:size-4 [&_svg]:shrink-0"
+          onClick={() => {
+            setOpen(false)
+            void startTour(queryClient)
+          }}
+        >
+          <Compass strokeWidth={1.75} />
+          Take the tour
+        </button>
         <nav className="-mx-2 flex flex-col" aria-label="tiko links">
           <AboutLink href={REPO} icon={<GitHubIcon />}>
             Source code on GitHub

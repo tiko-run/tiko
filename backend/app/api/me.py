@@ -1,3 +1,4 @@
+import time
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -6,6 +7,7 @@ from pydantic import BaseModel, Field, SecretStr
 from app.api import deps
 from app.api.auth import me
 from app.api.deps import AccountsDep, CurrentPerson, NotDemoVisitor
+from app.domain.onboarding import Onboarding, OnboardingChange
 from app.domain.settings import SettingsService, TokenState
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -40,6 +42,18 @@ def change_password(
 ) -> Response:
     accounts.change_password(person, body.current, body.new, keep_token=request.state.session)
     return Response(status_code=204)
+
+
+@router.get("/onboarding")
+def get_onboarding(person: CurrentPerson, accounts: AccountsDep) -> Onboarding:
+    return accounts.onboarding(person.id)
+
+
+@router.patch("/onboarding")
+def change_onboarding(
+    body: OnboardingChange, person: CurrentPerson, accounts: AccountsDep
+) -> Onboarding:
+    return accounts.change_onboarding(person.id, body, time.time())
 
 
 Settings = Annotated[SettingsService, Depends(deps.settings)]

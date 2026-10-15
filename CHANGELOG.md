@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A short product tour on a person's first editable board: adding tasks, search filters, timers, the Gantt chart and the focus timer, each with a small animation. About → Take the tour runs it again.
+
 ## [2026.10.20] - 2026-10-14
 
 ### Added

@@ -23,6 +23,7 @@ import { MODULES } from '@/modules/registry'
 import { useCommands } from '@/search/commands'
 import { JqlInput, keepOpenWhileSuggesting, useJqlCount } from '@/canvas/JqlInput'
 import { SHORTCUTS, useShortcut, withShortcut } from '@/lib/shortcuts'
+import { useAutoTour } from '@/onboarding/start'
 
 export type Tool = 'select' | 'hand' | 'frame' | 'sticky' | 'text' | 'shape' | 'timer'
 
@@ -173,6 +174,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   useShortcut('sticky', () => onTool('sticky'))
   useShortcut('text', () => onTool('text'))
   useShortcut('shape', () => setShapesOpen(true))
+  useAutoTour()
   useShortcut('timer', () => onTool('timer'))
   useShortcut('card', () => setOpen(true))
   useShortcut('module', () => setModulesOpen(true))
@@ -221,7 +223,10 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   ])
 
   return (
-    <div className="bg-card absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border p-1 shadow-md">
+    <div
+      data-tour="toolbar"
+      className="bg-card absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border p-1 shadow-md"
+    >
       {TOOLS.map(({ tool: value, Icon }) => (
         <Button
           key={value}
@@ -230,6 +235,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
           aria-label={SHORTCUTS[value].label}
           aria-pressed={tool === value}
           title={withShortcut(value)}
+          data-tour={`tool-${value}`}
           onClick={() => onTool(value)}
         >
           <Icon className="size-[18px]" strokeWidth={1.75} />
@@ -281,6 +287,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
             size="icon"
             aria-label={SHORTCUTS.card.label}
             title={withShortcut('card')}
+            data-tour="tool-card"
           >
             <TicketPlus className="size-[18px]" strokeWidth={1.75} />
           </Button>
@@ -301,6 +308,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
             size="icon"
             aria-label={SHORTCUTS.module.label}
             title={withShortcut('module')}
+            data-tour="tool-module"
           >
             <LayoutTemplate className="size-[18px]" strokeWidth={1.75} />
           </Button>

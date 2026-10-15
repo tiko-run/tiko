@@ -53,7 +53,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
    When all items are done the pill shows a short check animation once and goes away. "Hide" in the list hides it at any time; About brings it back.
 
-8. **State lives on the server, per person.** One JSON value on the user row: `{tour: "seen" | null, checklist: {item: done_at}, hidden: bool}`, read with `/api/me` and written with `PATCH /api/me/onboarding`. A person sees the same progress in every browser.
+8. **State lives on the server, per person.** One JSON value per person, `{tour_seen, done: {item: done_at}, hidden}`, read with `GET /api/me/onboarding` and changed with `PATCH` ([contract](contracts/api.md)). A person sees the same progress in every browser.
 
 9. **Budget.** The main chunk grows by at most 3 KB gzipped (the pill, the ticks and the About rows). The tour chunk with driver.js and the loops stays under 25 KB gzipped. Both are checked against `vite build` output before merge.
 
