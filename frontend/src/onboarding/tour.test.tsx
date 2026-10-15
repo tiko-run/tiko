@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { useAutoTour } from '@/onboarding/start'
-import { driveSteps, STEPS } from '@/onboarding/tour'
+import { driveSteps, runTour, STEPS } from '@/onboarding/tour'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -76,4 +76,29 @@ test('does not start for a person who has seen it', async () => {
   await waitFor(() => expect(fetch).toHaveBeenCalled())
   await new Promise((resolve) => setTimeout(resolve, 1000))
   expect(screen.queryByText('Welcome to tiko')).toBeNull()
+})
+
+test('while the tour runs the board gets no keys, pastes or clicks on the highlighted button', async () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  document.body.innerHTML = '<button data-tour="tool-card"></button>'
+  const board = vi.fn()
+  document.addEventListener('keydown', board)
+  document.addEventListener('paste', board)
+  const tour = runTour('add')
+  const button = document.querySelector('[data-tour="tool-card"]')!
+  expect(button).toHaveClass('driver-no-interaction')
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }))
+  document.dispatchEvent(new Event('paste', { bubbles: true }))
+  document
+    .querySelector<SVGPathElement>('.driver-overlay path')
+    ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  expect(board).not.toHaveBeenCalled()
+  expect(tour.isActive()).toBe(true)
+  // The step settles on the next frame; a tour ends from a settled step.
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  tour.destroy()
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }))
+  expect(board).toHaveBeenCalledTimes(1)
+  document.removeEventListener('keydown', board)
+  document.removeEventListener('paste', board)
 })

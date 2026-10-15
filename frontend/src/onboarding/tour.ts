@@ -74,14 +74,26 @@ export function driveSteps(only?: StepId, root: ParentNode = document): DriveSte
   })
 }
 
+// Board shortcuts and paste act behind the overlay and pull the board out from under the tour.
+// The tour reads its own keys on keyup and traps Tab on keydown, so only Tab goes through.
+function holdBoard(event: Event) {
+  if (event instanceof KeyboardEvent && event.key === 'Tab') return
+  event.stopPropagation()
+}
+
 /** Runs the whole tour, or one step; `onEnd` runs however it ends. */
 export function runTour(only?: StepId, onEnd?: () => void) {
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.addEventListener('keydown', holdBoard, true)
+  window.addEventListener('paste', holdBoard, true)
   const tour = driver({
     steps: driveSteps(only),
     animate: !still,
     smoothScroll: false,
     allowClose: true,
+    // A click on the highlighted button or a stray one on the dimmed board must not end the tour.
+    disableActiveInteraction: true,
+    overlayClickBehavior: () => {},
     overlayOpacity: 0.45,
     stagePadding: 6,
     stageRadius: 10,
@@ -93,7 +105,11 @@ export function runTour(only?: StepId, onEnd?: () => void) {
     nextBtnText: 'Next',
     prevBtnText: 'Back',
     doneBtnText: only ? 'Got it' : 'Done',
-    onDestroyed: () => onEnd?.(),
+    onDestroyed: () => {
+      window.removeEventListener('keydown', holdBoard, true)
+      window.removeEventListener('paste', holdBoard, true)
+      onEnd?.()
+    },
   })
   tour.drive()
   return tour
