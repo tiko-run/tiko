@@ -23,6 +23,7 @@ import { MODULES } from '@/modules/registry'
 import { useCommands } from '@/search/commands'
 import { JqlInput, keepOpenWhileSuggesting, useJqlCount } from '@/canvas/JqlInput'
 import { SHORTCUTS, useShortcut, withShortcut } from '@/lib/shortcuts'
+import { useAutoTour } from '@/onboarding/start'
 
 export type Tool = 'select' | 'hand' | 'frame' | 'sticky' | 'text' | 'shape' | 'timer'
 
@@ -166,6 +167,8 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   const [open, setOpen] = useState(false)
   const [shapesOpen, setShapesOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
+  // The toolbar is on screen only on a board the person can edit, where the tour may start.
+  useAutoTour()
 
   useShortcut('select', () => onTool('select'))
   useShortcut('hand', () => onTool('hand'))
@@ -230,6 +233,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
           aria-label={SHORTCUTS[value].label}
           aria-pressed={tool === value}
           title={withShortcut(value)}
+          data-tour={value === 'timer' ? 'tool-timer' : undefined}
           onClick={() => onTool(value)}
         >
           <Icon className="size-[18px]" strokeWidth={1.75} />
@@ -281,6 +285,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
             size="icon"
             aria-label={SHORTCUTS.card.label}
             title={withShortcut('card')}
+            data-tour="tool-card"
           >
             <TicketPlus className="size-[18px]" strokeWidth={1.75} />
           </Button>
@@ -301,6 +306,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
             size="icon"
             aria-label={SHORTCUTS.module.label}
             title={withShortcut('module')}
+            data-tour="tool-module"
           >
             <LayoutTemplate className="size-[18px]" strokeWidth={1.75} />
           </Button>

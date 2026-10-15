@@ -1,0 +1,98 @@
+/* The tour's popover in the board's look, over driver.js defaults. */
+.driver-popover.tour-popover {
+  width: 352px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  font-family: inherit;
+  box-shadow: 0 8px 28px oklch(0.2 0.02 260 / 0.18);
+}
+.tour-popover .driver-popover-arrow {
+  border-color: var(--popover);
+}
+.tour-popover .driver-popover-arrow-side-top {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+.tour-popover .driver-popover-arrow-side-bottom {
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-left-color: transparent;
+}
+.tour-popover .driver-popover-arrow-side-left {
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+.tour-popover .driver-popover-arrow-side-right {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+.tour-popover .driver-popover-title {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.tour-popover .driver-popover-description {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.tour-popover .driver-popover-description p {
+  margin-top: 10px;
+}
+.tour-popover kbd,
+.tour-popover code {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.tour-popover .driver-popover-close-btn {
+  color: var(--muted-foreground);
+}
+.tour-popover .driver-popover-close-btn:hover {
+  color: var(--foreground);
+}
+.tour-popover .driver-popover-footer {
+  margin-top: 14px;
+}
+.tour-popover .driver-popover-progress-text {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.tour-popover .driver-popover-footer button {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  text-shadow: none;
+}
+.tour-popover .driver-popover-footer button:hover {
+  background: var(--accent);
+}
+.tour-popover .driver-popover-footer .driver-popover-next-btn {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.tour-popover .driver-popover-footer .driver-popover-next-btn:hover {
+  background: color-mix(in oklch, var(--primary) 90%, black);
+}
+.tour-popover button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

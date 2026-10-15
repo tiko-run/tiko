@@ -16,6 +16,7 @@ from app.domain.errors import NotFound, UsernameTaken, VersionConflict
 from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
+from app.domain.onboarding import Onboarding
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -549,6 +550,7 @@ def _delete_people(conn: sqlite3.Connection, user_ids: list[str]) -> list[str]:
             "task_snapshots_v3",
             "demo_statuses",
             "invites",
+            "onboarding",
         ):
             conn.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
@@ -607,6 +609,21 @@ class SqliteUserRepo:
         with self._db.transaction() as conn:
             conn.execute(
                 "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+            )
+
+    def onboarding(self, user_id: str) -> Onboarding:
+        with self._db.read() as conn:
+            row = conn.execute(
+                "SELECT state FROM onboarding WHERE user_id = ?", (user_id,)
+            ).fetchone()
+        return Onboarding.model_validate_json(row["state"]) if row else Onboarding()
+
+    def set_onboarding(self, user_id: str, state: Onboarding) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO onboarding (user_id, state) VALUES (?, ?)"
+                " ON CONFLICT (user_id) DO UPDATE SET state = excluded.state",
+                (user_id, state.model_dump_json()),
             )
 
     def get(self, user_id: str) -> Person | None:

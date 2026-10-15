@@ -63,6 +63,7 @@ export function FocusCapsule() {
       <PopoverAnchor asChild>
         <section
           aria-label="Focus timer"
+          data-tour="focus"
           className="focus-capsule bg-card absolute top-4 left-1/2 z-10 w-[264px] -translate-x-1/2 rounded-t-[26px] rounded-b-xl border shadow-md"
         >
           <div

@@ -20,8 +20,9 @@ from app.domain.errors import (
     ValidationFailed,
     WeakPassword,
 )
+from app.domain.onboarding import Onboarding, OnboardingChange, apply
 from app.domain.ports import Attempts, UserRepo
-from app.domain.sessions import Sessions
+from app.domain.sessions import Sessions, iso
 
 Role = Literal["admin", "member"]
 
@@ -187,6 +188,14 @@ class Accounts:
         self._users.update(changed)
         self._sessions.forget(person.id)
         return changed
+
+    def onboarding(self, user_id: str) -> Onboarding:
+        return self._users.onboarding(user_id)
+
+    def change_onboarding(self, user_id: str, patch: OnboardingChange, now: float) -> Onboarding:
+        state = apply(self._users.onboarding(user_id), patch, iso(now))
+        self._users.set_onboarding(user_id, state)
+        return state
 
     def get(self, user_id: str) -> Person:
         person = self._users.get(user_id)
