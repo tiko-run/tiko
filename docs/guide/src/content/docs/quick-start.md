@@ -55,4 +55,6 @@ Open http://localhost:3000, or the Railway or Render URL, and sign in as `admin`
 
 On the first board you can edit, a short tour shows where adding tasks, search, timers, the Gantt chart and the focus timer live. Close it at any step; About (the ⓘ button in the bottom left) → Take the tour runs it again.
 
+After the tour, Getting started next to About lists eight things to try. Each one ticks itself when you do it, and Show me points at where it lives. Hide the list at any time; About → Getting started brings it back.
+
 No keys or accounts are needed for the demo. To see your real tasks, [connect Jira Data Center](../jira-data-center/).

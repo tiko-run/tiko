@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpCircle, BookOpen, Bug, Compass, Info, ShieldAlert } from 'lucide-react'
+import { ArrowUpCircle, BookOpen, Bug, Compass, Info, ListChecks, ShieldAlert } from 'lucide-react'
 import { useState, type ComponentProps, type ReactNode } from 'react'
+import { saveOnboarding } from '@/api/onboarding'
 import { checkVersionNow, useVersion, type ReleaseLevel } from '@/api/version'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { UpdateAction } from '@/board/UpdateAction'
 import { watchedUpdate } from '@/board/UpdateProgress'
 import { toastError } from '@/lib/toast'
+import { setChecklistOpen } from '@/onboarding/done'
 import { startTour } from '@/onboarding/start'
 import { cn } from '@/lib/utils'
 
@@ -198,6 +200,18 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
         >
           <Compass strokeWidth={1.75} />
           Take the tour
+        </button>
+        <button
+          type="button"
+          className={cn(ROW, '-mx-2 -mt-3 text-left')}
+          onClick={() => {
+            setOpen(false)
+            saveOnboarding(queryClient, { hidden: false })
+            setChecklistOpen(true)
+          }}
+        >
+          <ListChecks strokeWidth={1.75} />
+          Getting started
         </button>
         <nav className="-mx-2 flex flex-col" aria-label="tiko links">
           <AboutLink href={REPO} icon={<GitHubIcon />}>

@@ -9,6 +9,7 @@ import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { NewBoardForm } from '@/board/NewBoardForm'
 import { AboutButton } from '@/board/AboutButton'
+import { GettingStarted } from '@/onboarding/GettingStarted'
 import { UpdateBanner } from '@/board/UpdateBanner'
 import { UpdatedNotice } from '@/board/UpdateProgress'
 import { FocusCapsule } from '@/focus/FocusCapsule'
@@ -181,6 +182,7 @@ export default function App() {
       )}
       {focusVisible && <FocusCapsule />}
       {signedIn && <AboutButton admin={admin} />}
+      {signedIn && <GettingStarted demo={!!auth.data?.me?.demo_expires_at} />}
       {signedIn && <UpdatedNotice />}
       {admin && <UpdateBanner />}
       {signedIn && <SettingsDialog />}

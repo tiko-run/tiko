@@ -85,6 +85,7 @@ import { BoardTimers } from '@/timers/BoardTimers'
 import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { useTheme } from '@/lib/theme'
+import { didOnboarding } from '@/onboarding/done'
 
 const nodeTypes = {
   task_card: withPresence(TaskCardNode),
@@ -251,6 +252,7 @@ export function BoardCanvas({
   // One card goes to the point or cascades from the viewport center; several form a grid there.
   const addCards = useCallback(
     (list: Task[], at?: XYPosition) => {
+      didOnboarding('add_card')
       setAdded((current) => ({
         ...current,
         ...Object.fromEntries(list.map((t) => [taskRef(t), t])),
@@ -345,7 +347,10 @@ export function BoardCanvas({
           insert(snippet, { x: target.x - origin.x, y: target.y - origin.y })
         } else if (paste.kind === 'refs') {
           void resolveAll(paste.refs).then(({ tasks: found, failed }) => {
-            if (found.length > 0) addCards(found, screen)
+            if (found.length > 0) {
+              addCards(found, screen)
+              didOnboarding('paste_link')
+            }
             if (failed.length > 0)
               toast.error('Not added', {
                 description: failed.map((f) => `${f.ref}: ${f.message}`).join('\n'),
@@ -384,6 +389,7 @@ export function BoardCanvas({
     void askNotify()
     primeAudio()
     const id = newId()
+    didOnboarding('set_timer')
     const base = { id, type: 'timer', width: TIMER_SIZE, height: TIMER_SIZE } as const
     const data = newTimer(Date.now())
     markFresh(id)
@@ -433,6 +439,7 @@ export function BoardCanvas({
     const current = getNodes()
     const result = absorbCards(current, ids)
     let kept = result?.nodes ?? current
+    if (result?.absorbed.size) didOnboarding('gantt_task')
     if (result) {
       const edgesLeft = getEdges().filter(
         (e) => !result.absorbed.has(e.source) && !result.absorbed.has(e.target),

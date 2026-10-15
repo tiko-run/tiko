@@ -525,3 +525,26 @@
     animation: none;
   }
 }
+
+/* Getting started, all done: the pill pops and its ring fades out once before it goes. */
+.getting-started-done {
+  animation: getting-started-done 700ms ease-out;
+}
+@keyframes getting-started-done {
+  0% {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 50%, transparent);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: none;
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .getting-started-done {
+    animation: none;
+  }
+}

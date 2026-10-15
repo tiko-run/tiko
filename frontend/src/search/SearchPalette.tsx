@@ -30,8 +30,9 @@ import { findModule } from '@/modules/registry'
 import type { Command } from './commands'
 import type { Entry } from './index'
 import { highlight, snippet, type Range } from './match'
-import { dropLastToken, FIELD_TITLES, filterText, MARKERS, type Filter } from './query'
+import { dropLastToken, FIELD_TITLES, filterText, MARKERS, parseQuery, type Filter } from './query'
 import { suggestionsFor, taskFacets, viewFor, type View } from './view'
+import { didOnboarding } from '@/onboarding/done'
 
 const ICONS: Record<Exclude<Entry['kind'], 'card' | 'module'>, LucideIcon> = {
   sticky: StickyNote,
@@ -267,12 +268,19 @@ function PaletteBody({
     input.current?.focus()
   }
 
-  const choose = (item: Entry | Command) => (isCommand(item) ? onRun?.(item) : onChoose(item))
+  // Picking a result of a filtered search ticks that getting started item.
+  const filtered = chips.length > 0 || parseQuery(text).filters.length > 0
+  const choose = (item: Entry | Command) => {
+    if (isCommand(item)) return onRun?.(item)
+    if (filtered) didOnboarding('search_filter')
+    onChoose(item)
+  }
 
   // Keys right after typing must act on what was typed, not on the deferred list.
   const freshView = () => (deferred === text ? view : viewFor(index, text, recent, chips, commands))
 
   const selectAll = () => {
+    if (filtered) didOnboarding('search_filter')
     const { targets } = freshView()
     if (targets.length) onSelectAll?.(targets)
   }

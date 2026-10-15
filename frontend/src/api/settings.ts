@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { fetchJson } from '@/api/client'
+import { didOnboarding } from '@/onboarding/done'
 
 const settingsSchema = z.object({
   provider: z.enum(['demo', 'jira']),
@@ -62,6 +63,9 @@ export function saveTrackerToken(token: string, source: TokenSource = 'jira') {
   return fetchJson('/api/me/tracker', trackerSchema, {
     method: 'PUT',
     body: JSON.stringify({ token, source }),
+  }).then((tracker) => {
+    didOnboarding('tracker')
+    return tracker
   })
 }
 

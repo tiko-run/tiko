@@ -59,8 +59,8 @@ export const STEPS: Step[] = [
   },
 ]
 
-export function driveSteps(): DriveStep[] {
-  return STEPS.map((step) => ({
+export function driveSteps(only?: StepId): DriveStep[] {
+  return STEPS.filter((step) => !only || step.id === only).map((step) => ({
     element: step.anchor
       ? (document.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`) ?? undefined)
       : undefined,
@@ -84,11 +84,11 @@ function blockBoardInput(event: Event) {
 window.addEventListener('keydown', blockBoardInput, true)
 window.addEventListener('paste', blockBoardInput, true)
 
-/** Runs the tour; `onEnd` runs however it ends. */
-export function runTour(onEnd?: () => void) {
+/** Runs the tour, or one step of it; `onEnd` runs however it ends. */
+export function runTour(onEnd?: () => void, only?: StepId) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const tour = driver({
-    steps: driveSteps(),
+    steps: driveSteps(only),
     animate: !reducedMotion,
     smoothScroll: false,
     allowClose: true,
@@ -100,11 +100,12 @@ export function runTour(onEnd?: () => void) {
     stageRadius: 10,
     popoverClass: 'tour-popover',
     popoverOffset: 12,
-    showProgress: true,
+    showProgress: !only,
+    showButtons: only ? ['next', 'close'] : ['next', 'previous', 'close'],
     progressText: '{{current}} of {{total}}',
     nextBtnText: 'Next',
     prevBtnText: 'Back',
-    doneBtnText: 'Done',
+    doneBtnText: only ? 'Got it' : 'Done',
     // Every way a person ends it passes here; the later onDestroyed is skipped for a tour
     // closed before its first frame.
     onDestroyStarted: () => {
