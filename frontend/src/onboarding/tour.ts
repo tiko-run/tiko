@@ -1,4 +1,4 @@
-import { driver, type DriveStep } from 'driver.js'
+import { driver, type DriveStep, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import '@/onboarding/tour.css'
 import { formatShortcut, type ShortcutId } from '@/lib/shortcuts'
@@ -31,13 +31,13 @@ export const STEPS: Step[] = [
   {
     id: 'search',
     title: 'Find anything',
-    text: `${key('search')} searches cards, notes and timers. Narrow it with <code>status:</code>, <code>@name</code>, <code>type:</code> or <code>priority:</code>. ${key('commands')} runs commands.`,
+    text: `${key('search')} searches cards, notes and timers. Narrow it with <code>status:</code>, <code>@name</code>, <code>type:</code>, <code>priority:</code> or <code>#frame</code>. ${key('commands')} runs commands.`,
   },
   {
     id: 'timer',
     anchor: 'tool-timer',
     title: 'Set a reminder',
-    text: `Put a timer by a card: it goes off after a while or on a status change. All timers are listed top right. ${key('timer')}`,
+    text: `A timer by a card goes off later or on a status change. Find them all top right or in the main menu. ${key('timer')}`,
   },
   {
     id: 'gantt',
@@ -59,36 +59,37 @@ export const STEPS: Step[] = [
   },
 ]
 
-export function driveSteps(only?: StepId, root: ParentNode = document): DriveStep[] {
-  return STEPS.filter((step) => !only || step.id === only).map((step) => {
-    const element = step.anchor
-      ? (root.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`) ?? undefined)
-      : undefined
-    return {
-      element,
-      popover: {
-        title: step.title,
-        description: `<div class="tour-loop" aria-hidden="true">${LOOPS[step.id]}</div><p>${step.text}</p>`,
-      },
-    }
-  })
+export function driveSteps(): DriveStep[] {
+  return STEPS.map((step) => ({
+    element: step.anchor
+      ? (document.querySelector<HTMLElement>(`[data-tour="${step.anchor}"]`) ?? undefined)
+      : undefined,
+    popover: {
+      title: step.title,
+      description: `<div class="tour-loop" aria-hidden="true">${LOOPS[step.id]}</div><p>${step.text}</p>`,
+    },
+  }))
 }
+
+let current: Driver | undefined
 
 // Board shortcuts and paste act behind the overlay and pull the board out from under the tour.
 // The tour reads its own keys on keyup and traps Tab on keydown, so only Tab goes through.
-function holdBoard(event: Event) {
+// Listening for good rather than per run keeps the guard from outliving a tour it missed.
+function blockBoardInput(event: Event) {
+  if (!current?.isActive()) return
   if (event instanceof KeyboardEvent && event.key === 'Tab') return
   event.stopPropagation()
 }
+window.addEventListener('keydown', blockBoardInput, true)
+window.addEventListener('paste', blockBoardInput, true)
 
-/** Runs the whole tour, or one step; `onEnd` runs however it ends. */
-export function runTour(only?: StepId, onEnd?: () => void) {
-  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  window.addEventListener('keydown', holdBoard, true)
-  window.addEventListener('paste', holdBoard, true)
+/** Runs the tour; `onEnd` runs however it ends. */
+export function runTour(onEnd?: () => void) {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const tour = driver({
-    steps: driveSteps(only),
-    animate: !still,
+    steps: driveSteps(),
+    animate: !reducedMotion,
     smoothScroll: false,
     allowClose: true,
     // A click on the highlighted button or a stray one on the dimmed board must not end the tour.
@@ -99,18 +100,19 @@ export function runTour(only?: StepId, onEnd?: () => void) {
     stageRadius: 10,
     popoverClass: 'tour-popover',
     popoverOffset: 12,
-    showProgress: !only,
+    showProgress: true,
     progressText: '{{current}} of {{total}}',
-    showButtons: only ? ['close'] : ['next', 'previous', 'close'],
     nextBtnText: 'Next',
     prevBtnText: 'Back',
-    doneBtnText: only ? 'Got it' : 'Done',
-    onDestroyed: () => {
-      window.removeEventListener('keydown', holdBoard, true)
-      window.removeEventListener('paste', holdBoard, true)
+    doneBtnText: 'Done',
+    // Every way a person ends it passes here; the later onDestroyed is skipped for a tour
+    // closed before its first frame.
+    onDestroyStarted: () => {
+      tour.destroy()
       onEnd?.()
     },
   })
+  current = tour
   tour.drive()
   return tour
 }

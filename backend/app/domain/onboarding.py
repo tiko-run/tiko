@@ -1,8 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
-from app.domain.ports import UserRepo
+from pydantic import BaseModel, ConfigDict
 
 Item = Literal[
     "add_card",
@@ -24,22 +22,19 @@ class Onboarding(BaseModel):
 
 
 class OnboardingChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     tour_seen: bool | None = None
     done: list[Item] = []
     hidden: bool | None = None
 
 
-def read(users: UserRepo, user_id: str) -> Onboarding:
-    return Onboarding.model_validate(users.onboarding(user_id))
-
-
-def change(users: UserRepo, user_id: str, patch: OnboardingChange, now: str) -> Onboarding:
-    state = read(users, user_id)
-    if patch.tour_seen is not None:
-        state.tour_seen = patch.tour_seen
-    if patch.hidden is not None:
-        state.hidden = patch.hidden
+def apply(state: Onboarding, patch: OnboardingChange, now: str) -> Onboarding:
     # An item stays done; doing it again keeps the first time.
-    state.done = {**{item: now for item in patch.done}, **state.done}
-    users.set_onboarding(user_id, state.model_dump())
-    return state
+    return state.model_copy(
+        update={
+            "tour_seen": state.tour_seen if patch.tour_seen is None else patch.tour_seen,
+            "hidden": state.hidden if patch.hidden is None else patch.hidden,
+            "done": {**{item: now for item in patch.done}, **state.done},
+        }
+    )

@@ -31,6 +31,9 @@ function GitHubIcon(props: ComponentProps<'svg'>) {
   )
 }
 
+const ROW =
+  'hover:bg-accent flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] [&_svg]:size-4 [&_svg]:shrink-0'
+
 function AboutLink({
   href,
   icon,
@@ -41,12 +44,7 @@ function AboutLink({
   children: ReactNode
 }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="hover:bg-accent flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] [&_svg]:size-4 [&_svg]:shrink-0"
-    >
+    <a href={href} target="_blank" rel="noreferrer" className={ROW}>
       {icon}
       {children}
     </a>
@@ -192,7 +190,7 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
         </p>
         <button
           type="button"
-          className="hover:bg-accent -mx-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] [&_svg]:size-4 [&_svg]:shrink-0"
+          className={cn(ROW, '-mx-2 text-left')}
           onClick={() => {
             setOpen(false)
             void startTour(queryClient)

@@ -167,6 +167,8 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   const [open, setOpen] = useState(false)
   const [shapesOpen, setShapesOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
+  // The toolbar is on screen only on a board the person can edit, where the tour may start.
+  useAutoTour()
 
   useShortcut('select', () => onTool('select'))
   useShortcut('hand', () => onTool('hand'))
@@ -174,7 +176,6 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   useShortcut('sticky', () => onTool('sticky'))
   useShortcut('text', () => onTool('text'))
   useShortcut('shape', () => setShapesOpen(true))
-  useAutoTour()
   useShortcut('timer', () => onTool('timer'))
   useShortcut('card', () => setOpen(true))
   useShortcut('module', () => setModulesOpen(true))
@@ -223,10 +224,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   ])
 
   return (
-    <div
-      data-tour="toolbar"
-      className="bg-card absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border p-1 shadow-md"
-    >
+    <div className="bg-card absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border p-1 shadow-md">
       {TOOLS.map(({ tool: value, Icon }) => (
         <Button
           key={value}
@@ -235,7 +233,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
           aria-label={SHORTCUTS[value].label}
           aria-pressed={tool === value}
           title={withShortcut(value)}
-          data-tour={`tool-${value}`}
+          data-tour={value === 'timer' ? 'tool-timer' : undefined}
           onClick={() => onTool(value)}
         >
           <Icon className="size-[18px]" strokeWidth={1.75} />

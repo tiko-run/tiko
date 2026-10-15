@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Person, PersonRecord, Role
@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
+    from app.domain.onboarding import Onboarding
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -317,9 +318,9 @@ class UserRepo(Protocol):
 
     def set_password(self, user_id: str, password_hash: str) -> None: ...
 
-    def onboarding(self, user_id: str) -> dict[str, Any]: ...
+    def onboarding(self, user_id: str) -> Onboarding: ...
 
-    def set_onboarding(self, user_id: str, state: dict[str, Any]) -> None: ...
+    def set_onboarding(self, user_id: str, state: Onboarding) -> None: ...
 
     def get(self, user_id: str) -> Person | None: ...
 

@@ -1,6 +1,7 @@
 // Small drawings in the board's own look, one per tour step, after the feature loops on
 // tiko.run. Plain markup and CSS: no media files, the theme's colors, still under reduced motion.
 // Keys, names and tasks are made up.
+import '@/onboarding/loops.css'
 import type { StepId } from '@/onboarding/tour'
 
 const card = (key: string, title: string, type: string, extra = '', style = '') =>

@@ -30,11 +30,11 @@ The welcome board teaches by example, but the features people miss are the ones 
 
    Anchors are `data-tour="…"` attributes, so a changed label or tooltip does not break a step. A step whose anchor is missing (a read-only board, the capsule hidden) is shown centered instead of being skipped.
 
-3. **Loops instead of GIFs.** Each step carries a small animation built in DOM and CSS, in the style of the feature loops on tiko.run (`site/src/components/Features.astro`), ported to React components in the tour chunk. No video or image files: they take the theme's tokens, stay sharp at any zoom, weigh a few KB, and stop under `prefers-reduced-motion` on a still frame that still tells the story. Names, keys and tasks in them are made up (`DEMO-12`, "Anna").
+3. **Loops instead of GIFs.** Each step carries a small animation built in DOM and CSS, in the style of the feature loops on tiko.run (`site/src/components/Features.astro`), ported to markup strings and CSS in the tour chunk. No video or image files: they take the theme's tokens, stay sharp at any zoom, weigh a few KB, and stop under `prefers-reduced-motion` on a still frame that still tells the story. Names, keys and tasks in them are made up (`DEMO-12`, "Anna").
 
 4. **Motion.** The highlight moves between anchors with driver.js's own transition (about 300 ms); the popover fades and scales in as other popovers do (100 ms). With `prefers-reduced-motion` the transition and the loops are off.
 
-5. **When the tour runs.** It starts once, by itself, the first time a person opens a board after their welcome board is made, and only on a board they can edit. Skip, Esc or the close button ends it and marks it seen.
+5. **When the tour runs.** It starts once, by itself, the first time a person opens a board they can edit. Esc, the close button or Done ends it and marks it seen. While it runs, a click on the highlighted button or the dimmed board, board shortcuts and paste do nothing, so trying a button cannot break the tour.
 
 6. **Run it again from About.** The About popover gets two rows above the links: "Take the tour" and "Getting started". Settings does not change.
 
@@ -53,7 +53,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
    When all items are done the pill shows a short check animation once and goes away. "Hide" in the list hides it at any time; About brings it back.
 
-8. **State lives on the server, per person.** One JSON value per person, `{tour_seen, done: {item: done_at}, hidden}`, read with `GET /api/me/onboarding` and changed with `PATCH` ([contract](contracts/api.md)). A person sees the same progress in every browser.
+8. **State lives on the server, per person.** One JSON value per person in its own table, `{tour_seen, done: {item: done_at}, hidden}`, read with `GET /api/me/onboarding` and changed with `PATCH` ([contract](contracts/api.md)). A person sees the same progress in every browser.
 
 9. **Budget.** The main chunk grows by at most 3 KB gzipped (the pill, the ticks and the About rows). The tour chunk with driver.js and the loops stays under 25 KB gzipped. Both are checked against `vite build` output before merge.
 

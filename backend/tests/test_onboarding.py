@@ -53,3 +53,7 @@ def test_signed_out_is_refused() -> None:
     app = create_app(Settings(db_path=":memory:"))
     signed_in(app)
     assert TestClient(app).get("/api/me/onboarding").status_code == 401
+
+
+def test_unknown_key_is_refused(client: TestClient) -> None:
+    assert client.patch("/api/me/onboarding", json={"tour": "seen"}).status_code == 422

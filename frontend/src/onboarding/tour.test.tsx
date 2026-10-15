@@ -35,11 +35,26 @@ test('a step points at its anchor, or is centered when the anchor is not on scre
   expect(steps[0].element).toBeUndefined()
 })
 
-test('one step can run on its own', () => {
-  const steps = driveSteps('gantt')
-  expect(steps).toHaveLength(1)
-  expect(steps[0].popover?.title).toBe('Plan on a Gantt')
-  expect(steps[0].popover?.description).toContain('tour-loop')
+test('reduced motion turns the moving highlight off', () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  const tour = runTour()
+  expect(tour.getConfig().animate).toBe(false)
+  tour.destroy()
+})
+
+test('the tour and driver.js are only loaded on demand', () => {
+  // A static import would pull them into the board's chunk.
+  const files = import.meta.glob('/src/**/*.{ts,tsx}', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  })
+  for (const [path, source] of Object.entries(files)) {
+    if (path.startsWith('/src/onboarding/')) continue
+    expect(source as string, path).not.toMatch(
+      /from ['"](driver\.js|@\/onboarding\/(tour|loops))['"]/,
+    )
+  }
 })
 
 function Board() {
@@ -84,7 +99,12 @@ test('while the tour runs the board gets no keys, pastes or clicks on the highli
   const board = vi.fn()
   document.addEventListener('keydown', board)
   document.addEventListener('paste', board)
-  const tour = runTour('add')
+  const tour = runTour()
+  // The step settles on the next frame.
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
+  await settle()
+  tour.moveNext()
+  await settle()
   const button = document.querySelector('[data-tour="tool-card"]')!
   expect(button).toHaveClass('driver-no-interaction')
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }))
@@ -94,8 +114,6 @@ test('while the tour runs the board gets no keys, pastes or clicks on the highli
     ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   expect(board).not.toHaveBeenCalled()
   expect(tour.isActive()).toBe(true)
-  // The step settles on the next frame; a tour ends from a settled step.
-  await new Promise((resolve) => setTimeout(resolve, 50))
   tour.destroy()
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }))
   expect(board).toHaveBeenCalledTimes(1)

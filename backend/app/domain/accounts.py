@@ -10,7 +10,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.domain import onboarding
 from app.domain.attempts import MemoryAttempts
 from app.domain.errors import (
     AccountDisabled,
@@ -21,7 +20,7 @@ from app.domain.errors import (
     ValidationFailed,
     WeakPassword,
 )
-from app.domain.onboarding import Onboarding, OnboardingChange
+from app.domain.onboarding import Onboarding, OnboardingChange, apply
 from app.domain.ports import Attempts, UserRepo
 from app.domain.sessions import Sessions, iso
 
@@ -191,10 +190,12 @@ class Accounts:
         return changed
 
     def onboarding(self, user_id: str) -> Onboarding:
-        return onboarding.read(self._users, user_id)
+        return self._users.onboarding(user_id)
 
     def change_onboarding(self, user_id: str, patch: OnboardingChange, now: float) -> Onboarding:
-        return onboarding.change(self._users, user_id, patch, iso(now))
+        state = apply(self._users.onboarding(user_id), patch, iso(now))
+        self._users.set_onboarding(user_id, state)
+        return state
 
     def get(self, user_id: str) -> Person:
         person = self._users.get(user_id)
