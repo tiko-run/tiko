@@ -1,7 +1,7 @@
 {
   "profile": "oss",
-  "phase": "build",
-  "feature": "specs/025-usage-stats",
+  "phase": "spec",
+  "feature": "specs/026-onboarding",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
