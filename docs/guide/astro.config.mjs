@@ -20,7 +20,11 @@ export default defineConfig({
         '@fontsource-variable/jetbrains-mono',
         './src/styles/tiko.css',
       ],
-      components: { PageTitle: './src/components/PageTitle.astro' },
+      components: {
+        Head: './src/components/Head.astro',
+        Header: './src/components/Header.astro',
+        PageTitle: './src/components/PageTitle.astro',
+      },
       sidebar: [
         { label: 'Get started', items: ['index', 'install', 'quick-start'] },
         {

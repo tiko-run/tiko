@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- The guide keeps its header in place and transitions between pages without a full reload.
+
 ## [2026.10.21] - 2026-10-15
 
 ### Added
