@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { fetchJson } from '@/api/client'
+import { toastError } from '@/lib/toast'
 
 export const ITEMS = [
   'add_card',
@@ -41,4 +42,27 @@ export function useOnboarding(enabled = true) {
     staleTime: Infinity,
     enabled,
   })
+}
+
+/** Shows a change at once, so the board does not wait for the server, then saves it. */
+export function saveOnboarding(queryClient: QueryClient, change: OnboardingChange) {
+  queryClient.setQueryData<Onboarding>(
+    ['onboarding'],
+    (was) =>
+      was && {
+        tour_seen: change.tour_seen ?? was.tour_seen,
+        hidden: change.hidden ?? was.hidden,
+        done: {
+          ...Object.fromEntries((change.done ?? []).map((item) => [item, 'now'])),
+          ...was.done,
+        },
+      },
+  )
+  changeOnboarding(change)
+    .then((state) => queryClient.setQueryData(['onboarding'], state))
+    .catch((error: Error) => {
+      // What the screen shows must not outlive a save that failed.
+      void queryClient.invalidateQueries({ queryKey: ['onboarding'] })
+      toastError(error)
+    })
 }

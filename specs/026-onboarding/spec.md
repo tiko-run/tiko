@@ -38,7 +38,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
 6. **Run it again from About.** The About popover gets two rows above the links: "Take the tour" and "Getting started". Settings does not change.
 
-7. **Getting started.** A small pill in the bottom left, next to About, reads "Getting started 3/8" and opens a list. Each item ticks itself when the person does the thing, and has a "Show me" button that runs only the matching tour step.
+7. **Getting started.** A small pill in the bottom left, next to About, reads "Getting started 3/8" and opens a list. Each item ticks itself when the person does the thing, and has a "Show me" button that walks the person through doing it on the live board: the control gets a pulsing ring and stays usable, a short hint says what to do, the next hint follows once the control opens or turns on, and "Done" with a small burst of confetti shows when the item ticks. Nothing dims the board. For the tracker it opens Settings → My tracker. The tour itself stays a passive look around.
 
    | Item | Ticks when |
    |---|---|
@@ -47,11 +47,11 @@ The welcome board teaches by example, but the features people miss are the ones 
    | Search with a filter | a search with a `status:`, `@`, `type:` or `priority:` chip picks a result |
    | Set a reminder | a timer is placed (`addTimer`) |
    | Open the list of timers | the timer panel opens |
-   | Put a task into a Gantt chart | a Gantt gets a row from a card |
+   | Put a task into a Gantt chart | a Gantt gets a task row: a card dragged in, or a tracker or plain task added from its form |
    | Start a focus session | the focus timer starts |
    | Connect your tracker | the person saves their own tracker token; not shown to demo visitors |
 
-   When all items are done the pill shows a short check animation once and goes away. "Hide" in the list hides it at any time; About brings it back.
+   When the last item is done the pill shows a short check animation once and goes away; a finished list brought back from About stays. "Hide" in the list hides it at any time; About brings it back.
 
 8. **State lives on the server, per person.** One JSON value per person in its own table, `{tour_seen, done: {item: done_at}, hidden}`, read with `GET /api/me/onboarding` and changed with `PATCH` ([contract](contracts/api.md)). A person sees the same progress in every browser.
 
@@ -83,7 +83,7 @@ After the tour Anna sees "Getting started 0/8". She pastes a Jira link, sets a r
 
 1. **Given** the list is open, **When** the person adds a timer, **Then** "Set a reminder" ticks without a reload.
 2. **Given** all items are done, **Then** the pill plays one check animation and disappears.
-3. **Given** "Show me" on an item, **Then** only that tour step runs.
+3. **Given** "Show me" on "Set a reminder", **When** the person clicks the timer button and then a card, **Then** the hints follow along and end with "Done".
 4. **Given** a demo visitor, **Then** the list has seven items.
 
 ## Requirements *(mandatory)*

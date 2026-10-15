@@ -46,6 +46,7 @@ export function TimerButton({ timers, now }: ButtonProps) {
         aria-label={`Timers: ${running.length} running, ${fired} gone off`}
         aria-pressed={open}
         title={title}
+        data-tour="timer-list"
         onClick={() => setTimerPanelOpen(!open)}
       >
         <AlarmClock strokeWidth={1.75} />

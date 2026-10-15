@@ -9,6 +9,7 @@ import {
   type TimerSettings,
   type TimerState,
 } from './timer'
+import { didOnboarding } from '@/onboarding/done'
 
 export interface FocusStore {
   settings: TimerSettings
@@ -105,7 +106,9 @@ export function updateTimer(
 ) {
   const s = current()
   const now = Date.now()
-  set({ ...s, timer: change(s.timer, s.settings, now), now })
+  const timer = change(s.timer, s.settings, now)
+  if (timer.status === 'running' && s.timer.status !== 'running') didOnboarding('focus')
+  set({ ...s, timer, now })
 }
 
 export function updateSettings(patch: Partial<TimerSettings>) {

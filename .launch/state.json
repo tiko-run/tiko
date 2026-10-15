@@ -87,7 +87,8 @@
     "one-click-update",
     "usage-stats",
     "error-reports",
-    "tour"
+    "tour",
+    "getting-started"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -191,7 +192,8 @@
     "G3_update-check": "approved",
     "G3_one-click-update": "approved",
     "G2_onboarding": "approved",
-    "G3_tour": "approved"
+    "G3_tour": "approved",
+    "G3_getting-started": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -277,6 +279,7 @@
     "2026-10-14 usage-stats: slice merged (PR 190). Installers send one install event (step name on failure), the API one ping a day, fields in the guide's Usage stats page; Settings → Privacy, TIKO_USAGE_STATS, --no-stats turn it off, TIKO_STATS_URL points at another collector. Collector Worker on t.tiko.run with Neon tiko-stats in Frankfurt, role collector; raw rows 13 months, then monthly totals. Windows stand PASS before the review fixes; the fixes passed PSScriptAnalyzer in CI. The daily ping starts with the next release. Next: error-reports.",
     "2026-10-14 error-reports: slice merged (PR 191), spec 025 done. Error reports to the project's Sentry in the EU (org Tiko, project tiko), off by default; a report holds only the error type, tiko's frames, release and the deploy tag, no message. No default integrations and no trace propagation; the page sends through POST /api/privacy/errors. Owner: no Windows stand run for the one notice line in install.ps1; release right after the merge.",
     "2026-10-15 G2 onboarding: owner approved spec 026 in two slices (tour, getting-started): driver.js behind import(), DOM and CSS loops ported from the site, tour again from About, onboarding state on the server per person, no special case for earlier sign-ups, auto start only on an editable board.",
-    "2026-10-15 tour: slice approved at G3 (PR 195). driver.js behind import(), seven steps on data-tour anchors with DOM and CSS loops, auto start once on an editable board, About runs it again; clicks on the highlighted element, overlay clicks, board shortcuts and paste are held while it runs. Onboarding state in its own table, GET and PATCH /api/me/onboarding. Next: slice getting-started."
+    "2026-10-15 tour: slice approved at G3 (PR 195). driver.js behind import(), seven steps on data-tour anchors with DOM and CSS loops, auto start once on an editable board, About runs it again; clicks on the highlighted element, overlay clicks, board shortcuts and paste are held while it runs. Onboarding state in its own table, GET and PATCH /api/me/onboarding. Next: slice getting-started.",
+    "2026-10-15 getting-started: slice approved at G3 (PR 197), spec 026 done. Pill next to About with eight items (seven for demo visitors) that tick from the actions through a window event; Show me walks the person through on the live board: ring on the control, hints that follow its aria state or a closing menu, Done with CSS confetti, hint above About when it has no control. Hide, About brings it back; a list finished now hides itself once. Way to a board +2.7 KB gzipped, hints load on the first Show me."
   ]
 }

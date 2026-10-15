@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - A short product tour on a person's first editable board: adding tasks, search filters, timers, the Gantt chart and the focus timer, each with a small animation. About → Take the tour runs it again.
 
+- Getting started: a short list of things to try next to About. Items tick themselves when you add a card, paste a link, search with a filter, set a timer, open the timer list, put a task on a Gantt chart, start a focus session or connect your tracker. Show me walks you through each one on your board.
+
 ## [2026.10.20] - 2026-10-14
 
 ### Added

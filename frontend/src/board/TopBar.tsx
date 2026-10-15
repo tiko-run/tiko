@@ -223,7 +223,7 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
     <div className="bg-card absolute top-4 left-4 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Main menu">
+          <Button variant="ghost" size="icon" aria-label="Main menu" data-tour="main-menu">
             <Menu className="size-[18px]" strokeWidth={1.75} />
           </Button>
         </DropdownMenuTrigger>

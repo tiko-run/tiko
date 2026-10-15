@@ -64,6 +64,7 @@ import {
 } from '@/modules/gantt/timeline'
 import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
 import { cn } from '@/lib/utils'
+import { didOnboarding } from '@/onboarding/done'
 
 type Props = ModuleViewProps<GanttContent>
 
@@ -140,6 +141,7 @@ export function GanttModule({ content, width, selected, onChange, host }: Props)
   }
 
   const addTasks = (list: Task[]) => {
+    didOnboarding('gantt_task')
     host.addTasks(list)
     onChange(
       addRows(
@@ -212,7 +214,10 @@ export function GanttModule({ content, width, selected, onChange, host }: Props)
           <GanttAdd
             disabled={full}
             onTasks={addTasks}
-            onPlain={(title) => onChange(addRows(content, [makeRow(content, { title })]))}
+            onPlain={(title) => {
+              didOnboarding('gantt_task')
+              onChange(addRows(content, [makeRow(content, { title })]))
+            }}
           />
         </div>
       </div>
