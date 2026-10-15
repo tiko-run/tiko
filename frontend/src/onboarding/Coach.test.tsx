@@ -63,3 +63,13 @@ test('the close button stops it', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Stop showing' }))
   expect(onClose).toHaveBeenCalled()
 })
+
+test('a pick from a menu moves on once the menu closes', async () => {
+  document.body.innerHTML = '<button data-tour="tool-module" aria-expanded="false">Modules</button>'
+  const modules = document.querySelector<HTMLElement>('[data-tour="tool-module"]')!
+  render(<Coach item="gantt_task" onClose={() => {}} />)
+  act(() => modules.setAttribute('aria-expanded', 'true'))
+  expect(await screen.findByText('Pick Gantt.')).toBeInTheDocument()
+  act(() => modules.setAttribute('aria-expanded', 'false'))
+  expect(await screen.findByText(/Drag a card onto the chart, or click Add/)).toBeInTheDocument()
+})

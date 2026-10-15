@@ -6,8 +6,11 @@ import { formatShortcut, type ShortcutId } from '@/lib/shortcuts'
 import { onOnboardingDone } from '@/onboarding/done'
 
 type Hint = {
-  // A `data-tour` value; the hint moves on once that control opens or turns on.
+  // A `data-tour` value: the control the hint rings and sits next to. The hint moves on once
+  // it opens or turns on.
   anchor?: string
+  // A control whose menu is open while this hint shows; the hint moves on once it closes.
+  closes?: string
   text: string
 }
 
@@ -53,7 +56,10 @@ const PLANS: Record<Exclude<Item, 'tracker'>, Plan> = {
   gantt_task: {
     hints: [
       { anchor: 'tool-module', text: `Click Modules, or press ${key('module')}.` },
-      { text: 'Pick Gantt, then drag a card onto the chart.' },
+      { closes: 'tool-module', text: 'Pick Gantt.' },
+      {
+        text: 'Drag a card onto the chart, or click Add on it and type a task key or a plain task.',
+      },
     ],
   },
   focus: {
@@ -173,6 +179,17 @@ export default function Coach({
       target.classList.remove('coach-target')
     }
   }, [target, done, at, hints.length])
+
+  // A pick from an open menu: the hint moves on once the menu closes.
+  const menu = done ? null : find(hint.closes)
+  useEffect(() => {
+    if (!menu) return
+    const watch = new MutationObserver(() => {
+      if (menu.getAttribute('aria-expanded') !== 'true' && at < hints.length - 1) setAt(at + 1)
+    })
+    watch.observe(menu, { attributes: true, attributeFilter: ['aria-expanded'] })
+    return () => watch.disconnect()
+  }, [menu, at, hints.length])
 
   useEffect(() => onOnboardingDone((doneItem) => doneItem === item && setDone(true)), [item])
 

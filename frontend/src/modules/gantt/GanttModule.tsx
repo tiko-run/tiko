@@ -214,7 +214,10 @@ export function GanttModule({ content, width, selected, onChange, host }: Props)
           <GanttAdd
             disabled={full}
             onTasks={addTasks}
-            onPlain={(title) => onChange(addRows(content, [makeRow(content, { title })]))}
+            onPlain={(title) => {
+              didOnboarding('gantt_task')
+              onChange(addRows(content, [makeRow(content, { title })]))
+            }}
           />
         </div>
       </div>

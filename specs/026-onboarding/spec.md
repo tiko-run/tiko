@@ -47,7 +47,7 @@ The welcome board teaches by example, but the features people miss are the ones 
    | Search with a filter | a search with a `status:`, `@`, `type:` or `priority:` chip picks a result |
    | Set a reminder | a timer is placed (`addTimer`) |
    | Open the list of timers | the timer panel opens |
-   | Put a task into a Gantt chart | a Gantt gets a task row: a card dragged in or a task added from its form |
+   | Put a task into a Gantt chart | a Gantt gets a task row: a card dragged in, or a tracker or plain task added from its form |
    | Start a focus session | the focus timer starts |
    | Connect your tracker | the person saves their own tracker token; not shown to demo visitors |
 
