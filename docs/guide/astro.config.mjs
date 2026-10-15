@@ -7,6 +7,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'tiko',
+      // Inline, not a separate file: ClientRouter applies a newly added stylesheet a frame late.
+      expressiveCode: { emitExternalStylesheet: false, styleOverrides: { codeFontSize: '0.875rem' } },
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',

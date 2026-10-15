@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - The guide keeps its header in place and transitions between pages without a full reload.
+- Larger text in the guide, from the sidebar to the page body.
+
+### Fixed
+
+- Pages with code blocks no longer jump right after you open them from a page without code.
 
 ## [2026.10.21] - 2026-10-15
 
