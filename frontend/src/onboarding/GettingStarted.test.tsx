@@ -5,13 +5,9 @@ import { setChecklistOpen } from '@/onboarding/checklist-open'
 import { didOnboarding } from '@/onboarding/done'
 import { GettingStarted } from '@/onboarding/GettingStarted'
 
-const startTour = vi.hoisted(() => vi.fn())
-vi.mock('@/onboarding/start', () => ({ startTour }))
-
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.useRealTimers()
-  startTour.mockReset()
   act(() => setChecklistOpen(false))
 })
 
@@ -67,13 +63,13 @@ test('the list waits for the tour', async () => {
   expect(screen.queryByRole('button', { name: /Getting started/ })).toBeNull()
 })
 
-test('show me runs the matching tour step, and the tracker opens Settings', async () => {
+test('show me walks the person through the item, and the tracker opens Settings', async () => {
   mount(fresh)
   fireEvent.click(await screen.findByRole('button', { name: /Getting started/ }))
   const list = screen.getByRole('list', { name: 'Getting started' })
   const gantt = within(list).getByText('Put a task into a Gantt chart').closest('li')!
   fireEvent.click(within(gantt).getByRole('button', { name: 'Show me' }))
-  expect(startTour).toHaveBeenCalledWith(expect.anything(), 'gantt')
+  expect(await screen.findByRole('status')).toHaveTextContent('Click Modules')
   act(() => setChecklistOpen(true))
   const tracker = within(screen.getByRole('list')).getByText('Connect your tracker').closest('li')!
   fireEvent.click(within(tracker).getByRole('button', { name: 'Show me' }))

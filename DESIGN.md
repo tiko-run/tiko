@@ -91,7 +91,7 @@ Dark theme (a soft slate after GitHub's dark dimmed theme, never near-black; sur
 - Other people's work: a remote cursor and an element someone is dragging move in 80ms linear steps between updates; an element someone else moved or resized glides to its place in 150ms ease-out. A person's own changes are never animated. The element's position is what is animated, never the element on screen with a CSS transition: arrows, what a frame holds, attached timers and outlines are all placed from that position, so they move with it as one. A new element or module needs nothing extra as long as it is placed from its node.
 - Pan and zoom with no inertia effects beyond the xyflow defaults.
 - Focus capsule: the dial gradient drifts over 9s and stops while idle or paused; the end of a focus pulses three times.
-- Product tour: the highlight glides between steps (driver.js, about 400ms) and each step loops a small drawing; Getting started fills its bar in 300ms and, when its last item is done, the pill pops once (700ms) before it goes.
+- Product tour: the highlight glides between steps (driver.js, about 400ms) and each step loops a small drawing; Getting started fills its bar in 300ms and, when its last item is done, the pill pops once (700ms) before it goes. A Show me hint rings its control with `--primary` that pulses outward (1.4s, still under reduced motion).
 - `prefers-reduced-motion`: all animations except pan are disabled.
 
 ## Copy

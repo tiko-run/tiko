@@ -110,6 +110,7 @@ export function FocusCapsule() {
               type="button"
               onClick={onPlay}
               aria-label={running ? 'Pause' : 'Start'}
+              data-tour="focus-start"
               className="grid size-[34px] place-items-center justify-self-end rounded-full bg-(--focus-ink) text-(--focus-fill) transition-opacity outline-none hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {running ? (

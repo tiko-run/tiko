@@ -548,3 +548,26 @@
     animation: none;
   }
 }
+
+/* The control a getting started hint points at: a ring that keeps pulsing until it is used. */
+.coach-target {
+  box-shadow: 0 0 0 2px var(--primary);
+  animation: coach-target 1.4s ease-out infinite;
+}
+@keyframes coach-target {
+  from {
+    box-shadow:
+      0 0 0 2px var(--primary),
+      0 0 0 2px color-mix(in oklch, var(--primary) 50%, transparent);
+  }
+  to {
+    box-shadow:
+      0 0 0 2px var(--primary),
+      0 0 0 9px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-target {
+    animation: none;
+  }
+}

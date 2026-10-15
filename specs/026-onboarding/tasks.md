@@ -26,5 +26,5 @@ Slice `getting-started`.
 
 - [x] T008 [US2] Checklist pill and list next to About, "Hide", one check animation when all done; About "Getting started" row
 - [x] T009 [US2] Ticks from `addCards`, paste of references, search pick with a filter chip, `addTimer`, timer panel open, Gantt row from a card, focus start, own tracker token saved; demo visitors without the tracker item
-- [x] T010 [US2] "Show me" runs a single tour step (`runTour` gets a step to run alone)
+- [x] T010 [US2] "Show me" walks the person through the item on the live board: ring on the control, hints that follow its state, "Done" on the tick
 - [x] T011 [US2] Tests: each tick from its action, progress after reload, hidden and restored, demo list of seven; guide page, changelog
