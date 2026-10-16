@@ -1,11 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
-import { Plus, Trash2 } from 'lucide-react'
-import { Fragment, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { Plus, Trash2, Users } from 'lucide-react'
+import {
+  Fragment,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from 'react'
 import { addStageType, freeHue, storeStageType, type Person, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
 import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
@@ -54,6 +61,8 @@ type Props = {
 // A click without a drag adds one week.
 const CLICK_DAYS = 7
 const MOVE_PX = 3
+// The bar's `px-1.5` on both sides.
+const BAR_PADDING = 12
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
 export function GanttStages({
@@ -197,13 +206,21 @@ function StageBar({
     null,
   )
   const [dragging, setDragging] = useState(false)
+  const measure = useRef<HTMLSpanElement>(null)
+  const [crowded, setCrowded] = useState(false)
   const span = stageSpan(stage)
   const box = barBox(span, range, pxPerDay)
-  if (!box) return null
+  const width = box ? Math.max(box.width, 4) : 0
   const type = types.find((t) => t.id === stage.type)
   const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
   const named = stagePeople(stage.people, people)
   const names = named.map((p) => p.name).join(', ')
+  // Names that do not fit turn into a people button; the hidden copy says how wide they are.
+  useLayoutEffect(() => {
+    const needed = (measure.current?.offsetWidth ?? 0) + (below ? 0 : BAR_PADDING)
+    setCrowded(named.length > 0 && needed > width)
+  }, [names, name, below, width, named.length])
+  if (!box) return null
 
   const start = (grip: Grip) => (event: PointerEvent) => {
     if (event.button !== 0) return
@@ -260,8 +277,9 @@ function StageBar({
           >
             <span className="truncate">
               {name}
-              {!below && named.length > 0 && <Names named={named} lead=" · " />}
+              {!below && !crowded && named.length > 0 && <Names named={named} lead=" · " />}
             </span>
+            {!below && crowded && <PeopleButton named={named} stage={name} className="ml-auto" />}
             {!box.clippedStart && (
               <span
                 aria-hidden
@@ -278,12 +296,26 @@ function StageBar({
             )}
           </div>
         </PopoverAnchor>
+        <span
+          ref={measure}
+          aria-hidden
+          className="invisible absolute top-0 left-0 text-[11px] font-semibold whitespace-nowrap"
+        >
+          {below ? <Names named={named} /> : [name, <Names key="n" named={named} lead=" · " />]}
+        </span>
         {below && named.length > 0 && (
           <div
-            className="text-muted-foreground pointer-events-none absolute top-7 truncate px-0.5 text-[11px] leading-4"
-            style={{ left: box.left, width: Math.max(box.width, 4) }}
+            data-stage-people
+            className="text-muted-foreground pointer-events-none absolute top-7 flex justify-center px-0.5 text-[11px] leading-4"
+            style={{ left: box.left, width }}
           >
-            <Names named={named} />
+            {crowded ? (
+              <PeopleButton named={named} stage={name} />
+            ) : (
+              <span className="truncate">
+                <Names named={named} />
+              </span>
+            )}
           </div>
         )}
         <DatesTip
@@ -308,6 +340,48 @@ function StageBar({
         </PopoverContent>
       </Popover>
     </div>
+  )
+}
+
+/** Who is on a stage too narrow for their names: a count, and the names in a popover. */
+function PeopleButton({
+  named,
+  stage,
+  className,
+}: {
+  named: Named[]
+  stage: string
+  className?: string
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${named.length} people on ${stage}`}
+          // The stage under it would start a drag or open its own popover.
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          className={cn(
+            'hover:bg-foreground/10 pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-[3px] px-0.5 font-medium',
+            className,
+          )}
+        >
+          <Users className="size-3" strokeWidth={2} />
+          {named.length}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="center" className="w-48 gap-1 p-2">
+        <div className="text-muted-foreground px-1 text-[12px]">People on {stage}</div>
+        <ul className="flex flex-col text-[13px]">
+          {named.map((p) => (
+            <li key={p.id} className={cn('px-1 py-0.5', p.archived && 'text-muted-foreground')}>
+              {p.name}
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   )
 }
 

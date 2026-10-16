@@ -446,7 +446,9 @@ test('names below the bars make the rows taller', () => {
   expect(bar.textContent).toBe('Build')
   const row = bar.closest('[data-gantt-row]') as HTMLElement
   expect(row.style.height).toBe('48px')
-  expect(within(row).getByText('Ivan')).toBeTruthy()
+  const line = row.querySelector('[data-stage-people]') as HTMLElement
+  expect(line.textContent).toBe('Ivan')
+  expect(line.className).toContain('justify-center')
 })
 
 test('names below are ignored with Planning off', () => {
@@ -491,5 +493,22 @@ test('an unknown name is added to the people on the fly', async () => {
     )
   } finally {
     vi.unstubAllGlobals()
+  }
+})
+
+test('names that do not fit turn into a people button with the list', () => {
+  // jsdom lays nothing out: the names are as wide as the hidden copy says.
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(500)
+  try {
+    renderGantt({}, staged(['p1', 'p2']), PEOPLE)
+    const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+    expect(bar.textContent).toBe('Build2')
+    fireEvent.click(within(bar).getByRole('button', { name: '2 people on Build' }))
+    expect(screen.getByText('People on Build')).toBeTruthy()
+    expect(screen.getAllByText('Anna').at(-1)!.className).toContain('text-muted-foreground')
+    // The button opens its list, not the stage's popover.
+    expect(screen.queryByLabelText('Add a person')).toBeNull()
+  } finally {
+    width.mockRestore()
   }
 })

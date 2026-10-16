@@ -83,6 +83,7 @@ test('shows a placeholder for content it cannot read', () => {
 
 test('switches the scale from the controls', () => {
   renderModule({ kind: 'gantt', content: gantt })
-  fireEvent.click(screen.getByRole('button', { name: 'Months' }))
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Scale: Weeks' }), { button: 0 })
+  fireEvent.click(screen.getByRole('menuitemradio', { name: 'Months' }))
   expect(screen.getByText('Nov')).toBeTruthy()
 })

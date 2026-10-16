@@ -1,9 +1,19 @@
 import { useReactFlow, type XYPosition } from '@xyflow/react'
-import { CalendarRange, Diamond, Plus, Users } from 'lucide-react'
+import { CalendarRange, ChevronDown, Diamond, Ellipsis, Plus, Users } from 'lucide-react'
 import { useContext, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -435,23 +445,32 @@ function formatRange(start: string, end: string) {
   return `${fmt(start, !sameYear)} – ${fmt(end, true)}`
 }
 
-/** Scale switch, range dates and milestones, in the selection bar. */
+/** Scale, range dates and milestones in the selection bar; Planning options behind "More". */
 export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
   const planning = usePlanning()
-  const below = content.people === 'below'
+  const current = SCALES.find((s) => s.scale === content.scale) ?? SCALES[1]
   return (
     <>
-      {SCALES.map(({ scale, label }) => (
-        <Button
-          key={scale}
-          size="sm"
-          variant={content.scale === scale ? 'secondary' : 'ghost'}
-          aria-pressed={content.scale === scale}
-          onClick={() => onChange({ ...content, scale })}
-        >
-          {label}
-        </Button>
-      ))}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="ghost" aria-label={`Scale: ${current.label}`}>
+            {current.label}
+            <ChevronDown className="size-3.5" strokeWidth={1.75} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side={side} align="start">
+          <DropdownMenuRadioGroup
+            value={content.scale}
+            onValueChange={(scale) => onChange({ ...content, scale: scale as Scale })}
+          >
+            {SCALES.map(({ scale, label }) => (
+              <DropdownMenuRadioItem key={scale} value={scale}>
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <RangePopover content={content} onChange={onChange} side={side} />
       <Button
         size="sm"
@@ -467,29 +486,33 @@ export function GanttControls({ content, onChange, side }: ModuleControlsProps<G
         Milestone
       </Button>
       {planning.enabled && (
-        <>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-pressed={below}
-            title={below ? 'Show names after the stage type' : 'Show names under each stage'}
-            onClick={() => {
-              const { people: _people, ...rest } = content
-              onChange(below ? rest : { ...content, people: 'below' })
-            }}
-          >
-            {below ? 'Names below' : 'Names inline'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            title="The people stages are planned for, shared by every board"
-            onClick={() => openSettings('planning')}
-          >
-            <Users className="size-4" strokeWidth={1.75} />
-            People
-          </Button>
-        </>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon-sm" variant="ghost" aria-label="More Gantt options">
+              <Ellipsis className="size-4" strokeWidth={1.75} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side={side} align="end" className="w-52">
+            <DropdownMenuLabel className="text-muted-foreground text-[12px] font-normal">
+              Names of people
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={content.people ?? 'inline'}
+              onValueChange={(where) => {
+                const { people: _people, ...rest } = content
+                onChange(where === 'below' ? { ...content, people: 'below' } : rest)
+              }}
+            >
+              <DropdownMenuRadioItem value="inline">After the stage type</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="below">Under each stage</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => openSettings('planning')}>
+              <Users className="size-4" strokeWidth={1.75} />
+              People…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </>
   )
