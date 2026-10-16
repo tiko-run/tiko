@@ -88,7 +88,8 @@
     "usage-stats",
     "error-reports",
     "tour",
-    "getting-started"
+    "getting-started",
+    "planning-stages"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -195,7 +196,8 @@
     "G3_tour": "approved",
     "G3_getting-started": "approved",
     "G1_planning": "approved",
-    "G2_planning": "approved"
+    "G2_planning": "approved",
+    "G3_planning-stages": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -284,6 +286,7 @@
     "2026-10-15 tour: slice approved at G3 (PR 195). driver.js behind import(), seven steps on data-tour anchors with DOM and CSS loops, auto start once on an editable board, About runs it again; clicks on the highlighted element, overlay clicks, board shortcuts and paste are held while it runs. Onboarding state in its own table, GET and PATCH /api/me/onboarding. Next: slice getting-started.",
     "2026-10-15 getting-started: slice approved at G3 (PR 197), spec 026 done. Pill next to About with eight items (seven for demo visitors) that tick from the actions through a window event; Show me walks the person through on the live board: ring on the control, hints that follow its aria state or a closing menu, Done with CSS confetti, hint above About when it has no control. Hide, About brings it back; a list finished now hides itself once. Way to a board +2.7 KB gzipped, hints load on the first Show me.",
     "2026-10-16 G1 planning: owner approved an opt-in Planning mode after a team lead's request (stages with people on Gantt rows, time off, columns, filters by quarter and team). Kept general for OSS: no hierarchy names, stage types and fields are instance libraries, quarter is a custom field. Money and capacity stay for a later spec. Spec 027 in seven slices awaits G2.",
-    "2026-10-16 G2 planning: owner approved spec 027 as written: planning people apart from accounts, tracker assignees only when picked, instance switch for admins, values and filters in the Gantt, row dates equal the stage span, no Planning on the demo, months over weeks in the Weeks header, workload without hours. Seven slices, planning-stages first."
+    "2026-10-16 G2 planning: owner approved spec 027 as written: planning people apart from accounts, tracker assignees only when picked, instance switch for admins, values and filters in the Gantt, row dates equal the stage span, no Planning on the demo, months over weeks in the Weeks header, workload without hours. Seven slices, planning-stages first.",
+    "2026-10-16 planning-stages: slice approved at G3 (PR 202). Stages in Gantt rows behind the instance switch, stage type library in Settings → Planning, bare bar as \"No stage\", every Gantt change fits leaf dates to their stages, dependency lines stay between rows (stage links out of scope until asked). Main chunk +1.5 KB gzipped. Next: slice planning-people."
   ]
 }
