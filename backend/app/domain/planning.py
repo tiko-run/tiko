@@ -1,8 +1,9 @@
 import secrets
 from collections.abc import Callable
+from datetime import date
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.domain.errors import NotFound, ValidationFailed
 from app.domain.ports import PlanningPeopleRepo, PlanningTypeRepo, SettingsRepo
@@ -15,6 +16,8 @@ PersonName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 Team = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
 Teams = Annotated[list[Team], Field(max_length=10)]
 Source = Literal["manual", "tracker"]
+
+MAX_OFF = 100
 
 DEFAULT_TYPES: tuple[tuple[str, Hue], ...] = (
     ("Discovery", 75),
@@ -32,12 +35,21 @@ class StageType(BaseModel):
     archived: bool = False
 
 
+class TimeOff(BaseModel):
+    """Days a person is away; a reason is never kept, it could be health data."""
+
+    id: str
+    start: date
+    end: date
+
+
 class PlanningPerson(BaseModel):
     id: str
     name: str
     teams: list[str] = []
     source: Source
     archived: bool = False
+    off: list[TimeOff] = []
 
 
 class PlanningView(BaseModel):
@@ -88,6 +100,19 @@ class PersonChange(BaseModel):
     name: PersonName | None = None
     teams: Teams | None = None
     archived: bool | None = None
+
+
+class TimeOffIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    start: date
+    end: date
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "TimeOffIn":
+        if self.end < self.start:
+            raise ValueError("Time off cannot end before it starts.")
+        return self
 
 
 class Planning:
@@ -163,14 +188,34 @@ class Planning:
 
     def change_person(self, person_id: str, body: PersonChange) -> PlanningPerson:
         self._require_enabled()
-        current = next((p for p in self._people.all() if p.id == person_id), None)
-        if current is None:
-            raise NotFound("No such person.")
-        changed = current.model_copy(update=body.model_dump(exclude_none=True))
+        changed = self._person(person_id).model_copy(update=body.model_dump(exclude_none=True))
         changed.teams = _unique(changed.teams)
         self._people.update(changed)
         self._on_change()
         return changed
+
+    def add_off(self, person_id: str, body: TimeOffIn) -> PlanningPerson:
+        self._require_enabled()
+        self._person(person_id)
+        off = TimeOff(id=self._new_id(), **body.model_dump())
+        if not self._people.add_off(person_id, off, MAX_OFF):
+            raise ValidationFailed(f"A person can have up to {MAX_OFF} time off ranges.")
+        self._on_change()
+        return self._person(person_id)
+
+    def remove_off(self, person_id: str, off_id: str) -> PlanningPerson:
+        self._require_enabled()
+        if not any(o.id == off_id for o in self._person(person_id).off):
+            raise NotFound("No such time off.")
+        self._people.remove_off(person_id, off_id)
+        self._on_change()
+        return self._person(person_id)
+
+    def _person(self, person_id: str) -> PlanningPerson:
+        person = next((p for p in self._people.all() if p.id == person_id), None)
+        if person is None:
+            raise NotFound("No such person.")
+        return person
 
     def _require_enabled(self) -> None:
         if not self.enabled():

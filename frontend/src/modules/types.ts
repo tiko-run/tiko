@@ -4,6 +4,7 @@ import type { ComponentType } from 'react'
 import type { z } from 'zod'
 import type { Task } from '@/api/tasks'
 import type { TaskLink } from '@/canvas/tasks-context'
+import type { PlanningState } from '@/planning/context'
 
 /** What the board does for a module: things that reach outside the module's own content. */
 export type ModuleHost = {
@@ -40,7 +41,7 @@ export type ModuleDef<C> = {
   size: { width: number; height: number }
   minSize: { width: number; height: number }
   /** Body height the content needs; the block grows to it so nothing is hidden. */
-  minHeight?: (content: C, planning: boolean) => number
+  minHeight?: (content: C, planning: PlanningState) => number
   defaults: () => C
   schema: z.ZodType<C>
   /** Live tasks inside the content, refreshed with the board's cards. */
@@ -57,7 +58,7 @@ export type ModuleDef<C> = {
     task: TaskLink,
     at: XYPosition,
     width: number,
-    planning: boolean,
+    planning: PlanningState,
   ) => C | null
   /** Texts inside the content that board search finds; a jump goes to the module. */
   searchable?: (content: C) => ModuleText[]

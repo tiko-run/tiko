@@ -1,16 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore } from 'lucide-react'
+import { Archive, ArchiveRestore, Plus, X } from 'lucide-react'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { Me } from '@/api/auth'
 import {
   addPerson,
   addStageType,
+  addTimeOff,
   changePerson,
   changeStageType,
   freeHue,
   HUES,
   parseTeams,
   PLANNING_KEY,
+  removeTimeOff,
   setPlanning,
   storePerson,
   storeStageType,
@@ -23,6 +25,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { offDates } from '@/modules/gantt/timeoff'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import { stageColors } from '@/planning/colors'
@@ -215,33 +218,36 @@ function People({ people }: { people: Person[] }) {
       {active.length > 0 && (
         <ul className="flex flex-col gap-2">
           {active.map((p) => (
-            <li key={p.id} className="flex items-center gap-2">
-              <Draft
-                label={`Name of ${p.name}`}
-                value={p.name}
-                maxLength={80}
-                required
-                onSave={(next) => change.mutate({ id: p.id, name: next })}
-                className="font-medium"
-              />
-              <Draft
-                label={`Teams of ${p.name}`}
-                placeholder="Teams"
-                value={p.teams.join(', ')}
-                onSave={(next) => change.mutate({ id: p.id, teams: parseTeams(next) })}
-              />
-              <span className="text-muted-foreground w-24 shrink-0 text-[12px]">
-                {SOURCES[p.source]}
-              </span>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label={`Archive ${p.name}`}
-                title="Archive: stages keep the name, nobody offers it again"
-                onClick={() => change.mutate({ id: p.id, archived: true })}
-              >
-                <Archive className="size-4" />
-              </Button>
+            <li key={p.id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Draft
+                  label={`Name of ${p.name}`}
+                  value={p.name}
+                  maxLength={80}
+                  required
+                  onSave={(next) => change.mutate({ id: p.id, name: next })}
+                  className="font-medium"
+                />
+                <Draft
+                  label={`Teams of ${p.name}`}
+                  placeholder="Teams"
+                  value={p.teams.join(', ')}
+                  onSave={(next) => change.mutate({ id: p.id, teams: parseTeams(next) })}
+                />
+                <span className="text-muted-foreground w-24 shrink-0 text-[12px]">
+                  {SOURCES[p.source]}
+                </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Archive ${p.name}`}
+                  title="Archive: stages keep the name, nobody offers it again"
+                  onClick={() => change.mutate({ id: p.id, archived: true })}
+                >
+                  <Archive className="size-4" />
+                </Button>
+              </div>
+              <TimeOffList person={p} />
             </li>
           ))}
         </ul>
@@ -284,6 +290,92 @@ function People({ people }: { people: Person[] }) {
         </div>
       )}
     </Group>
+  )
+}
+
+/** A person's time off as chips to remove, and a form for a new range. Dates only. */
+function TimeOffList({ person }: { person: Person }) {
+  const queryClient = useQueryClient()
+  const [adding, setAdding] = useState(false)
+  const [span, setSpan] = useState({ start: '', end: '' })
+  const replace = (saved: Person) => storePerson(queryClient, saved)
+  const add = useMutation({
+    mutationFn: () => addTimeOff(person.id, span),
+    onSuccess: (saved) => {
+      replace(saved)
+      setAdding(false)
+      setSpan({ start: '', end: '' })
+    },
+    onError: toastError,
+  })
+  const remove = useMutation({
+    mutationFn: (offId: string) => removeTimeOff(person.id, offId),
+    onSuccess: replace,
+    onError: toastError,
+  })
+  const valid = Boolean(span.start && span.end) && span.end >= span.start
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (valid) add.mutate()
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-[12px]">
+      <span className="text-muted-foreground mr-1">Time off</span>
+      {person.off.map((off) => (
+        <span
+          key={off.id}
+          className="bg-muted flex items-center gap-0.5 rounded-full py-0.5 pr-0.5 pl-2 tabular-nums"
+        >
+          {offDates(off)}
+          <button
+            type="button"
+            aria-label={`Remove time off ${offDates(off)} of ${person.name}`}
+            disabled={remove.isPending}
+            onClick={() => remove.mutate(off.id)}
+            className="text-muted-foreground hover:text-foreground rounded-full p-0.5"
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+      {person.off.length === 0 && !adding && <span className="text-muted-foreground">None</span>}
+      {adding ? (
+        <form onSubmit={submit} className="flex items-center gap-1">
+          <Input
+            type="date"
+            aria-label={`${person.name} is away from`}
+            value={span.start}
+            onChange={(event) => setSpan({ ...span, start: event.target.value })}
+            className="h-7 w-36 text-[12px]"
+          />
+          <span className="text-muted-foreground">–</span>
+          <Input
+            type="date"
+            aria-label={`${person.name} is away until`}
+            value={span.end}
+            min={span.start || undefined}
+            onChange={(event) => setSpan({ ...span, end: event.target.value })}
+            className="h-7 w-36 text-[12px]"
+          />
+          <Button type="submit" size="xs" variant="outline" disabled={!valid || add.isPending}>
+            Add
+          </Button>
+          <Button type="button" size="xs" variant="ghost" onClick={() => setAdding(false)}>
+            Cancel
+          </Button>
+        </form>
+      ) : (
+        <Button
+          size="xs"
+          variant="ghost"
+          aria-label={`Add time off for ${person.name}`}
+          onClick={() => setAdding(true)}
+        >
+          <Plus className="size-3" />
+          Time off
+        </Button>
+      )}
+    </div>
   )
 }
 

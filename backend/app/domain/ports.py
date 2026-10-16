@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
-    from app.domain.planning import PlanningPerson, StageType
+    from app.domain.planning import PlanningPerson, StageType, TimeOff
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -269,7 +269,15 @@ class PlanningPeopleRepo(Protocol):
 
     def add(self, person: PlanningPerson) -> None: ...
 
-    def update(self, person: PlanningPerson) -> None: ...
+    def update(self, person: PlanningPerson) -> None:
+        """Name, teams and archived; time off changes through its own methods."""
+        ...
+
+    def add_off(self, person_id: str, off: TimeOff, limit: int) -> bool:
+        """False, and nothing stored, when the person already has `limit` ranges."""
+        ...
+
+    def remove_off(self, person_id: str, off_id: str) -> None: ...
 
 
 class DemoTasks(Protocol):

@@ -49,6 +49,8 @@ import {
 } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
 import { fitLeaves, fitStages } from '@/modules/gantt/stages'
+import { TimeOffLane } from '@/modules/gantt/TimeOffLane'
+import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
 import {
   addChild,
   indent,
@@ -130,6 +132,8 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const before = quarterBefore(start)
   const after = quarterAfter(end)
   const height = rowHeight(content, planning.enabled)
+  const away = timeOffLane(content, planning, span)
+  const lane = laneHeight(away.lanes)
   const assignees = [
     ...new Set(content.rows.flatMap((row) => taskOf(row)?.assignee_name ?? [])),
   ].sort()
@@ -143,7 +147,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
     const box = barBox(rowSpan, span, scale)
     if (!box) return
     // Bars keep to the top of a taller row; the names sit under them.
-    const y = i * height + ROW_HEIGHT / 2
+    const y = lane + i * height + ROW_HEIGHT / 2
     bars.set(row.id, { left: box.left, right: box.left + box.width, y, span: rowSpan })
   })
   const link = (from: string, target: Element | null) => {
@@ -211,6 +215,14 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
         >
           {formatRange(content.start, content.end)}
         </div>
+        {lane > 0 && (
+          <div
+            className="text-muted-foreground shrink-0 border-b px-3 leading-8"
+            style={{ height: lane }}
+          >
+            Time off
+          </div>
+        )}
         {visible.map(({ row, depth, hasChildren }) => (
           <GanttLabel
             key={row.id}
@@ -261,6 +273,16 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             />
           ))}
         </div>
+        {/* After the grid: the lane is in the flow above the rows, the grid must not cover it. */}
+        {lane > 0 && (
+          <TimeOffLane
+            items={away.items}
+            height={lane}
+            range={span}
+            pxPerDay={scale}
+            people={planning.people}
+          />
+        )}
         {now >= start && now <= end && (
           <div
             data-testid="gantt-today"

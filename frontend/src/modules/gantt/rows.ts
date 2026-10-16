@@ -2,7 +2,9 @@ import type { XYPosition } from '@xyflow/react'
 import type { TaskLink } from '@/canvas/tasks-context'
 import type { GanttContent } from '@/modules/gantt/schema'
 import { dayAt, formatDay, newSpan, parseDay, rangeDays, type Span } from '@/modules/gantt/timeline'
+import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
 import { insertRow, visibleRows } from '@/modules/gantt/tree'
+import type { PlanningState } from '@/planning/context'
 import { newId } from '@/lib/id'
 
 export type Row = GanttContent['rows'][number]
@@ -29,10 +31,15 @@ export function rowHeight(content: GanttContent, planning: boolean) {
   return planning && content.people === 'below' ? ROW_HEIGHT_BELOW : ROW_HEIGHT
 }
 
+/** Where the first row starts: under the header and, when someone is away, the Time off lane. */
+export function rowsTop(content: GanttContent, planning: PlanningState) {
+  return HEADER + laneHeight(timeOffLane(content, planning, range(content)).lanes)
+}
+
 /** Body height that shows every visible row, keeping one empty row as a drop target. */
-export function bodyHeight(content: GanttContent, planning: boolean) {
+export function bodyHeight(content: GanttContent, planning: PlanningState) {
   const rows = Math.max(visibleRows(content.rows).length, 1)
-  return HEADER + rows * rowHeight(content, planning) + FOOTER
+  return rowsTop(content, planning) + rows * rowHeight(content, planning.enabled) + FOOTER
 }
 
 export function spanOf(row: Row): Span {
@@ -87,7 +94,7 @@ export function acceptCard(
   task: TaskLink,
   at: XYPosition,
   width: number,
-  planning: boolean,
+  planning: PlanningState,
 ): GanttContent | null {
   if (content.rows.length >= MAX_ROWS || planned(content, task)) return null
   const day =
@@ -97,7 +104,10 @@ export function acceptCard(
   // Between the visible rows it fell on, next to the row above it.
   const visible = visibleRows(content.rows)
   const slot = Math.min(
-    Math.max(Math.round((at.y - HEADER) / rowHeight(content, planning)), 0),
+    Math.max(
+      Math.round((at.y - rowsTop(content, planning)) / rowHeight(content, planning.enabled)),
+      0,
+    ),
     visible.length,
   )
   const before = visible[slot]?.row.id ?? null

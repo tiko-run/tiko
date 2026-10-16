@@ -14,12 +14,16 @@ const stageTypeSchema = z.object({
 })
 export type StageType = z.infer<typeof stageTypeSchema>
 
+const timeOffSchema = z.object({ id: z.string(), start: z.string(), end: z.string() })
+export type TimeOff = z.infer<typeof timeOffSchema>
+
 const personSchema = z.object({
   id: z.string(),
   name: z.string(),
   teams: z.array(z.string()),
   source: z.enum(['manual', 'tracker']),
   archived: z.boolean(),
+  off: z.array(timeOffSchema),
 })
 export type Person = z.infer<typeof personSchema>
 
@@ -84,6 +88,19 @@ export function changePerson(
     method: 'PATCH',
     body: JSON.stringify(change),
   })
+}
+
+/** Marks a person away from `start` to `end`, both ISO days; answers with the person. */
+export function addTimeOff(personId: string, span: { start: string; end: string }) {
+  return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/off`, personSchema, {
+    method: 'POST',
+    body: JSON.stringify(span),
+  })
+}
+
+export function removeTimeOff(personId: string, offId: string) {
+  const path = `${encodeURIComponent(personId)}/off/${encodeURIComponent(offId)}`
+  return fetchJson(`/api/planning/people/${path}`, personSchema, { method: 'DELETE' })
 }
 
 export function usePlanningQuery(enabled = true) {

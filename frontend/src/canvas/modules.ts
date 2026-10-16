@@ -1,6 +1,7 @@
 import { absolute, detach } from '@/canvas/frames'
 import type { AppNode } from '@/canvas/types'
 import { findModule } from '@/modules/registry'
+import type { PlanningState } from '@/planning/context'
 
 /** Height of a module's own header; module coordinates start below it. */
 export const MODULE_HEADER = 36
@@ -16,7 +17,7 @@ function size(node: AppNode) {
  * Dropped cards whose center lands on a module that takes cards become part of that module.
  * Returns the absorbed card ids, or null when nothing changed.
  */
-export function absorbCards(nodes: AppNode[], droppedIds: string[], planning: boolean) {
+export function absorbCards(nodes: AppNode[], droppedIds: string[], planning: PlanningState) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const dropped = new Set(droppedIds)
   const absorbed = new Set<string>()

@@ -11,6 +11,7 @@ from app.domain.planning import (
     PlanningPerson,
     PlanningView,
     StageType,
+    TimeOffIn,
     TypeChange,
     TypeIn,
 )
@@ -63,3 +64,17 @@ def change_person(
     person_id: str, body: PersonChange, person: CurrentPerson, service: PlanningDep
 ) -> PlanningPerson:
     return service.change_person(person_id, body)
+
+
+@router.post("/people/{person_id}/off", dependencies=Writer)
+def add_off(
+    person_id: str, body: TimeOffIn, person: CurrentPerson, service: PlanningDep
+) -> PlanningPerson:
+    return service.add_off(person_id, body)
+
+
+@router.delete("/people/{person_id}/off/{off_id}", dependencies=Writer)
+def remove_off(
+    person_id: str, off_id: str, person: CurrentPerson, service: PlanningDep
+) -> PlanningPerson:
+    return service.remove_off(person_id, off_id)

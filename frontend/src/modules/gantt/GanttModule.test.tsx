@@ -419,8 +419,8 @@ test('removing the last child of a stretched row brings its dates back to its st
 const PEOPLE: PlanningState = {
   ...PLANNING,
   people: [
-    { id: 'p1', name: 'Ivan', teams: ['Core'], source: 'manual', archived: false },
-    { id: 'p2', name: 'Anna', teams: [], source: 'manual', archived: true },
+    { id: 'p1', name: 'Ivan', teams: ['Core'], source: 'manual', archived: false, off: [] },
+    { id: 'p2', name: 'Anna', teams: [], source: 'manual', archived: true, off: [] },
   ],
 }
 const staged = (people: string[], extra: Partial<GanttContent> = {}): GanttContent => ({
@@ -481,6 +481,7 @@ test('an unknown name is added to the people on the fly', async () => {
       id: 'p9',
       teams: [],
       archived: false,
+      off: [],
       ...JSON.parse(String(init?.body)),
       source: 'manual',
     }),
@@ -539,7 +540,13 @@ test('a second click on a stage closes its popover', async () => {
 
 test('an assignee of a task in this Gantt is added from the tracker when picked', async () => {
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
-    Response.json({ id: 'p7', teams: [], archived: false, ...JSON.parse(String(init?.body)) }),
+    Response.json({
+      id: 'p7',
+      teams: [],
+      archived: false,
+      off: [],
+      ...JSON.parse(String(init?.body)),
+    }),
   )
   vi.stubGlobal('fetch', fetchMock)
   try {
@@ -555,6 +562,101 @@ test('an assignee of a task in this Gantt is added from the tracker when picked'
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/planning/people',
       expect.objectContaining({ body: '{"name":"Oleg","source":"tracker"}' }),
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+const AWAY: PlanningState = {
+  ...PEOPLE,
+  people: [
+    {
+      ...PEOPLE.people[0],
+      off: [{ id: 'o1', start: '2026-10-14', end: '2026-10-20' }],
+    },
+    { id: 'p3', name: 'Mia', teams: ['Web'], source: 'manual', archived: false, off: [] },
+  ],
+}
+
+test('no Time off lane while nobody on this Gantt is away', () => {
+  renderGantt({}, staged(['p1']), PEOPLE)
+  expect(document.querySelector('[data-gantt-timeoff]')).toBeNull()
+  expect(screen.queryByText('Time off')).toBeNull()
+})
+
+test('no Time off lane for someone away who has no stage here', () => {
+  renderGantt({}, staged(['p3']), AWAY)
+  expect(document.querySelector('[data-gantt-timeoff]')).toBeNull()
+})
+
+test('time off shows on the lane and marks the stage it falls on', () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  expect(document.querySelector('[data-gantt-timeoff]')).toBeTruthy()
+  expect(screen.getByText('Time off')).toBeTruthy()
+  expect(screen.getByRole('button', { name: /^Ivan is away Wed Oct 14 – Tue Oct 20/ })).toBeTruthy()
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(within(bar).getByLabelText('Someone is away')).toBeTruthy()
+  expect(bar.style.boxShadow).toContain('var(--destructive)')
+  const tip = within(bar.parentElement!).getByRole('tooltip', { hidden: true })
+  expect(tip.textContent).toContain('Ivan is away Wed Oct 14 – Tue Oct 20')
+  press(bar, 500)
+  const lines = screen.getAllByText('Ivan is away Wed Oct 14 – Tue Oct 20')
+  expect(lines.some((line) => line.className.includes('text-destructive'))).toBe(true)
+})
+
+test('a stage clear of the time off has no mark', () => {
+  const start = staged(['p1'])
+  start.rows[0].stages![0] = { ...start.rows[0].stages![0], end: '2026-10-13' }
+  start.rows[0].end = '2026-10-13'
+  renderGantt({}, start, AWAY)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(within(bar).queryByLabelText('Someone is away')).toBeNull()
+  expect(bar.style.boxShadow).not.toContain('destructive')
+})
+
+test('the lane pushes the rows down so the body grows', () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  const lane = document.querySelector('[data-gantt-timeoff]') as HTMLElement
+  expect(parseInt(lane.style.height)).toBeGreaterThan(0)
+})
+
+test('a drag across the lane marks the picked person away', async () => {
+  const fetchMock = vi.fn(async () => Response.json(AWAY.people[1]))
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, staged(['p1']), AWAY)
+    const lane = document.querySelector('[data-gantt-timeoff]') as HTMLElement
+    // A click marks a week from the day under it.
+    press(lane, 600)
+    expect(screen.getByText('Who is away?')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Find a person'), { target: { value: 'mi' } })
+    expect(screen.queryByRole('option', { name: /Ivan/ })).toBeNull()
+    fireEvent.click(screen.getByRole('option', { name: /Mia/ }))
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/planning/people/p3/off')
+    const body = JSON.parse(String(init.body))
+    expect(Object.keys(body)).toEqual(['start', 'end'])
+    const days = (Date.parse(body.end) - Date.parse(body.start)) / 86_400_000
+    expect(days).toBe(6)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+test('time off is removed from its popover', async () => {
+  const fetchMock = vi.fn(async () => Response.json({ ...AWAY.people[0], off: [] }))
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, staged(['p1']), AWAY)
+    fireEvent.click(screen.getByRole('button', { name: /^Ivan is away/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove time off' }))
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/planning/people/p1/off/o1',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
     )
   } finally {
     vi.unstubAllGlobals()

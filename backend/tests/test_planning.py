@@ -2,7 +2,9 @@
 
 from fastapi.testclient import TestClient
 
+from app.adapters.storage.sqlite import Database, SqlitePlanningPeopleRepo
 from app.config import Settings
+from app.domain.planning import PlanningPerson, TimeOff
 from app.main import create_app
 from tests.conftest import signed_in
 
@@ -103,6 +105,7 @@ def test_a_member_adds_renames_and_archives_a_person(client: TestClient) -> None
         "teams": ["Web"],
         "source": "manual",
         "archived": False,
+        "off": [],
     }
     oleg = ann.post("/api/planning/people", json={"name": "Oleg", "source": "tracker"}).json()
     assert oleg["source"] == "tracker" and oleg["teams"] == []
@@ -147,4 +150,73 @@ def test_every_write_tells_open_boards(client: TestClient, monkeypatch) -> None:
     stage_type = client.post("/api/planning/types", json={"name": "QA", "hue": 200}).json()
     client.patch(f"/api/planning/types/{stage_type['id']}", json={"hue": 60})
     client.post("/api/planning/people", json={"name": ""})
-    assert len(told) == 5
+    path = f"/api/planning/people/{person['id']}/off"
+    off = client.post(path, json={"start": "2026-10-05", "end": "2026-10-09"}).json()["off"][0]
+    client.delete(f"{path}/{off['id']}")
+    assert len(told) == 7
+
+
+def test_a_member_adds_and_removes_time_off(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ann = member(client)
+    anna = ann.post("/api/planning/people", json={"name": "Anna"}).json()
+    path = f"/api/planning/people/{anna['id']}/off"
+    ann.post(path, json={"start": "2026-11-02", "end": "2026-11-06"})
+    added = ann.post(path, json={"start": "2026-10-05", "end": "2026-10-09"})
+    assert added.status_code == 200
+    off = added.json()["off"]
+    assert [(o["start"], o["end"]) for o in off] == [
+        ("2026-10-05", "2026-10-09"),
+        ("2026-11-02", "2026-11-06"),
+    ]
+    assert set(off[0]) == {"id", "start", "end"}
+    left = ann.delete(f"{path}/{off[0]['id']}").json()["off"]
+    assert [o["id"] for o in left] == [off[1]["id"]]
+    stored = client.get("/api/planning").json()["people"][0]["off"]
+    assert stored == left
+
+
+def test_time_off_rules(client: TestClient, monkeypatch) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    anna = client.post("/api/planning/people", json={"name": "Anna"}).json()
+    path = f"/api/planning/people/{anna['id']}/off"
+    week = {"start": "2026-10-05", "end": "2026-10-09"}
+    assert client.post(path, json={"start": "2026-10-09", "end": "2026-10-05"}).status_code == 422
+    assert client.post(path, json={"start": "Oct 5", "end": "2026-10-09"}).status_code == 422
+    assert client.post(path, json={**week, "reason": "sick"}).status_code == 422
+    assert client.post("/api/planning/people/nope/off", json=week).status_code == 404
+    assert client.delete(f"{path}/nope").status_code == 404
+    assert client.post(path, json={"start": "2026-10-05", "end": "2026-10-05"}).status_code == 200
+    monkeypatch.setattr("app.domain.planning.MAX_OFF", 1)
+    assert client.post(path, json=week).status_code == 422
+    client.patch("/api/planning", json={"enabled": False})
+    assert client.post(path, json=week).status_code == 422
+
+
+def test_the_time_off_limit_holds_at_the_store() -> None:
+    people = SqlitePlanningPeopleRepo(Database(":memory:"))
+    people.add(PlanningPerson(id="p1", name="Anna", source="manual"))
+    week = {"start": "2026-10-05", "end": "2026-10-09"}
+    assert people.add_off("p1", TimeOff(id="o1", **week), limit=2)
+    assert people.add_off("p1", TimeOff(id="o2", **week), limit=2)
+    # A request that read one range before the second landed still stops at the limit.
+    assert not people.add_off("p1", TimeOff(id="o3", **week), limit=2)
+    assert [o.id for o in people.all()[0].off] == ["o1", "o2"]
+
+
+def test_renaming_a_person_keeps_their_time_off(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    anna = client.post("/api/planning/people", json={"name": "Anna"}).json()
+    client.post(
+        f"/api/planning/people/{anna['id']}/off", json={"start": "2026-10-05", "end": "2026-10-09"}
+    )
+    renamed = client.patch(f"/api/planning/people/{anna['id']}", json={"name": "Anna K"}).json()
+    assert len(renamed["off"]) == 1
+    assert len(client.get("/api/planning").json()["people"][0]["off"]) == 1
+
+
+def test_no_time_off_on_a_demo_instance() -> None:
+    admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
+    week = {"start": "2026-10-05", "end": "2026-10-09"}
+    assert admin.post("/api/planning/people/p1/off", json=week).status_code == 403
+    assert admin.delete("/api/planning/people/p1/off/o1").status_code == 403

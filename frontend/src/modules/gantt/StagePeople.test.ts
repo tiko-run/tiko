@@ -8,6 +8,7 @@ const person = (id: string, name: string, archived = false): Person => ({
   teams: [],
   source: 'manual',
   archived,
+  off: [],
 })
 const people = [person('p1', 'Ivan'), person('p2', 'Anna', true), person('p3', 'Ivana')]
 

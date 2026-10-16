@@ -9,6 +9,9 @@ import {
   type Row,
 } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
+import type { PlanningState } from '@/planning/context'
+
+const OFF: PlanningState = { enabled: false, types: [], people: [] }
 
 const row = (id: string, key?: string): Row => ({
   id,
@@ -42,42 +45,34 @@ describe('rows', () => {
   })
 
   it('grows with rows and keeps one empty row', () => {
-    expect(bodyHeight({ ...base, rows: [] }, false)).toBe(
-      bodyHeight({ ...base, rows: [row('a')] }, false),
+    expect(bodyHeight({ ...base, rows: [] }, OFF)).toBe(
+      bodyHeight({ ...base, rows: [row('a')] }, OFF),
     )
-    expect(bodyHeight(base, false) - bodyHeight({ ...base, rows: [row('a')] }, false)).toBe(
-      ROW_HEIGHT,
-    )
+    expect(bodyHeight(base, OFF) - bodyHeight({ ...base, rows: [row('a')] }, OFF)).toBe(ROW_HEIGHT)
   })
 })
 
 describe('card drop', () => {
   it('becomes a row at the drop day, between the rows it fell on', () => {
     const at = { x: base.labelWidth + 95, y: HEADER + ROW_HEIGHT }
-    const next = acceptCard(base, { key: 'DEMO-7' }, at, WIDTH, false)!
+    const next = acceptCard(base, { key: 'DEMO-7' }, at, WIDTH, OFF)!
     expect(next.rows.map((r) => r.key ?? r.id)).toEqual(['DEMO-1', 'DEMO-7', 'b'])
     expect(next.rows[1]).toMatchObject({ start: '2026-10-10', end: '2026-10-16' })
   })
 
   it('is refused for a task already on the chart', () => {
-    expect(acceptCard(base, { key: 'DEMO-1' }, { x: 300, y: 60 }, WIDTH, false)).toBeNull()
+    expect(acceptCard(base, { key: 'DEMO-1' }, { x: 300, y: 60 }, WIDTH, OFF)).toBeNull()
   })
 
   it('is refused for a task an older row plans without naming its tracker', () => {
     const card = { key: 'DEMO-1', source: 'jira' }
-    expect(acceptCard(base, card, { x: 300, y: 60 }, WIDTH, false)).toBeNull()
+    expect(acceptCard(base, card, { x: 300, y: 60 }, WIDTH, OFF)).toBeNull()
     expect(addRows(base, [{ ...row('c', 'DEMO-1'), source: 'jira' }]).rows).toHaveLength(2)
   })
 
   it('takes the same key from another tracker next to a row that names its own', () => {
     const named = { ...base, rows: [{ ...row('a', 'DEMO-1'), source: 'jira' }] }
-    const next = acceptCard(
-      named,
-      { key: 'DEMO-1', source: 'demo' },
-      { x: 300, y: 60 },
-      WIDTH,
-      false,
-    )
+    const next = acceptCard(named, { key: 'DEMO-1', source: 'demo' }, { x: 300, y: 60 }, WIDTH, OFF)
     expect(next?.rows.map((r) => r.source).sort()).toEqual(['demo', 'jira'])
   })
 })
