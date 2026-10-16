@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
-import { addTimeOff, removeTimeOff, storePerson, type Person } from '@/api/planning'
+import { addTimeOff, HUES, removeTimeOff, storePerson, type Person } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -175,6 +175,7 @@ function AwayBar({
               ...HATCH,
             }}
           >
+            <Initial person={person} />
             <span className={cn('truncate', person.archived && 'opacity-60')}>{person.name}</span>
           </button>
         </PopoverAnchor>
@@ -212,6 +213,20 @@ function AwayBar({
         </PopoverContent>
       </Popover>
     </div>
+  )
+}
+
+/** A round initial in a hue of its own, so ranges of one person read together across lanes. */
+function Initial({ person }: { person: Person }) {
+  const hue = HUES[[...person.id].reduce((sum, c) => sum + c.charCodeAt(0), 0) % HUES.length]
+  return (
+    <span
+      aria-hidden
+      className="mr-1 inline-grid size-3.5 shrink-0 place-items-center rounded-full text-[8px] leading-none font-semibold text-white"
+      style={{ background: `oklch(0.58 0.13 ${hue})` }}
+    >
+      {person.name.slice(0, 1).toUpperCase()}
+    </span>
   )
 }
 

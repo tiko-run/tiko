@@ -218,7 +218,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
         </div>
         {lane > 0 && (
           <div
-            className="text-muted-foreground shrink-0 border-b px-3 leading-8"
+            className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
             style={{ height: lane }}
           >
             Time off
@@ -274,6 +274,10 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           <HeaderRow cells={bottom} pxPerDay={scale} top={false} />
         </div>
         <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
+          {/* Under the week lines, so the Time off lane keeps the grid. */}
+          {lane > 0 && (
+            <div className="bg-muted absolute inset-x-0 top-0" style={{ height: lane }} />
+          )}
           {bottom.map((cell) => (
             <div
               key={cell.from}

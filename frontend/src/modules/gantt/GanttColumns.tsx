@@ -57,7 +57,7 @@ export function GanttColumns({
         ))}
         <ColumnPicker content={content} fields={fields} onChange={onChange} />
       </div>
-      {lane > 0 && <div className="shrink-0 border-b" style={{ height: lane }} />}
+      {lane > 0 && <div className="bg-muted shrink-0 border-b" style={{ height: lane }} />}
       {visible.map((row) => (
         <div
           key={row.id}
@@ -118,7 +118,7 @@ function Cell({
         if (event.key === 'Escape') cancel.current = true
         if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur()
       }}
-      className="placeholder:text-muted-foreground focus:bg-card focus:ring-primary h-full min-w-0 truncate border-r bg-transparent px-1.5 outline-none focus:ring-1 focus:ring-inset"
+      className="placeholder:text-muted-foreground hover:bg-accent focus:bg-card focus:ring-primary h-full min-w-0 truncate border-r bg-transparent px-1.5 text-center outline-none focus:ring-1 focus:ring-inset"
       style={{ width: COLUMN_WIDTH }}
     />
   )
