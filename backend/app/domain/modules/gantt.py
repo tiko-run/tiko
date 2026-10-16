@@ -12,6 +12,8 @@ MAX_STAGES = 20
 MAX_STAGE_PEOPLE = 10
 MAX_VALUES = 20
 MAX_COLUMNS = 6
+MAX_FILTERS = 20
+MAX_FILTER_VALUES = 20
 
 ItemId = Annotated[str, Field(min_length=1, max_length=40)]
 Title = Annotated[str, Field(max_length=200)]
@@ -97,6 +99,11 @@ class GanttContent(_Strict):
     people: Literal["inline", "below"] | None = None
     # Field ids shown as columns, in order.
     columns: list[FieldId] | None = Field(default=None, max_length=MAX_COLUMNS)
+    # Field id or "person" to the values a row must match; a key with no values is not kept.
+    filters: (
+        dict[FieldId, Annotated[list[Value], Field(min_length=1, max_length=MAX_FILTER_VALUES)]]
+        | None
+    ) = Field(default=None, max_length=MAX_FILTERS)
 
     @model_validator(mode="after")
     def _rules(self) -> Self:

@@ -89,14 +89,20 @@ def test_guest_gets_only_the_types_and_people_of_the_board(client):
     )
     stage = {"id": "s1", "type": types[2]["id"], "start": "2026-10-05", "end": "2026-10-16"}
     quarter = client.post("/api/planning/fields", json={"name": "Quarter"}).json()
-    client.post("/api/planning/fields", json={"name": "Budget code"})
+    budget = client.post("/api/planning/fields", json={"name": "Budget code"}).json()
+    client.post("/api/planning/fields", json={"name": "Owner"})
     board_id = gantt_with(
-        client, [stage | {"people": [ivan["id"], "gone"]}], columns=["priority", quarter["id"]]
+        client,
+        [stage | {"people": [ivan["id"], "gone"]}],
+        columns=["priority", quarter["id"]],
+        filters={budget["id"]: ["B1"], "person": [petra["id"]]},
     )
     planning = guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"]
-    assert planning["types"] == [types[2]] and planning["people"] == [ivan]
-    assert [f["name"] for f in planning["fields"]] == ["Priority", "Quarter"]
-    assert petra not in planning["people"]
+    assert planning["types"] == [types[2]]
+    # Filter chips name their field and person too.
+    assert planning["people"] == [ivan, petra]
+    assert [f["name"] for f in planning["fields"]] == ["Priority", "Quarter", "Budget code"]
+    assert "views" not in planning
     client.patch("/api/planning", json={"enabled": False})
     assert guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"] is None
 

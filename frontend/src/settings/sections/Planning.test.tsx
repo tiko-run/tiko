@@ -19,6 +19,7 @@ const fields = [
   { id: 'priority', name: 'Priority', standard: true, archived: false },
   { id: 'f7', name: 'Quarter', standard: false, archived: false },
 ]
+const views = [{ id: 'v1', name: 'Web in Q4', filters: { team: ['Web'], f7: ['Q4'] } }]
 
 function show(role: 'admin' | 'member', enabled: boolean) {
   let state = {
@@ -26,6 +27,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     types: enabled ? types : [],
     people: enabled ? people : [],
     fields: enabled ? fields : [],
+    views: enabled ? views : [],
   }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(String(init.body)) : {}
@@ -35,6 +37,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
         types: body.enabled ? types : [],
         people: body.enabled ? people : [],
         fields: body.enabled ? fields : [],
+        views: body.enabled ? views : [],
       }
     }
     if (url === '/api/planning/types') return Response.json({ id: 't9', archived: false, ...body })
@@ -53,6 +56,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
       return Response.json({ id: 'f9', standard: false, archived: false, ...body })
     if (url.startsWith('/api/planning/fields/'))
       return Response.json({ ...fields.find((f) => url.endsWith(f.id)), ...body })
+    if (url.startsWith('/api/planning/views/')) return new Response(null, { status: 204 })
     if (url.startsWith('/api/planning/types/'))
       return Response.json({ ...types.find((t) => url.endsWith(t.id)), ...body })
     return Response.json(state)
@@ -197,4 +201,14 @@ test('a field is added and archived; a standard one stays', async () => {
   expect(screen.queryByRole('button', { name: 'Archive field Priority' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Archive field Quarter' }))
   expect(await screen.findByRole('button', { name: 'Restore field Quarter' })).toBeInTheDocument()
+})
+
+test('a saved view is deleted for every board', async () => {
+  const fetchMock = show('member', true)
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete view Web in Q4' }))
+  expect(await screen.findByText(/No views yet/)).toBeInTheDocument()
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/views/v1',
+    expect.objectContaining({ method: 'DELETE' }),
+  )
 })

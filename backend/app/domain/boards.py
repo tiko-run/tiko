@@ -331,13 +331,20 @@ def task_refs(doc: BoardDoc, default_source: str) -> list[str]:
 
 
 def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
-    """Stage type, person and column field ids the board's Gantts use."""
+    """Stage type, person and field ids the board's Gantts use in stages, columns and filters."""
     types: set[str] = set()
     people: set[str] = set()
     fields: set[str] = set()
     for node in doc.nodes:
         if isinstance(node, ModuleNode) and node.data.kind == "gantt":
-            fields.update(node.data.content.get("columns") or [])
+            content = node.data.content
+            fields.update(content.get("columns") or [])
+            # A guest sees the names in the filter chips too.
+            for key, values in (content.get("filters") or {}).items():
+                if key == "person":
+                    people.update(values)
+                else:
+                    fields.add(key)
             for row in node.data.content.get("rows", []):
                 for stage in row.get("stages") or []:
                     types.add(stage["type"])

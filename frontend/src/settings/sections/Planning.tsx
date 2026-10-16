@@ -10,11 +10,13 @@ import {
   changeField,
   changePerson,
   changeStageType,
+  dropView,
   freeHue,
   HUES,
   parseTeams,
   PLANNING_KEY,
   removeTimeOff,
+  removeView,
   setPlanning,
   storeField,
   storePerson,
@@ -23,6 +25,7 @@ import {
   type Field,
   type Hue,
   type Person,
+  type SavedView,
   type StageType,
 } from '@/api/planning'
 import { Button } from '@/components/ui/button'
@@ -70,6 +73,7 @@ export function Planning({ me }: { me: Me }) {
       {enabled && planning.data && <StageTypes types={planning.data.types} />}
       {enabled && planning.data && <People people={planning.data.people} />}
       {enabled && planning.data && <Fields fields={planning.data.fields} />}
+      {enabled && planning.data && <Views views={planning.data.views} />}
     </div>
   )
 }
@@ -384,6 +388,45 @@ function Fields({ fields }: { fields: Field[] }) {
             </div>
           ))}
         </div>
+      )}
+    </Group>
+  )
+}
+
+function Views({ views }: { views: SavedView[] }) {
+  const queryClient = useQueryClient()
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      await removeView(id)
+      return id
+    },
+    onSuccess: (id) => dropView(queryClient, id),
+    onError: toastError,
+  })
+  return (
+    <Group title="Views">
+      <p className="text-muted-foreground text-[13px]">
+        {views.length
+          ? 'Saved sets of Gantt filters. Every Gantt lists them above its rows.'
+          : 'No views yet. Filter a Gantt and pick "Save as view".'}
+      </p>
+      {views.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {views.map((view) => (
+            <li key={view.id} className="flex items-center justify-between gap-2">
+              <span className="truncate">{view.name}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Delete view ${view.name}`}
+                disabled={remove.isPending}
+                onClick={() => remove.mutate(view.id)}
+              >
+                <X className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
     </Group>
   )

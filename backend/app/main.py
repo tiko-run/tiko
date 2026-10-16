@@ -33,6 +33,7 @@ from app.adapters.storage.sqlite import (
     SqlitePlanningFieldRepo,
     SqlitePlanningPeopleRepo,
     SqlitePlanningTypeRepo,
+    SqlitePlanningViewRepo,
     SqliteSessionRepo,
     SqliteSettingsRepo,
     SqliteSnapshotRepo,
@@ -296,6 +297,7 @@ def create_app(
         SqlitePlanningTypeRepo(db),
         SqlitePlanningPeopleRepo(db),
         SqlitePlanningFieldRepo(db),
+        SqlitePlanningViewRepo(db),
         on_change=app.state.live.planning_changed,
     )
     app.state.public_links = PublicLinks(

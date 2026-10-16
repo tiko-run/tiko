@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 
 from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor, is_demo, not_on_demo
 from app.domain.planning import (
@@ -13,10 +13,12 @@ from app.domain.planning import (
     PlanningField,
     PlanningPerson,
     PlanningView,
+    SavedView,
     StageType,
     TimeOffIn,
     TypeChange,
     TypeIn,
+    ViewIn,
 )
 
 router = APIRouter(prefix="/planning", tags=["planning"])
@@ -93,3 +95,14 @@ def change_field(
     field_id: str, body: FieldChange, person: CurrentPerson, service: PlanningDep
 ) -> PlanningField:
     return service.change_field(field_id, body)
+
+
+@router.post("/views", dependencies=Writer)
+def add_view(body: ViewIn, person: CurrentPerson, service: PlanningDep) -> SavedView:
+    return service.add_view(body)
+
+
+@router.delete("/views/{view_id}", status_code=204, dependencies=Writer)
+def remove_view(view_id: str, person: CurrentPerson, service: PlanningDep) -> Response:
+    service.remove_view(view_id)
+    return Response(status_code=204)

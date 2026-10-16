@@ -27,6 +27,7 @@ def test_off_by_default(client: TestClient) -> None:
         "types": [],
         "people": [],
         "fields": [],
+        "views": [],
     }
 
 
@@ -265,3 +266,39 @@ def test_field_rules(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr("app.domain.planning.MAX_FIELDS", 1)
     assert client.post(fields, json={"name": "Quarter"}).status_code == 200
     assert client.post(fields, json={"name": "Budget"}).status_code == 422
+
+
+def test_a_member_saves_and_removes_a_view(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ann = member(client)
+    filters = {"team": ["Web"], "f7": ["Q4"]}
+    view = ann.post("/api/planning/views", json={"name": " Web in Q4 ", "filters": filters}).json()
+    assert view == {"id": view["id"], "name": "Web in Q4", "filters": filters}
+    assert client.get("/api/planning").json()["views"] == [view]
+    assert ann.delete(f"/api/planning/views/{view['id']}").status_code == 204
+    assert client.get("/api/planning").json()["views"] == []
+
+
+def test_view_rules(client: TestClient, monkeypatch) -> None:
+    views = "/api/planning/views"
+    web = {"name": "Web", "filters": {"team": ["Web"]}}
+    assert client.post(views, json=web).status_code == 422
+    client.patch("/api/planning", json={"enabled": True})
+    assert client.post(views, json=web).status_code == 200
+    assert client.post(views, json=web | {"name": "web"}).status_code == 422
+    assert client.post(views, json=web | {"name": ""}).status_code == 422
+    assert client.post(views, json=web | {"filters": {"team": []}}).status_code == 422
+    assert client.post(views, json=web | {"filters": {"team": [""]}}).status_code == 422
+    many = {"team": [str(i) for i in range(21)]}
+    assert client.post(views, json=web | {"name": "Many", "filters": many}).status_code == 422
+    assert client.delete(f"{views}/nope").status_code == 404
+    monkeypatch.setattr("app.domain.planning.MAX_VIEWS", 2)
+    assert client.post(views, json=web | {"name": "Core"}).status_code == 200
+    assert client.post(views, json=web | {"name": "Ops"}).status_code == 422
+
+
+def test_no_views_on_a_demo_instance() -> None:
+    admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
+    web = {"name": "Web", "filters": {"team": ["Web"]}}
+    assert admin.post("/api/planning/views", json=web).status_code == 403
+    assert admin.delete("/api/planning/views/v1").status_code == 403

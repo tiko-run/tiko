@@ -9,7 +9,13 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
-    from app.domain.planning import PlanningField, PlanningPerson, StageType, TimeOff
+    from app.domain.planning import (
+        PlanningField,
+        PlanningPerson,
+        SavedView,
+        StageType,
+        TimeOff,
+    )
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -290,6 +296,20 @@ class PlanningFieldRepo(Protocol):
         ...
 
     def update(self, field: PlanningField) -> None: ...
+
+
+class PlanningViewRepo(Protocol):
+    def all(self) -> list[SavedView]:
+        """In the order they were saved."""
+        ...
+
+    def add(self, view: SavedView, limit: int) -> bool:
+        """False, and nothing stored, when there are `limit` views already."""
+        ...
+
+    def remove(self, view_id: str) -> bool:
+        """False when there was no such view."""
+        ...
 
 
 class DemoTasks(Protocol):

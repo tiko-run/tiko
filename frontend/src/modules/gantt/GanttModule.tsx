@@ -20,8 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { GanttAdd } from '@/modules/gantt/GanttAdd'
 import { GanttBar } from '@/modules/gantt/GanttBar'
 import { GanttColumns } from '@/modules/gantt/GanttColumns'
+import { GanttFilters } from '@/modules/gantt/GanttFilters'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
 import { GanttStages } from '@/modules/gantt/GanttStages'
+import { activeFilters, shownRows } from '@/modules/gantt/filters'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
 import { Milestone } from '@/modules/gantt/Milestone'
 import {
@@ -62,7 +64,6 @@ import {
   subtreeEnd,
   branchSpan,
   resizeParent,
-  visibleRows,
 } from '@/modules/gantt/tree'
 import {
   barBox,
@@ -139,7 +140,8 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
     ...new Set(content.rows.flatMap((row) => taskOf(row)?.assignee_name ?? [])),
   ].sort()
   const full = content.rows.length >= MAX_ROWS
-  const visible = visibleRows(content.rows)
+  const visible = shownRows(content, planning)
+  const filtered = activeFilters(content, planning.enabled) !== null
   const indexOf = new Map(content.rows.map((r, i) => [r.id, i]))
   const barSpan = (row: Row) => branchSpan(content.rows, indexOf.get(row.id)!)
   const bars = new Map<string, BarPlace>()
@@ -200,200 +202,207 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   }
 
   return (
-    <div className="flex h-full text-[12px]">
-      <div
-        className="relative flex shrink-0 flex-col border-r"
-        style={{ width: content.labelWidth }}
-      >
-        <ColumnResizer
-          width={content.labelWidth}
-          max={Math.min(LABEL_WIDTH.max, width - LABEL_WIDTH.min)}
-          onWidth={(labelWidth) => onChange({ ...content, labelWidth })}
-        />
-        <div
-          className="text-muted-foreground flex shrink-0 items-center border-b px-3"
-          style={{ height: HEADER }}
-        >
-          {formatRange(content.start, content.end)}
-        </div>
-        {lane > 0 && (
-          <div
-            className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
-            style={{ height: lane }}
-          >
-            Time off
-          </div>
-        )}
-        {visible.map(({ row, depth, hasChildren }) => (
-          <GanttLabel
-            key={row.id}
-            row={row}
-            depth={depth}
-            hasChildren={hasChildren}
-            height={height}
-            task={taskOf(row)}
-            url={taskOf(row)?.url}
-            fresh={row.id === fresh}
-            onTitle={(title) => onChange(updateRow(content, row.id, (r) => ({ ...r, title })))}
-            onRemove={() => onChange(liftRemove(content, row.id))}
-            onToggle={() =>
-              onChange(updateRow(content, row.id, (r) => ({ ...r, collapsed: !r.collapsed })))
-            }
-            onIndent={() => onChange(indent(content, row.id))}
-            onOutdent={() => onChange(outdent(content, row.id))}
-            onAddChild={() => addChildRow(row.id)}
-            onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
-            onEject={(screen) => eject(row, screen)}
-          />
-        ))}
-        <div className="mt-auto flex shrink-0 items-center gap-1 px-1" style={{ height: FOOTER }}>
-          <GanttAdd
-            disabled={full}
-            onTasks={addTasks}
-            onPlain={(title) => {
-              didOnboarding('gantt_task')
-              onChange(addRows(content, [makeRow(content, { title })]))
-            }}
-          />
-        </div>
-      </div>
+    <div className="flex h-full flex-col text-[12px]">
       {planning.enabled && (
-        <GanttColumns
-          content={content}
-          visible={visible.map(({ row }) => row)}
-          fields={planning.fields}
-          rowHeight={height}
-          lane={lane}
-          onChange={onChange}
-          onRow={(next) => onChange(updateRow(content, next.id, () => next))}
-        />
+        <GanttFilters content={content} planning={planning} onChange={onChange} />
       )}
-      <div data-gantt-body className="relative min-w-0 flex-1">
-        <div className="border-b">
-          <HeaderRow cells={top} pxPerDay={scale} top />
-          <HeaderRow cells={bottom} pxPerDay={scale} top={false} />
-        </div>
-        <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
-          {/* Under the week lines, so the Time off lane keeps the grid. */}
+      <div className="flex min-h-0 flex-1">
+        <div
+          className="relative flex shrink-0 flex-col border-r"
+          style={{ width: content.labelWidth }}
+        >
+          <ColumnResizer
+            width={content.labelWidth}
+            max={Math.min(LABEL_WIDTH.max, width - LABEL_WIDTH.min)}
+            onWidth={(labelWidth) => onChange({ ...content, labelWidth })}
+          />
+          <div
+            className="text-muted-foreground flex shrink-0 items-center border-b px-3"
+            style={{ height: HEADER }}
+          >
+            {formatRange(content.start, content.end)}
+          </div>
           {lane > 0 && (
-            <div className="bg-muted absolute inset-x-0 top-0" style={{ height: lane }} />
-          )}
-          {bottom.map((cell) => (
             <div
-              key={cell.from}
-              className={cn(
-                'absolute inset-y-0 border-l border-border/60',
-                cell.weekend && 'bg-muted/60',
-              )}
-              style={{ left: cell.from * scale, width: cell.span * scale }}
+              className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
+              style={{ height: lane }}
+            >
+              Time off
+            </div>
+          )}
+          {visible.map(({ row, depth, hasChildren }) => (
+            <GanttLabel
+              key={row.id}
+              row={row}
+              depth={depth}
+              hasChildren={hasChildren}
+              height={height}
+              task={taskOf(row)}
+              url={taskOf(row)?.url}
+              fresh={row.id === fresh}
+              onTitle={(title) => onChange(updateRow(content, row.id, (r) => ({ ...r, title })))}
+              onRemove={() => onChange(liftRemove(content, row.id))}
+              onToggle={() =>
+                onChange(updateRow(content, row.id, (r) => ({ ...r, collapsed: !r.collapsed })))
+              }
+              onIndent={() => onChange(indent(content, row.id))}
+              onOutdent={() => onChange(outdent(content, row.id))}
+              onAddChild={() => addChildRow(row.id)}
+              onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
+              onEject={(screen) => eject(row, screen)}
             />
           ))}
-        </div>
-        {/* After the grid: the lane is in the flow above the rows, the grid must not cover it. */}
-        {lane > 0 && (
-          <TimeOffLane
-            items={away.items}
-            height={lane}
-            range={span}
-            pxPerDay={scale}
-            people={planning.people}
-          />
-        )}
-        {now >= start && now <= end && (
-          <div
-            data-testid="gantt-today"
-            title="Today"
-            className="bg-primary pointer-events-none absolute bottom-0 z-10 w-px"
-            style={{ left: (now - start + 0.5) * scale, top: HEADER }}
-          />
-        )}
-        {visible.map(({ row, hasChildren }) => (
-          <div
-            key={row.id}
-            data-gantt-row={row.id}
-            className="group/row relative border-b border-border/60"
-            style={{ height }}
-          >
-            {planning.enabled && !hasChildren ? (
-              <GanttStages
-                row={row}
-                range={span}
-                pxPerDay={scale}
-                types={planning.types}
-                people={planning.people}
-                assignees={assignees}
-                below={content.people === 'below'}
-                label={stagesLabel(row, taskOf(row))}
-                onRow={(next) => onChange(updateRow(content, row.id, () => next))}
-              />
-            ) : (
-              <GanttBar
-                span={barSpan(row)}
-                summary={hasChildren}
-                range={span}
-                pxPerDay={scale}
-                label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
-                task={taskOf(row)}
-                onSpan={(next) =>
-                  hasChildren
-                    ? onParentSpan(row, next)
-                    : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
-                }
-              />
-            )}
-            {bars.has(row.id) && (
-              <ConnectHandle
-                bar={bars.get(row.id)!}
-                onWire={setWire}
-                onDrop={(target) => link(row.id, target)}
-              />
-            )}
+          <div className="mt-auto flex shrink-0 items-center gap-1 px-1" style={{ height: FOOTER }}>
+            <GanttAdd
+              disabled={full}
+              onTasks={addTasks}
+              onPlain={(title) => {
+                didOnboarding('gantt_task')
+                onChange(addRows(content, [makeRow(content, { title })]))
+              }}
+            />
           </div>
-        ))}
-        <Links
-          links={content.links}
-          bars={bars}
-          wire={wire}
-          picked={selected ? picked : null}
-          onPick={setPicked}
-          rowHeight={height}
-          onRemove={(id) => {
-            setPicked(null)
-            onChange(removeLink(content, id))
-          }}
-        />
-        {content.milestones.map((milestone) => (
-          <Milestone
-            key={milestone.id}
-            milestone={milestone}
-            range={span}
-            pxPerDay={scale}
-            onChange={(change) => onChange(updateMilestone(content, milestone.id, change))}
-            onRemove={() => onChange(removeMilestone(content, milestone.id))}
+        </div>
+        {planning.enabled && (
+          <GanttColumns
+            content={content}
+            visible={visible.map(({ row }) => row)}
+            fields={planning.fields}
+            rowHeight={height}
+            lane={lane}
+            onChange={onChange}
+            onRow={(next) => onChange(updateRow(content, next.id, () => next))}
           />
-        ))}
-        {content.rows.length === 0 && (
-          <p
-            className="text-muted-foreground pointer-events-none relative px-3 leading-8"
-            style={{ height: ROW_HEIGHT }}
-          >
-            Drop cards here, or add a task or a row.
-          </p>
         )}
-        {selected && (
-          <>
-            <QuarterButton
-              side="start"
-              disabled={!fitsRange(before, end)}
-              onClick={() => onChange({ ...content, start: formatDay(before) })}
+        <div data-gantt-body className="relative min-w-0 flex-1">
+          <div className="border-b">
+            <HeaderRow cells={top} pxPerDay={scale} top />
+            <HeaderRow cells={bottom} pxPerDay={scale} top={false} />
+          </div>
+          <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
+            {/* Under the week lines, so the Time off lane keeps the grid. */}
+            {lane > 0 && (
+              <div className="bg-muted absolute inset-x-0 top-0" style={{ height: lane }} />
+            )}
+            {bottom.map((cell) => (
+              <div
+                key={cell.from}
+                className={cn(
+                  'absolute inset-y-0 border-l border-border/60',
+                  cell.weekend && 'bg-muted/60',
+                )}
+                style={{ left: cell.from * scale, width: cell.span * scale }}
+              />
+            ))}
+          </div>
+          {/* After the grid: the lane is in the flow above the rows, the grid must not cover it. */}
+          {lane > 0 && (
+            <TimeOffLane
+              items={away.items}
+              height={lane}
+              range={span}
+              pxPerDay={scale}
+              people={planning.people}
             />
-            <QuarterButton
-              side="end"
-              disabled={!fitsRange(start, after)}
-              onClick={() => onChange({ ...content, end: formatDay(after) })}
+          )}
+          {now >= start && now <= end && (
+            <div
+              data-testid="gantt-today"
+              title="Today"
+              className="bg-primary pointer-events-none absolute bottom-0 z-10 w-px"
+              style={{ left: (now - start + 0.5) * scale, top: HEADER }}
             />
-          </>
-        )}
+          )}
+          {visible.map(({ row, hasChildren }) => (
+            <div
+              key={row.id}
+              data-gantt-row={row.id}
+              className="group/row relative border-b border-border/60"
+              style={{ height }}
+            >
+              {planning.enabled && !hasChildren ? (
+                <GanttStages
+                  row={row}
+                  range={span}
+                  pxPerDay={scale}
+                  types={planning.types}
+                  people={planning.people}
+                  assignees={assignees}
+                  below={content.people === 'below'}
+                  label={stagesLabel(row, taskOf(row))}
+                  onRow={(next) => onChange(updateRow(content, row.id, () => next))}
+                />
+              ) : (
+                <GanttBar
+                  span={barSpan(row)}
+                  summary={hasChildren}
+                  range={span}
+                  pxPerDay={scale}
+                  label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
+                  task={taskOf(row)}
+                  onSpan={(next) =>
+                    hasChildren
+                      ? onParentSpan(row, next)
+                      : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
+                  }
+                />
+              )}
+              {bars.has(row.id) && (
+                <ConnectHandle
+                  bar={bars.get(row.id)!}
+                  onWire={setWire}
+                  onDrop={(target) => link(row.id, target)}
+                />
+              )}
+            </div>
+          ))}
+          <Links
+            links={content.links}
+            bars={bars}
+            wire={wire}
+            picked={selected ? picked : null}
+            onPick={setPicked}
+            rowHeight={height}
+            onRemove={(id) => {
+              setPicked(null)
+              onChange(removeLink(content, id))
+            }}
+          />
+          {content.milestones.map((milestone) => (
+            <Milestone
+              key={milestone.id}
+              milestone={milestone}
+              range={span}
+              pxPerDay={scale}
+              onChange={(change) => onChange(updateMilestone(content, milestone.id, change))}
+              onRemove={() => onChange(removeMilestone(content, milestone.id))}
+            />
+          ))}
+          {visible.length === 0 && (
+            <p
+              className="text-muted-foreground pointer-events-none relative px-3 leading-8"
+              style={{ height: ROW_HEIGHT }}
+            >
+              {filtered && content.rows.length > 0
+                ? 'No tasks match these filters.'
+                : 'Drop cards here, or add a task or a row.'}
+            </p>
+          )}
+          {selected && (
+            <>
+              <QuarterButton
+                side="start"
+                disabled={!fitsRange(before, end)}
+                onClick={() => onChange({ ...content, start: formatDay(before) })}
+              />
+              <QuarterButton
+                side="end"
+                disabled={!fitsRange(start, after)}
+                onClick={() => onChange({ ...content, end: formatDay(after) })}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
