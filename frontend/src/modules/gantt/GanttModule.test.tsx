@@ -503,17 +503,22 @@ test('an unknown name is added to the people on the fly', async () => {
   }
 })
 
-test('names that do not fit turn into a count; the stage popover lists them', () => {
+test('names that do not fit turn into a count that lists them', () => {
   // jsdom lays nothing out: the names are as wide as the hidden copy says.
   const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(500)
   try {
     renderGantt({}, staged(['p1', 'p2']), PEOPLE)
     const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
     expect(bar.textContent).toBe('Build2')
-    expect(within(bar).getByLabelText('2 people')).toBeTruthy()
-    press(bar, 500)
-    expect(screen.getByRole('button', { name: 'Remove Ivan' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Remove Anna' })).toBeTruthy()
+    const count = within(bar).getByRole('button', { name: '2 people on Build' })
+    fireEvent.pointerDown(count, { pointerId: 1, button: 0 })
+    fireEvent.pointerUp(count, { pointerId: 1 })
+    fireEvent.click(count)
+    expect(screen.getByText('People on Build')).toBeTruthy()
+    const anna = screen.getAllByRole('listitem').find((li) => li.textContent === 'Anna')!
+    expect(anna.className).toContain('opacity-60')
+    // Its own list, not the stage's popover.
+    expect(screen.queryByLabelText('Add a person')).toBeNull()
   } finally {
     width.mockRestore()
   }

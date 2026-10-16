@@ -138,6 +138,7 @@ function AwayBar({
 }) {
   const queryClient = useQueryClient()
   const [removing, setRemoving] = useState(false)
+  const bar = useRef<HTMLButtonElement>(null)
   const box = barBox(item.span, range, pxPerDay)
   if (!box) return null
   const { person, off } = item
@@ -159,6 +160,7 @@ function AwayBar({
       <Popover open={open} onOpenChange={onOpen}>
         <PopoverAnchor asChild>
           <button
+            ref={bar}
             type="button"
             aria-label={`${person.name} is away ${formatSpan(item.span)}`}
             onPointerDown={(event) => event.stopPropagation()}
@@ -187,7 +189,14 @@ function AwayBar({
           right={box.left + box.width}
           width={rangeDays(range.start, range.end) * pxPerDay}
         />
-        <PopoverContent side="bottom" align="start" className="w-64 p-3">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          className="w-64 p-3"
+          onPointerDownOutside={(event) => {
+            if (bar.current?.contains(event.target as Node)) event.preventDefault()
+          }}
+        >
           <div className="flex flex-col gap-2 text-[13px]">
             <div className="font-semibold">{person.name} is away</div>
             <div className="text-muted-foreground text-[12px] tabular-nums">

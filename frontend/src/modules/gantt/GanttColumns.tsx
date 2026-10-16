@@ -109,7 +109,6 @@ function Cell({
       aria-label={label}
       value={draft ?? value}
       placeholder={inherited}
-      title={draft === null ? value || inherited : undefined}
       maxLength={MAX_VALUE}
       onFocus={() => setDraft(value)}
       onChange={(event) => setDraft(event.target.value)}
