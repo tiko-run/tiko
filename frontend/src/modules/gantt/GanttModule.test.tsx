@@ -11,6 +11,7 @@ import type { AppNode, ModuleNode as ModuleNodeType } from '@/canvas/types'
 import { ModuleHostContext } from '@/modules/host-context'
 import type { GanttContent } from '@/modules/gantt/schema'
 import type { ModuleHost } from '@/modules/types'
+import { PlanningContext, type PlanningState } from '@/planning/context'
 
 const nodeTypes = { module: ModuleNode }
 
@@ -83,7 +84,9 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-function renderGantt(host: Partial<ModuleHost> = {}, start = content) {
+const OFF: PlanningState = { enabled: false, types: [] }
+
+function renderGantt(host: Partial<ModuleHost> = {}, start = content, planning = OFF) {
   const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
   render(
     <div style={{ width: 1200, height: 800 }}>
@@ -91,7 +94,9 @@ function renderGantt(host: Partial<ModuleHost> = {}, start = content) {
         <ReactFlowProvider>
           <TasksContext.Provider value={{ 'DEMO-1': task }}>
             <ModuleHostContext.Provider value={full}>
-              <Board start={start} />
+              <PlanningContext.Provider value={planning}>
+                <Board start={start} />
+              </PlanningContext.Provider>
             </ModuleHostContext.Provider>
           </TasksContext.Provider>
         </ReactFlowProvider>
@@ -298,4 +303,90 @@ test('a bar shows its exact dates while it is dragged', () => {
   expect(tip().textContent).not.toContain('Design review')
   fireEvent.pointerUp(bar, { pointerId: 1 })
   expect(tip().className).not.toMatch(/(^| )flex( |$)/)
+})
+
+const PLANNING: PlanningState = {
+  enabled: true,
+  types: [
+    { id: 't1', name: 'Discovery', hue: 75, archived: false },
+    { id: 't3', name: 'Build', hue: 250, archived: false },
+  ],
+}
+const press = (el: Element, from: number, to = from) => {
+  fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
+  fireEvent.pointerMove(el, { clientX: to, pointerId: 1 })
+  fireEvent.pointerUp(el, { clientX: to, pointerId: 1 })
+}
+
+test('with Planning off nothing about stages shows', () => {
+  renderGantt()
+  expect(screen.queryByText('No stage')).toBeNull()
+  expect(document.querySelector('[data-gantt-stages]')).toBeNull()
+})
+
+test('with Planning on a bare bar becomes a stage when it gets a type', () => {
+  renderGantt({}, content, PLANNING)
+  press(screen.getByRole('slider', { name: 'No stage stage of Design review' }), 400)
+  fireEvent.click(screen.getByRole('button', { name: 'Build' }))
+  expect(rows()[1].stages).toEqual([
+    expect.objectContaining({ type: 't3', start: '2026-10-12', end: '2026-10-14' }),
+  ])
+  expect([rows()[1].start, rows()[1].end]).toEqual(['2026-10-12', '2026-10-14'])
+})
+
+test('a click on free days adds a week of the first type', () => {
+  renderGantt({}, content, PLANNING)
+  const track = document.querySelectorAll('[data-gantt-stages]')[1]
+  press(track, 0)
+  const stages = rows()[1].stages!
+  expect(stages.map((s) => [s.type, s.start, s.end])).toEqual([
+    ['t1', '2026-10-01', '2026-10-07'],
+    ['', '2026-10-12', '2026-10-14'],
+  ])
+  expect(rows()[1].start).toBe('2026-10-01')
+})
+
+test('a stage dragged into its neighbour stops at it', () => {
+  const start: GanttContent = {
+    ...content,
+    rows: [
+      {
+        id: 'a',
+        title: 'Payment API',
+        start: '2026-10-05',
+        end: '2026-10-16',
+        stages: [
+          { id: 's1', type: 't1', start: '2026-10-05', end: '2026-10-07', people: [] },
+          { id: 's2', type: 't3', start: '2026-10-12', end: '2026-10-16', people: [] },
+        ],
+      },
+    ],
+  }
+  renderGantt({}, start, PLANNING)
+  press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500, 0)
+  expect(rows()[0].stages![1]).toMatchObject({ start: '2026-10-08', end: '2026-10-12' })
+  expect(rows()[0].end).toBe('2026-10-12')
+})
+
+test('each stage has a tooltip of its own', () => {
+  const start: GanttContent = {
+    ...content,
+    rows: [
+      {
+        id: 'a',
+        title: 'Payment API',
+        start: '2026-10-05',
+        end: '2026-10-16',
+        stages: [
+          { id: 's1', type: 't1', start: '2026-10-05', end: '2026-10-07', people: [] },
+          { id: 's2', type: 't3', start: '2026-10-12', end: '2026-10-16', people: [] },
+        ],
+      },
+    ],
+  }
+  renderGantt({}, start, PLANNING)
+  const bars = screen.getAllByRole('slider', { name: /stage of Payment API/ })
+  // `peer-hover` reaches only siblings, so each bar and its tip share a box of their own.
+  expect(bars[0].parentElement).not.toBe(bars[1].parentElement)
+  expect(bars[0].parentElement!.querySelectorAll('[role=tooltip]')).toHaveLength(1)
 })

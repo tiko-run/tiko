@@ -1,5 +1,6 @@
 import type { GanttContent } from '@/modules/gantt/schema'
 import type { Span } from '@/modules/gantt/timeline'
+import { shiftStages } from '@/modules/gantt/stages'
 import { formatDay, parseDay } from '@/modules/gantt/timeline'
 
 type Row = GanttContent['rows'][number]
@@ -186,7 +187,9 @@ export function shiftBranch(content: GanttContent, id: string, days: number): Ga
   return {
     ...content,
     rows: content.rows.map((r, i) =>
-      i >= from && i < end ? { ...r, start: shift(r.start), end: shift(r.end) } : r,
+      i >= from && i < end
+        ? shiftStages({ ...r, start: shift(r.start), end: shift(r.end) }, days)
+        : r,
     ),
   }
 }

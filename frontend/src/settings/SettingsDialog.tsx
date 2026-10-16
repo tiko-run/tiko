@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   ChevronLeft,
   ChevronRight,
+  ChartGantt,
   KeyRound,
   Link2,
   Plug,
@@ -25,6 +26,7 @@ import {
 import { cn } from 'cn'
 import { MyTracker } from '@/settings/sections/MyTracker'
 import { People } from '@/settings/sections/People'
+import { Planning } from '@/settings/sections/Planning'
 import { Preferences } from '@/settings/sections/Preferences'
 import { Privacy } from '@/settings/sections/Privacy'
 import { Profile } from '@/settings/sections/Profile'
@@ -40,7 +42,7 @@ type Entry = {
   render: (me: Me) => ReactNode
 }
 
-const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker'])
+const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker', 'planning'])
 
 const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
   {
@@ -56,6 +58,13 @@ const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
         render: () => <Preferences />,
       },
       { id: 'tracker', label: 'My tracker', Icon: Plug, render: () => <MyTracker /> },
+    ],
+  },
+  {
+    title: 'Planning',
+    admin: false,
+    entries: [
+      { id: 'planning', label: 'Stages', Icon: ChartGantt, render: (me) => <Planning me={me} /> },
     ],
   },
   {

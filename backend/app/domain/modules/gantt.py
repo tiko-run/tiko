@@ -7,6 +7,8 @@ from app.domain.tasks import SOURCE_PATTERN, valid_key
 
 MAX_RANGE_DAYS = 1096
 MAX_DEPTH = 5
+MAX_STAGES = 20
+MAX_STAGE_PEOPLE = 10
 
 ItemId = Annotated[str, Field(min_length=1, max_length=40)]
 Title = Annotated[str, Field(max_length=200)]
@@ -14,6 +16,25 @@ Title = Annotated[str, Field(max_length=200)]
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="ignore")
+
+
+class Stage(_Strict):
+    id: ItemId
+    # Ids from /api/planning; one the instance does not know is kept, so a copied board opens.
+    type: str = Field(max_length=40)
+    start: date
+    end: date
+    people: list[Annotated[str, Field(max_length=40)]] = Field(
+        default_factory=list, max_length=MAX_STAGE_PEOPLE
+    )
+
+    @model_validator(mode="after")
+    def _rules(self) -> Self:
+        if self.end < self.start:
+            raise ValueError(f"stage {self.id} ends before it starts")
+        if len(set(self.people)) != len(self.people):
+            raise ValueError(f"stage {self.id} lists a person twice")
+        return self
 
 
 class Row(_Strict):
@@ -26,6 +47,8 @@ class Row(_Strict):
     end: date
     parent: str | None = Field(default=None, max_length=40)
     collapsed: bool = False
+    # Absent, not empty, on a row without stages, so content saved before them stays the same.
+    stages: list[Stage] | None = Field(default=None, max_length=MAX_STAGES)
 
     @model_validator(mode="after")
     def _dates(self) -> Self:
@@ -33,6 +56,10 @@ class Row(_Strict):
             raise ValueError("invalid issue key")
         if self.end < self.start:
             raise ValueError(f"row {self.id} ends before it starts")
+        stages = self.stages or []
+        for before, after in zip(stages, stages[1:], strict=False):
+            if after.start <= before.end:
+                raise ValueError(f"stages {before.id} and {after.id} overlap or are out of order")
         return self
 
 
@@ -67,8 +94,17 @@ class GanttContent(_Strict):
             raise ValueError("range over 3 years")
         for label, items in (("row", self.rows), ("milestone", self.milestones)):
             _unique(label, [item.id for item in items])
+        _unique("stage", [stage.id for row in self.rows for stage in row.stages or []])
         _unique("link", [link.id for link in self.links])
         _check_tree(self.rows)
+        # A leaf's own dates are what links and Planning off draw, so they follow its stages.
+        # A parent's stretch past its children, so its hidden stages are left as they were.
+        parents = {row.parent for row in self.rows}
+        for row in self.rows:
+            if not row.stages or row.id in parents:
+                continue
+            if (row.start, row.end) != (row.stages[0].start, row.stages[-1].end):
+                raise ValueError(f"row {row.id} must span its stages")
         rows = {row.id for row in self.rows}
         pairs: set[tuple[str, str]] = set()
         for link in self.links:

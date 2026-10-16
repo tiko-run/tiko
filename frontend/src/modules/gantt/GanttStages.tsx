@@ -1,0 +1,399 @@
+import { useQueryClient } from '@tanstack/react-query'
+import { useReactFlow } from '@xyflow/react'
+import { Plus, Trash2 } from 'lucide-react'
+import { useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { addStageType, HUES, PLANNING_KEY, type Planning, type StageType } from '@/api/planning'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { DatesTip } from '@/modules/gantt/GanttBar'
+import type { Row } from '@/modules/gantt/rows'
+import {
+  addStage,
+  BARE,
+  clampStage,
+  gapAt,
+  nextType,
+  removeStage,
+  setStageSpan,
+  shownStages,
+  stageSpan,
+  updateStage,
+  type Stage,
+} from '@/modules/gantt/stages'
+import {
+  barBox,
+  dayAt,
+  dragSpan,
+  formatDay,
+  formatSpan,
+  rangeDays,
+  type Grip,
+  type Span,
+} from '@/modules/gantt/timeline'
+import { stageColors } from '@/planning/colors'
+import { cn } from '@/lib/utils'
+import { toastError } from '@/lib/toast'
+
+type Props = {
+  row: Row
+  range: Span
+  pxPerDay: number
+  types: StageType[]
+  /** The row's name and, for a task, its live status; the tooltip names both. */
+  label: string
+  onRow: (row: Row) => void
+}
+
+// A click without a drag adds one week.
+const CLICK_DAYS = 7
+const MOVE_PX = 3
+
+/** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
+export function GanttStages({ row, range, pxPerDay, types, label, onRow }: Props) {
+  const { getZoom } = useReactFlow()
+  const [open, setOpen] = useState<string | null>(null)
+  const [ghost, setGhost] = useState<Span | null>(null)
+  const draw = useRef<{ day: number; gap: Span; x: number; left: number; zoom: number } | null>(
+    null,
+  )
+  const stages = shownStages(row)
+  const dayUnder = (clientX: number, left: number, zoom: number) =>
+    dayAt((clientX - left) / zoom, range, pxPerDay)
+
+  const startDraw = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.button !== 0) return
+    event.stopPropagation()
+    const zoom = getZoom()
+    const left = event.currentTarget.getBoundingClientRect().left
+    const day = dayUnder(event.clientX, left, zoom)
+    const gap = gapAt(row, day)
+    if (!gap) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    draw.current = { day, gap, x: event.clientX, left, zoom }
+    setGhost({ start: day, end: day })
+  }
+  const moveDraw = (event: PointerEvent) => {
+    const current = draw.current
+    if (!current || Math.abs(event.clientX - current.x) < MOVE_PX) return
+    const day = Math.min(
+      Math.max(dayUnder(event.clientX, current.left, current.zoom), current.gap.start),
+      current.gap.end,
+    )
+    setGhost({ start: Math.min(day, current.day), end: Math.max(day, current.day) })
+  }
+  const endDraw = (event: PointerEvent) => {
+    const current = draw.current
+    draw.current = null
+    setGhost(null)
+    if (!current) return
+    const moved = Math.abs(event.clientX - current.x) >= MOVE_PX
+    const span = moved
+      ? (ghost ?? { start: current.day, end: current.day })
+      : { start: current.day, end: Math.min(current.day + CLICK_DAYS - 1, current.gap.end) }
+    const added = addStage(row, span, nextType(types, row, span.start))
+    if (!added) return
+    onRow(added.row)
+    setOpen(added.id)
+  }
+
+  return (
+    <div
+      data-gantt-stages
+      className="absolute inset-0 cursor-crosshair"
+      onPointerDown={startDraw}
+      onPointerMove={moveDraw}
+      onPointerUp={endDraw}
+      onPointerCancel={() => {
+        draw.current = null
+        setGhost(null)
+      }}
+    >
+      {stages.map((stage) => (
+        <StageBar
+          key={stage.id}
+          row={row}
+          stage={stage}
+          range={range}
+          pxPerDay={pxPerDay}
+          types={types}
+          label={label}
+          open={open === stage.id}
+          onOpen={(next) => setOpen(next ? stage.id : null)}
+          onRow={onRow}
+          onReopen={setOpen}
+        />
+      ))}
+      {ghost && <Ghost span={ghost} range={range} pxPerDay={pxPerDay} />}
+    </div>
+  )
+}
+
+function Ghost({ span, range, pxPerDay }: { span: Span; range: Span; pxPerDay: number }) {
+  const box = barBox(span, range, pxPerDay)
+  if (!box) return null
+  return (
+    <div
+      aria-hidden
+      className="border-primary bg-accent pointer-events-none absolute top-1.5 h-5 rounded-[4px] border border-dashed"
+      style={{ left: box.left, width: Math.max(box.width, 4) }}
+    />
+  )
+}
+
+type BarProps = {
+  row: Row
+  stage: Stage
+  range: Span
+  pxPerDay: number
+  types: StageType[]
+  label: string
+  open: boolean
+  onOpen: (open: boolean) => void
+  onRow: (row: Row) => void
+  /** Keeps the popover on a stage whose id changed, as the bare bar's does on its first type. */
+  onReopen: (id: string) => void
+}
+
+function StageBar({
+  row,
+  stage,
+  range,
+  pxPerDay,
+  types,
+  label,
+  open,
+  onOpen,
+  onRow,
+  onReopen,
+}: BarProps) {
+  const { getZoom } = useReactFlow()
+  const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span; moved: boolean } | null>(
+    null,
+  )
+  const [dragging, setDragging] = useState(false)
+  const span = stageSpan(stage)
+  const box = barBox(span, range, pxPerDay)
+  if (!box) return null
+  const type = types.find((t) => t.id === stage.type)
+  const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
+
+  const start = (grip: Grip) => (event: PointerEvent) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    drag.current = { x: event.clientX, zoom: getZoom(), grip, span, moved: false }
+  }
+  const move = (event: PointerEvent) => {
+    const current = drag.current
+    if (!current) return
+    if (!current.moved && Math.abs(event.clientX - current.x) < MOVE_PX) return
+    current.moved = true
+    setDragging(true)
+    const days = Math.round((event.clientX - current.x) / current.zoom / pxPerDay)
+    const wanted = dragSpan(current.span, current.grip, days)
+    const next = stage.id === BARE ? wanted : clampStage(row, stage.id, wanted, current.grip)
+    if (next.start === span.start && next.end === span.end) return
+    onRow(
+      stage.id === BARE
+        ? { ...row, start: formatDay(next.start), end: formatDay(next.end) }
+        : setStageSpan(row, stage.id, next),
+    )
+  }
+  const stop = () => {
+    const current = drag.current
+    drag.current = null
+    setDragging(false)
+    if (current && !current.moved) onOpen(!open)
+  }
+  const handlers = { onPointerMove: move, onPointerUp: stop, onPointerCancel: stop }
+
+  return (
+    // Its own box for `peer-hover`: siblings in one row would light every later stage's tip.
+    <div className="contents">
+      <Popover open={open} onOpenChange={onOpen}>
+        <PopoverAnchor asChild>
+          <div
+            role="slider"
+            aria-label={`${name} stage of ${row.title || row.key || 'row'}`}
+            aria-valuetext={formatSpan(span)}
+            onPointerDown={start('move')}
+            {...handlers}
+            className={cn(
+              'peer absolute top-1.5 flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[11px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
+              !type && 'bg-card text-muted-foreground border font-medium',
+              box.clippedStart && 'rounded-l-none',
+              box.clippedEnd && 'rounded-r-none',
+            )}
+            style={{
+              left: box.left,
+              width: Math.max(box.width, 4),
+              ...(type && stageColors(type.hue)),
+            }}
+          >
+            <span className="truncate">{name}</span>
+            {!box.clippedStart && (
+              <span
+                aria-hidden
+                onPointerDown={start('start')}
+                className="absolute inset-y-0 left-0 w-1.5 cursor-ew-resize"
+              />
+            )}
+            {!box.clippedEnd && (
+              <span
+                aria-hidden
+                onPointerDown={start('end')}
+                className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize"
+              />
+            )}
+          </div>
+        </PopoverAnchor>
+        <DatesTip
+          span={span}
+          note={`${name} · ${label}`}
+          shown={dragging}
+          left={box.left}
+          right={box.left + box.width}
+          width={rangeDays(range.start, range.end) * pxPerDay}
+        />
+        <PopoverContent side="bottom" align="start" className="w-72 p-3">
+          <StageForm
+            row={row}
+            stage={stage}
+            types={types}
+            onRow={onRow}
+            onReopen={onReopen}
+            onClose={() => onOpen(false)}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+function StageForm({
+  row,
+  stage,
+  types,
+  onRow,
+  onReopen,
+  onClose,
+}: {
+  row: Row
+  stage: Stage
+  types: StageType[]
+  onRow: (row: Row) => void
+  onReopen: (id: string) => void
+  onClose: () => void
+}) {
+  const queryClient = useQueryClient()
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const active = types.filter((t) => !t.archived)
+
+  const pick = (type: string) => {
+    const next = updateStage(row, stage.id, { type })
+    onRow(next)
+    // The bare bar turns into a stage with an id of its own; the popover follows it.
+    if (stage.id === BARE && next.stages?.length) onReopen(next.stages[0].id)
+  }
+  const create = async (event: FormEvent) => {
+    event.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed || saving) return
+    const used = new Set(active.map((t) => t.hue))
+    const hue = HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
+    setSaving(true)
+    try {
+      const created = await addStageType({ name: trimmed, hue })
+      queryClient.setQueryData<Planning>(
+        PLANNING_KEY,
+        (was) => was && { ...was, types: [...was.types, created] },
+      )
+      setAdding(false)
+      setName('')
+      pick(created.id)
+    } catch (error) {
+      toastError(error as Error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5 text-[13px]">
+      <div className="font-semibold">
+        Stage{' '}
+        <span className="text-muted-foreground text-[12px] font-normal">
+          in {row.title || row.key}
+        </span>
+      </div>
+      <div role="group" aria-label="Stage type" className="flex flex-wrap gap-1">
+        {active.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={t.id === stage.type}
+            onClick={() => pick(t.id)}
+            className={cn(
+              'rounded-[4px] px-2 py-0.5 text-[12px] font-medium',
+              t.id === stage.type && 'ring-primary ring-2',
+            )}
+            style={stageColors(t.hue)}
+          >
+            {t.name}
+          </button>
+        ))}
+        {!adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="text-muted-foreground hover:text-foreground rounded-[4px] border border-dashed px-2 py-0.5 text-[12px]"
+          >
+            <Plus className="mr-0.5 inline size-3" />
+            New type
+          </button>
+        )}
+      </div>
+      {adding && (
+        <form onSubmit={create} className="flex gap-1.5">
+          <Input
+            autoFocus
+            aria-label="New stage type"
+            placeholder="Type name, e.g. Testing"
+            maxLength={40}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="h-8"
+          />
+          <Button type="submit" size="sm" disabled={!name.trim() || saving}>
+            Add
+          </Button>
+        </form>
+      )}
+      <div className="text-muted-foreground text-[12px] tabular-nums">
+        {formatSpan(stageSpan(stage))}
+      </div>
+      <p className="text-muted-foreground text-[12px]">
+        Stage types are shared by every board. The task in the tracker stays as it is.
+      </p>
+      {stage.id !== BARE && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              onClose()
+              onRow(removeStage(row, stage.id))
+            }}
+          >
+            <Trash2 className="size-3.5" />
+            Delete stage
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}

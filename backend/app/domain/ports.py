@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
+    from app.domain.planning import StageType
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -245,6 +246,16 @@ class SettingsRepo(Protocol):
     def set_many(self, values: dict[str, str | None]) -> None:
         """None deletes the key."""
         ...
+
+
+class PlanningTypeRepo(Protocol):
+    def all(self) -> list[StageType]:
+        """In the order they were added."""
+        ...
+
+    def add(self, stage_type: StageType) -> None: ...
+
+    def update(self, stage_type: StageType) -> None: ...
 
 
 class DemoTasks(Protocol):
