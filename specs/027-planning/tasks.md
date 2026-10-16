@@ -22,10 +22,10 @@ Slice `planning-stages`.
 
 Slice `planning-people`.
 
-- [ ] T006 [US2] Backend: `planning_people` table, people endpoints, archive; `planning` live event; people and types in the public payload
-- [ ] T007 [US2] Settings → Planning → People and the Gantt "People" button: list, add, teams, source, archive
-- [ ] T008 [US2] Stage popover: people chips, suggestions from the directory and from assignees of this Gantt's tasks, add on the fly; names inline or under the bar per Gantt
-- [ ] T009 [US2] Tests: three ways to add, no bulk import, archived person muted, public viewer read-only; guide, changelog
+- [x] T006 [US2] Backend: `planning_people` table, people endpoints, archive; `planning` live event; people and types in the public payload
+- [x] T007 [US2] Settings → Planning → People and the Gantt "People" button: list, add, teams, source, archive
+- [x] T008 [US2] Stage popover: people chips, suggestions from the directory and from assignees of this Gantt's tasks, add on the fly; names inline or under the bar per Gantt
+- [x] T009 [US2] Tests: three ways to add, no bulk import, archived person muted, public viewer read-only; guide, changelog
 
 ## Phase 3: User Story 3 - See who is away (P1)
 
