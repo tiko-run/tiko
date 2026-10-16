@@ -390,3 +390,22 @@ test('each stage has a tooltip of its own', () => {
   expect(bars[0].parentElement).not.toBe(bars[1].parentElement)
   expect(bars[0].parentElement!.querySelectorAll('[role=tooltip]')).toHaveLength(1)
 })
+
+test('removing the last child of a stretched row brings its dates back to its stages', () => {
+  const start: GanttContent = {
+    ...content,
+    rows: [
+      {
+        id: 'a',
+        title: 'Payment API',
+        start: '2026-10-01',
+        end: '2026-10-30',
+        stages: [{ id: 's1', type: 't1', start: '2026-10-05', end: '2026-10-09', people: [] }],
+      },
+      { id: 'b', title: 'Child', start: '2026-10-12', end: '2026-10-14', parent: 'a' },
+    ],
+  }
+  renderGantt({}, start, PLANNING)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Child' }))
+  expect([rows()[0].start, rows()[0].end]).toEqual(['2026-10-05', '2026-10-09'])
+})

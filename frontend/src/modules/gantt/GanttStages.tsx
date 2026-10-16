@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent, type PointerEvent } from 'react'
-import { addStageType, HUES, PLANNING_KEY, type Planning, type StageType } from '@/api/planning'
+import { addStageType, freeHue, storeStageType, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -302,15 +302,10 @@ function StageForm({
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed || saving) return
-    const used = new Set(active.map((t) => t.hue))
-    const hue = HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
     setSaving(true)
     try {
-      const created = await addStageType({ name: trimmed, hue })
-      queryClient.setQueryData<Planning>(
-        PLANNING_KEY,
-        (was) => was && { ...was, types: [...was.types, created] },
-      )
+      const created = await addStageType({ name: trimmed, hue: freeHue(types) })
+      storeStageType(queryClient, created)
       setAdding(false)
       setName('')
       pick(created.id)

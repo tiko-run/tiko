@@ -5,12 +5,13 @@ import type { Me } from '@/api/auth'
 import {
   addStageType,
   changeStageType,
+  freeHue,
   HUES,
   PLANNING_KEY,
   setPlanning,
+  storeStageType,
   usePlanningQuery,
   type Hue,
-  type Planning as PlanningData,
   type StageType,
 } from '@/api/planning'
 import { Button } from '@/components/ui/button'
@@ -62,17 +63,7 @@ export function Planning({ me }: { me: Me }) {
 function StageTypes({ types }: { types: StageType[] }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
-  const replace = (saved: StageType) =>
-    queryClient.setQueryData<PlanningData>(
-      PLANNING_KEY,
-      (was) =>
-        was && {
-          ...was,
-          types: was.types.some((t) => t.id === saved.id)
-            ? was.types.map((t) => (t.id === saved.id ? saved : t))
-            : [...was.types, saved],
-        },
-    )
+  const replace = (saved: StageType) => storeStageType(queryClient, saved)
   const change = useMutation({
     mutationFn: ({ id, ...rest }: { id: string; name?: string; hue?: Hue; archived?: boolean }) =>
       changeStageType(id, rest),
@@ -91,9 +82,7 @@ function StageTypes({ types }: { types: StageType[] }) {
   const archived = types.filter((t) => t.archived)
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    const used = new Set(active.map((t) => t.hue))
-    const hue = HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
-    if (name.trim()) add.mutate({ name: name.trim(), hue })
+    if (name.trim()) add.mutate({ name: name.trim(), hue: freeHue(types) })
   }
   return (
     <Group title="Stage types">

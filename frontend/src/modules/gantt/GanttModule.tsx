@@ -37,7 +37,7 @@ import {
   type Row,
 } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
-import { fitStages } from '@/modules/gantt/stages'
+import { fitLeaves, fitStages } from '@/modules/gantt/stages'
 import {
   addChild,
   indent,
@@ -98,7 +98,9 @@ function HeaderRow({ cells, pxPerDay, top }: { cells: Cell[]; pxPerDay: number; 
   )
 }
 
-export function GanttModule({ content, width, selected, onChange, host }: Props) {
+export function GanttModule({ content, width, selected, onChange: write, host }: Props) {
+  // Every change passes here, so no tree edit leaves a leaf apart from its stages.
+  const onChange = (next: GanttContent) => write(fitLeaves(next))
   const tasks = useContext(TasksContext)
   const planning = usePlanning()
   const taskOf = (row: Row) => {
@@ -262,11 +264,7 @@ export function GanttModule({ content, width, selected, onChange, host }: Props)
                 range={span}
                 pxPerDay={scale}
                 types={planning.types}
-                label={
-                  taskOf(row)?.state === 'ok'
-                    ? `${row.key} ${taskOf(row)!.summary} · ${taskOf(row)!.status_name}`
-                    : row.key || row.title
-                }
+                label={stagesLabel(row, taskOf(row))}
                 onRow={(next) => onChange(updateRow(content, row.id, () => next))}
               />
             ) : (
@@ -404,6 +402,12 @@ function QuarterButton({
       <Plus className="size-3.5" />
     </Button>
   )
+}
+
+function stagesLabel(row: Row, task: Task | undefined) {
+  return task?.state === 'ok'
+    ? `${row.key} ${task.summary} · ${task.status_name}`
+    : row.key || row.title
 }
 
 function formatRange(start: string, end: string) {

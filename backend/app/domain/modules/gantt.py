@@ -7,6 +7,7 @@ from app.domain.tasks import SOURCE_PATTERN, valid_key
 
 MAX_RANGE_DAYS = 1096
 MAX_DEPTH = 5
+# Mirrors MAX_STAGES in frontend/src/modules/gantt/stages.ts.
 MAX_STAGES = 20
 MAX_STAGE_PEOPLE = 10
 

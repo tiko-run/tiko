@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { fetchJson } from '@/api/client'
 
+// Mirrors `Hue` in backend/app/domain/planning.py.
 export const HUES = [25, 60, 75, 150, 200, 250, 300, 340] as const
 export type Hue = (typeof HUES)[number]
 
@@ -51,4 +52,25 @@ export function changeStageType(
 
 export function usePlanningQuery(enabled = true) {
   return useQuery({ queryKey: PLANNING_KEY, queryFn: getPlanning, enabled, staleTime: 60_000 })
+}
+
+/** A hue no active type has yet, so a new type stands apart from the others. */
+export function freeHue(types: StageType[]): Hue {
+  const active = types.filter((t) => !t.archived)
+  const used = new Set(active.map((t) => t.hue))
+  return HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
+}
+
+/** Puts a saved type into the cached list, in place or at the end. */
+export function storeStageType(queryClient: QueryClient, saved: StageType) {
+  queryClient.setQueryData<Planning>(
+    PLANNING_KEY,
+    (was) =>
+      was && {
+        ...was,
+        types: was.types.some((t) => t.id === saved.id)
+          ? was.types.map((t) => (t.id === saved.id ? saved : t))
+          : [...was.types, saved],
+      },
+  )
 }

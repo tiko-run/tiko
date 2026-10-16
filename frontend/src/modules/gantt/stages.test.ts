@@ -5,6 +5,7 @@ import type { GanttContent } from '@/modules/gantt/schema'
 import {
   addStage,
   BARE,
+  fitLeaves,
   clampStage,
   fitStages,
   gapAt,
@@ -128,4 +129,36 @@ test('moving a branch moves the stages of its rows', () => {
   expect(shifted.start).toBe('2026-10-12')
   expect(shifted.stages![0].start).toBe('2026-10-12')
   expect(shifted.stages![1].end).toBe('2026-10-23')
+})
+
+test('after a pause a new stage follows the stage before the pause', () => {
+  const paused = withPause()
+  expect(nextType(types, paused, d('2026-10-26'))).toBe('t3')
+})
+
+function withPause(): Row {
+  return {
+    ...staged,
+    end: '2026-10-23',
+    stages: [
+      ...staged.stages!,
+      { id: 's3', type: 't5', start: '2026-10-19', end: '2026-10-23', people: [] },
+    ],
+  }
+}
+
+test('a row that stops being a parent takes its stages dates again', () => {
+  const content: GanttContent = {
+    start: '2026-10-01',
+    end: '2026-12-31',
+    scale: 'week',
+    labelWidth: 160,
+    rows: [{ ...staged, start: '2026-10-01', end: '2026-10-30' }],
+    milestones: [],
+    links: [],
+  }
+  const fitted = fitLeaves(content).rows[0]
+  expect([fitted.start, fitted.end]).toEqual(['2026-10-05', '2026-10-16'])
+  const parent = { ...content, rows: [...content.rows, { ...bare, parent: 'r' }] }
+  expect(fitLeaves(parent)).toBe(parent)
 })
