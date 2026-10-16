@@ -31,10 +31,10 @@ Slice `planning-people`.
 
 Slice `planning-time-off`.
 
-- [ ] T010 [US3] Backend: time off ranges on a person, endpoints, limits
-- [ ] T011 [US3] Gantt: Time off lane shown only when needed, add by drag and person pick, stacked ranges, popover to remove; time off in the person's card
-- [ ] T012 [US3] Conflict outline, "!" and the away line in tooltip and popover
-- [ ] T013 [US3] Tests: lane hidden and shown, conflict on two Gantts, removal clears it; guide, changelog
+- [x] T010 [US3] Backend: time off ranges on a person, endpoints, limits
+- [x] T011 [US3] Gantt: Time off lane shown only when needed, add by drag and person pick, stacked ranges, popover to remove; time off in the person's card
+- [x] T012 [US3] Conflict outline, "!" and the away line in tooltip and popover
+- [x] T013 [US3] Tests: lane hidden and shown, conflict on two Gantts, removal clears it; guide, changelog
 
 ## Phase 4: User Story 4 - Columns that inherit (P2)
 
