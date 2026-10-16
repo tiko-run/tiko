@@ -49,7 +49,7 @@ export function GanttColumns({
           <div
             key={id}
             title={nameOf(id)}
-            className="text-muted-foreground flex items-end truncate border-r px-1.5 pb-1 font-medium"
+            className="text-muted-foreground flex items-center justify-center border-r px-1.5 text-center font-medium"
             style={{ width: COLUMN_WIDTH }}
           >
             <span className="truncate">{nameOf(id)}</span>
@@ -162,7 +162,7 @@ function ColumnPicker({
           type="button"
           aria-label="Columns"
           title="Show a field as a column"
-          className="text-muted-foreground hover:text-foreground hover:bg-accent flex shrink-0 items-end justify-center pb-1"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent flex shrink-0 items-center justify-center"
           style={{ width: ADD_COLUMN_WIDTH }}
         >
           <Plus className="size-3.5" />
