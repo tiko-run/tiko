@@ -65,10 +65,11 @@ def test_guest_reads_a_public_board(client):
     assert anyone.get("/api/boards").status_code == 401
 
 
-def gantt_with(client: TestClient, stages: list[dict]) -> str:
+def gantt_with(client: TestClient, stages: list[dict], **extra) -> str:
     board_id = client.post("/api/boards", json={"name": "Plan"}).json()["id"]
     row = {"id": "r1", "title": "Checkout", "start": "2026-10-05", "end": "2026-10-16"}
     content = {"start": "2026-10-01", "end": "2026-12-31", "rows": [row | {"stages": stages}]}
+    content |= extra
     node = {
         "id": "g",
         "type": "module",
@@ -87,9 +88,14 @@ def test_guest_gets_only_the_types_and_people_of_the_board(client):
         for name in ("Ivan", "Petra")
     )
     stage = {"id": "s1", "type": types[2]["id"], "start": "2026-10-05", "end": "2026-10-16"}
-    board_id = gantt_with(client, [stage | {"people": [ivan["id"], "gone"]}])
+    quarter = client.post("/api/planning/fields", json={"name": "Quarter"}).json()
+    client.post("/api/planning/fields", json={"name": "Budget code"})
+    board_id = gantt_with(
+        client, [stage | {"people": [ivan["id"], "gone"]}], columns=["priority", quarter["id"]]
+    )
     planning = guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"]
-    assert planning == {"types": [types[2]], "people": [ivan]}
+    assert planning["types"] == [types[2]] and planning["people"] == [ivan]
+    assert [f["name"] for f in planning["fields"]] == ["Priority", "Quarter"]
     assert petra not in planning["people"]
     client.patch("/api/planning", json={"enabled": False})
     assert guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"] is None

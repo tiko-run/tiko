@@ -1,5 +1,6 @@
 import type { XYPosition } from '@xyflow/react'
 import type { TaskLink } from '@/canvas/tasks-context'
+import { columnsWidth } from '@/modules/gantt/fields'
 import type { GanttContent } from '@/modules/gantt/schema'
 import { dayAt, formatDay, newSpan, parseDay, rangeDays, type Span } from '@/modules/gantt/timeline'
 import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
@@ -22,9 +23,14 @@ export function range(content: GanttContent): Span {
   return { start: parseDay(content.start), end: parseDay(content.end) }
 }
 
-export function pxPerDay(content: GanttContent, width: number) {
+/** Where the timeline starts: after the titles and, with Planning on, the field columns. */
+export function timelineLeft(content: GanttContent, planning: boolean) {
+  return content.labelWidth + columnsWidth(content, planning)
+}
+
+export function pxPerDay(content: GanttContent, width: number, planning: boolean) {
   const { start, end } = range(content)
-  return Math.max(width - content.labelWidth, 1) / rangeDays(start, end)
+  return Math.max(width - timelineLeft(content, planning), 1) / rangeDays(start, end)
 }
 
 export function rowHeight(content: GanttContent, planning: boolean) {
@@ -97,9 +103,10 @@ export function acceptCard(
   planning: PlanningState,
 ): GanttContent | null {
   if (content.rows.length >= MAX_ROWS || planned(content, task)) return null
+  const left = timelineLeft(content, planning.enabled)
   const day =
-    at.x >= content.labelWidth
-      ? dayAt(at.x - content.labelWidth, range(content), pxPerDay(content, width))
+    at.x >= left
+      ? dayAt(at.x - left, range(content), pxPerDay(content, width, planning.enabled))
       : undefined
   // Between the visible rows it fell on, next to the row above it.
   const visible = visibleRows(content.rows)

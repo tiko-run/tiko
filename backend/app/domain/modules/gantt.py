@@ -10,9 +10,14 @@ MAX_DEPTH = 5
 # Mirrors MAX_STAGES in frontend/src/modules/gantt/stages.ts.
 MAX_STAGES = 20
 MAX_STAGE_PEOPLE = 10
+MAX_VALUES = 20
+MAX_COLUMNS = 6
 
 ItemId = Annotated[str, Field(min_length=1, max_length=40)]
 Title = Annotated[str, Field(max_length=200)]
+FieldId = Annotated[str, Field(min_length=1, max_length=40)]
+# An empty value is not stored: the row then shows its parent's.
+Value = Annotated[str, Field(min_length=1, max_length=100)]
 
 
 class _Strict(BaseModel):
@@ -50,6 +55,8 @@ class Row(_Strict):
     collapsed: bool = False
     # Absent, not empty, on a row without stages, so content saved before them stays the same.
     stages: list[Stage] | None = Field(default=None, max_length=MAX_STAGES)
+    # Field id to its value on this row; ids come from /api/planning.
+    values: dict[FieldId, Value] | None = Field(default=None, max_length=MAX_VALUES)
 
     @model_validator(mode="after")
     def _dates(self) -> Self:
@@ -88,6 +95,8 @@ class GanttContent(_Strict):
     links: list[Link] = Field(default_factory=list, max_length=400)
     # Where stage people show; absent means inline, so older content stays the same.
     people: Literal["inline", "below"] | None = None
+    # Field ids shown as columns, in order.
+    columns: list[FieldId] | None = Field(default=None, max_length=MAX_COLUMNS)
 
     @model_validator(mode="after")
     def _rules(self) -> Self:
@@ -99,6 +108,7 @@ class GanttContent(_Strict):
             _unique(label, [item.id for item in items])
         _unique("stage", [stage.id for row in self.rows for stage in row.stages or []])
         _unique("link", [link.id for link in self.links])
+        _unique("column", self.columns or [])
         _check_tree(self.rows)
         # A leaf's own dates are what links and Planning off draw, so they follow its stages.
         # A parent's stretch past its children, so its hidden stages are left as they were.

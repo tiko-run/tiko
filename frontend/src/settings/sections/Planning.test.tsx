@@ -15,8 +15,18 @@ const people = [
   { id: 'p1', name: 'Oleg', teams: ['Web'], source: 'tracker', archived: false, off: [] },
 ]
 
+const fields = [
+  { id: 'priority', name: 'Priority', standard: true, archived: false },
+  { id: 'f7', name: 'Quarter', standard: false, archived: false },
+]
+
 function show(role: 'admin' | 'member', enabled: boolean) {
-  let state = { enabled, types: enabled ? types : [], people: enabled ? people : [] }
+  let state = {
+    enabled,
+    types: enabled ? types : [],
+    people: enabled ? people : [],
+    fields: enabled ? fields : [],
+  }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(String(init.body)) : {}
     if (url === '/api/planning' && init?.method === 'PATCH') {
@@ -24,6 +34,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
         enabled: body.enabled,
         types: body.enabled ? types : [],
         people: body.enabled ? people : [],
+        fields: body.enabled ? fields : [],
       }
     }
     if (url === '/api/planning/types') return Response.json({ id: 't9', archived: false, ...body })
@@ -38,6 +49,10 @@ function show(role: 'admin' | 'member', enabled: boolean) {
       })
     if (url.startsWith('/api/planning/people/'))
       return Response.json({ ...state.people.find((p) => url.endsWith(p.id)), ...body })
+    if (url === '/api/planning/fields')
+      return Response.json({ id: 'f9', standard: false, archived: false, ...body })
+    if (url.startsWith('/api/planning/fields/'))
+      return Response.json({ ...fields.find((f) => url.endsWith(f.id)), ...body })
     if (url.startsWith('/api/planning/types/'))
       return Response.json({ ...types.find((t) => url.endsWith(t.id)), ...body })
     return Response.json(state)
@@ -167,4 +182,19 @@ test('time off cannot end before it starts', async () => {
   const until = screen.getByLabelText('Oleg is away until')
   fireEvent.change(until, { target: { value: '2026-10-05' } })
   expect(within(until.closest('form')!).getByRole('button', { name: 'Add' })).toBeDisabled()
+})
+
+test('a field is added and archived; a standard one stays', async () => {
+  const fetchMock = show('member', true)
+  const field = await screen.findByLabelText('New field')
+  fireEvent.change(field, { target: { value: 'Budget code' } })
+  fireEvent.submit(field)
+  expect(await screen.findByLabelText('Name of field Budget code')).toBeInTheDocument()
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/fields',
+    expect.objectContaining({ method: 'POST', body: '{"name":"Budget code"}' }),
+  )
+  expect(screen.queryByRole('button', { name: 'Archive field Priority' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Archive field Quarter' }))
+  expect(await screen.findByRole('button', { name: 'Restore field Quarter' })).toBeInTheDocument()
 })

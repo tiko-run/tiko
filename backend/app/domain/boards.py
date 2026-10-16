@@ -330,17 +330,19 @@ def task_refs(doc: BoardDoc, default_source: str) -> list[str]:
     return sorted({task_ref(source or default_source, key) for source, key in tasks})
 
 
-def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str]]:
-    """Stage type and person ids the board's Gantts use."""
+def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
+    """Stage type, person and column field ids the board's Gantts use."""
     types: set[str] = set()
     people: set[str] = set()
+    fields: set[str] = set()
     for node in doc.nodes:
         if isinstance(node, ModuleNode) and node.data.kind == "gantt":
+            fields.update(node.data.content.get("columns") or [])
             for row in node.data.content.get("rows", []):
                 for stage in row.get("stages") or []:
                     types.add(stage["type"])
                     people.update(stage.get("people", []))
-    return types, people
+    return types, people, fields
 
 
 def _summary(row: BoardRow, role: BoardRole) -> BoardSummary:

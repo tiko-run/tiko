@@ -27,10 +27,19 @@ const personSchema = z.object({
 })
 export type Person = z.infer<typeof personSchema>
 
+const fieldSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  standard: z.boolean(),
+  archived: z.boolean(),
+})
+export type Field = z.infer<typeof fieldSchema>
+
 const planningSchema = z.object({
   enabled: z.boolean(),
   types: z.array(stageTypeSchema),
   people: z.array(personSchema),
+  fields: z.array(fieldSchema),
 })
 export type Planning = z.infer<typeof planningSchema>
 
@@ -42,6 +51,7 @@ export const PLANNING_CHANGED_EVENT = 'tiko:planning-changed'
 export const boardPlanningSchema = z.object({
   types: z.array(stageTypeSchema),
   people: z.array(personSchema),
+  fields: z.array(fieldSchema),
 })
 export type BoardPlanning = z.infer<typeof boardPlanningSchema>
 
@@ -90,6 +100,20 @@ export function changePerson(
   })
 }
 
+export function addField(name: string) {
+  return fetchJson('/api/planning/fields', fieldSchema, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function changeField(id: string, change: { name?: string; archived?: boolean }) {
+  return fetchJson(`/api/planning/fields/${encodeURIComponent(id)}`, fieldSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(change),
+  })
+}
+
 /** Marks a person away from `start` to `end`, both ISO days; answers with the person. */
 export function addTimeOff(personId: string, span: { start: string; end: string }) {
   return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/off`, personSchema, {
@@ -114,7 +138,7 @@ export function freeHue(types: StageType[]): Hue {
   return HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
 }
 
-function storeInList<K extends 'types' | 'people'>(
+function storeInList<K extends 'types' | 'people' | 'fields'>(
   queryClient: QueryClient,
   list: K,
   saved: Planning[K][number],
@@ -139,6 +163,11 @@ export function storeStageType(queryClient: QueryClient, saved: StageType) {
 /** Puts a saved person into the cached list, in place or at the end. */
 export function storePerson(queryClient: QueryClient, saved: Person) {
   storeInList(queryClient, 'people', saved)
+}
+
+/** Puts a saved field into the cached list, in place or at the end. */
+export function storeField(queryClient: QueryClient, saved: Field) {
+  storeInList(queryClient, 'fields', saved)
 }
 
 /** Splits "Web, Core" into teams, as the person's teams field takes them. */

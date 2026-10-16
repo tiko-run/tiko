@@ -10,8 +10,8 @@ Instance data. Reading needs a signed-in person (a public link viewer gets the n
   "types": [{"id": "t1", "name": "Discovery", "hue": 75, "archived": false}],
   "people": [{"id": "p1", "name": "Anna", "teams": ["Core"], "source": "manual", "archived": false,
               "off": [{"id": "o1", "start": "2026-10-05", "end": "2026-10-09"}]}],
-  "fields": [{"id": "priority", "name": "Priority", "standard": true},
-             {"id": "f7", "name": "Quarter", "standard": false}],
+  "fields": [{"id": "priority", "name": "Priority", "standard": true, "archived": false},
+             {"id": "f7", "name": "Quarter", "standard": false, "archived": false}],
   "views": [{"id": "v1", "name": "Web in Q4", "filters": {"team": ["Web"], "f7": ["Q4"]}}],
   "daysOff": ["2026-11-04"]
 }
@@ -33,7 +33,7 @@ One read for everything a Gantt needs. With Planning off, and always on a demo i
 | `PATCH /api/planning/people/{id}` | `{"name"?, "teams"?, "archived"?}` | |
 | `POST /api/planning/people/{id}/off` | `{"start", "end"}` | ISO days, `end` not before `start`; up to 100 ranges per person |
 | `DELETE /api/planning/people/{id}/off/{offId}` | | |
-| `POST /api/planning/fields` | `{"name"}` | name 1–40, unique; up to 50 fields |
+| `POST /api/planning/fields` | `{"name"}` | name 1–40, unique among active fields; up to 50 fields besides the standard three |
 | `PATCH /api/planning/fields/{id}` | `{"name"?, "archived"?}` | standard fields: name only |
 | `POST /api/planning/views` | `{"name", "filters"}` | up to 100 views |
 | `DELETE /api/planning/views/{id}` | | |
@@ -59,4 +59,4 @@ A stage on a board the reader cannot open has `board`, `boardName`, `row` and `t
 
 ## Public link
 
-A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people}` limited to the ids on that board), so a viewer sees stages and names without access to the directory. With Planning off, and always on a demo instance, `planning` is `null`.
+A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people, fields}` limited to the ids on that board, fields by the Gantts' `columns`), so a viewer sees stages and names without access to the directory. With Planning off, and always on a demo instance, `planning` is `null`.

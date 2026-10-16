@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { GanttAdd } from '@/modules/gantt/GanttAdd'
 import { GanttBar } from '@/modules/gantt/GanttBar'
+import { GanttColumns } from '@/modules/gantt/GanttColumns'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
 import { GanttStages } from '@/modules/gantt/GanttStages'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
@@ -126,7 +127,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const span = range(content)
   const { start, end } = span
-  const scale = pxPerDay(content, width)
+  const scale = pxPerDay(content, width, planning.enabled)
   const { top, bottom } = header(start, end, content.scale)
   const now = today()
   const before = quarterBefore(start)
@@ -256,6 +257,17 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           />
         </div>
       </div>
+      {planning.enabled && (
+        <GanttColumns
+          content={content}
+          visible={visible.map(({ row }) => row)}
+          fields={planning.fields}
+          rowHeight={height}
+          lane={lane}
+          onChange={onChange}
+          onRow={(next) => onChange(updateRow(content, next.id, () => next))}
+        />
+      )}
       <div data-gantt-body className="relative min-w-0 flex-1">
         <div className="border-b">
           <HeaderRow cells={top} pxPerDay={scale} top />

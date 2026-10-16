@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor, is_demo, not_on_demo
 from app.domain.planning import (
+    FieldChange,
+    FieldIn,
     PersonChange,
     PersonIn,
     Planning,
     PlanningChange,
+    PlanningField,
     PlanningPerson,
     PlanningView,
     StageType,
@@ -78,3 +81,15 @@ def remove_off(
     person_id: str, off_id: str, person: CurrentPerson, service: PlanningDep
 ) -> PlanningPerson:
     return service.remove_off(person_id, off_id)
+
+
+@router.post("/fields", dependencies=Writer)
+def add_field(body: FieldIn, person: CurrentPerson, service: PlanningDep) -> PlanningField:
+    return service.add_field(body)
+
+
+@router.patch("/fields/{field_id}", dependencies=Writer)
+def change_field(
+    field_id: str, body: FieldChange, person: CurrentPerson, service: PlanningDep
+) -> PlanningField:
+    return service.change_field(field_id, body)

@@ -22,7 +22,12 @@ def member(client: TestClient) -> TestClient:
 
 
 def test_off_by_default(client: TestClient) -> None:
-    assert client.get("/api/planning").json() == {"enabled": False, "types": [], "people": []}
+    assert client.get("/api/planning").json() == {
+        "enabled": False,
+        "types": [],
+        "people": [],
+        "fields": [],
+    }
 
 
 def test_first_enable_seeds_the_default_types(client: TestClient) -> None:
@@ -220,3 +225,43 @@ def test_no_time_off_on_a_demo_instance() -> None:
     week = {"start": "2026-10-05", "end": "2026-10-09"}
     assert admin.post("/api/planning/people/p1/off", json=week).status_code == 403
     assert admin.delete("/api/planning/people/p1/off/o1").status_code == 403
+
+
+def test_the_standard_fields_are_there_from_the_start(client: TestClient) -> None:
+    fields = client.patch("/api/planning", json={"enabled": True}).json()["fields"]
+    assert [(f["id"], f["name"], f["standard"]) for f in fields] == [
+        ("priority", "Priority", True),
+        ("size", "Size", True),
+        ("team", "Team", True),
+    ]
+
+
+def test_a_member_adds_renames_and_archives_a_field(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ann = member(client)
+    quarter = ann.post("/api/planning/fields", json={"name": " Quarter "}).json()
+    assert quarter == {"id": quarter["id"], "name": "Quarter", "standard": False, "archived": False}
+    path = f"/api/planning/fields/{quarter['id']}"
+    assert ann.patch(path, json={"name": "Qtr"}).json()["name"] == "Qtr"
+    assert ann.patch(path, json={"archived": True}).json()["archived"] is True
+    names = [f["name"] for f in client.get("/api/planning").json()["fields"]]
+    assert names == ["Priority", "Size", "Team", "Qtr"]
+    # An archived name is free again.
+    assert ann.post("/api/planning/fields", json={"name": "Qtr"}).status_code == 200
+
+
+def test_field_rules(client: TestClient, monkeypatch) -> None:
+    fields = "/api/planning/fields"
+    assert client.post(fields, json={"name": "Quarter"}).status_code == 422
+    client.patch("/api/planning", json={"enabled": True})
+    assert client.post(fields, json={"name": "priority"}).status_code == 422
+    assert client.post(fields, json={"name": ""}).status_code == 422
+    assert client.post(fields, json={"name": "x" * 41}).status_code == 422
+    assert client.post(fields, json={"name": "Quarter", "kind": "number"}).status_code == 422
+    assert client.patch(f"{fields}/nope", json={"name": "Quarter"}).status_code == 404
+    # Standard fields can be renamed, never archived.
+    assert client.patch(f"{fields}/team", json={"archived": True}).status_code == 422
+    assert client.patch(f"{fields}/team", json={"name": "Squad"}).json()["name"] == "Squad"
+    monkeypatch.setattr("app.domain.planning.MAX_FIELDS", 1)
+    assert client.post(fields, json={"name": "Quarter"}).status_code == 200
+    assert client.post(fields, json={"name": "Budget"}).status_code == 422

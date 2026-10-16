@@ -3,9 +3,11 @@ import { Archive, ArchiveRestore, Plus, X } from 'lucide-react'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { Me } from '@/api/auth'
 import {
+  addField,
   addPerson,
   addStageType,
   addTimeOff,
+  changeField,
   changePerson,
   changeStageType,
   freeHue,
@@ -14,9 +16,11 @@ import {
   PLANNING_KEY,
   removeTimeOff,
   setPlanning,
+  storeField,
   storePerson,
   storeStageType,
   usePlanningQuery,
+  type Field,
   type Hue,
   type Person,
   type StageType,
@@ -65,6 +69,7 @@ export function Planning({ me }: { me: Me }) {
       </Group>
       {enabled && planning.data && <StageTypes types={planning.data.types} />}
       {enabled && planning.data && <People people={planning.data.people} />}
+      {enabled && planning.data && <Fields fields={planning.data.fields} />}
     </div>
   )
 }
@@ -281,6 +286,97 @@ function People({ people }: { people: Person[] }) {
                 variant="ghost"
                 aria-label={`Restore ${p.name}`}
                 onClick={() => change.mutate({ id: p.id, archived: false })}
+              >
+                <ArchiveRestore className="size-4" />
+                Restore
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Group>
+  )
+}
+
+function Fields({ fields }: { fields: Field[] }) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const replace = (saved: Field) => storeField(queryClient, saved)
+  const change = useMutation({
+    mutationFn: ({ id, ...rest }: { id: string; name?: string; archived?: boolean }) =>
+      changeField(id, rest),
+    onSuccess: replace,
+    onError: toastError,
+  })
+  const add = useMutation({
+    mutationFn: addField,
+    onSuccess: (saved) => {
+      replace(saved)
+      setName('')
+    },
+    onError: toastError,
+  })
+  const active = fields.filter((f) => !f.archived)
+  const archived = fields.filter((f) => f.archived)
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (name.trim()) add.mutate(name.trim())
+  }
+  return (
+    <Group title="Fields">
+      <p className="text-muted-foreground text-[13px]">
+        Columns a Gantt can show next to the task titles. A child row shows its parent's value until
+        it gets its own.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {active.map((f) => (
+          <li key={f.id} className="flex items-center gap-2">
+            <Draft
+              label={`Name of field ${f.name}`}
+              value={f.name}
+              maxLength={40}
+              required
+              onSave={(next) => change.mutate({ id: f.id, name: next })}
+            />
+            {f.standard ? (
+              <span className="text-muted-foreground shrink-0 px-1 text-[12px]">Standard</span>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Archive field ${f.name}`}
+                title="Archive: rows keep their values, the column is offered no more"
+                onClick={() => change.mutate({ id: f.id, archived: true })}
+              >
+                <Archive className="size-4" />
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <form onSubmit={submit} className="flex gap-2">
+        <Input
+          aria-label="New field"
+          placeholder="New field, e.g. Quarter"
+          maxLength={40}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <Button type="submit" variant="outline" disabled={!name.trim() || add.isPending}>
+          Add
+        </Button>
+      </form>
+      {archived.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-[12px]">Archived</span>
+          {archived.map((f) => (
+            <div key={f.id} className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">{f.name}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Restore field ${f.name}`}
+                onClick={() => change.mutate({ id: f.id, archived: false })}
               >
                 <ArchiveRestore className="size-4" />
                 Restore

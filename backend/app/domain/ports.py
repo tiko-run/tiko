@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
-    from app.domain.planning import PlanningPerson, StageType, TimeOff
+    from app.domain.planning import PlanningField, PlanningPerson, StageType, TimeOff
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -278,6 +278,16 @@ class PlanningPeopleRepo(Protocol):
         ...
 
     def remove_off(self, person_id: str, off_id: str) -> None: ...
+
+
+class PlanningFieldRepo(Protocol):
+    def all(self) -> list[PlanningField]:
+        """The standard fields first, then the others in the order they were added."""
+        ...
+
+    def add(self, field: PlanningField) -> None: ...
+
+    def update(self, field: PlanningField) -> None: ...
 
 
 class DemoTasks(Protocol):
