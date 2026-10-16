@@ -462,7 +462,7 @@ export function BoardCanvas({
   const dropNodes = (ids: string[]) => {
     // The store has the final drag position; this render's nodes may not yet.
     const current = getNodes()
-    const result = absorbCards(current, ids, planning.enabled)
+    const result = absorbCards(current, ids, planning)
     let kept = result?.nodes ?? current
     if (result?.absorbed.size) didOnboarding('gantt_task')
     if (result) {

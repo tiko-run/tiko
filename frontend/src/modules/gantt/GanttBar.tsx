@@ -197,6 +197,7 @@ export function DatesTip({
   left,
   right,
   width,
+  warnings = [],
 }: {
   span: Span
   note: string
@@ -204,6 +205,8 @@ export function DatesTip({
   left: number
   right: number
   width: number
+  /** Lines that need attention, such as who is away, under the note. */
+  warnings?: string[]
 }) {
   const flip = left + TIP_ROOM > width
   return (
@@ -219,6 +222,7 @@ export function DatesTip({
     >
       <span className="font-semibold tabular-nums">{formatSpan(span)}</span>
       {!shown && <span className="truncate opacity-70">{note}</span>}
+      {!shown && warnings.map((line) => <span key={line}>{line}</span>)}
     </span>
   )
 }

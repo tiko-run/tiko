@@ -25,8 +25,7 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
 
   const content = parsed?.success ? parsed.data : undefined
   const minHeight =
-    HEADER +
-    (content !== undefined && def?.minHeight ? def.minHeight(content, planning.enabled) : 0)
+    HEADER + (content !== undefined && def?.minHeight ? def.minHeight(content, planning) : 0)
   const tooShort = height !== undefined && height < minHeight
 
   // New rows grow the block instead of hiding behind its bottom edge.

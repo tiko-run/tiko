@@ -17,6 +17,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
 import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
+import { awayDuring, awayLine } from '@/modules/gantt/timeoff'
 import {
   addStage,
   BARE,
@@ -217,6 +218,7 @@ function StageBar({
   const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
   const named = stagePeople(stage.people, people)
   const names = named.map((p) => p.name).join(', ')
+  const away = awayDuring(span, stage.people, people).map(awayLine)
   // Names that do not fit turn into a people button; the hidden copy says how wide they are.
   useLayoutEffect(() => {
     const needed = (measure.current?.offsetWidth ?? 0) + (below ? BELOW_PADDING : BAR_PADDING)
@@ -275,8 +277,11 @@ function StageBar({
               left: box.left,
               width: Math.max(box.width, 4),
               ...(type && stageColors(type.hue)),
+              // Over the type's own inset ring, so the warning wins.
+              ...(away.length > 0 && { boxShadow: 'inset 0 0 0 2px var(--destructive)' }),
             }}
           >
+            {away.length > 0 && <AwayMark />}
             <span className="truncate">
               {name}
               {!below && !crowded && named.length > 0 && <Names named={named} lead=" · " />}
@@ -333,6 +338,7 @@ function StageBar({
         <DatesTip
           span={span}
           note={`${names ? `${name} · ${names}` : name} · ${label}`}
+          warnings={away}
           shown={dragging}
           left={box.left}
           right={box.left + box.width}
@@ -345,6 +351,7 @@ function StageBar({
             types={types}
             people={people}
             assignees={assignees}
+            away={away}
             onRow={onRow}
             onReopen={onReopen}
             onClose={() => onOpen(false)}
@@ -352,6 +359,18 @@ function StageBar({
         </PopoverContent>
       </Popover>
     </div>
+  )
+}
+
+/** The "!" before the type of a stage someone on it is away during. */
+function AwayMark() {
+  return (
+    <span
+      aria-label="Someone is away"
+      className="bg-destructive text-card mr-1 inline-grid size-3 shrink-0 place-items-center rounded-full text-[9px] leading-none font-bold"
+    >
+      !
+    </span>
   )
 }
 
@@ -389,6 +408,7 @@ function StageForm({
   types,
   people,
   assignees,
+  away,
   onRow,
   onReopen,
   onClose,
@@ -398,6 +418,8 @@ function StageForm({
   types: StageType[]
   people: Person[]
   assignees: string[]
+  /** "Anna is away Mon Oct 5 – Fri Oct 9", one per range that falls on the stage. */
+  away: string[]
   onRow: (row: Row) => void
   onReopen: (id: string) => void
   onClose: () => void
@@ -507,6 +529,11 @@ function StageForm({
       <div className="text-muted-foreground text-[12px] tabular-nums">
         {formatSpan(stageSpan(stage))}
       </div>
+      {away.map((line) => (
+        <p key={line} className="text-destructive text-[12px]">
+          {line}
+        </p>
+      ))}
       <StagePeople
         chosen={stage.people}
         people={people}

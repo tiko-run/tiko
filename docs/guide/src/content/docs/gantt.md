@@ -32,3 +32,13 @@ Each stage can name the people planned for it. They come from one list for the w
 - Assignees of the tasks in this Gantt who are not in the list show as **From tracker**. Picking one adds them; nobody is imported until you pick them.
 
 The tracker's assignee and the stage's people are independent: the tracker says who owns the task now, a stage says who is planned for that phase. Names show after the stage type, or centered under each stage with **⋯ → Under each stage**. When they do not fit, the stage shows a people icon with a count; click the stage for the list. An archived person stays on old stages, muted, and is not offered again. Someone viewing a public link sees the names but cannot change them.
+
+## Time off
+
+Time off belongs to a person, not to a board: mark it once and every Gantt where that person has a stage shows it. tiko keeps only the dates, never the reason.
+
+- In **Settings → Stages and people**, open **Time off** under a person and pick the first and last day.
+- When someone on the Gantt is away inside its dates, a **Time off** lane appears above the rows. Drag across it, or click it for a week, and pick who is away. Ranges that overlap stack.
+- Click a range on the lane to remove it.
+
+A stage whose person is away on any of its days gets a red outline and a "!" before its type. Its tooltip and popover say who is away and when, for example "Anna is away Mon Oct 5 – Fri Oct 9". Remove the time off or move the stage and the warning goes.

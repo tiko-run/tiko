@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { Me } from '@/api/auth'
 import { Planning } from '@/settings/sections/Planning'
@@ -11,7 +11,9 @@ const types = [
   { id: 't2', name: 'Build', hue: 250, archived: false },
 ]
 
-const people = [{ id: 'p1', name: 'Oleg', teams: ['Web'], source: 'tracker', archived: false }]
+const people = [
+  { id: 'p1', name: 'Oleg', teams: ['Web'], source: 'tracker', archived: false, off: [] },
+]
 
 function show(role: 'admin' | 'member', enabled: boolean) {
   let state = { enabled, types: enabled ? types : [], people: enabled ? people : [] }
@@ -26,7 +28,14 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     }
     if (url === '/api/planning/types') return Response.json({ id: 't9', archived: false, ...body })
     if (url === '/api/planning/people')
-      return Response.json({ id: 'p9', teams: [], source: 'manual', archived: false, ...body })
+      return Response.json({
+        id: 'p9',
+        teams: [],
+        source: 'manual',
+        archived: false,
+        off: [],
+        ...body,
+      })
     if (url.startsWith('/api/planning/people/'))
       return Response.json({ ...state.people.find((p) => url.endsWith(p.id)), ...body })
     if (url.startsWith('/api/planning/types/'))
@@ -116,4 +125,46 @@ test('a rename by someone else shows in a field nobody is typing in', async () =
     String(url).startsWith('/api/planning/people/'),
   )
   expect(writes).toEqual([])
+})
+
+test("time off is added and removed in the person's card", async () => {
+  const listed = show('member', true)
+  const off = { id: 'o1', start: '2026-10-05', end: '2026-10-09' }
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/api/planning/people/p1/off') return Response.json({ ...people[0], off: [off] })
+    if (url === '/api/planning/people/p1/off/o1') return Response.json(people[0])
+    return listed(url, init)
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  fireEvent.click(await screen.findByRole('button', { name: 'Add time off for Oleg' }))
+  fireEvent.change(screen.getByLabelText('Oleg is away from'), {
+    target: { value: '2026-10-05' },
+  })
+  const until = screen.getByLabelText('Oleg is away until')
+  fireEvent.change(until, { target: { value: '2026-10-09' } })
+  fireEvent.submit(until)
+  const remove = await screen.findByRole('button', {
+    name: 'Remove time off Mon Oct 5 – Fri Oct 9 of Oleg',
+  })
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/people/p1/off',
+    expect.objectContaining({ method: 'POST', body: '{"start":"2026-10-05","end":"2026-10-09"}' }),
+  )
+  fireEvent.click(remove)
+  await waitFor(() => expect(screen.queryByRole('button', { name: /Remove time off/ })).toBeNull())
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/people/p1/off/o1',
+    expect.objectContaining({ method: 'DELETE' }),
+  )
+})
+
+test('time off cannot end before it starts', async () => {
+  show('member', true)
+  fireEvent.click(await screen.findByRole('button', { name: 'Add time off for Oleg' }))
+  fireEvent.change(screen.getByLabelText('Oleg is away from'), {
+    target: { value: '2026-10-09' },
+  })
+  const until = screen.getByLabelText('Oleg is away until')
+  fireEvent.change(until, { target: { value: '2026-10-05' } })
+  expect(within(until.closest('form')!).getByRole('button', { name: 'Add' })).toBeDisabled()
 })

@@ -17,7 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
-from app.domain.planning import PlanningPerson, StageType
+from app.domain.planning import PlanningPerson, StageType, TimeOff
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -524,6 +524,15 @@ class SqlitePlanningPeopleRepo:
             rows = conn.execute(
                 "SELECT id, name, teams, source, archived FROM planning_people ORDER BY position"
             ).fetchall()
+            offs = conn.execute(
+                "SELECT id, person_id, start_day, end_day FROM planning_off"
+                " ORDER BY start_day, end_day, id"
+            ).fetchall()
+        off: dict[str, list[TimeOff]] = {}
+        for o in offs:
+            off.setdefault(o["person_id"], []).append(
+                TimeOff(id=o["id"], start=o["start_day"], end=o["end_day"])
+            )
         return [
             PlanningPerson(
                 id=r["id"],
@@ -531,6 +540,7 @@ class SqlitePlanningPeopleRepo:
                 teams=json.loads(r["teams"]),
                 source=r["source"],
                 archived=bool(r["archived"]),
+                off=off.get(r["id"], []),
             )
             for r in rows
         ]
@@ -560,6 +570,19 @@ class SqlitePlanningPeopleRepo:
                     int(person.archived),
                     person.id,
                 ),
+            )
+
+    def add_off(self, person_id: str, off: TimeOff) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO planning_off (id, person_id, start_day, end_day) VALUES (?, ?, ?, ?)",
+                (off.id, person_id, off.start.isoformat(), off.end.isoformat()),
+            )
+
+    def remove_off(self, person_id: str, off_id: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "DELETE FROM planning_off WHERE id = ? AND person_id = ?", (off_id, person_id)
             )
 
 

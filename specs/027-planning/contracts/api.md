@@ -31,7 +31,7 @@ One read for everything a Gantt needs. With Planning off, and always on a demo i
 | `PATCH /api/planning/types/{id}` | `{"name"?, "hue"?, "archived"?}` | |
 | `POST /api/planning/people` | `{"name", "teams"?, "source"?}` | name 1–80; up to 10 teams of up to 40 |
 | `PATCH /api/planning/people/{id}` | `{"name"?, "teams"?, "archived"?}` | |
-| `POST /api/planning/people/{id}/off` | `{"start", "end"}` | up to 100 ranges per person |
+| `POST /api/planning/people/{id}/off` | `{"start", "end"}` | ISO days, `end` not before `start`; up to 100 ranges per person |
 | `DELETE /api/planning/people/{id}/off/{offId}` | | |
 | `POST /api/planning/fields` | `{"name"}` | name 1–40, unique; up to 50 fields |
 | `PATCH /api/planning/fields/{id}` | `{"name"?, "archived"?}` | standard fields: name only |
@@ -39,7 +39,7 @@ One read for everything a Gantt needs. With Planning off, and always on a demo i
 | `DELETE /api/planning/views/{id}` | | |
 | `PUT /api/planning/days-off` | `{"dates": [...]}` | up to 400 dates |
 
-Each answers with the created or changed object. A change, the switch included, is broadcast to every open board as a `planning` live event (message type 100 in the [live contract](../../009-realtime/contracts/live.md)), so other people's Gantts refresh their lists.
+Each answers with the created or changed object; the two time off routes answer with the person, time off included. A change, the switch included, is broadcast to every open board as a `planning` live event (message type 100 in the [live contract](../../009-realtime/contracts/live.md)), so other people's Gantts refresh their lists.
 
 ## `GET /api/planning/people/{id}/workload?from=2026-10-12&weeks=12`
 
