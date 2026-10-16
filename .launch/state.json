@@ -1,7 +1,7 @@
 {
   "profile": "oss",
   "phase": "build",
-  "feature": "specs/026-onboarding",
+  "feature": "specs/027-planning",
   "slices_done": [
     "card-on-board",
     "jira-dc-connection",
@@ -193,7 +193,9 @@
     "G3_one-click-update": "approved",
     "G2_onboarding": "approved",
     "G3_tour": "approved",
-    "G3_getting-started": "approved"
+    "G3_getting-started": "approved",
+    "G1_planning": "approved",
+    "G2_planning": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -280,6 +282,8 @@
     "2026-10-14 error-reports: slice merged (PR 191), spec 025 done. Error reports to the project's Sentry in the EU (org Tiko, project tiko), off by default; a report holds only the error type, tiko's frames, release and the deploy tag, no message. No default integrations and no trace propagation; the page sends through POST /api/privacy/errors. Owner: no Windows stand run for the one notice line in install.ps1; release right after the merge.",
     "2026-10-15 G2 onboarding: owner approved spec 026 in two slices (tour, getting-started): driver.js behind import(), DOM and CSS loops ported from the site, tour again from About, onboarding state on the server per person, no special case for earlier sign-ups, auto start only on an editable board.",
     "2026-10-15 tour: slice approved at G3 (PR 195). driver.js behind import(), seven steps on data-tour anchors with DOM and CSS loops, auto start once on an editable board, About runs it again; clicks on the highlighted element, overlay clicks, board shortcuts and paste are held while it runs. Onboarding state in its own table, GET and PATCH /api/me/onboarding. Next: slice getting-started.",
-    "2026-10-15 getting-started: slice approved at G3 (PR 197), spec 026 done. Pill next to About with eight items (seven for demo visitors) that tick from the actions through a window event; Show me walks the person through on the live board: ring on the control, hints that follow its aria state or a closing menu, Done with CSS confetti, hint above About when it has no control. Hide, About brings it back; a list finished now hides itself once. Way to a board +2.7 KB gzipped, hints load on the first Show me."
+    "2026-10-15 getting-started: slice approved at G3 (PR 197), spec 026 done. Pill next to About with eight items (seven for demo visitors) that tick from the actions through a window event; Show me walks the person through on the live board: ring on the control, hints that follow its aria state or a closing menu, Done with CSS confetti, hint above About when it has no control. Hide, About brings it back; a list finished now hides itself once. Way to a board +2.7 KB gzipped, hints load on the first Show me.",
+    "2026-10-16 G1 planning: owner approved an opt-in Planning mode after a team lead's request (stages with people on Gantt rows, time off, columns, filters by quarter and team). Kept general for OSS: no hierarchy names, stage types and fields are instance libraries, quarter is a custom field. Money and capacity stay for a later spec. Spec 027 in seven slices awaits G2.",
+    "2026-10-16 G2 planning: owner approved spec 027 as written: planning people apart from accounts, tracker assignees only when picked, instance switch for admins, values and filters in the Gantt, row dates equal the stage span, no Planning on the demo, months over weeks in the Weeks header, workload without hours. Seven slices, planning-stages first."
   ]
 }
