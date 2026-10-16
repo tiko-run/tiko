@@ -12,7 +12,7 @@ import {
 import { addStageType, freeHue, storeStageType, type Person, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
 import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
@@ -279,7 +279,7 @@ function StageBar({
               {name}
               {!below && !crowded && named.length > 0 && <Names named={named} lead=" · " />}
             </span>
-            {!below && crowded && <PeopleButton named={named} stage={name} className="ml-auto" />}
+            {!below && crowded && <PeopleCount named={named} className="ml-auto pl-1" />}
             {!box.clippedStart && (
               <span
                 aria-hidden
@@ -310,7 +310,17 @@ function StageBar({
             style={{ left: box.left, width }}
           >
             {crowded ? (
-              <PeopleButton named={named} stage={name} />
+              <button
+                type="button"
+                aria-label={`People on ${name}`}
+                // Like a press on the bar: the stage's own popover, and focus stays where it is.
+                onPointerDown={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onOpen(!open)}
+                className="hover:bg-foreground/10 pointer-events-auto rounded-[3px] px-0.5"
+              >
+                <PeopleCount named={named} />
+              </button>
             ) : (
               <span className="truncate">
                 <Names named={named} />
@@ -343,45 +353,16 @@ function StageBar({
   )
 }
 
-/** Who is on a stage too narrow for their names: a count, and the names in a popover. */
-function PeopleButton({
-  named,
-  stage,
-  className,
-}: {
-  named: Named[]
-  stage: string
-  className?: string
-}) {
+/** Who is on a stage too narrow for their names: a count; the stage's popover lists them. */
+function PeopleCount({ named, className }: { named: Named[]; className?: string }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${named.length} people on ${stage}`}
-          // The stage under it would start a drag or open its own popover.
-          onPointerDown={(event) => event.stopPropagation()}
-          onPointerUp={(event) => event.stopPropagation()}
-          className={cn(
-            'hover:bg-foreground/10 pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-[3px] px-0.5 font-medium',
-            className,
-          )}
-        >
-          <Users className="size-3" strokeWidth={2} />
-          {named.length}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent side="bottom" align="center" className="w-48 gap-1 p-2">
-        <div className="text-muted-foreground px-1 text-[12px]">People on {stage}</div>
-        <ul className="flex flex-col text-[13px]">
-          {named.map((p) => (
-            <li key={p.id} className={cn('px-1 py-0.5', p.archived && 'text-muted-foreground')}>
-              {p.name}
-            </li>
-          ))}
-        </ul>
-      </PopoverContent>
-    </Popover>
+    <span
+      aria-label={`${named.length} people`}
+      className={cn('flex shrink-0 items-center gap-0.5 font-medium', className)}
+    >
+      <Users className="size-3" strokeWidth={2} />
+      {named.length}
+    </span>
   )
 }
 

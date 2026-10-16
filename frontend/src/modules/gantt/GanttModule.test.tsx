@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Node } from '@xyflow/react'
 import { useLayoutEffect } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -496,19 +496,38 @@ test('an unknown name is added to the people on the fly', async () => {
   }
 })
 
-test('names that do not fit turn into a people button with the list', () => {
+test('names that do not fit turn into a count; the stage popover lists them', () => {
   // jsdom lays nothing out: the names are as wide as the hidden copy says.
   const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(500)
   try {
     renderGantt({}, staged(['p1', 'p2']), PEOPLE)
     const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
     expect(bar.textContent).toBe('Build2')
-    fireEvent.click(within(bar).getByRole('button', { name: '2 people on Build' }))
-    expect(screen.getByText('People on Build')).toBeTruthy()
-    expect(screen.getAllByText('Anna').at(-1)!.className).toContain('text-muted-foreground')
-    // The button opens its list, not the stage's popover.
-    expect(screen.queryByLabelText('Add a person')).toBeNull()
+    expect(within(bar).getByLabelText('2 people')).toBeTruthy()
+    press(bar, 500)
+    expect(screen.getByRole('button', { name: 'Remove Ivan' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Remove Anna' })).toBeTruthy()
   } finally {
     width.mockRestore()
   }
+})
+
+test('a second click on a stage closes its popover', async () => {
+  renderGantt({}, staged(['p1']), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  // The popover listens for clicks outside it from the next tick on.
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  press(bar, 500)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
+  // A click on the bar moves focus to the canvas node around it: not a reason to close.
+  fireEvent.focusIn(bar.closest('.react-flow__node')!)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
+  press(bar, 500)
+  await tick()
+  expect(screen.queryByLabelText('Add a person')).toBeNull()
+  press(bar, 500)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
 })
