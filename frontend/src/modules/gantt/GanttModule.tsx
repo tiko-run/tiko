@@ -1,9 +1,19 @@
 import { useReactFlow, type XYPosition } from '@xyflow/react'
-import { CalendarRange, Diamond, Plus } from 'lucide-react'
+import { CalendarRange, ChevronDown, Diamond, Ellipsis, Plus, Users } from 'lucide-react'
 import { useContext, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -32,6 +42,7 @@ import {
   pxPerDay,
   range,
   ROW_HEIGHT,
+  rowHeight,
   rowTask,
   updateRow,
   type Row,
@@ -67,6 +78,7 @@ import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
 import { cn } from '@/lib/utils'
 import { didOnboarding } from '@/onboarding/done'
 import { usePlanning } from '@/planning/context'
+import { openSettings } from '@/settings/store'
 
 type Props = ModuleViewProps<GanttContent>
 
@@ -117,6 +129,10 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const now = today()
   const before = quarterBefore(start)
   const after = quarterAfter(end)
+  const height = rowHeight(content, planning.enabled)
+  const assignees = [
+    ...new Set(content.rows.flatMap((row) => taskOf(row)?.assignee_name ?? [])),
+  ].sort()
   const full = content.rows.length >= MAX_ROWS
   const visible = visibleRows(content.rows)
   const indexOf = new Map(content.rows.map((r, i) => [r.id, i]))
@@ -126,7 +142,8 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
     const rowSpan = barSpan(row)
     const box = barBox(rowSpan, span, scale)
     if (!box) return
-    const y = i * ROW_HEIGHT + ROW_HEIGHT / 2
+    // Bars keep to the top of a taller row; the names sit under them.
+    const y = i * height + ROW_HEIGHT / 2
     bars.set(row.id, { left: box.left, right: box.left + box.width, y, span: rowSpan })
   })
   const link = (from: string, target: Element | null) => {
@@ -200,6 +217,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             row={row}
             depth={depth}
             hasChildren={hasChildren}
+            height={height}
             task={taskOf(row)}
             url={taskOf(row)?.url}
             fresh={row.id === fresh}
@@ -256,7 +274,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             key={row.id}
             data-gantt-row={row.id}
             className="group/row relative border-b border-border/60"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height }}
           >
             {planning.enabled && !hasChildren ? (
               <GanttStages
@@ -264,6 +282,9 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                 range={span}
                 pxPerDay={scale}
                 types={planning.types}
+                people={planning.people}
+                assignees={assignees}
+                below={content.people === 'below'}
                 label={stagesLabel(row, taskOf(row))}
                 onRow={(next) => onChange(updateRow(content, row.id, () => next))}
               />
@@ -297,6 +318,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           wire={wire}
           picked={selected ? picked : null}
           onPick={setPicked}
+          rowHeight={height}
           onRemove={(id) => {
             setPicked(null)
             onChange(removeLink(content, id))
@@ -422,21 +444,32 @@ function formatRange(start: string, end: string) {
   return `${fmt(start, !sameYear)} – ${fmt(end, true)}`
 }
 
-/** Scale switch, range dates and milestones, in the selection bar. */
+/** Scale, range dates and milestones in the selection bar; Planning options behind "More". */
 export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
+  const planning = usePlanning()
+  const current = SCALES.find((s) => s.scale === content.scale) ?? SCALES[1]
   return (
     <>
-      {SCALES.map(({ scale, label }) => (
-        <Button
-          key={scale}
-          size="sm"
-          variant={content.scale === scale ? 'secondary' : 'ghost'}
-          aria-pressed={content.scale === scale}
-          onClick={() => onChange({ ...content, scale })}
-        >
-          {label}
-        </Button>
-      ))}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="ghost" aria-label={`Scale: ${current.label}`}>
+            {current.label}
+            <ChevronDown className="size-3.5" strokeWidth={1.75} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side={side} align="start">
+          <DropdownMenuRadioGroup
+            value={content.scale}
+            onValueChange={(scale) => onChange({ ...content, scale: scale as Scale })}
+          >
+            {SCALES.map(({ scale, label }) => (
+              <DropdownMenuRadioItem key={scale} value={scale}>
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <RangePopover content={content} onChange={onChange} side={side} />
       <Button
         size="sm"
@@ -451,6 +484,35 @@ export function GanttControls({ content, onChange, side }: ModuleControlsProps<G
         <Diamond className="size-4" strokeWidth={1.75} />
         Milestone
       </Button>
+      {planning.enabled && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon-sm" variant="ghost" aria-label="More Gantt options">
+              <Ellipsis className="size-4" strokeWidth={1.75} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side={side} align="end" className="w-52">
+            <DropdownMenuLabel className="text-muted-foreground text-[12px] font-normal">
+              Names of people
+            </DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={content.people ?? 'inline'}
+              onValueChange={(where) => {
+                const { people: _people, ...rest } = content
+                onChange(where === 'below' ? { ...content, people: 'below' } : rest)
+              }}
+            >
+              <DropdownMenuRadioItem value="inline">After the stage type</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="below">Under each stage</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => openSettings('planning')}>
+              <Users className="size-4" strokeWidth={1.75} />
+              People…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </>
   )
 }

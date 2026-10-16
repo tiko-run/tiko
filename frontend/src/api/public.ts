@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { docSchema, refreshSchema } from '@/api/boards'
 import { fetchJson } from '@/api/client'
+import { boardPlanningSchema } from '@/api/planning'
 import { taskSchema } from '@/api/tasks'
 
 const publicBoardSchema = z.object({
@@ -12,6 +13,7 @@ const publicBoardSchema = z.object({
   tasks: z.record(z.string(), taskSchema),
   default_source: z.string(),
   refresh_interval_s: z.number(),
+  planning: boardPlanningSchema.nullable(),
 })
 
 /** A board as a guest gets it through its public link: no sign-in, nothing about its people. */

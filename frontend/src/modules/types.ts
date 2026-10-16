@@ -40,7 +40,7 @@ export type ModuleDef<C> = {
   size: { width: number; height: number }
   minSize: { width: number; height: number }
   /** Body height the content needs; the block grows to it so nothing is hidden. */
-  minHeight?: (content: C) => number
+  minHeight?: (content: C, planning: boolean) => number
   defaults: () => C
   schema: z.ZodType<C>
   /** Live tasks inside the content, refreshed with the board's cards. */
@@ -52,7 +52,13 @@ export type ModuleDef<C> = {
    * Takes in a card dropped at a point of the body (module coordinates, below the header).
    * Null leaves the card on the board.
    */
-  acceptCard?: (content: C, task: TaskLink, at: XYPosition, width: number) => C | null
+  acceptCard?: (
+    content: C,
+    task: TaskLink,
+    at: XYPosition,
+    width: number,
+    planning: boolean,
+  ) => C | null
   /** Texts inside the content that board search finds; a jump goes to the module. */
   searchable?: (content: C) => ModuleText[]
 }

@@ -9,9 +9,11 @@ import { ModuleHostContext } from '@/modules/host-context'
 import { findModule } from '@/modules/registry'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
+import { usePlanning } from '@/planning/context'
 
 function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleNodeType>) {
   const readOnly = useReadOnly()
+  const planning = usePlanning()
   const { updateNodeData, updateNode } = useReactFlow()
   const host = useContext(ModuleHostContext)
   const def = findModule(data.kind)
@@ -22,7 +24,9 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
   )
 
   const content = parsed?.success ? parsed.data : undefined
-  const minHeight = HEADER + (content !== undefined && def?.minHeight ? def.minHeight(content) : 0)
+  const minHeight =
+    HEADER +
+    (content !== undefined && def?.minHeight ? def.minHeight(content, planning.enabled) : 0)
   const tooShort = height !== undefined && height < minHeight
 
   // New rows grow the block instead of hiding behind its bottom edge.

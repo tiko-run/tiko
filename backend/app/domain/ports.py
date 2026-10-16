@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
-    from app.domain.planning import StageType
+    from app.domain.planning import PlanningPerson, StageType
     from app.domain.tasks import Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -168,6 +168,10 @@ class LiveBoards(Protocol):
         sockets are closed."""
         ...
 
+    def planning_changed(self) -> None:
+        """People on every open board are told to read `/api/planning` again."""
+        ...
+
     def put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         """A REST save, applied to the shared document as one update so people on the board
         see it; compare-and-set on version like `BoardRepo.save`."""
@@ -256,6 +260,16 @@ class PlanningTypeRepo(Protocol):
     def add(self, stage_type: StageType) -> None: ...
 
     def update(self, stage_type: StageType) -> None: ...
+
+
+class PlanningPeopleRepo(Protocol):
+    def all(self) -> list[PlanningPerson]:
+        """In the order they were added."""
+        ...
+
+    def add(self, person: PlanningPerson) -> None: ...
+
+    def update(self, person: PlanningPerson) -> None: ...
 
 
 class DemoTasks(Protocol):

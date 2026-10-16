@@ -32,7 +32,7 @@ function card(id: string, key: string, x: number, y: number): AppNode {
 
 test('a card dropped on a gantt body becomes a row and leaves the board', () => {
   const nodes = [gantt, card('a', 'DEMO-1', 1400, 150), card('b', 'DEMO-2', 0, 0)]
-  const result = absorbCards(nodes, ['a', 'b'])!
+  const result = absorbCards(nodes, ['a', 'b'], false)!
   expect([...result.absorbed]).toEqual(['a'])
   expect(result.nodes.map((n) => n.id)).toEqual(['g', 'b'])
   const rows = (result.nodes[0].data as { content: typeof content }).content.rows
@@ -41,13 +41,13 @@ test('a card dropped on a gantt body becomes a row and leaves the board', () => 
 
 test('a card on the module header or outside stays on the board', () => {
   const onHeader = card('a', 'DEMO-1', 1400, MODULE_HEADER / 2 - 10)
-  expect(absorbCards([gantt, onHeader], ['a'])).toBeNull()
-  expect(absorbCards([gantt, card('b', 'DEMO-2', 0, 0)], ['b'])).toBeNull()
+  expect(absorbCards([gantt, onHeader], ['a'], false)).toBeNull()
+  expect(absorbCards([gantt, card('b', 'DEMO-2', 0, 0)], ['b'], false)).toBeNull()
 })
 
 test('several cards dropped together all land in the same gantt', () => {
   const nodes = [gantt, card('a', 'DEMO-1', 1400, 150), card('b', 'DEMO-2', 1400, 200)]
-  const result = absorbCards(nodes, ['a', 'b'])!
+  const result = absorbCards(nodes, ['a', 'b'], false)!
   const rows = (result.nodes[0].data as { content: typeof content }).content.rows
   expect(rows.map((r: { key?: string }) => r.key).sort()).toEqual(['DEMO-1', 'DEMO-2'])
 })
@@ -62,7 +62,7 @@ test('a timer on an absorbed card comes free at the same place', () => {
     height: 40,
     data: { note: '' },
   }
-  const result = absorbCards([gantt, card('a', 'DEMO-1', 1400, 150), timer], ['a'])!
+  const result = absorbCards([gantt, card('a', 'DEMO-1', 1400, 150), timer], ['a'], false)!
   expect(result.nodes.map((n) => n.id)).toEqual(['g', 't'])
   expect(result.nodes[1].parentId).toBeUndefined()
   expect(result.nodes[1].position).toEqual({ x: 1354, y: 150 })

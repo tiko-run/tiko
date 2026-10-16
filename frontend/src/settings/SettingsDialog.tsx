@@ -64,7 +64,12 @@ const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
     title: 'Planning',
     admin: false,
     entries: [
-      { id: 'planning', label: 'Stages', Icon: ChartGantt, render: (me) => <Planning me={me} /> },
+      {
+        id: 'planning',
+        label: 'Stages and people',
+        Icon: ChartGantt,
+        render: (me) => <Planning me={me} />,
+      },
     ],
   },
   {

@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 
 - Planning mode for the Gantt, off by default: an admin turns it on in Settings → Planning, and rows can then be cut into stages such as Discovery, Build or On hold. Stage types are shared by every board.
+- People on Gantt stages in Planning mode: one list of people for the whole tiko, added by hand, on the fly from a stage, or picked from the assignees of the Gantt's tasks. Names show after the stage type or under each stage.
 
 ### Changed
 

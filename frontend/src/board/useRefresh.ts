@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { refreshBoard } from '@/api/boards'
+import type { BoardPlanning } from '@/api/planning'
 import { refreshPublicBoard } from '@/api/public'
 import { getSettings } from '@/api/settings'
 import { nextDelayS } from '@/board/refresh-timing'
@@ -14,6 +15,8 @@ export type Guest = {
   intervalS: number
   /** Told whether the board is fed by its socket; while it is not, the page reloads it. */
   onLive?: (live: boolean) => void
+  /** The types and people its Gantts use; null with Planning off. */
+  planning: BoardPlanning | null
 }
 
 /**

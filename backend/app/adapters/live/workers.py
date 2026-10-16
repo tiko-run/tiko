@@ -23,7 +23,14 @@ PUT_TIMEOUT_S = 30.0
 _HEX = set(string.hexdigits)
 # What a save may answer with; anything else is a failure of the other process.
 _ERRORS = {error.code: error for error in (NotFound, VersionConflict, ValidationFailed)}
-_TOLD = ("end_session", "end_person", "recheck_person", "recheck_board", "end_public")
+_TOLD = (
+    "end_session",
+    "end_person",
+    "recheck_person",
+    "recheck_board",
+    "end_public",
+    "planning_changed",
+)
 
 
 def owner(board_id: str, workers: int) -> int:
@@ -151,6 +158,10 @@ class Workers:
     def recheck_person(self, user_id: str) -> None:
         self._rooms.recheck_person(user_id)
         self.tell("recheck_person", user_id)
+
+    def planning_changed(self) -> None:
+        self._rooms.planning_changed()
+        self.tell("planning_changed")
 
     def recheck_board(self, board_id: str) -> None:
         if self._mine(board_id):

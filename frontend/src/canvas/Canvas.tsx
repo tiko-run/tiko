@@ -57,7 +57,7 @@ import { MAX_LIVE_DRAG, useBoardTravel } from '@/live/presence'
 import { SelectedByContext, withPresence } from '@/live/PresenceRing'
 import { PresenceLayer } from '@/live/PresenceLayer'
 import { getAuthStatus } from '@/api/auth'
-import { usePlanningQuery } from '@/api/planning'
+import { PLANNING_CHANGED_EVENT, PLANNING_KEY, usePlanningQuery } from '@/api/planning'
 import { useLiveBoard, type LiveStatus } from '@/live/useLiveBoard'
 import { toast } from 'sonner'
 import { ERROR_MS } from '@/lib/toast'
@@ -148,9 +148,27 @@ export function BoardCanvas({
   const me =
     useQuery({ queryKey: ['auth'], queryFn: getAuthStatus, enabled: !guest }).data?.me ?? undefined
   const planningData = usePlanningQuery(!guest).data
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    const reread = () => queryClient.invalidateQueries({ queryKey: PLANNING_KEY })
+    window.addEventListener(PLANNING_CHANGED_EVENT, reread)
+    return () => window.removeEventListener(PLANNING_CHANGED_EVENT, reread)
+  }, [queryClient])
+  const guestPlanning = guest?.planning
   const planning = useMemo(
-    () => ({ enabled: planningData?.enabled ?? false, types: planningData?.types ?? [] }),
-    [planningData],
+    () =>
+      guest
+        ? {
+            enabled: Boolean(guestPlanning),
+            types: guestPlanning?.types ?? [],
+            people: guestPlanning?.people ?? [],
+          }
+        : {
+            enabled: planningData?.enabled ?? false,
+            types: planningData?.types ?? [],
+            people: planningData?.people ?? [],
+          },
+    [guest, guestPlanning, planningData],
   )
   const live = useLiveBoard(
     board,
@@ -444,7 +462,7 @@ export function BoardCanvas({
   const dropNodes = (ids: string[]) => {
     // The store has the final drag position; this render's nodes may not yet.
     const current = getNodes()
-    const result = absorbCards(current, ids)
+    const result = absorbCards(current, ids, planning.enabled)
     let kept = result?.nodes ?? current
     if (result?.absorbed.size) didOnboarding('gantt_task')
     if (result) {

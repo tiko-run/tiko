@@ -19,15 +19,16 @@ type Props = {
   picked: string | null
   onPick: (id: string | null) => void
   onRemove: (id: string) => void
+  rowHeight: number
 }
 
 /** Dependency lines over the rows; a conflicting one is drawn in the warning color. */
-export function Links({ links, bars, wire, picked, onPick, onRemove }: Props) {
+export function Links({ links, bars, wire, picked, onPick, onRemove, rowHeight }: Props) {
   const lines = links.flatMap((link) => {
     const from = bars.get(link.from)
     const to = bars.get(link.to)
     if (!from || !to) return []
-    const path = linkPath(from.right, from.y, to.left, to.y, ROW_HEIGHT)
+    const path = linkPath(from.right, from.y, to.left, to.y, rowHeight)
     const arrow = `M ${to.left - 6} ${to.y - 3.5} L ${to.left} ${to.y} L ${to.left - 6} ${to.y + 3.5} z`
     return [{ link, ...path, arrow, conflict: linkConflict(from.span, to.span) }]
   })

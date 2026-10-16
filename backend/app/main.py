@@ -30,6 +30,7 @@ from app.adapters.storage.sqlite import (
     SqliteDemoStatusRepo,
     SqliteInviteRepo,
     SqliteMemberRepo,
+    SqlitePlanningPeopleRepo,
     SqlitePlanningTypeRepo,
     SqliteSessionRepo,
     SqliteSettingsRepo,
@@ -289,7 +290,12 @@ def create_app(
         env=_tracker_env(settings),
     )
     app.state.settings = service
-    app.state.planning = Planning(SqliteSettingsRepo(db), SqlitePlanningTypeRepo(db))
+    app.state.planning = Planning(
+        SqliteSettingsRepo(db),
+        SqlitePlanningTypeRepo(db),
+        SqlitePlanningPeopleRepo(db),
+        on_change=app.state.live.planning_changed,
+    )
     app.state.public_links = PublicLinks(
         app.state.boards, service.public_links, app.state.live, attempts=attempts
     )

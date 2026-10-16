@@ -14,6 +14,7 @@ const { providers, FakeProvider } = vi.hoisted(() => {
   const providers: InstanceType<typeof FakeProvider>[] = []
   class FakeProvider {
     wsconnected = true
+    messageHandlers: unknown[] = []
     connect = vi.fn()
     destroy = vi.fn()
     awareness: unknown

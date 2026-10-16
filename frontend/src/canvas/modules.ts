@@ -16,7 +16,7 @@ function size(node: AppNode) {
  * Dropped cards whose center lands on a module that takes cards become part of that module.
  * Returns the absorbed card ids, or null when nothing changed.
  */
-export function absorbCards(nodes: AppNode[], droppedIds: string[]) {
+export function absorbCards(nodes: AppNode[], droppedIds: string[], planning: boolean) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const dropped = new Set(droppedIds)
   const absorbed = new Set<string>()
@@ -42,7 +42,7 @@ export function absorbCards(nodes: AppNode[], droppedIds: string[]) {
     const parsed = def?.schema.safeParse(contents.get(target.id) ?? target.data.content)
     if (!def?.acceptCard || !parsed?.success) continue
     const at = { x: center.x - target.position.x, y: center.y - target.position.y - MODULE_HEADER }
-    const next = def.acceptCard(parsed.data, card.data, at, size(target).width)
+    const next = def.acceptCard(parsed.data, card.data, at, size(target).width, planning)
     if (next === null) continue
     contents.set(target.id, next)
     absorbed.add(card.id)

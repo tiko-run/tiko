@@ -14,13 +14,32 @@ const stageTypeSchema = z.object({
 })
 export type StageType = z.infer<typeof stageTypeSchema>
 
+const personSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  teams: z.array(z.string()),
+  source: z.enum(['manual', 'tracker']),
+  archived: z.boolean(),
+})
+export type Person = z.infer<typeof personSchema>
+
 const planningSchema = z.object({
   enabled: z.boolean(),
   types: z.array(stageTypeSchema),
+  people: z.array(personSchema),
 })
 export type Planning = z.infer<typeof planningSchema>
 
 export const PLANNING_KEY = ['planning']
+// Someone changed the instance's lists; the board's socket tells, the board rereads them.
+export const PLANNING_CHANGED_EVENT = 'tiko:planning-changed'
+
+/** What a guest gets in a board's public payload: the types and people its Gantts use. */
+export const boardPlanningSchema = z.object({
+  types: z.array(stageTypeSchema),
+  people: z.array(personSchema),
+})
+export type BoardPlanning = z.infer<typeof boardPlanningSchema>
 
 export function getPlanning() {
   return fetchJson('/api/planning', planningSchema)
@@ -50,6 +69,23 @@ export function changeStageType(
   })
 }
 
+export function addPerson(input: { name: string; teams?: string[]; source?: Person['source'] }) {
+  return fetchJson('/api/planning/people', personSchema, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function changePerson(
+  id: string,
+  change: { name?: string; teams?: string[]; archived?: boolean },
+) {
+  return fetchJson(`/api/planning/people/${encodeURIComponent(id)}`, personSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(change),
+  })
+}
+
 export function usePlanningQuery(enabled = true) {
   return useQuery({ queryKey: PLANNING_KEY, queryFn: getPlanning, enabled, staleTime: 60_000 })
 }
@@ -61,16 +97,41 @@ export function freeHue(types: StageType[]): Hue {
   return HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
 }
 
+function storeInList<K extends 'types' | 'people'>(
+  queryClient: QueryClient,
+  list: K,
+  saved: Planning[K][number],
+) {
+  queryClient.setQueryData<Planning>(PLANNING_KEY, (was) => {
+    if (!was) return was
+    const items: { id: string }[] = was[list]
+    return {
+      ...was,
+      [list]: items.some((item) => item.id === saved.id)
+        ? items.map((item) => (item.id === saved.id ? saved : item))
+        : [...items, saved],
+    }
+  })
+}
+
 /** Puts a saved type into the cached list, in place or at the end. */
 export function storeStageType(queryClient: QueryClient, saved: StageType) {
-  queryClient.setQueryData<Planning>(
-    PLANNING_KEY,
-    (was) =>
-      was && {
-        ...was,
-        types: was.types.some((t) => t.id === saved.id)
-          ? was.types.map((t) => (t.id === saved.id ? saved : t))
-          : [...was.types, saved],
-      },
-  )
+  storeInList(queryClient, 'types', saved)
+}
+
+/** Puts a saved person into the cached list, in place or at the end. */
+export function storePerson(queryClient: QueryClient, saved: Person) {
+  storeInList(queryClient, 'people', saved)
+}
+
+/** Splits "Web, Core" into teams, as the person's teams field takes them. */
+export function parseTeams(text: string) {
+  return [
+    ...new Set(
+      text
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  ].slice(0, 10)
 }

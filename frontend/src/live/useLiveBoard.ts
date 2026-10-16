@@ -5,6 +5,7 @@ import * as Y from 'yjs'
 import type { Board } from '@/api/boards'
 import { getAuthStatus } from '@/api/auth'
 import { AUTH_REQUIRED_EVENT } from '@/api/client'
+import { PLANNING_CHANGED_EVENT } from '@/api/planning'
 import type { AppEdge, AppNode } from '@/canvas/types'
 import { LOCAL, LiveBinding } from '@/live/binding'
 import { remoteDrags } from '@/live/drags'
@@ -44,6 +45,8 @@ const TOO_BIG = 1009
 const SESSION_ENDED = 4401
 const ACCESS_CHANGED = 4403
 const ROOM_FULL = 4429
+// Mirrors PLANNING_CHANGED in backend/app/domain/live.py.
+const PLANNING_CHANGED = 100
 // A guest sends nothing on its own, and the provider drops a socket that is silent for 30 s.
 const GUEST_RESYNC_MS = 20_000
 const EDITABLE: LiveStatus[] = ['live', 'reconnecting', 'unsaved']
@@ -147,6 +150,8 @@ export function useLiveBoard(
       doc,
       { disableBc: true, resyncInterval: guest ? GUEST_RESYNC_MS : -1 },
     )
+    provider.messageHandlers[PLANNING_CHANGED] = () =>
+      window.dispatchEvent(new Event(PLANNING_CHANGED_EVENT))
     const awareness = provider.awareness
     // The people on the board never learn that a guest is looking.
     if (guest) awareness.setLocalState(null)

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Node } from '@xyflow/react'
 import { useLayoutEffect } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -84,15 +84,20 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-const OFF: PlanningState = { enabled: false, types: [] }
+const OFF: PlanningState = { enabled: false, types: [], people: [] }
 
-function renderGantt(host: Partial<ModuleHost> = {}, start = content, planning = OFF) {
+function renderGantt(
+  host: Partial<ModuleHost> = {},
+  start = content,
+  planning = OFF,
+  tasks: Record<string, Task> = { 'DEMO-1': task },
+) {
   const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
   render(
     <div style={{ width: 1200, height: 800 }}>
       <QueryClientProvider client={new QueryClient()}>
         <ReactFlowProvider>
-          <TasksContext.Provider value={{ 'DEMO-1': task }}>
+          <TasksContext.Provider value={tasks}>
             <ModuleHostContext.Provider value={full}>
               <PlanningContext.Provider value={planning}>
                 <Board start={start} />
@@ -311,6 +316,7 @@ const PLANNING: PlanningState = {
     { id: 't1', name: 'Discovery', hue: 75, archived: false },
     { id: 't3', name: 'Build', hue: 250, archived: false },
   ],
+  people: [],
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -408,4 +414,149 @@ test('removing the last child of a stretched row brings its dates back to its st
   renderGantt({}, start, PLANNING)
   fireEvent.click(screen.getByRole('button', { name: 'Remove Child' }))
   expect([rows()[0].start, rows()[0].end]).toEqual(['2026-10-05', '2026-10-09'])
+})
+
+const PEOPLE: PlanningState = {
+  ...PLANNING,
+  people: [
+    { id: 'p1', name: 'Ivan', teams: ['Core'], source: 'manual', archived: false },
+    { id: 'p2', name: 'Anna', teams: [], source: 'manual', archived: true },
+  ],
+}
+const staged = (people: string[], extra: Partial<GanttContent> = {}): GanttContent => ({
+  ...content,
+  ...extra,
+  rows: [
+    {
+      id: 'a',
+      title: 'Payment API',
+      start: '2026-10-12',
+      end: '2026-10-16',
+      stages: [{ id: 's1', type: 't3', start: '2026-10-12', end: '2026-10-16', people }],
+    },
+  ],
+})
+
+test('people show after the stage type, an archived one muted', () => {
+  renderGantt({}, staged(['p1', 'p2']), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(bar.textContent).toBe('Build · Ivan, Anna')
+  expect(within(bar).getByText('Anna').className).toContain('opacity-60')
+  expect(within(bar).getByText('Ivan').className).not.toContain('opacity-60')
+})
+
+test('names below the bars make the rows taller', () => {
+  renderGantt({}, staged(['p1'], { people: 'below' }), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(bar.textContent).toBe('Build')
+  const row = bar.closest('[data-gantt-row]') as HTMLElement
+  expect(row.style.height).toBe('48px')
+  const line = row.querySelector('[data-stage-people]') as HTMLElement
+  expect(line.textContent).toBe('Ivan')
+  expect(line.className).toContain('justify-center')
+})
+
+test('names below are ignored with Planning off', () => {
+  renderGantt({}, staged(['p1'], { people: 'below' }), OFF)
+  const row = document.querySelector('[data-gantt-row]') as HTMLElement
+  expect(row.style.height).toBe('32px')
+})
+
+test('the popover adds someone from the list and removes them again', () => {
+  renderGantt({}, staged([]), PEOPLE)
+  press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+  const field = screen.getByLabelText('Add a person')
+  fireEvent.change(field, { target: { value: 'iv' } })
+  // Anna is archived: she is not offered again.
+  expect(screen.queryByRole('option', { name: /Anna/ })).toBeNull()
+  fireEvent.click(screen.getByRole('option', { name: /Ivan/ }))
+  expect(rows()[0].stages![0].people).toEqual(['p1'])
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Ivan' }))
+  expect(rows()[0].stages![0].people).toEqual([])
+})
+
+test('an unknown name is added to the people on the fly', async () => {
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+    Response.json({
+      id: 'p9',
+      teams: [],
+      archived: false,
+      ...JSON.parse(String(init?.body)),
+      source: 'manual',
+    }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, staged([]), PEOPLE)
+    press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+    fireEvent.change(screen.getByLabelText('Add a person'), { target: { value: 'Petra' } })
+    fireEvent.click(screen.getByRole('option', { name: '+ Add “Petra” to people' }))
+    await vi.waitFor(() => expect(rows()[0].stages![0].people).toEqual(['p9']))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/planning/people',
+      expect.objectContaining({ method: 'POST', body: '{"name":"Petra","source":"manual"}' }),
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+test('names that do not fit turn into a count; the stage popover lists them', () => {
+  // jsdom lays nothing out: the names are as wide as the hidden copy says.
+  const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(500)
+  try {
+    renderGantt({}, staged(['p1', 'p2']), PEOPLE)
+    const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+    expect(bar.textContent).toBe('Build2')
+    expect(within(bar).getByLabelText('2 people')).toBeTruthy()
+    press(bar, 500)
+    expect(screen.getByRole('button', { name: 'Remove Ivan' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Remove Anna' })).toBeTruthy()
+  } finally {
+    width.mockRestore()
+  }
+})
+
+test('a second click on a stage closes its popover', async () => {
+  renderGantt({}, staged(['p1']), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  // The popover listens for clicks outside it from the next tick on.
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  press(bar, 500)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
+  // A click on the bar moves focus to the canvas node around it: not a reason to close.
+  fireEvent.focusIn(bar.closest('.react-flow__node')!)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
+  press(bar, 500)
+  await tick()
+  expect(screen.queryByLabelText('Add a person')).toBeNull()
+  press(bar, 500)
+  await tick()
+  expect(screen.getByLabelText('Add a person')).toBeTruthy()
+})
+
+test('an assignee of a task in this Gantt is added from the tracker when picked', async () => {
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+    Response.json({ id: 'p7', teams: [], archived: false, ...JSON.parse(String(init?.body)) }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    const start = staged([])
+    start.rows[0] = { ...start.rows[0], key: 'DEMO-1', source: 'demo' }
+    renderGantt({}, start, PEOPLE, { 'demo:DEMO-1': { ...task, assignee_name: 'Oleg' } })
+    press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+    fireEvent.focus(screen.getByLabelText('Add a person'))
+    // Nobody is added until picked.
+    expect(fetchMock).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('option', { name: /Oleg.*From tracker/ }))
+    await vi.waitFor(() => expect(rows()[0].stages![0].people).toEqual(['p7']))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/planning/people',
+      expect.objectContaining({ body: '{"name":"Oleg","source":"tracker"}' }),
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })

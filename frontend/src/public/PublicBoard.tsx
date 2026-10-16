@@ -144,8 +144,9 @@ export default function PublicBoard({ token }: { token: string }) {
       room: data?.room ?? '',
       intervalS: data?.refresh_interval_s ?? 30,
       onLive: setLive,
+      planning: data?.planning ?? null,
     }),
-    [token, data?.room, data?.refresh_interval_s],
+    [token, data?.room, data?.refresh_interval_s, data?.planning],
   )
 
   if (isGone(board.error) || isGone(version.error)) {

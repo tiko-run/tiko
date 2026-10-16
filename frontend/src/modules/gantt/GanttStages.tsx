@@ -1,13 +1,22 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
-import { Plus, Trash2 } from 'lucide-react'
-import { useRef, useState, type FormEvent, type PointerEvent } from 'react'
-import { addStageType, freeHue, storeStageType, type StageType } from '@/api/planning'
+import { Plus, Trash2, Users } from 'lucide-react'
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from 'react'
+import { addStageType, freeHue, storeStageType, type Person, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
+import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
 import {
   addStage,
   BARE,
@@ -40,6 +49,11 @@ type Props = {
   range: Span
   pxPerDay: number
   types: StageType[]
+  people: Person[]
+  /** Assignees of this Gantt's tasks, offered in the popover until someone adds them. */
+  assignees: string[]
+  /** Names in a line under each stage instead of after its type. */
+  below: boolean
   /** The row's name and, for a task, its live status; the tooltip names both. */
   label: string
   onRow: (row: Row) => void
@@ -48,9 +62,22 @@ type Props = {
 // A click without a drag adds one week.
 const CLICK_DAYS = 7
 const MOVE_PX = 3
+// The `px-1.5` of the bar and the `px-0.5` of the line under it, both sides.
+const BAR_PADDING = 12
+const BELOW_PADDING = 4
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
-export function GanttStages({ row, range, pxPerDay, types, label, onRow }: Props) {
+export function GanttStages({
+  row,
+  range,
+  pxPerDay,
+  types,
+  people,
+  assignees,
+  below,
+  label,
+  onRow,
+}: Props) {
   const { getZoom } = useReactFlow()
   const [open, setOpen] = useState<string | null>(null)
   const [ghost, setGhost] = useState<Span | null>(null)
@@ -117,6 +144,9 @@ export function GanttStages({ row, range, pxPerDay, types, label, onRow }: Props
           range={range}
           pxPerDay={pxPerDay}
           types={types}
+          people={people}
+          assignees={assignees}
+          below={below}
           label={label}
           open={open === stage.id}
           onOpen={(next) => setOpen(next ? stage.id : null)}
@@ -147,6 +177,9 @@ type BarProps = {
   range: Span
   pxPerDay: number
   types: StageType[]
+  people: Person[]
+  assignees: string[]
+  below: boolean
   label: string
   open: boolean
   onOpen: (open: boolean) => void
@@ -161,6 +194,9 @@ function StageBar({
   range,
   pxPerDay,
   types,
+  people,
+  assignees,
+  below,
   label,
   open,
   onOpen,
@@ -172,11 +208,21 @@ function StageBar({
     null,
   )
   const [dragging, setDragging] = useState(false)
+  const measure = useRef<HTMLSpanElement>(null)
+  const [crowded, setCrowded] = useState(false)
   const span = stageSpan(stage)
   const box = barBox(span, range, pxPerDay)
-  if (!box) return null
+  const width = box ? Math.max(box.width, 4) : 0
   const type = types.find((t) => t.id === stage.type)
   const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
+  const named = stagePeople(stage.people, people)
+  const names = named.map((p) => p.name).join(', ')
+  // Names that do not fit turn into a people button; the hidden copy says how wide they are.
+  useLayoutEffect(() => {
+    const needed = (measure.current?.offsetWidth ?? 0) + (below ? BELOW_PADDING : BAR_PADDING)
+    setCrowded(named.length > 0 && needed > width)
+  }, [names, name, below, width, named.length])
+  if (!box) return null
 
   const start = (grip: Grip) => (event: PointerEvent) => {
     if (event.button !== 0) return
@@ -231,7 +277,11 @@ function StageBar({
               ...(type && stageColors(type.hue)),
             }}
           >
-            <span className="truncate">{name}</span>
+            <span className="truncate">
+              {name}
+              {!below && !crowded && named.length > 0 && <Names named={named} lead=" · " />}
+            </span>
+            {!below && crowded && <PeopleCount named={named} className="ml-auto pl-1" />}
             {!box.clippedStart && (
               <span
                 aria-hidden
@@ -248,9 +298,41 @@ function StageBar({
             )}
           </div>
         </PopoverAnchor>
+        <span
+          ref={measure}
+          aria-hidden
+          className="invisible absolute top-0 left-0 text-[11px] font-semibold whitespace-nowrap"
+        >
+          {below ? <Names named={named} /> : [name, <Names key="n" named={named} lead=" · " />]}
+        </span>
+        {below && named.length > 0 && (
+          <div
+            data-stage-people
+            className="text-muted-foreground pointer-events-none absolute top-7 flex justify-center px-0.5 text-[11px] leading-4"
+            style={{ left: box.left, width }}
+          >
+            {crowded ? (
+              <button
+                type="button"
+                aria-label={`People on ${name}`}
+                // Like a press on the bar: the stage's own popover, and focus stays where it is.
+                onPointerDown={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onOpen(!open)}
+                className="hover:bg-foreground/10 pointer-events-auto rounded-[3px] px-0.5"
+              >
+                <PeopleCount named={named} />
+              </button>
+            ) : (
+              <span className="truncate">
+                <Names named={named} />
+              </span>
+            )}
+          </div>
+        )}
         <DatesTip
           span={span}
-          note={`${name} · ${label}`}
+          note={`${names ? `${name} · ${names}` : name} · ${label}`}
           shown={dragging}
           left={box.left}
           right={box.left + box.width}
@@ -261,6 +343,8 @@ function StageBar({
             row={row}
             stage={stage}
             types={types}
+            people={people}
+            assignees={assignees}
             onRow={onRow}
             onReopen={onReopen}
             onClose={() => onOpen(false)}
@@ -271,10 +355,40 @@ function StageBar({
   )
 }
 
+/** Who is on a stage too narrow for their names: a count; the stage's popover lists them. */
+function PeopleCount({ named, className }: { named: Named[]; className?: string }) {
+  return (
+    <span
+      aria-label={`${named.length} people`}
+      className={cn('flex shrink-0 items-center gap-0.5 font-medium', className)}
+    >
+      <Users className="size-3" strokeWidth={2} />
+      {named.length}
+    </span>
+  )
+}
+
+/** Names in a row; someone archived, or unknown here, reads muted. */
+function Names({ named, lead = '' }: { named: Named[]; lead?: string }) {
+  return (
+    <span className="font-medium">
+      {lead}
+      {named.map((p, i) => (
+        <Fragment key={p.id}>
+          {i > 0 && ', '}
+          <span className={cn(p.archived && 'opacity-60')}>{p.name}</span>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
 function StageForm({
   row,
   stage,
   types,
+  people,
+  assignees,
   onRow,
   onReopen,
   onClose,
@@ -282,6 +396,8 @@ function StageForm({
   row: Row
   stage: Stage
   types: StageType[]
+  people: Person[]
+  assignees: string[]
   onRow: (row: Row) => void
   onReopen: (id: string) => void
   onClose: () => void
@@ -291,13 +407,34 @@ function StageForm({
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const active = types.filter((t) => !t.archived)
+  // A person added through the API lands after the request: by then the row may have changed,
+  // or the popover may be gone, so the edit reads what is current.
+  const latest = useRef<{ row: Row; id: string; onRow: (row: Row) => void } | null>(null)
+  useLayoutEffect(() => {
+    latest.current = { row, id: stage.id, onRow }
+  })
+  useEffect(
+    () => () => {
+      latest.current = null
+    },
+    [],
+  )
+  const editPeople = (edit: (ids: string[]) => string[]) => {
+    const now = latest.current
+    const current = now && shownStages(now.row).find((s) => s.id === now.id)
+    if (!now || !current) return
+    const next = updateStage(now.row, current.id, { people: edit(current.people) })
+    now.onRow(next)
+    if (current.id === BARE && next.stages?.length) onReopen(next.stages[0].id)
+  }
 
-  const pick = (type: string) => {
-    const next = updateStage(row, stage.id, { type })
+  const change = (part: Partial<Omit<Stage, 'id'>>) => {
+    const next = updateStage(row, stage.id, part)
     onRow(next)
     // The bare bar turns into a stage with an id of its own; the popover follows it.
     if (stage.id === BARE && next.stages?.length) onReopen(next.stages[0].id)
   }
+  const pick = (type: string) => change({ type })
   const create = async (event: FormEvent) => {
     event.preventDefault()
     const trimmed = name.trim()
@@ -370,6 +507,13 @@ function StageForm({
       <div className="text-muted-foreground text-[12px] tabular-nums">
         {formatSpan(stageSpan(stage))}
       </div>
+      <StagePeople
+        chosen={stage.people}
+        people={people}
+        assignees={assignees}
+        onAdd={(id) => editPeople((ids) => (ids.includes(id) ? ids : [...ids, id]))}
+        onRemove={(id) => editPeople((ids) => ids.filter((other) => other !== id))}
+      />
       <p className="text-muted-foreground text-[12px]">
         Stage types are shared by every board. The task in the tracker stays as it is.
       </p>
