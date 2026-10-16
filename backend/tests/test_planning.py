@@ -2,7 +2,9 @@
 
 from fastapi.testclient import TestClient
 
+from app.adapters.storage.sqlite import Database, SqlitePlanningPeopleRepo
 from app.config import Settings
+from app.domain.planning import PlanningPerson, TimeOff
 from app.main import create_app
 from tests.conftest import signed_in
 
@@ -189,6 +191,17 @@ def test_time_off_rules(client: TestClient, monkeypatch) -> None:
     assert client.post(path, json=week).status_code == 422
     client.patch("/api/planning", json={"enabled": False})
     assert client.post(path, json=week).status_code == 422
+
+
+def test_the_time_off_limit_holds_at_the_store() -> None:
+    people = SqlitePlanningPeopleRepo(Database(":memory:"))
+    people.add(PlanningPerson(id="p1", name="Anna", source="manual"))
+    week = {"start": "2026-10-05", "end": "2026-10-09"}
+    assert people.add_off("p1", TimeOff(id="o1", **week), limit=2)
+    assert people.add_off("p1", TimeOff(id="o2", **week), limit=2)
+    # A request that read one range before the second landed still stops at the limit.
+    assert not people.add_off("p1", TimeOff(id="o3", **week), limit=2)
+    assert [o.id for o in people.all()[0].off] == ["o1", "o2"]
 
 
 def test_renaming_a_person_keeps_their_time_off(client: TestClient) -> None:

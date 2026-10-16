@@ -572,12 +572,16 @@ class SqlitePlanningPeopleRepo:
                 ),
             )
 
-    def add_off(self, person_id: str, off: TimeOff) -> None:
+    def add_off(self, person_id: str, off: TimeOff, limit: int) -> bool:
+        # One statement counts and inserts, so two requests at once cannot pass the limit.
         with self._db.transaction() as conn:
-            conn.execute(
-                "INSERT INTO planning_off (id, person_id, start_day, end_day) VALUES (?, ?, ?, ?)",
-                (off.id, person_id, off.start.isoformat(), off.end.isoformat()),
+            cursor = conn.execute(
+                "INSERT INTO planning_off (id, person_id, start_day, end_day)"
+                " SELECT ?, ?, ?, ?"
+                " WHERE (SELECT COUNT(*) FROM planning_off WHERE person_id = ?) < ?",
+                (off.id, person_id, off.start.isoformat(), off.end.isoformat(), person_id, limit),
             )
+            return cursor.rowcount == 1
 
     def remove_off(self, person_id: str, off_id: str) -> None:
         with self._db.transaction() as conn:

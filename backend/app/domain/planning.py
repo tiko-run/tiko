@@ -196,10 +196,10 @@ class Planning:
 
     def add_off(self, person_id: str, body: TimeOffIn) -> PlanningPerson:
         self._require_enabled()
-        person = self._person(person_id)
-        if len(person.off) >= MAX_OFF:
+        self._person(person_id)
+        off = TimeOff(id=self._new_id(), **body.model_dump())
+        if not self._people.add_off(person_id, off, MAX_OFF):
             raise ValidationFailed(f"A person can have up to {MAX_OFF} time off ranges.")
-        self._people.add_off(person_id, TimeOff(id=self._new_id(), **body.model_dump()))
         self._on_change()
         return self._person(person_id)
 
