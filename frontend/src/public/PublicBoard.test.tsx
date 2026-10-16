@@ -55,6 +55,7 @@ function board(version: number, nodes: string[]) {
     tasks: {},
     default_source: 'demo',
     refresh_interval_s: 30,
+    planning: null,
     room: 'a3',
   }
 }

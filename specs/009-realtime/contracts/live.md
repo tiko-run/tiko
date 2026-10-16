@@ -28,6 +28,8 @@ Text frames are ignored. A frame over 1 MiB closes the socket with 1009.
 
 The server sends sync step 1 on accept, then updates and awareness from the others, and its own repair updates.
 
+Type 100 is the server's own, with no body: the instance's planning lists changed ([spec 027](../../027-planning/contracts/api.md)), so the tab reads `/api/planning` again. Only signed-in sockets get it; a guest reads the names from the board's public payload.
+
 Awareness leaves in batches. The room sends one awareness message to every signed-in socket at most once in 50 ms, and at most once in 100 ms while it has 10 sockets or more: the latest state of each tab that changed, several tabs in one message. A state heard after a pause of that length leaves at once; one heard sooner waits for its turn, and states a tab replaced within that time are never sent. The web app does not know the rule: it measures the gap between the messages and moves pointers and dragged elements over 80 ms, or over 160 ms when they come about 100 ms apart. Two things do not wait: a socket that closes is told to the others at once, and a document update is sent after the awareness the server heard before it.
 
 ## Close codes

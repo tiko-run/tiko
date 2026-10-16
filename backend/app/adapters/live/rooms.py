@@ -34,6 +34,7 @@ from app.domain.live import (
     GOING_AWAY,
     MAX_CONNECTIONS,
     MAX_GUESTS,
+    PLANNING_CHANGED,
     ROOM_FULL,
     SESSION_ENDED,
     TOO_SLOW,
@@ -509,6 +510,11 @@ class LiveRooms:
                         guest.kick(ACCESS_CHANGED)
 
         loop.call_soon_threadsafe(run)
+
+    def planning_changed(self) -> None:
+        # Guests read names from the board's public payload, so only people hear it.
+        data = bytes([PLANNING_CHANGED])
+        self._each(lambda _, __: True, lambda _, c: c.push(data))
 
     def recheck_board(self, board_id: str) -> None:
         def recheck(room: Room, connection: Connection) -> None:

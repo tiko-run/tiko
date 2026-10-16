@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, Request
 
 from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor, is_demo, not_on_demo
 from app.domain.planning import (
+    PersonChange,
+    PersonIn,
     Planning,
     PlanningChange,
+    PlanningPerson,
     PlanningView,
     StageType,
     TypeChange,
@@ -48,3 +51,15 @@ def change_type(
     type_id: str, body: TypeChange, person: CurrentPerson, service: PlanningDep
 ) -> StageType:
     return service.change_type(type_id, body)
+
+
+@router.post("/people", dependencies=Writer)
+def add_person(body: PersonIn, person: CurrentPerson, service: PlanningDep) -> PlanningPerson:
+    return service.add_person(body)
+
+
+@router.patch("/people/{person_id}", dependencies=Writer)
+def change_person(
+    person_id: str, body: PersonChange, person: CurrentPerson, service: PlanningDep
+) -> PlanningPerson:
+    return service.change_person(person_id, body)

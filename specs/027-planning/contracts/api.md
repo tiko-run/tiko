@@ -39,7 +39,7 @@ One read for everything a Gantt needs. With Planning off, and always on a demo i
 | `DELETE /api/planning/views/{id}` | | |
 | `PUT /api/planning/days-off` | `{"dates": [...]}` | up to 400 dates |
 
-Each answers with the created or changed object. A change is broadcast to every open board as a `planning` live event, so other people's Gantts refresh their lists.
+Each answers with the created or changed object. A change, the switch included, is broadcast to every open board as a `planning` live event (message type 100 in the [live contract](../../009-realtime/contracts/live.md)), so other people's Gantts refresh their lists.
 
 ## `GET /api/planning/people/{id}/workload?from=2026-10-12&weeks=12`
 
@@ -59,4 +59,4 @@ A stage on a board the reader cannot open has `board`, `boardName`, `row` and `t
 
 ## Public link
 
-A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people}` limited to the ids on that board), so a viewer sees stages and names without access to the directory.
+A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people}` limited to the ids on that board), so a viewer sees stages and names without access to the directory. With Planning off, and always on a demo instance, `planning` is `null`.

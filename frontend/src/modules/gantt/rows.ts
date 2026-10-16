@@ -11,6 +11,8 @@ export const LABEL_WIDTH = { min: 120, max: 480 }
 export const HEADER_ROW = 24
 export const HEADER = HEADER_ROW * 2
 export const ROW_HEIGHT = 32
+// Names in a line under each stage, like the spreadsheet the plan came from.
+export const ROW_HEIGHT_BELOW = 48
 export const FOOTER = 40
 export const MAX_ROWS = 200
 
@@ -23,9 +25,14 @@ export function pxPerDay(content: GanttContent, width: number) {
   return Math.max(width - content.labelWidth, 1) / rangeDays(start, end)
 }
 
+export function rowHeight(content: GanttContent, planning: boolean) {
+  return planning && content.people === 'below' ? ROW_HEIGHT_BELOW : ROW_HEIGHT
+}
+
 /** Body height that shows every visible row, keeping one empty row as a drop target. */
-export function bodyHeight(content: GanttContent) {
-  return HEADER + Math.max(visibleRows(content.rows).length, 1) * ROW_HEIGHT + FOOTER
+export function bodyHeight(content: GanttContent, planning: boolean) {
+  const rows = Math.max(visibleRows(content.rows).length, 1)
+  return HEADER + rows * rowHeight(content, planning) + FOOTER
 }
 
 export function spanOf(row: Row): Span {
@@ -80,6 +87,7 @@ export function acceptCard(
   task: TaskLink,
   at: XYPosition,
   width: number,
+  planning: boolean,
 ): GanttContent | null {
   if (content.rows.length >= MAX_ROWS || planned(content, task)) return null
   const day =
@@ -88,7 +96,10 @@ export function acceptCard(
       : undefined
   // Between the visible rows it fell on, next to the row above it.
   const visible = visibleRows(content.rows)
-  const slot = Math.min(Math.max(Math.round((at.y - HEADER) / ROW_HEIGHT), 0), visible.length)
+  const slot = Math.min(
+    Math.max(Math.round((at.y - HEADER) / rowHeight(content, planning)), 0),
+    visible.length,
+  )
   const before = visible[slot]?.row.id ?? null
   return insertRow(content, makeRow(content, task, day), before, visible[slot - 1]?.depth ?? 0)
 }

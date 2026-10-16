@@ -84,7 +84,7 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-const OFF: PlanningState = { enabled: false, types: [] }
+const OFF: PlanningState = { enabled: false, types: [], people: [] }
 
 function renderGantt(host: Partial<ModuleHost> = {}, start = content, planning = OFF) {
   const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
@@ -311,6 +311,7 @@ const PLANNING: PlanningState = {
     { id: 't1', name: 'Discovery', hue: 75, archived: false },
     { id: 't3', name: 'Build', hue: 250, archived: false },
   ],
+  people: [],
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -408,4 +409,87 @@ test('removing the last child of a stretched row brings its dates back to its st
   renderGantt({}, start, PLANNING)
   fireEvent.click(screen.getByRole('button', { name: 'Remove Child' }))
   expect([rows()[0].start, rows()[0].end]).toEqual(['2026-10-05', '2026-10-09'])
+})
+
+const PEOPLE: PlanningState = {
+  ...PLANNING,
+  people: [
+    { id: 'p1', name: 'Ivan', teams: ['Core'], source: 'manual', archived: false },
+    { id: 'p2', name: 'Anna', teams: [], source: 'manual', archived: true },
+  ],
+}
+const staged = (people: string[], extra: Partial<GanttContent> = {}): GanttContent => ({
+  ...content,
+  ...extra,
+  rows: [
+    {
+      id: 'a',
+      title: 'Payment API',
+      start: '2026-10-12',
+      end: '2026-10-16',
+      stages: [{ id: 's1', type: 't3', start: '2026-10-12', end: '2026-10-16', people }],
+    },
+  ],
+})
+
+test('people show after the stage type, an archived one muted', () => {
+  renderGantt({}, staged(['p1', 'p2']), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(bar.textContent).toBe('Build · Ivan, Anna')
+  expect(within(bar).getByText('Anna').className).toContain('opacity-60')
+  expect(within(bar).getByText('Ivan').className).not.toContain('opacity-60')
+})
+
+test('names below the bars make the rows taller', () => {
+  renderGantt({}, staged(['p1'], { people: 'below' }), PEOPLE)
+  const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(bar.textContent).toBe('Build')
+  const row = bar.closest('[data-gantt-row]') as HTMLElement
+  expect(row.style.height).toBe('48px')
+  expect(within(row).getByText('Ivan')).toBeTruthy()
+})
+
+test('names below are ignored with Planning off', () => {
+  renderGantt({}, staged(['p1'], { people: 'below' }), OFF)
+  const row = document.querySelector('[data-gantt-row]') as HTMLElement
+  expect(row.style.height).toBe('32px')
+})
+
+test('the popover adds someone from the list and removes them again', () => {
+  renderGantt({}, staged([]), PEOPLE)
+  press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+  const field = screen.getByLabelText('Add a person')
+  fireEvent.change(field, { target: { value: 'iv' } })
+  // Anna is archived: she is not offered again.
+  expect(screen.queryByRole('option', { name: /Anna/ })).toBeNull()
+  fireEvent.click(screen.getByRole('option', { name: /Ivan/ }))
+  expect(rows()[0].stages![0].people).toEqual(['p1'])
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Ivan' }))
+  expect(rows()[0].stages![0].people).toEqual([])
+})
+
+test('an unknown name is added to the people on the fly', async () => {
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+    Response.json({
+      id: 'p9',
+      teams: [],
+      archived: false,
+      ...JSON.parse(String(init?.body)),
+      source: 'manual',
+    }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, staged([]), PEOPLE)
+    press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+    fireEvent.change(screen.getByLabelText('Add a person'), { target: { value: 'Petra' } })
+    fireEvent.click(screen.getByRole('option', { name: '+ Add “Petra” to people' }))
+    await vi.waitFor(() => expect(rows()[0].stages![0].people).toEqual(['p9']))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/planning/people',
+      expect.objectContaining({ method: 'POST', body: '{"name":"Petra","source":"manual"}' }),
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })

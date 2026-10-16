@@ -7,9 +7,10 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.domain.attempts import MemoryAttempts
-from app.domain.boards import task_refs
+from app.domain.boards import stage_refs, task_refs
 from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
 from app.domain.live import room_key
+from app.domain.planning import BoardPlanning, Planning
 from app.domain.ports import Attempts, BoardRepo, LiveBoards, TaskProvider
 from app.domain.tasks import Task, now_iso, split_ref, task_ref
 
@@ -32,6 +33,8 @@ class PublicBoard(BaseModel):
     tasks: dict[str, Task]
     default_source: str
     refresh_interval_s: int
+    # Absent with Planning off: the guest's Gantt draws one bar per row.
+    planning: BoardPlanning | None = None
 
 
 class PublicLinks:
@@ -127,6 +130,7 @@ def public_board(
     default_source: str,
     base_url: str | None,
     refresh_interval_s: int,
+    planning: Planning | None,
 ) -> PublicBoard:
     record = boards.get(board_id)
     if record is None:
@@ -140,4 +144,5 @@ def public_board(
         tasks=guest_tasks(task_refs(record.doc, default_source), open_sources, base_url)[0],
         default_source=default_source,
         refresh_interval_s=refresh_interval_s,
+        planning=planning.for_board(*stage_refs(record.doc)) if planning else None,
     )

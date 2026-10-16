@@ -22,3 +22,13 @@ With Planning on, a row is cut into stages: discovery, design, build, a pause, o
 - A new stage takes the type that follows the previous one.
 
 Stage types belong to the whole tiko: add one from a stage with **New type**, rename, recolor or archive it in **Settings → Planning**. An archived type stays on the stages that use it, and new stages cannot pick it. A task card dropped into the Gantt becomes a row with one bar, as before.
+
+## People on stages
+
+Each stage can name the people planned for it. They come from one list for the whole tiko, in **Settings → Planning → People** or behind **People** in the Gantt controls. Most of them never sign in, so this list is separate from the accounts in **Settings → People**.
+
+- Type a name in a stage's popover to pick someone from the list.
+- A name nobody has yet offers **Add "Name" to people**.
+- Assignees of the tasks in this Gantt who are not in the list show as **From tracker**. Picking one adds them; nobody is imported until you pick them.
+
+The tracker's assignee and the stage's people are independent: the tracker says who owns the task now, a stage says who is planned for that phase. Names show after the stage type, or in a line under each stage with **Names below** in the Gantt controls. An archived person stays on old stages, muted, and is not offered again. Someone viewing a public link sees the names but cannot change them.

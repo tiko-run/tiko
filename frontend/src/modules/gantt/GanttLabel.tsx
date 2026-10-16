@@ -13,7 +13,7 @@ import {
 import { useRef, useState, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { TypeIcon } from '@/canvas/nodes/TaskBits'
-import { ROW_HEIGHT, type Row } from '@/modules/gantt/rows'
+import type { Row } from '@/modules/gantt/rows'
 import { cn } from '@/lib/utils'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
@@ -27,6 +27,7 @@ type Props = {
   row: Row
   depth: number
   hasChildren: boolean
+  height: number
   task?: Task
   /** Where the task opens in the tracker; only from its own button, never from a drag. */
   url?: string
@@ -49,6 +50,7 @@ export function GanttLabel({
   row,
   depth,
   hasChildren,
+  height,
   task,
   url,
   fresh,
@@ -93,7 +95,7 @@ export function GanttLabel({
       event.clientY >= box.top &&
       event.clientY <= box.bottom
     if (!inside) return onEject({ x: event.clientX, y: event.clientY })
-    onMove(Math.round(offset.y / ROW_HEIGHT), Math.round(offset.x / INDENT))
+    onMove(Math.round(offset.y / height), Math.round(offset.x / INDENT))
   }
 
   const done = task?.status_category === 'done'
@@ -116,7 +118,7 @@ export function GanttLabel({
         offset !== null && 'bg-card relative z-10 cursor-grabbing shadow-md',
       )}
       style={{
-        height: ROW_HEIGHT,
+        height,
         paddingLeft: 4 + depth * INDENT,
         transform: offset !== null ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
       }}

@@ -3,15 +3,20 @@ import { Archive, ArchiveRestore } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import type { Me } from '@/api/auth'
 import {
+  addPerson,
   addStageType,
+  changePerson,
   changeStageType,
   freeHue,
   HUES,
+  parseTeams,
   PLANNING_KEY,
   setPlanning,
+  storePerson,
   storeStageType,
   usePlanningQuery,
   type Hue,
+  type Person,
   type StageType,
 } from '@/api/planning'
 import { Button } from '@/components/ui/button'
@@ -37,7 +42,7 @@ export function Planning({ me }: { me: Me }) {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="Planning"
-        description="Stages for the Gantt, shared by every board on this tiko."
+        description="Stages and people for the Gantt, shared by every board on this tiko."
       />
       <Group title="Planning mode">
         <div className="flex items-center justify-between gap-4">
@@ -56,6 +61,7 @@ export function Planning({ me }: { me: Me }) {
         </p>
       </Group>
       {enabled && planning.data && <StageTypes types={planning.data.types} />}
+      {enabled && planning.data && <People people={planning.data.people} />}
     </div>
   )
 }
@@ -172,6 +178,160 @@ function TypeName({ type, onName }: { type: StageType; onName: (name: string) =>
       onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
       className="h-8 flex-1 font-medium"
       style={stageColors(type.hue)}
+    />
+  )
+}
+
+const SOURCES: Record<Person['source'], string> = {
+  manual: 'Added by hand',
+  tracker: 'Tracker assignee',
+}
+
+function People({ people }: { people: Person[] }) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const [teams, setTeams] = useState('')
+  const replace = (saved: Person) => storePerson(queryClient, saved)
+  const change = useMutation({
+    mutationFn: ({
+      id,
+      ...rest
+    }: {
+      id: string
+      name?: string
+      teams?: string[]
+      archived?: boolean
+    }) => changePerson(id, rest),
+    onSuccess: replace,
+    onError: toastError,
+  })
+  const add = useMutation({
+    mutationFn: addPerson,
+    onSuccess: (saved) => {
+      replace(saved)
+      setName('')
+      setTeams('')
+    },
+    onError: toastError,
+  })
+  const active = people.filter((p) => !p.archived)
+  const archived = people.filter((p) => p.archived)
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (name.trim()) add.mutate({ name: name.trim(), teams: parseTeams(teams) })
+  }
+  return (
+    <Group title="People">
+      <p className="text-muted-foreground text-[13px]">
+        Who stages are planned for. Most of them never sign in; accounts are a list of their own.
+      </p>
+      {active.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {active.map((p) => (
+            <li key={p.id} className="flex items-center gap-2">
+              <Draft
+                label={`Name of ${p.name}`}
+                value={p.name}
+                maxLength={80}
+                required
+                onSave={(next) => change.mutate({ id: p.id, name: next })}
+                className="font-medium"
+              />
+              <Draft
+                label={`Teams of ${p.name}`}
+                placeholder="Teams"
+                value={p.teams.join(', ')}
+                onSave={(next) => change.mutate({ id: p.id, teams: parseTeams(next) })}
+              />
+              <span className="text-muted-foreground w-24 shrink-0 text-[12px]">
+                {SOURCES[p.source]}
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Archive ${p.name}`}
+                title="Archive: stages keep the name, nobody offers it again"
+                onClick={() => change.mutate({ id: p.id, archived: true })}
+              >
+                <Archive className="size-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form onSubmit={submit} className="flex gap-2">
+        <Input
+          aria-label="New person"
+          placeholder="Name"
+          maxLength={80}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <Input
+          aria-label="Teams of the new person"
+          placeholder="Teams, e.g. Web, Core"
+          value={teams}
+          onChange={(event) => setTeams(event.target.value)}
+        />
+        <Button type="submit" variant="outline" disabled={!name.trim() || add.isPending}>
+          Add
+        </Button>
+      </form>
+      {archived.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-[12px]">Archived</span>
+          {archived.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">{p.name}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Restore ${p.name}`}
+                onClick={() => change.mutate({ id: p.id, archived: false })}
+              >
+                <ArchiveRestore className="size-4" />
+                Restore
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Group>
+  )
+}
+
+/** A field saved when it loses focus or on Enter; a required one left empty goes back. */
+function Draft({
+  label,
+  value,
+  onSave,
+  required = false,
+  className,
+  ...rest
+}: {
+  label: string
+  value: string
+  onSave: (next: string) => void
+  required?: boolean
+  className?: string
+  placeholder?: string
+  maxLength?: number
+}) {
+  const [draft, setDraft] = useState(value)
+  const save = () => {
+    const next = draft.trim()
+    if (required && !next) setDraft(value)
+    else if (next !== value) onSave(next)
+  }
+  return (
+    <Input
+      aria-label={label}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={save}
+      onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+      className={cn('h-8 flex-1', className)}
+      {...rest}
     />
   )
 }

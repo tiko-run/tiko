@@ -51,7 +51,9 @@ def test_guest_reads_a_public_board(client):
         "tasks",
         "default_source",
         "refresh_interval_s",
+        "planning",
     }
+    assert body["planning"] is None
     assert body["name"] == "Roadmap" and body["doc"]["nodes"][0]["data"]["key"] == "DEMO-1"
     assert body["tasks"]["demo:DEMO-1"]["summary"] == summary
     assert anyone.get(f"/api/public/{token}/version").json() == {
@@ -61,6 +63,36 @@ def test_guest_reads_a_public_board(client):
     # The link opens that one board and nothing else.
     assert anyone.get(f"/api/boards/{board_id}").status_code == 401
     assert anyone.get("/api/boards").status_code == 401
+
+
+def gantt_with(client: TestClient, stages: list[dict]) -> str:
+    board_id = client.post("/api/boards", json={"name": "Plan"}).json()["id"]
+    row = {"id": "r1", "title": "Checkout", "start": "2026-10-05", "end": "2026-10-16"}
+    content = {"start": "2026-10-01", "end": "2026-12-31", "rows": [row | {"stages": stages}]}
+    node = {
+        "id": "g",
+        "type": "module",
+        "position": {"x": 0, "y": 0},
+        "data": {"kind": "gantt", "content": content},
+    }
+    doc = {"nodes": [node], "edges": []}
+    assert client.put(f"/api/boards/{board_id}", json={"version": 1, "doc": doc}).is_success
+    return board_id
+
+
+def test_guest_gets_only_the_types_and_people_of_the_board(client):
+    types = client.patch("/api/planning", json={"enabled": True}).json()["types"]
+    ivan, petra = (
+        client.post("/api/planning/people", json={"name": name, "teams": ["Web"]}).json()
+        for name in ("Ivan", "Petra")
+    )
+    stage = {"id": "s1", "type": types[2]["id"], "start": "2026-10-05", "end": "2026-10-16"}
+    board_id = gantt_with(client, [stage | {"people": [ivan["id"], "gone"]}])
+    planning = guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"]
+    assert planning == {"types": [types[2]], "people": [ivan]}
+    assert petra not in planning["people"]
+    client.patch("/api/planning", json={"enabled": False})
+    assert guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"] is None
 
 
 def test_guest_sees_demo_status_changes(client):
@@ -169,6 +201,8 @@ def test_guest_learns_nothing_about_people(world):  # noqa: F811
     text = (
         anyone.get(f"/api/public/{token}").text + anyone.post(f"/api/public/{token}/refresh").text
     )
+    # The key itself spells "ann".
+    text = text.replace('"planning"', "")
     for name in ("ann", "Ann", "bob", "Bob", "carl", "admin", board_id):
         assert name not in text
 

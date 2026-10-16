@@ -1,13 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { Plus, Trash2 } from 'lucide-react'
-import { useRef, useState, type FormEvent, type PointerEvent } from 'react'
-import { addStageType, freeHue, storeStageType, type StageType } from '@/api/planning'
+import { Fragment, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { addStageType, freeHue, storeStageType, type Person, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
+import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
 import {
   addStage,
   BARE,
@@ -40,6 +41,11 @@ type Props = {
   range: Span
   pxPerDay: number
   types: StageType[]
+  people: Person[]
+  /** Assignees of this Gantt's tasks, offered in the popover until someone adds them. */
+  assignees: string[]
+  /** Names in a line under each stage instead of after its type. */
+  below: boolean
   /** The row's name and, for a task, its live status; the tooltip names both. */
   label: string
   onRow: (row: Row) => void
@@ -50,7 +56,17 @@ const CLICK_DAYS = 7
 const MOVE_PX = 3
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
-export function GanttStages({ row, range, pxPerDay, types, label, onRow }: Props) {
+export function GanttStages({
+  row,
+  range,
+  pxPerDay,
+  types,
+  people,
+  assignees,
+  below,
+  label,
+  onRow,
+}: Props) {
   const { getZoom } = useReactFlow()
   const [open, setOpen] = useState<string | null>(null)
   const [ghost, setGhost] = useState<Span | null>(null)
@@ -117,6 +133,9 @@ export function GanttStages({ row, range, pxPerDay, types, label, onRow }: Props
           range={range}
           pxPerDay={pxPerDay}
           types={types}
+          people={people}
+          assignees={assignees}
+          below={below}
           label={label}
           open={open === stage.id}
           onOpen={(next) => setOpen(next ? stage.id : null)}
@@ -147,6 +166,9 @@ type BarProps = {
   range: Span
   pxPerDay: number
   types: StageType[]
+  people: Person[]
+  assignees: string[]
+  below: boolean
   label: string
   open: boolean
   onOpen: (open: boolean) => void
@@ -161,6 +183,9 @@ function StageBar({
   range,
   pxPerDay,
   types,
+  people,
+  assignees,
+  below,
   label,
   open,
   onOpen,
@@ -177,6 +202,8 @@ function StageBar({
   if (!box) return null
   const type = types.find((t) => t.id === stage.type)
   const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
+  const named = stagePeople(stage.people, people)
+  const names = named.map((p) => p.name).join(', ')
 
   const start = (grip: Grip) => (event: PointerEvent) => {
     if (event.button !== 0) return
@@ -231,7 +258,10 @@ function StageBar({
               ...(type && stageColors(type.hue)),
             }}
           >
-            <span className="truncate">{name}</span>
+            <span className="truncate">
+              {name}
+              {!below && named.length > 0 && <Names named={named} lead=" · " />}
+            </span>
             {!box.clippedStart && (
               <span
                 aria-hidden
@@ -248,9 +278,17 @@ function StageBar({
             )}
           </div>
         </PopoverAnchor>
+        {below && named.length > 0 && (
+          <div
+            className="text-muted-foreground pointer-events-none absolute top-7 truncate px-0.5 text-[11px] leading-4"
+            style={{ left: box.left, width: Math.max(box.width, 4) }}
+          >
+            <Names named={named} />
+          </div>
+        )}
         <DatesTip
           span={span}
-          note={`${name} · ${label}`}
+          note={`${names ? `${name} · ${names}` : name} · ${label}`}
           shown={dragging}
           left={box.left}
           right={box.left + box.width}
@@ -261,6 +299,8 @@ function StageBar({
             row={row}
             stage={stage}
             types={types}
+            people={people}
+            assignees={assignees}
             onRow={onRow}
             onReopen={onReopen}
             onClose={() => onOpen(false)}
@@ -271,10 +311,27 @@ function StageBar({
   )
 }
 
+/** Names in a row; someone archived, or unknown here, reads muted. */
+function Names({ named, lead = '' }: { named: Named[]; lead?: string }) {
+  return (
+    <span className="font-medium">
+      {lead}
+      {named.map((p, i) => (
+        <Fragment key={p.id}>
+          {i > 0 && ', '}
+          <span className={cn(p.archived && 'opacity-60')}>{p.name}</span>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
 function StageForm({
   row,
   stage,
   types,
+  people,
+  assignees,
   onRow,
   onReopen,
   onClose,
@@ -282,6 +339,8 @@ function StageForm({
   row: Row
   stage: Stage
   types: StageType[]
+  people: Person[]
+  assignees: string[]
   onRow: (row: Row) => void
   onReopen: (id: string) => void
   onClose: () => void
@@ -292,12 +351,13 @@ function StageForm({
   const [saving, setSaving] = useState(false)
   const active = types.filter((t) => !t.archived)
 
-  const pick = (type: string) => {
-    const next = updateStage(row, stage.id, { type })
+  const change = (part: Partial<Omit<Stage, 'id'>>) => {
+    const next = updateStage(row, stage.id, part)
     onRow(next)
     // The bare bar turns into a stage with an id of its own; the popover follows it.
     if (stage.id === BARE && next.stages?.length) onReopen(next.stages[0].id)
   }
+  const pick = (type: string) => change({ type })
   const create = async (event: FormEvent) => {
     event.preventDefault()
     const trimmed = name.trim()
@@ -370,6 +430,12 @@ function StageForm({
       <div className="text-muted-foreground text-[12px] tabular-nums">
         {formatSpan(stageSpan(stage))}
       </div>
+      <StagePeople
+        chosen={stage.people}
+        people={people}
+        assignees={assignees}
+        onPeople={(ids) => change({ people: ids })}
+      />
       <p className="text-muted-foreground text-[12px]">
         Stage types are shared by every board. The task in the tracker stays as it is.
       </p>

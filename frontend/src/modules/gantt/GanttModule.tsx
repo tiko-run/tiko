@@ -1,5 +1,5 @@
 import { useReactFlow, type XYPosition } from '@xyflow/react'
-import { CalendarRange, Diamond, Plus } from 'lucide-react'
+import { CalendarRange, Diamond, Plus, Users } from 'lucide-react'
 import { useContext, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
@@ -32,6 +32,8 @@ import {
   pxPerDay,
   range,
   ROW_HEIGHT,
+  ROW_HEIGHT_BELOW,
+  rowHeight,
   rowTask,
   updateRow,
   type Row,
@@ -67,6 +69,7 @@ import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
 import { cn } from '@/lib/utils'
 import { didOnboarding } from '@/onboarding/done'
 import { usePlanning } from '@/planning/context'
+import { openSettings } from '@/settings/store'
 
 type Props = ModuleViewProps<GanttContent>
 
@@ -117,6 +120,10 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const now = today()
   const before = quarterBefore(start)
   const after = quarterAfter(end)
+  const height = rowHeight(content, planning.enabled)
+  const assignees = [
+    ...new Set(content.rows.flatMap((row) => taskOf(row)?.assignee_name ?? [])),
+  ].sort()
   const full = content.rows.length >= MAX_ROWS
   const visible = visibleRows(content.rows)
   const indexOf = new Map(content.rows.map((r, i) => [r.id, i]))
@@ -126,7 +133,8 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
     const rowSpan = barSpan(row)
     const box = barBox(rowSpan, span, scale)
     if (!box) return
-    const y = i * ROW_HEIGHT + ROW_HEIGHT / 2
+    // Bars keep to the top of a taller row; the names sit under them.
+    const y = i * height + ROW_HEIGHT / 2
     bars.set(row.id, { left: box.left, right: box.left + box.width, y, span: rowSpan })
   })
   const link = (from: string, target: Element | null) => {
@@ -200,6 +208,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             row={row}
             depth={depth}
             hasChildren={hasChildren}
+            height={height}
             task={taskOf(row)}
             url={taskOf(row)?.url}
             fresh={row.id === fresh}
@@ -256,7 +265,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             key={row.id}
             data-gantt-row={row.id}
             className="group/row relative border-b border-border/60"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height }}
           >
             {planning.enabled && !hasChildren ? (
               <GanttStages
@@ -264,6 +273,9 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                 range={span}
                 pxPerDay={scale}
                 types={planning.types}
+                people={planning.people}
+                assignees={assignees}
+                below={height === ROW_HEIGHT_BELOW}
                 label={stagesLabel(row, taskOf(row))}
                 onRow={(next) => onChange(updateRow(content, row.id, () => next))}
               />
@@ -297,6 +309,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           wire={wire}
           picked={selected ? picked : null}
           onPick={setPicked}
+          rowHeight={height}
           onRemove={(id) => {
             setPicked(null)
             onChange(removeLink(content, id))
@@ -424,6 +437,8 @@ function formatRange(start: string, end: string) {
 
 /** Scale switch, range dates and milestones, in the selection bar. */
 export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
+  const planning = usePlanning()
+  const below = content.people === 'below'
   return (
     <>
       {SCALES.map(({ scale, label }) => (
@@ -451,6 +466,31 @@ export function GanttControls({ content, onChange, side }: ModuleControlsProps<G
         <Diamond className="size-4" strokeWidth={1.75} />
         Milestone
       </Button>
+      {planning.enabled && (
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={below}
+            title={below ? 'Show names after the stage type' : 'Show names under each stage'}
+            onClick={() => {
+              const { people: _people, ...rest } = content
+              onChange(below ? rest : { ...content, people: 'below' })
+            }}
+          >
+            {below ? 'Names below' : 'Names inline'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            title="The people stages are planned for, shared by every board"
+            onClick={() => openSettings('planning')}
+          >
+            <Users className="size-4" strokeWidth={1.75} />
+            People
+          </Button>
+        </>
+      )}
     </>
   )
 }

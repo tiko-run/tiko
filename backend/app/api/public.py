@@ -16,7 +16,7 @@ from app.domain.refresh import SourceError, SourceStatus
 from app.domain.settings import SettingsService
 from app.domain.tasks import now_iso
 
-# Open without a session (see gate.py). Nothing here changes a board or names its people.
+# Open without a session (see gate.py). Nothing here changes a board or names its members.
 router = APIRouter(prefix="/public", tags=["public"])
 
 Links = Annotated[PublicLinks, Depends(deps.public_links)]
@@ -59,6 +59,7 @@ def get_public_board(
         settings.provider(),
         settings.base_url(),
         settings.refresh_interval_s(),
+        None if deps.is_demo(request) else request.app.state.planning,
     )
 
 

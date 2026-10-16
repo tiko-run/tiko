@@ -17,7 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
-from app.domain.planning import StageType
+from app.domain.planning import PlanningPerson, StageType
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -512,6 +512,54 @@ class SqlitePlanningTypeRepo:
             conn.execute(
                 "UPDATE planning_types SET name = ?, hue = ?, archived = ? WHERE id = ?",
                 (stage_type.name, stage_type.hue, int(stage_type.archived), stage_type.id),
+            )
+
+
+class SqlitePlanningPeopleRepo:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def all(self) -> list[PlanningPerson]:
+        with self._db.read() as conn:
+            rows = conn.execute(
+                "SELECT id, name, teams, source, archived FROM planning_people ORDER BY position"
+            ).fetchall()
+        return [
+            PlanningPerson(
+                id=r["id"],
+                name=r["name"],
+                teams=json.loads(r["teams"]),
+                source=r["source"],
+                archived=bool(r["archived"]),
+            )
+            for r in rows
+        ]
+
+    def add(self, person: PlanningPerson) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO planning_people (id, name, teams, source, archived, position)"
+                " VALUES (?, ?, ?, ?, ?,"
+                " (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_people))",
+                (
+                    person.id,
+                    person.name,
+                    json.dumps(person.teams, ensure_ascii=False),
+                    person.source,
+                    int(person.archived),
+                ),
+            )
+
+    def update(self, person: PlanningPerson) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE planning_people SET name = ?, teams = ?, archived = ? WHERE id = ?",
+                (
+                    person.name,
+                    json.dumps(person.teams, ensure_ascii=False),
+                    int(person.archived),
+                    person.id,
+                ),
             )
 
 

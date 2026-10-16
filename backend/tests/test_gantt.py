@@ -95,6 +95,13 @@ def test_content_without_stages_is_unchanged():
     content = gantt(rows=[row("a")])
     assert content.rows[0].stages is None
     assert "stages" not in content.model_dump(exclude_none=True)["rows"][0]
+    assert "people" not in content.model_dump(exclude_none=True)
+
+
+def test_people_show_inline_or_below():
+    assert gantt(people="below").people == "below"
+    with pytest.raises(ValidationError):
+        gantt(people="aside")
 
 
 @pytest.mark.parametrize(

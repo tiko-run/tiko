@@ -1,4 +1,4 @@
-"""Spec 027: the Planning switch and the stage type library."""
+"""Spec 027: the Planning switch, the stage type library and the people directory."""
 
 from fastapi.testclient import TestClient
 
@@ -20,7 +20,7 @@ def member(client: TestClient) -> TestClient:
 
 
 def test_off_by_default(client: TestClient) -> None:
-    assert client.get("/api/planning").json() == {"enabled": False, "types": []}
+    assert client.get("/api/planning").json() == {"enabled": False, "types": [], "people": []}
 
 
 def test_first_enable_seeds_the_default_types(client: TestClient) -> None:
@@ -87,4 +87,64 @@ def test_signed_out_is_refused() -> None:
 def test_no_planning_on_a_demo_instance() -> None:
     admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
     assert admin.patch("/api/planning", json={"enabled": True}).status_code == 403
+    assert admin.post("/api/planning/people", json={"name": "Ivan"}).status_code == 403
     assert admin.get("/api/planning").json()["enabled"] is False
+
+
+def test_a_member_adds_renames_and_archives_a_person(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ann = member(client)
+    added = ann.post("/api/planning/people", json={"name": " Petra ", "teams": ["Web", "web"]})
+    assert added.status_code == 200
+    petra = added.json()
+    assert petra == {
+        "id": petra["id"],
+        "name": "Petra",
+        "teams": ["Web"],
+        "source": "manual",
+        "archived": False,
+    }
+    oleg = ann.post("/api/planning/people", json={"name": "Oleg", "source": "tracker"}).json()
+    assert oleg["source"] == "tracker" and oleg["teams"] == []
+    changed = ann.patch(
+        f"/api/planning/people/{petra['id']}", json={"name": "Petra K", "teams": ["Core"]}
+    ).json()
+    assert changed["name"] == "Petra K" and changed["teams"] == ["Core"]
+    ann.patch(f"/api/planning/people/{petra['id']}", json={"archived": True})
+    people = client.get("/api/planning").json()["people"]
+    assert [(p["name"], p["archived"]) for p in people] == [("Petra K", True), ("Oleg", False)]
+
+
+def test_person_rules(client: TestClient) -> None:
+    assert client.post("/api/planning/people", json={"name": "Ivan"}).status_code == 422
+    client.patch("/api/planning", json={"enabled": True})
+    people = "/api/planning/people"
+    assert client.post(people, json={"name": ""}).status_code == 422
+    assert client.post(people, json={"name": "x" * 81}).status_code == 422
+    assert client.post(people, json={"name": "Ivan", "teams": ["t"] * 11}).status_code == 422
+    assert client.post(people, json={"name": "Ivan", "teams": ["x" * 41]}).status_code == 422
+    assert client.post(people, json={"name": "Ivan", "source": "chat"}).status_code == 422
+    assert client.post(people, json={"name": "Ivan", "role": "lead"}).status_code == 422
+    assert client.patch(f"{people}/nope", json={"name": "Ivan"}).status_code == 404
+
+
+def test_off_keeps_the_people_hidden(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    client.post("/api/planning/people", json={"name": "Ivan"})
+    client.patch("/api/planning", json={"enabled": False})
+    assert client.get("/api/planning").json()["people"] == []
+    client.patch("/api/planning", json={"enabled": True})
+    assert [p["name"] for p in client.get("/api/planning").json()["people"]] == ["Ivan"]
+
+
+def test_every_write_tells_open_boards(client: TestClient, monkeypatch) -> None:
+    told: list[None] = []
+    service = client.app.state.planning
+    monkeypatch.setattr(service, "_on_change", lambda: told.append(None))
+    client.patch("/api/planning", json={"enabled": True})
+    person = client.post("/api/planning/people", json={"name": "Ivan"}).json()
+    client.patch(f"/api/planning/people/{person['id']}", json={"archived": True})
+    stage_type = client.post("/api/planning/types", json={"name": "QA", "hue": 200}).json()
+    client.patch(f"/api/planning/types/{stage_type['id']}", json={"hue": 60})
+    client.post("/api/planning/people", json={"name": ""})
+    assert len(told) == 5

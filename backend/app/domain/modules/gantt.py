@@ -86,6 +86,8 @@ class GanttContent(_Strict):
     rows: list[Row] = Field(default_factory=list, max_length=200)
     milestones: list[Milestone] = Field(default_factory=list, max_length=100)
     links: list[Link] = Field(default_factory=list, max_length=400)
+    # Where stage people show; absent means inline, so older content stays the same.
+    people: Literal["inline", "below"] | None = None
 
     @model_validator(mode="after")
     def _rules(self) -> Self:

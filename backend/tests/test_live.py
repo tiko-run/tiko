@@ -16,7 +16,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.config import Settings
 from app.domain.boards import BoardDoc
-from app.domain.live import LiveDoc, stored_node
+from app.domain.live import PLANNING_CHANGED, LiveDoc, stored_node
 from app.main import create_app
 from tests.conftest import signed_in
 
@@ -625,3 +625,22 @@ def test_guests_have_places_of_their_own(world):
         finally:
             room.guests -= places
         assert guest.ids() == set()
+
+
+def test_a_planning_change_reaches_every_open_board_but_not_guests(world):
+    first, second = world.board(), world.board()
+    token = world.publish(first)
+    admin = world.clients["admin"]
+    with (
+        world.tab("ann", first) as ann,
+        world.tab("ann", second) as other,
+        world.guest(token) as guest,
+    ):
+        admin.patch("/api/planning", json={"enabled": True})
+        for tab in (ann, other):
+            while tab.read() != bytes([PLANNING_CHANGED]):
+                pass
+        ann.add(sticky("after"))
+        ann.sync()
+        # The guest's next message is the edit, not the planning change.
+        assert guest.read()[0] == YMessageType.SYNC

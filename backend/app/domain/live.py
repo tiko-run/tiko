@@ -35,6 +35,9 @@ SESSION_ENDED = 4401
 ACCESS_CHANGED = 4403
 ROOM_FULL = 4429
 
+# A message type of our own next to y-protocols' 0–3: the instance's planning lists changed.
+PLANNING_CHANGED = 100
+
 Stored = dict[str, dict[str, Any]]
 
 _NODE = TypeAdapter(Node)
