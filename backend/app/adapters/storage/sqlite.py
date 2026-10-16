@@ -534,14 +534,17 @@ class SqlitePlanningFieldRepo:
             for r in rows
         ]
 
-    def add(self, field: PlanningField) -> None:
+    def add(self, field: PlanningField, limit: int) -> bool:
+        # One statement counts and inserts, as time off does, so two requests stay in the limit.
         with self._db.transaction() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT INTO planning_fields (id, name, standard, archived, position)"
-                " VALUES (?, ?, ?, ?,"
-                " (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_fields))",
-                (field.id, field.name, int(field.standard), int(field.archived)),
+                " SELECT ?, ?, ?, ?,"
+                " (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_fields)"
+                " WHERE (SELECT COUNT(*) FROM planning_fields WHERE standard = 0) < ?",
+                (field.id, field.name, int(field.standard), int(field.archived), limit),
             )
+            return cursor.rowcount == 1
 
     def update(self, field: PlanningField) -> None:
         with self._db.transaction() as conn:

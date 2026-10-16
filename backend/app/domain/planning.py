@@ -255,10 +255,9 @@ class Planning:
     def add_field(self, body: FieldIn) -> PlanningField:
         self._require_enabled()
         self._check_field_name(body.name, None)
-        if sum(not f.standard for f in self._fields.all()) >= MAX_FIELDS:
-            raise ValidationFailed(f"Planning can have up to {MAX_FIELDS} fields of your own.")
         field = PlanningField(id=self._new_id(), name=body.name)
-        self._fields.add(field)
+        if not self._fields.add(field, MAX_FIELDS):
+            raise ValidationFailed(f"Planning can have up to {MAX_FIELDS} fields of your own.")
         self._on_change()
         return field
 
