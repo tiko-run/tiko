@@ -86,13 +86,18 @@ function Board({ start }: { start: GanttContent }) {
 
 const OFF: PlanningState = { enabled: false, types: [], people: [] }
 
-function renderGantt(host: Partial<ModuleHost> = {}, start = content, planning = OFF) {
+function renderGantt(
+  host: Partial<ModuleHost> = {},
+  start = content,
+  planning = OFF,
+  tasks: Record<string, Task> = { 'DEMO-1': task },
+) {
   const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
   render(
     <div style={{ width: 1200, height: 800 }}>
       <QueryClientProvider client={new QueryClient()}>
         <ReactFlowProvider>
-          <TasksContext.Provider value={{ 'DEMO-1': task }}>
+          <TasksContext.Provider value={tasks}>
             <ModuleHostContext.Provider value={full}>
               <PlanningContext.Provider value={planning}>
                 <Board start={start} />
@@ -530,4 +535,28 @@ test('a second click on a stage closes its popover', async () => {
   press(bar, 500)
   await tick()
   expect(screen.getByLabelText('Add a person')).toBeTruthy()
+})
+
+test('an assignee of a task in this Gantt is added from the tracker when picked', async () => {
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+    Response.json({ id: 'p7', teams: [], archived: false, ...JSON.parse(String(init?.body)) }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    const start = staged([])
+    start.rows[0] = { ...start.rows[0], key: 'DEMO-1', source: 'demo' }
+    renderGantt({}, start, PEOPLE, { 'demo:DEMO-1': { ...task, assignee_name: 'Oleg' } })
+    press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+    fireEvent.focus(screen.getByLabelText('Add a person'))
+    // Nobody is added until picked.
+    expect(fetchMock).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('option', { name: /Oleg.*From tracker/ }))
+    await vi.waitFor(() => expect(rows()[0].stages![0].people).toEqual(['p7']))
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/planning/people',
+      expect.objectContaining({ body: '{"name":"Oleg","source":"tracker"}' }),
+    )
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })

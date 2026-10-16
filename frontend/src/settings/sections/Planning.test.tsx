@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { Me } from '@/api/auth'
 import { Planning } from '@/settings/sections/Planning'
@@ -35,12 +35,13 @@ function show(role: 'admin' | 'member', enabled: boolean) {
   })
   vi.stubGlobal('fetch', fetchMock)
   const me = { role } as Me
+  const queryClient = new QueryClient()
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <Planning me={me} />
     </QueryClientProvider>,
   )
-  return fetchMock
+  return Object.assign(fetchMock, { queryClient })
 }
 
 test('an admin turns Planning on and sees the stage types', async () => {
@@ -94,4 +95,25 @@ test('a person is added by hand with teams, and archived', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Archive Oleg' }))
   expect(await screen.findByRole('button', { name: 'Restore Oleg' })).toBeInTheDocument()
   expect(screen.queryByLabelText('Name of Oleg')).toBeNull()
+})
+
+test('a rename by someone else shows in a field nobody is typing in', async () => {
+  const fetchMock = show('member', true)
+  const { queryClient } = fetchMock
+  expect(await screen.findByLabelText('Name of Oleg')).toHaveValue('Oleg')
+  act(() =>
+    queryClient.setQueryData(['planning'], (was: { people: object[] }) => ({
+      ...was,
+      people: [{ ...people[0], name: 'Oleg K' }],
+    })),
+  )
+  const field = await screen.findByLabelText('Name of Oleg K')
+  expect(field).toHaveValue('Oleg K')
+  fireEvent.focus(field)
+  fireEvent.blur(field)
+  // Leaving it untouched sends nothing, so the other person's rename stays.
+  const writes = fetchMock.mock.calls.filter(([url]) =>
+    String(url).startsWith('/api/planning/people/'),
+  )
+  expect(writes).toEqual([])
 })

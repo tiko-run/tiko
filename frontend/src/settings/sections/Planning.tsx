@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Archive, ArchiveRestore } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { Me } from '@/api/auth'
 import {
   addPerson,
@@ -95,7 +95,15 @@ function StageTypes({ types }: { types: StageType[] }) {
       <ul className="flex flex-col gap-2">
         {active.map((t) => (
           <li key={t.id} className="flex items-center gap-2">
-            <TypeName type={t} onName={(next) => change.mutate({ id: t.id, name: next })} />
+            <Draft
+              label={`Name of ${t.name}`}
+              value={t.name}
+              maxLength={40}
+              required
+              onSave={(next) => change.mutate({ id: t.id, name: next })}
+              className="font-medium"
+              style={stageColors(t.hue)}
+            />
             <div role="group" aria-label={`Color of ${t.name}`} className="flex gap-1">
               {HUES.map((hue) => (
                 <button
@@ -158,27 +166,6 @@ function StageTypes({ types }: { types: StageType[] }) {
         </div>
       )}
     </Group>
-  )
-}
-
-function TypeName({ type, onName }: { type: StageType; onName: (name: string) => void }) {
-  const [draft, setDraft] = useState(type.name)
-  const save = () => {
-    const next = draft.trim()
-    if (next && next !== type.name) onName(next)
-    else setDraft(type.name)
-  }
-  return (
-    <Input
-      aria-label={`Name of ${type.name}`}
-      maxLength={40}
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={save}
-      onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-      className="h-8 flex-1 font-medium"
-      style={stageColors(type.hue)}
-    />
   )
 }
 
@@ -300,7 +287,7 @@ function People({ people }: { people: Person[] }) {
   )
 }
 
-/** A field saved when it loses focus or on Enter; a required one left empty goes back. */
+/** Saved on blur or Enter; shows the live value until focused, so a change by someone else lands. */
 function Draft({
   label,
   value,
@@ -314,19 +301,21 @@ function Draft({
   onSave: (next: string) => void
   required?: boolean
   className?: string
+  style?: CSSProperties
   placeholder?: string
   maxLength?: number
 }) {
-  const [draft, setDraft] = useState(value)
+  const [draft, setDraft] = useState<string | null>(null)
   const save = () => {
-    const next = draft.trim()
-    if (required && !next) setDraft(value)
-    else if (next !== value) onSave(next)
+    const next = (draft ?? value).trim()
+    setDraft(null)
+    if (next !== value && (next || !required)) onSave(next)
   }
   return (
     <Input
       aria-label={label}
-      value={draft}
+      value={draft ?? value}
+      onFocus={() => setDraft(value)}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={save}
       onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}

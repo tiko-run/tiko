@@ -25,10 +25,7 @@ type Suggestion =
   | { kind: 'tracker'; name: string }
   | { kind: 'new'; name: string }
 
-/**
- * Picks from the directory first, then assignees of this Gantt's tasks nobody has added yet;
- * an unknown name can be added on the spot. Nobody joins the directory until picked.
- */
+/** Directory matches, then this Gantt's assignees nobody added yet, then a new name. */
 export function suggestions(
   query: string,
   chosen: string[],
@@ -44,7 +41,8 @@ export function suggestions(
     .filter((name) => !known.has(name.toLocaleLowerCase()) && name.toLocaleLowerCase().includes(q))
     .map((name) => ({ kind: 'tracker' as const, name }))
   const found = [...listed, ...tracker].slice(0, SHOWN)
-  const exact = [...people.filter((p) => !p.archived).map((p) => p.name), ...assignees].some(
+  // An archived name is not offered again, not even as a new person of the same name.
+  const exact = [...people.map((p) => p.name), ...assignees].some(
     (name) => name.toLocaleLowerCase() === q,
   )
   return q && !exact ? [...found, { kind: 'new', name: query.trim() }] : found
@@ -54,11 +52,12 @@ type Props = {
   chosen: string[]
   people: Person[]
   assignees: string[]
-  onPeople: (ids: string[]) => void
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
 }
 
 /** People of a stage in its popover: chips to remove, a field that finds or adds someone. */
-export function StagePeople({ chosen, people, assignees, onPeople }: Props) {
+export function StagePeople({ chosen, people, assignees, onAdd, onRemove }: Props) {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -68,7 +67,7 @@ export function StagePeople({ chosen, people, assignees, onPeople }: Props) {
 
   const pick = async (choice: Suggestion) => {
     if (choice.kind === 'person') {
-      onPeople([...chosen, choice.person.id])
+      onAdd(choice.person.id)
       setQuery('')
       return
     }
@@ -78,7 +77,7 @@ export function StagePeople({ chosen, people, assignees, onPeople }: Props) {
       const source = choice.kind === 'tracker' ? 'tracker' : 'manual'
       const added = await addPerson({ name: choice.name, source })
       storePerson(queryClient, added)
-      onPeople([...chosen, added.id])
+      onAdd(added.id)
       setQuery('')
     } catch (error) {
       toastError(error as Error)
@@ -108,7 +107,7 @@ export function StagePeople({ chosen, people, assignees, onPeople }: Props) {
             <button
               type="button"
               aria-label={`Remove ${p.name}`}
-              onClick={() => onPeople(chosen.filter((id) => id !== p.id))}
+              onClick={() => onRemove(p.id)}
               className="text-muted-foreground hover:text-foreground px-1.5"
             >
               <X className="size-3" />

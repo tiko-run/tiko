@@ -42,7 +42,6 @@ import {
   pxPerDay,
   range,
   ROW_HEIGHT,
-  ROW_HEIGHT_BELOW,
   rowHeight,
   rowTask,
   updateRow,
@@ -285,7 +284,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                 types={planning.types}
                 people={planning.people}
                 assignees={assignees}
-                below={height === ROW_HEIGHT_BELOW}
+                below={content.people === 'below'}
                 label={stagesLabel(row, taskOf(row))}
                 onRow={(next) => onChange(updateRow(content, row.id, () => next))}
               />

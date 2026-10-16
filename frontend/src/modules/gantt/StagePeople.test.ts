@@ -30,6 +30,8 @@ test('a new name is offered only when nobody has it', () => {
   expect(labels('Ivan')).toEqual(['Ivan', 'Ivana'])
   expect(labels('oleg', [], ['Oleg'])).toEqual(['tracker:Oleg'])
   expect(labels(' Petra ')).toEqual(['new:Petra'])
+  // Anna is archived: neither offered nor added again under her name.
+  expect(labels('Anna')).toEqual([])
 })
 
 test('nobody is suggested before the field is used, so nothing is imported in bulk', () => {

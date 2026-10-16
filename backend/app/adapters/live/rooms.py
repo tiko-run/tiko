@@ -512,7 +512,7 @@ class LiveRooms:
         loop.call_soon_threadsafe(run)
 
     def planning_changed(self) -> None:
-        # Guests read names from the board's public payload, so only people hear it.
+        # Only `connections`: guests sit in `room.guests` and read names from the public payload.
         data = bytes([PLANNING_CHANGED])
         self._each(lambda _, __: True, lambda _, c: c.push(data))
 

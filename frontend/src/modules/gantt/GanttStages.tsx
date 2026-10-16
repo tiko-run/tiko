@@ -3,6 +3,7 @@ import { useReactFlow } from '@xyflow/react'
 import { Plus, Trash2, Users } from 'lucide-react'
 import {
   Fragment,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -61,8 +62,9 @@ type Props = {
 // A click without a drag adds one week.
 const CLICK_DAYS = 7
 const MOVE_PX = 3
-// The bar's `px-1.5` on both sides.
+// The `px-1.5` of the bar and the `px-0.5` of the line under it, both sides.
 const BAR_PADDING = 12
+const BELOW_PADDING = 4
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
 export function GanttStages({
@@ -217,7 +219,7 @@ function StageBar({
   const names = named.map((p) => p.name).join(', ')
   // Names that do not fit turn into a people button; the hidden copy says how wide they are.
   useLayoutEffect(() => {
-    const needed = (measure.current?.offsetWidth ?? 0) + (below ? 0 : BAR_PADDING)
+    const needed = (measure.current?.offsetWidth ?? 0) + (below ? BELOW_PADDING : BAR_PADDING)
     setCrowded(named.length > 0 && needed > width)
   }, [names, name, below, width, named.length])
   if (!box) return null
@@ -405,6 +407,26 @@ function StageForm({
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const active = types.filter((t) => !t.archived)
+  // A person added through the API lands after the request: by then the row may have changed,
+  // or the popover may be gone, so the edit reads what is current.
+  const latest = useRef<{ row: Row; id: string; onRow: (row: Row) => void } | null>(null)
+  useLayoutEffect(() => {
+    latest.current = { row, id: stage.id, onRow }
+  })
+  useEffect(
+    () => () => {
+      latest.current = null
+    },
+    [],
+  )
+  const editPeople = (edit: (ids: string[]) => string[]) => {
+    const now = latest.current
+    const current = now && shownStages(now.row).find((s) => s.id === now.id)
+    if (!now || !current) return
+    const next = updateStage(now.row, current.id, { people: edit(current.people) })
+    now.onRow(next)
+    if (current.id === BARE && next.stages?.length) onReopen(next.stages[0].id)
+  }
 
   const change = (part: Partial<Omit<Stage, 'id'>>) => {
     const next = updateStage(row, stage.id, part)
@@ -489,7 +511,8 @@ function StageForm({
         chosen={stage.people}
         people={people}
         assignees={assignees}
-        onPeople={(ids) => change({ people: ids })}
+        onAdd={(id) => editPeople((ids) => (ids.includes(id) ? ids : [...ids, id]))}
+        onRemove={(id) => editPeople((ids) => ids.filter((other) => other !== id))}
       />
       <p className="text-muted-foreground text-[12px]">
         Stage types are shared by every board. The task in the tracker stays as it is.

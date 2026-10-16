@@ -97,7 +97,7 @@ export function freeHue(types: StageType[]): Hue {
   return HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
 }
 
-function store<K extends 'types' | 'people'>(
+function storeInList<K extends 'types' | 'people'>(
   queryClient: QueryClient,
   list: K,
   saved: Planning[K][number],
@@ -116,12 +116,12 @@ function store<K extends 'types' | 'people'>(
 
 /** Puts a saved type into the cached list, in place or at the end. */
 export function storeStageType(queryClient: QueryClient, saved: StageType) {
-  store(queryClient, 'types', saved)
+  storeInList(queryClient, 'types', saved)
 }
 
 /** Puts a saved person into the cached list, in place or at the end. */
 export function storePerson(queryClient: QueryClient, saved: Person) {
-  store(queryClient, 'people', saved)
+  storeInList(queryClient, 'people', saved)
 }
 
 /** Splits "Web, Core" into teams, as the person's teams field takes them. */
