@@ -5,6 +5,7 @@ export const SECTIONS = [
   'security',
   'preferences',
   'tracker',
+  'planning',
   'task-source',
   'people',
   'sharing',

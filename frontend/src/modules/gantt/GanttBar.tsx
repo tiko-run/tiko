@@ -190,7 +190,7 @@ export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }
 const TIP_ROOM = 240
 
 /** Exact dates of a bar, above it. */
-function DatesTip({
+export function DatesTip({
   span,
   note,
   shown,

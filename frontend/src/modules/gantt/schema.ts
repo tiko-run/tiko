@@ -20,6 +20,17 @@ export const ganttSchema = z.object({
         end: isoDate,
         parent: z.string().optional(),
         collapsed: z.boolean().optional(),
+        stages: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.string(),
+              start: isoDate,
+              end: isoDate,
+              people: z.array(z.string()).default([]),
+            }),
+          )
+          .optional(),
       }),
     )
     .default([]),

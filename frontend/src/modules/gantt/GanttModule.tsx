@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { GanttAdd } from '@/modules/gantt/GanttAdd'
 import { GanttBar } from '@/modules/gantt/GanttBar'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
+import { GanttStages } from '@/modules/gantt/GanttStages'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
 import { Milestone } from '@/modules/gantt/Milestone'
 import {
@@ -33,10 +34,10 @@ import {
   ROW_HEIGHT,
   rowTask,
   updateRow,
-  withSpan,
   type Row,
 } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
+import { fitLeaves, fitStages } from '@/modules/gantt/stages'
 import {
   addChild,
   indent,
@@ -65,6 +66,7 @@ import {
 import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
 import { cn } from '@/lib/utils'
 import { didOnboarding } from '@/onboarding/done'
+import { usePlanning } from '@/planning/context'
 
 type Props = ModuleViewProps<GanttContent>
 
@@ -96,8 +98,11 @@ function HeaderRow({ cells, pxPerDay, top }: { cells: Cell[]; pxPerDay: number; 
   )
 }
 
-export function GanttModule({ content, width, selected, onChange, host }: Props) {
+export function GanttModule({ content, width, selected, onChange: write, host }: Props) {
+  // Every change passes here, so no tree edit leaves a leaf apart from its stages.
+  const onChange = (next: GanttContent) => write(fitLeaves(next))
   const tasks = useContext(TasksContext)
+  const planning = usePlanning()
   const taskOf = (row: Row) => {
     const task = rowTask(row)
     return task && tasks[taskRef(task)]
@@ -253,19 +258,30 @@ export function GanttModule({ content, width, selected, onChange, host }: Props)
             className="group/row relative border-b border-border/60"
             style={{ height: ROW_HEIGHT }}
           >
-            <GanttBar
-              span={barSpan(row)}
-              summary={hasChildren}
-              range={span}
-              pxPerDay={scale}
-              label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
-              task={taskOf(row)}
-              onSpan={(next) =>
-                hasChildren
-                  ? onParentSpan(row, next)
-                  : onChange(updateRow(content, row.id, (r) => withSpan(r, next)))
-              }
-            />
+            {planning.enabled && !hasChildren ? (
+              <GanttStages
+                row={row}
+                range={span}
+                pxPerDay={scale}
+                types={planning.types}
+                label={stagesLabel(row, taskOf(row))}
+                onRow={(next) => onChange(updateRow(content, row.id, () => next))}
+              />
+            ) : (
+              <GanttBar
+                span={barSpan(row)}
+                summary={hasChildren}
+                range={span}
+                pxPerDay={scale}
+                label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
+                task={taskOf(row)}
+                onSpan={(next) =>
+                  hasChildren
+                    ? onParentSpan(row, next)
+                    : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
+                }
+              />
+            )}
             {bars.has(row.id) && (
               <ConnectHandle
                 bar={bars.get(row.id)!}
@@ -386,6 +402,12 @@ function QuarterButton({
       <Plus className="size-3.5" />
     </Button>
   )
+}
+
+function stagesLabel(row: Row, task: Task | undefined) {
+  return task?.state === 'ok'
+    ? `${row.key} ${task.summary} · ${task.status_name}`
+    : row.key || row.title
 }
 
 function formatRange(start: string, end: string) {

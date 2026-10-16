@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Planning mode for the Gantt, off by default: an admin turns it on in Settings → Planning, and rows can then be cut into stages such as Discovery, Build or On hold. Stage types are shared by every board.
+
 ### Changed
 
 - The guide keeps its header in place and transitions between pages without a full reload.

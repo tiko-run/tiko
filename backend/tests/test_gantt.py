@@ -79,3 +79,53 @@ def test_tree_rules(rows, reason):
 def test_rows_may_lie_outside_the_range():
     content = gantt(rows=[row("a", start="2025-01-01", end="2027-01-01", key="DEV-1")])
     assert content.rows[0].key == "DEV-1"
+
+
+def stage(stage_id, start, end, **extra):
+    return {"id": stage_id, "type": "t1", "start": start, "end": end} | extra
+
+
+def test_a_row_spans_its_stages():
+    stages = [stage("s1", "2026-10-05", "2026-10-09"), stage("s2", "2026-10-12", "2026-10-16")]
+    content = gantt(rows=[row("a", end="2026-10-16", stages=stages)])
+    assert [s.id for s in content.rows[0].stages] == ["s1", "s2"]
+
+
+def test_content_without_stages_is_unchanged():
+    content = gantt(rows=[row("a")])
+    assert content.rows[0].stages is None
+    assert "stages" not in content.model_dump(exclude_none=True)["rows"][0]
+
+
+@pytest.mark.parametrize(
+    ("stages", "reason"),
+    [
+        ([stage("s1", "2026-10-05", "2026-10-07")], "must span its stages"),
+        (
+            [stage("s1", "2026-10-05", "2026-10-07"), stage("s2", "2026-10-07", "2026-10-09")],
+            "overlap or are out of order",
+        ),
+        (
+            [stage("s2", "2026-10-08", "2026-10-09"), stage("s1", "2026-10-05", "2026-10-07")],
+            "overlap or are out of order",
+        ),
+        ([stage("s1", "2026-10-09", "2026-10-05")], "ends before it starts"),
+        ([stage("s1", "2026-10-05", "2026-10-09", people=["p", "p"])], "a person twice"),
+        ([stage(str(i), "2026-10-05", "2026-10-05") for i in range(21)], "at most 20"),
+    ],
+)
+def test_stage_rules(stages, reason):
+    with pytest.raises(ValidationError, match=reason):
+        gantt(rows=[row("a", stages=stages)])
+
+
+def test_stage_ids_are_unique_in_the_chart():
+    one = [stage("s", "2026-10-05", "2026-10-09")]
+    with pytest.raises(ValidationError, match="duplicate stage id s"):
+        gantt(rows=[row("a", stages=one), row("b", stages=one)])
+
+
+def test_a_parent_keeps_hidden_stages_outside_its_dates():
+    stages = [stage("s1", "2026-10-05", "2026-10-07")]
+    content = gantt(rows=[row("a", stages=stages), row("b", parent="a")])
+    assert content.rows[0].stages[0].id == "s1"

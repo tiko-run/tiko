@@ -17,6 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
+from app.domain.planning import StageType
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -482,6 +483,36 @@ class SqliteSettingsRepo:
                         " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                         (key, value),
                     )
+
+
+class SqlitePlanningTypeRepo:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def all(self) -> list[StageType]:
+        with self._db.read() as conn:
+            rows = conn.execute(
+                "SELECT id, name, hue, archived FROM planning_types ORDER BY position"
+            ).fetchall()
+        return [
+            StageType(id=r["id"], name=r["name"], hue=r["hue"], archived=bool(r["archived"]))
+            for r in rows
+        ]
+
+    def add(self, stage_type: StageType) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO planning_types (id, name, hue, archived, position)"
+                " VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_types))",
+                (stage_type.id, stage_type.name, stage_type.hue, int(stage_type.archived)),
+            )
+
+    def update(self, stage_type: StageType) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE planning_types SET name = ?, hue = ?, archived = ? WHERE id = ?",
+                (stage_type.name, stage_type.hue, int(stage_type.archived), stage_type.id),
+            )
 
 
 class SqliteUsageCounts:
