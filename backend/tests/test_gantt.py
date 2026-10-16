@@ -136,3 +136,32 @@ def test_a_parent_keeps_hidden_stages_outside_its_dates():
     stages = [stage("s1", "2026-10-05", "2026-10-07")]
     content = gantt(rows=[row("a", stages=stages), row("b", parent="a")])
     assert content.rows[0].stages[0].id == "s1"
+
+
+def test_values_and_columns_are_optional():
+    content = gantt(rows=[row("a")])
+    dumped = content.model_dump(exclude_none=True)
+    assert "values" not in dumped["rows"][0] and "columns" not in dumped
+
+
+def test_rows_keep_values_and_the_chart_its_columns():
+    content = gantt(
+        rows=[row("a", values={"priority": "1", "f7": "Q4, Q1"})], columns=["priority", "f7"]
+    )
+    assert content.rows[0].values == {"priority": "1", "f7": "Q4, Q1"}
+    assert content.columns == ["priority", "f7"]
+
+
+@pytest.mark.parametrize(
+    ("extra", "reason"),
+    [
+        ({"rows": [row("a", values={"f7": ""})]}, "at least 1 character"),
+        ({"rows": [row("a", values={"f7": "x" * 101})]}, "at most 100 characters"),
+        ({"rows": [row("a", values={str(i): "x" for i in range(21)})]}, "at most 20"),
+        ({"columns": [str(i) for i in range(7)]}, "at most 6"),
+        ({"columns": ["priority", "priority"]}, "duplicate column id priority"),
+    ],
+)
+def test_value_and_column_rules(extra, reason):
+    with pytest.raises(ValidationError, match=reason):
+        gantt(**extra)

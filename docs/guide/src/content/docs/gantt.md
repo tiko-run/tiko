@@ -33,6 +33,16 @@ Each stage can name the people planned for it. They come from one list for the w
 
 The tracker's assignee and the stage's people are independent: the tracker says who owns the task now, a stage says who is planned for that phase. Names show after the stage type, or centered under each stage with **⋯ → Under each stage**. When they do not fit, the stage shows a people icon with a count; click the stage for the list. An archived person stays on old stages, muted, and is not offered again. Someone viewing a public link sees the names but cannot change them.
 
+## Columns
+
+With Planning on, a Gantt can show fields as columns between the task titles and the timeline: Priority, Size, Team, or any field of your own, such as Quarter or Budget code.
+
+- Click **+** at the end of the column headers to show or hide a field, or type a new one. A Gantt shows up to 6 columns.
+- Type a value straight into a cell, up to 100 characters. Enter or a click elsewhere saves it, Escape keeps the old one.
+- An empty cell shows the parent row's value in gray. Type a value to override it for that row and its children; clear it to inherit again.
+
+Fields belong to the whole tiko, so every Gantt can show the same ones; values live in the rows of each Gantt and never go to the tracker. Rename fields or add your own in **Settings → Stages and people → Fields**. Archiving a field of your own keeps the values in the rows. Priority, Size and Team can be renamed but stay.
+
 ## Time off
 
 Time off belongs to a person, not to a board: mark it once and every Gantt where that person has a stage shows it. tiko keeps only the dates, never the reason.

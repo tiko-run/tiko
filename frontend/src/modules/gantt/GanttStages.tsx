@@ -13,7 +13,7 @@ import {
 import { addStageType, freeHue, storeStageType, type Person, type StageType } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
 import type { Row } from '@/modules/gantt/rows'
 import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
@@ -210,6 +210,7 @@ function StageBar({
   )
   const [dragging, setDragging] = useState(false)
   const measure = useRef<HTMLSpanElement>(null)
+  const bar = useRef<HTMLDivElement>(null)
   const [crowded, setCrowded] = useState(false)
   const span = stageSpan(stage)
   const box = barBox(span, range, pxPerDay)
@@ -262,6 +263,7 @@ function StageBar({
       <Popover open={open} onOpenChange={onOpen}>
         <PopoverAnchor asChild>
           <div
+            ref={bar}
             role="slider"
             aria-label={`${name} stage of ${row.title || row.key || 'row'}`}
             aria-valuetext={formatSpan(span)}
@@ -286,7 +288,7 @@ function StageBar({
               {name}
               {!below && !crowded && named.length > 0 && <Names named={named} lead=" · " />}
             </span>
-            {!below && crowded && <PeopleCount named={named} className="ml-auto pl-1" />}
+            {!below && crowded && <PeopleButton named={named} stage={name} className="ml-auto" />}
             {!box.clippedStart && (
               <span
                 aria-hidden
@@ -317,17 +319,7 @@ function StageBar({
             style={{ left: box.left, width }}
           >
             {crowded ? (
-              <button
-                type="button"
-                aria-label={`People on ${name}`}
-                // Like a press on the bar: the stage's own popover, and focus stays where it is.
-                onPointerDown={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onOpen(!open)}
-                className="hover:bg-foreground/10 pointer-events-auto rounded-[3px] px-0.5"
-              >
-                <PeopleCount named={named} />
-              </button>
+              <PeopleButton named={named} stage={name} className="pointer-events-auto" />
             ) : (
               <span className="truncate">
                 <Names named={named} />
@@ -344,7 +336,15 @@ function StageBar({
           right={box.left + box.width}
           width={rangeDays(range.start, range.end) * pxPerDay}
         />
-        <PopoverContent side="bottom" align="start" className="w-72 p-3">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          className="w-72 p-3"
+          // A press on the bar toggles the popover itself; closing here first would reopen it.
+          onPointerDownOutside={(event) => {
+            if (bar.current?.contains(event.target as Node)) event.preventDefault()
+          }}
+        >
           <StageForm
             row={row}
             stage={stage}
@@ -374,16 +374,46 @@ function AwayMark() {
   )
 }
 
-/** Who is on a stage too narrow for their names: a count; the stage's popover lists them. */
-function PeopleCount({ named, className }: { named: Named[]; className?: string }) {
+/** Who is on a stage too narrow for their names: a count that opens the list. */
+function PeopleButton({
+  named,
+  stage,
+  className,
+}: {
+  named: Named[]
+  stage: string
+  className?: string
+}) {
+  // Not a press on the bar: no drag, no stage popover.
+  const own = (event: PointerEvent) => event.stopPropagation()
   return (
-    <span
-      aria-label={`${named.length} people`}
-      className={cn('flex shrink-0 items-center gap-0.5 font-medium', className)}
-    >
-      <Users className="size-3" strokeWidth={2} />
-      {named.length}
-    </span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${named.length} ${named.length === 1 ? 'person' : 'people'} on ${stage}`}
+          onPointerDown={own}
+          onPointerUp={own}
+          className={cn(
+            'hover:bg-foreground/10 flex shrink-0 cursor-pointer items-center gap-0.5 rounded-[3px] px-0.5 font-medium',
+            className,
+          )}
+        >
+          <Users className="size-3" strokeWidth={2} />
+          {named.length}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="start" className="w-48 p-2 text-[13px]">
+        <div className="text-muted-foreground px-1 pb-1 text-[12px]">People on {stage}</div>
+        <ul>
+          {named.map((p) => (
+            <li key={p.id} className={cn('px-1 py-0.5', p.archived && 'opacity-60')}>
+              {p.name}
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   )
 }
 

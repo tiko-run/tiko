@@ -3,7 +3,7 @@ import { absorbCards, MODULE_HEADER } from '@/canvas/modules'
 import type { AppNode } from '@/canvas/types'
 import type { PlanningState } from '@/planning/context'
 
-const OFF: PlanningState = { enabled: false, types: [], people: [] }
+const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [] }
 
 const content = {
   start: '2026-10-01',

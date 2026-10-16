@@ -31,12 +31,14 @@ export const ganttSchema = z.object({
             }),
           )
           .optional(),
+        values: z.record(z.string(), z.string()).optional(),
       }),
     )
     .default([]),
   milestones: z.array(z.object({ id: z.string(), date: isoDate, title: z.string() })).default([]),
   links: z.array(z.object({ id: z.string(), from: z.string(), to: z.string() })).default([]),
   people: z.enum(['inline', 'below']).optional(),
+  columns: z.array(z.string()).optional(),
 })
 
 export type GanttContent = z.infer<typeof ganttSchema>

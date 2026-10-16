@@ -84,7 +84,7 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-const OFF: PlanningState = { enabled: false, types: [], people: [] }
+const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [] }
 
 function renderGantt(
   host: Partial<ModuleHost> = {},
@@ -317,6 +317,7 @@ const PLANNING: PlanningState = {
     { id: 't3', name: 'Build', hue: 250, archived: false },
   ],
   people: [],
+  fields: [],
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -502,17 +503,22 @@ test('an unknown name is added to the people on the fly', async () => {
   }
 })
 
-test('names that do not fit turn into a count; the stage popover lists them', () => {
+test('names that do not fit turn into a count that lists them', () => {
   // jsdom lays nothing out: the names are as wide as the hidden copy says.
   const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(500)
   try {
     renderGantt({}, staged(['p1', 'p2']), PEOPLE)
     const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
     expect(bar.textContent).toBe('Build2')
-    expect(within(bar).getByLabelText('2 people')).toBeTruthy()
-    press(bar, 500)
-    expect(screen.getByRole('button', { name: 'Remove Ivan' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Remove Anna' })).toBeTruthy()
+    const count = within(bar).getByRole('button', { name: '2 people on Build' })
+    fireEvent.pointerDown(count, { pointerId: 1, button: 0 })
+    fireEvent.pointerUp(count, { pointerId: 1 })
+    fireEvent.click(count)
+    expect(screen.getByText('People on Build')).toBeTruthy()
+    const anna = screen.getAllByRole('listitem').find((li) => li.textContent === 'Anna')!
+    expect(anna.className).toContain('opacity-60')
+    // Its own list, not the stage's popover.
+    expect(screen.queryByLabelText('Add a person')).toBeNull()
   } finally {
     width.mockRestore()
   }
@@ -658,6 +664,88 @@ test('time off is removed from its popover', async () => {
         expect.objectContaining({ method: 'DELETE' }),
       ),
     )
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+const FIELDS: PlanningState = {
+  ...PLANNING,
+  fields: [
+    { id: 'priority', name: 'Priority', standard: true, archived: false },
+    { id: 'f7', name: 'Quarter', standard: false, archived: false },
+  ],
+}
+const tree = (extra: Partial<GanttContent> = {}): GanttContent => ({
+  ...content,
+  rows: [
+    {
+      id: 'p',
+      title: 'Checkout redesign',
+      start: '2026-10-05',
+      end: '2026-10-09',
+      values: { f7: 'Q4' },
+    },
+    { id: 'c', title: 'Payment API', start: '2026-10-05', end: '2026-10-09', parent: 'p' },
+  ],
+  columns: ['f7'],
+  ...extra,
+})
+
+test('no columns with Planning off', () => {
+  renderGantt({}, tree(), OFF)
+  expect(document.querySelector('[data-gantt-columns]')).toBeNull()
+})
+
+test('a child shows the parent value muted and overrides it with its own', () => {
+  renderGantt({}, tree(), FIELDS)
+  expect(screen.getByText('Quarter')).toBeTruthy()
+  const parent = screen.getByLabelText('Quarter of Checkout redesign') as HTMLInputElement
+  const child = screen.getByLabelText('Quarter of Payment API') as HTMLInputElement
+  expect(parent.value).toBe('Q4')
+  expect([child.value, child.placeholder]).toEqual(['', 'Q4'])
+  fireEvent.focus(child)
+  fireEvent.change(child, { target: { value: 'Q1' } })
+  fireEvent.keyDown(child, { key: 'Enter' })
+  fireEvent.blur(child)
+  expect(rows()[1].values).toEqual({ f7: 'Q1' })
+})
+
+test('clearing a cell inherits again; Escape keeps the old value', () => {
+  renderGantt({}, tree(), FIELDS)
+  const parent = screen.getByLabelText('Quarter of Checkout redesign')
+  fireEvent.focus(parent)
+  fireEvent.change(parent, { target: { value: 'Q9' } })
+  fireEvent.keyDown(parent, { key: 'Escape' })
+  fireEvent.blur(parent)
+  expect(rows()[0].values).toEqual({ f7: 'Q4' })
+  fireEvent.focus(parent)
+  fireEvent.change(parent, { target: { value: '' } })
+  fireEvent.blur(parent)
+  expect(rows()[0]).not.toHaveProperty('values')
+})
+
+test('the column picker shows and hides a field', () => {
+  renderGantt({}, tree({ columns: undefined }), FIELDS)
+  fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Priority' }))
+  expect(current().columns).toEqual(['priority'])
+  fireEvent.click(screen.getByRole('button', { name: 'Priority', pressed: true }))
+  expect(current()).not.toHaveProperty('columns')
+})
+
+test('a new field from the picker becomes a column', async () => {
+  const fetchMock = vi.fn(async () =>
+    Response.json({ id: 'f9', name: 'Budget code', standard: false, archived: false }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, tree(), FIELDS)
+    fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+    const field = screen.getByLabelText('New field')
+    fireEvent.change(field, { target: { value: 'Budget code' } })
+    fireEvent.submit(field)
+    await vi.waitFor(() => expect(current().columns).toEqual(['f7', 'f9']))
   } finally {
     vi.unstubAllGlobals()
   }

@@ -40,9 +40,9 @@ Slice `planning-time-off`.
 
 Slice `gantt-fields`.
 
-- [ ] T014 [US4] Backend: `planning_fields` with the three standard fields; endpoints; `values` and `columns` in Gantt content
-- [ ] T015 [US4] Gantt: column headers with "+", editable cells, inherited value muted, up to 6 columns; Settings → Planning → Fields
-- [ ] T016 [US4] Tests: inherit, override, clear, field shared by two Gantts; guide, changelog
+- [x] T014 [US4] Backend: `planning_fields` with the three standard fields; endpoints; `values` and `columns` in Gantt content
+- [x] T015 [US4] Gantt: column headers with "+", editable cells, inherited value muted, up to 6 columns; Settings → Planning → Fields
+- [x] T016 [US4] Tests: inherit, override, clear, field shared by two Gantts; guide, changelog
 
 ## Phase 5: User Story 5 - Filter and save a view (P2)
 

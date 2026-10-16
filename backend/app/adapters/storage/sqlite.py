@@ -17,7 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
-from app.domain.planning import PlanningPerson, StageType, TimeOff
+from app.domain.planning import PlanningField, PlanningPerson, StageType, TimeOff
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -512,6 +512,45 @@ class SqlitePlanningTypeRepo:
             conn.execute(
                 "UPDATE planning_types SET name = ?, hue = ?, archived = ? WHERE id = ?",
                 (stage_type.name, stage_type.hue, int(stage_type.archived), stage_type.id),
+            )
+
+
+class SqlitePlanningFieldRepo:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def all(self) -> list[PlanningField]:
+        with self._db.read() as conn:
+            rows = conn.execute(
+                "SELECT id, name, standard, archived FROM planning_fields ORDER BY position"
+            ).fetchall()
+        return [
+            PlanningField(
+                id=r["id"],
+                name=r["name"],
+                standard=bool(r["standard"]),
+                archived=bool(r["archived"]),
+            )
+            for r in rows
+        ]
+
+    def add(self, field: PlanningField, limit: int) -> bool:
+        # One statement counts and inserts, as time off does, so two requests stay in the limit.
+        with self._db.transaction() as conn:
+            cursor = conn.execute(
+                "INSERT INTO planning_fields (id, name, standard, archived, position)"
+                " SELECT ?, ?, ?, ?,"
+                " (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_fields)"
+                " WHERE (SELECT COUNT(*) FROM planning_fields WHERE standard = 0) < ?",
+                (field.id, field.name, int(field.standard), int(field.archived), limit),
+            )
+            return cursor.rowcount == 1
+
+    def update(self, field: PlanningField) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE planning_fields SET name = ?, archived = ? WHERE id = ?",
+                (field.name, int(field.archived), field.id),
             )
 
 

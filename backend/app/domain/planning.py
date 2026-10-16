@@ -6,18 +6,25 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.domain.errors import NotFound, ValidationFailed
-from app.domain.ports import PlanningPeopleRepo, PlanningTypeRepo, SettingsRepo
+from app.domain.ports import (
+    PlanningFieldRepo,
+    PlanningPeopleRepo,
+    PlanningTypeRepo,
+    SettingsRepo,
+)
 
 ENABLED_KEY = "planning_enabled"
 
 Hue = Literal[25, 60, 75, 150, 200, 250, 300, 340]
 TypeName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+FieldName = TypeName
 PersonName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 Team = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
 Teams = Annotated[list[Team], Field(max_length=10)]
 Source = Literal["manual", "tracker"]
 
 MAX_OFF = 100
+MAX_FIELDS = 50
 
 DEFAULT_TYPES: tuple[tuple[str, Hue], ...] = (
     ("Discovery", 75),
@@ -52,10 +59,20 @@ class PlanningPerson(BaseModel):
     off: list[TimeOff] = []
 
 
+class PlanningField(BaseModel):
+    """A column a Gantt can show; Priority, Size and Team are standard and stay."""
+
+    id: str
+    name: str
+    standard: bool = False
+    archived: bool = False
+
+
 class PlanningView(BaseModel):
     enabled: bool
     types: list[StageType] = []
     people: list[PlanningPerson] = []
+    fields: list[PlanningField] = []
 
 
 class BoardPlanning(BaseModel):
@@ -63,6 +80,7 @@ class BoardPlanning(BaseModel):
 
     types: list[StageType]
     people: list[PlanningPerson]
+    fields: list[PlanningField]
 
 
 class PlanningChange(BaseModel):
@@ -115,6 +133,19 @@ class TimeOffIn(BaseModel):
         return self
 
 
+class FieldIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: FieldName
+
+
+class FieldChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: FieldName | None = None
+    archived: bool | None = None
+
+
 class Planning:
     """Planning mode: the instance switch and what every Gantt on the instance shares."""
 
@@ -123,12 +154,14 @@ class Planning:
         settings: SettingsRepo,
         types: PlanningTypeRepo,
         people: PlanningPeopleRepo,
+        fields: PlanningFieldRepo,
         on_change: Callable[[], None] = lambda: None,
         new_id: Callable[[], str] = lambda: secrets.token_hex(6),
     ) -> None:
         self._settings = settings
         self._types = types
         self._people = people
+        self._fields = fields
         # Told after every write, so open Gantts reread the lists.
         self._on_change = on_change
         self._new_id = new_id
@@ -139,14 +172,22 @@ class Planning:
     def view(self) -> PlanningView:
         if not self.enabled():
             return PlanningView(enabled=False)
-        return PlanningView(enabled=True, types=self._types.all(), people=self._people.all())
+        return PlanningView(
+            enabled=True,
+            types=self._types.all(),
+            people=self._people.all(),
+            fields=self._fields.all(),
+        )
 
-    def for_board(self, type_ids: set[str], person_ids: set[str]) -> BoardPlanning | None:
+    def for_board(
+        self, type_ids: set[str], person_ids: set[str], field_ids: set[str]
+    ) -> BoardPlanning | None:
         if not self.enabled():
             return None
         return BoardPlanning(
             types=[t for t in self._types.all() if t.id in type_ids],
             people=[p for p in self._people.all() if p.id in person_ids],
+            fields=[f for f in self._fields.all() if f.id in field_ids],
         )
 
     def set_enabled(self, on: bool) -> PlanningView:
@@ -210,6 +251,34 @@ class Planning:
         self._people.remove_off(person_id, off_id)
         self._on_change()
         return self._person(person_id)
+
+    def add_field(self, body: FieldIn) -> PlanningField:
+        self._require_enabled()
+        self._check_field_name(body.name, None)
+        field = PlanningField(id=self._new_id(), name=body.name)
+        if not self._fields.add(field, MAX_FIELDS):
+            raise ValidationFailed(f"Planning can have up to {MAX_FIELDS} fields of your own.")
+        self._on_change()
+        return field
+
+    def change_field(self, field_id: str, body: FieldChange) -> PlanningField:
+        self._require_enabled()
+        current = next((f for f in self._fields.all() if f.id == field_id), None)
+        if current is None:
+            raise NotFound("No such field.")
+        if current.standard and body.archived:
+            raise ValidationFailed(f"{current.name} is a standard field and stays.")
+        changed = current.model_copy(update=body.model_dump(exclude_none=True))
+        if not changed.archived:
+            self._check_field_name(changed.name, field_id)
+        self._fields.update(changed)
+        self._on_change()
+        return changed
+
+    def _check_field_name(self, name: str, own_id: str | None) -> None:
+        taken = {f.name.casefold() for f in self._fields.all() if not f.archived and f.id != own_id}
+        if name.casefold() in taken:
+            raise ValidationFailed(f"A field named {name} already exists.")
 
     def _person(self, person_id: str) -> PlanningPerson:
         person = next((p for p in self._people.all() if p.id == person_id), None)

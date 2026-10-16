@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useReactFlow } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
-import { addTimeOff, removeTimeOff, storePerson, type Person } from '@/api/planning'
+import { addTimeOff, HUES, removeTimeOff, storePerson, type Person } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -138,6 +138,7 @@ function AwayBar({
 }) {
   const queryClient = useQueryClient()
   const [removing, setRemoving] = useState(false)
+  const bar = useRef<HTMLButtonElement>(null)
   const box = barBox(item.span, range, pxPerDay)
   if (!box) return null
   const { person, off } = item
@@ -159,6 +160,7 @@ function AwayBar({
       <Popover open={open} onOpenChange={onOpen}>
         <PopoverAnchor asChild>
           <button
+            ref={bar}
             type="button"
             aria-label={`${person.name} is away ${formatSpan(item.span)}`}
             onPointerDown={(event) => event.stopPropagation()}
@@ -175,6 +177,7 @@ function AwayBar({
               ...HATCH,
             }}
           >
+            <Initial person={person} />
             <span className={cn('truncate', person.archived && 'opacity-60')}>{person.name}</span>
           </button>
         </PopoverAnchor>
@@ -186,7 +189,14 @@ function AwayBar({
           right={box.left + box.width}
           width={rangeDays(range.start, range.end) * pxPerDay}
         />
-        <PopoverContent side="bottom" align="start" className="w-64 p-3">
+        <PopoverContent
+          side="bottom"
+          align="start"
+          className="w-64 p-3"
+          onPointerDownOutside={(event) => {
+            if (bar.current?.contains(event.target as Node)) event.preventDefault()
+          }}
+        >
           <div className="flex flex-col gap-2 text-[13px]">
             <div className="font-semibold">{person.name} is away</div>
             <div className="text-muted-foreground text-[12px] tabular-nums">
@@ -212,6 +222,20 @@ function AwayBar({
         </PopoverContent>
       </Popover>
     </div>
+  )
+}
+
+/** A round initial in a hue of its own, so ranges of one person read together across lanes. */
+function Initial({ person }: { person: Person }) {
+  const hue = HUES[[...person.id].reduce((sum, c) => sum + c.charCodeAt(0), 0) % HUES.length]
+  return (
+    <span
+      aria-hidden
+      className="mr-1 inline-grid size-3.5 shrink-0 place-items-center rounded-full text-[8px] leading-none font-semibold text-white"
+      style={{ background: `oklch(0.58 0.13 ${hue})` }}
+    >
+      {person.name.slice(0, 1).toUpperCase()}
+    </span>
   )
 }
 

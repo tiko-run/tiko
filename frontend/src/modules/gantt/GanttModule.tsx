@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { GanttAdd } from '@/modules/gantt/GanttAdd'
 import { GanttBar } from '@/modules/gantt/GanttBar'
+import { GanttColumns } from '@/modules/gantt/GanttColumns'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
 import { GanttStages } from '@/modules/gantt/GanttStages'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
@@ -126,7 +127,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const span = range(content)
   const { start, end } = span
-  const scale = pxPerDay(content, width)
+  const scale = pxPerDay(content, width, planning.enabled)
   const { top, bottom } = header(start, end, content.scale)
   const now = today()
   const before = quarterBefore(start)
@@ -217,7 +218,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
         </div>
         {lane > 0 && (
           <div
-            className="text-muted-foreground shrink-0 border-b px-3 leading-8"
+            className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
             style={{ height: lane }}
           >
             Time off
@@ -256,12 +257,27 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           />
         </div>
       </div>
+      {planning.enabled && (
+        <GanttColumns
+          content={content}
+          visible={visible.map(({ row }) => row)}
+          fields={planning.fields}
+          rowHeight={height}
+          lane={lane}
+          onChange={onChange}
+          onRow={(next) => onChange(updateRow(content, next.id, () => next))}
+        />
+      )}
       <div data-gantt-body className="relative min-w-0 flex-1">
         <div className="border-b">
           <HeaderRow cells={top} pxPerDay={scale} top />
           <HeaderRow cells={bottom} pxPerDay={scale} top={false} />
         </div>
         <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
+          {/* Under the week lines, so the Time off lane keeps the grid. */}
+          {lane > 0 && (
+            <div className="bg-muted absolute inset-x-0 top-0" style={{ height: lane }} />
+          )}
           {bottom.map((cell) => (
             <div
               key={cell.from}
