@@ -36,8 +36,8 @@ Slice `error-reports`.
 
 Slice `usage-stats-v2`.
 
-- [ ] T015 [US4] API: last ping time in settings, no ping before 24 hours have passed; `make dev-api` with `TIKO_USAGE_STATS=false`
-- [ ] T016 [US4] Ping schema 2: `boards_active` (changed in 7 days, the welcome board as made does not count) and `os`
-- [ ] T017 [US4] Install event schema 2: `fresh` in `install.sh` and `install.ps1`
-- [ ] T018 [US4] Collector: schema 1 and 2, missing new fields stored as `null`; tests; deploy
-- [ ] T019 [US4] Guide page, contract, changelog
+- [x] T015 [US4] API: last ping time in settings, no ping before 24 hours have passed; `make dev-api` with `TIKO_USAGE_STATS=false`
+- [x] T016 [US4] Ping schema 2: `boards_active` (changed in 7 days, the welcome board as made does not count) and `os`
+- [x] T017 [US4] Install event schema 2: `fresh` in `install.sh` and `install.ps1`
+- [x] T018 [US4] Collector: schema 1 and 2, missing new fields stored as `null`; tests; deploy
+- [x] T019 [US4] Guide page, contract, changelog
