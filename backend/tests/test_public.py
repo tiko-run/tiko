@@ -107,6 +107,22 @@ def test_guest_gets_only_the_types_and_people_of_the_board(client):
     assert guest(client).get(f"/api/public/{publish(client, board_id)}").json()["planning"] is None
 
 
+def test_guest_gets_the_days_off_of_working_day_gantts(client):
+    client.patch("/api/planning", json={"enabled": True})
+    dates = ["2026-09-30", "2026-11-04", "2027-01-01"]
+    client.put("/api/planning/days-off", json={"dates": dates})
+    plain = gantt_with(client, [])
+    working = gantt_with(client, [], workingDays=True)
+
+    def days_off(board_id: str) -> list[str]:
+        payload = guest(client).get(f"/api/public/{publish(client, board_id)}").json()
+        return payload["planning"]["daysOff"]
+
+    assert days_off(plain) == []
+    # Only the dates the Gantt can show: its range runs Oct 1 to Dec 31.
+    assert days_off(working) == ["2026-11-04"]
+
+
 def test_guest_sees_demo_status_changes(client):
     token = publish(client, board_with(client, "DEMO-1"))
     client.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"})

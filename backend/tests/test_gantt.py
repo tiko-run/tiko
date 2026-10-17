@@ -96,6 +96,13 @@ def test_content_without_stages_is_unchanged():
     assert content.rows[0].stages is None
     assert "stages" not in content.model_dump(exclude_none=True)["rows"][0]
     assert "people" not in content.model_dump(exclude_none=True)
+    assert "workingDays" not in content.model_dump(exclude_none=True)
+
+
+def test_working_days_is_a_flag():
+    assert gantt(workingDays=True).workingDays is True
+    with pytest.raises(ValidationError):
+        gantt(workingDays="weekdays")
 
 
 def test_people_show_inline_or_below():

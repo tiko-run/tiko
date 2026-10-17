@@ -56,14 +56,14 @@ Slice `gantt-views`.
 
 Slice `gantt-working-days`.
 
-- [ ] T020 [US6] Backend: days off list; `workingDays` in Gantt content
-- [ ] T021 [US6] Gantt: weekends hidden, snapping and working-day counts, days off shaded; months over weeks in the Weeks header
-- [ ] T022 [US6] Tests: toggle, snapping, count with a day off, header; guide, changelog
+- [x] T020 [US6] Backend: days off list; `workingDays` in Gantt content
+- [x] T021 [US6] Gantt: weekends hidden, snapping and working-day counts, days off shaded; months over weeks in the Weeks header
+- [x] T022 [US6] Tests: toggle, snapping, count with a day off, header; guide, changelog
 
 ## Phase 7: User Story 7 - A person's workload (P3)
 
 Slice `planning-workload`.
 
-- [ ] T023 [US7] Backend: `planning_stages` index rewritten on board save, backfilled by the migration; workload endpoint with access rules
-- [ ] T024 [US7] Person card: twelve-week strip, overlap in red, time off hatched, stages with board links, "Busy" for boards without access
-- [ ] T025 [US7] Tests: overlap across boards, hidden details without access, index updated on save; guide, changelog
+- [x] T023 [US7] Backend: `planning_stages` index rewritten on board save, backfilled by the migration; workload endpoint with access rules
+- [x] T024 [US7] Person card: twelve-week strip, overlap in red, time off hatched, stages with board links, "Busy" for boards without access
+- [x] T025 [US7] Tests: overlap across boards, hidden details without access, index updated on save; guide, changelog

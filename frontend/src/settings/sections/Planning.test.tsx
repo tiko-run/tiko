@@ -19,6 +19,34 @@ const fields = [
   { id: 'priority', name: 'Priority', standard: true, archived: false },
   { id: 'f7', name: 'Quarter', standard: false, archived: false },
 ]
+const week = (start: string, stages = 0, overlap = false, off = false) => ({
+  start,
+  stages,
+  overlap,
+  off,
+})
+const workload = {
+  weeks: [
+    week('2026-10-12'),
+    week('2026-10-19', 1),
+    week('2026-10-26', 2, true),
+    week('2026-11-02', 1, false, true),
+    ...['11-09', '11-16', '11-23', '11-30', '12-07', '12-14', '12-21', '12-28'].map((d) =>
+      week(`2026-${d}`),
+    ),
+  ],
+  stages: [
+    {
+      board: 'b1',
+      boardName: 'Payments',
+      row: 'Payment API',
+      type: 't2',
+      start: '2026-10-19',
+      end: '2026-10-30',
+    },
+    { board: null, boardName: null, row: null, type: null, start: '2026-10-26', end: '2026-11-06' },
+  ],
+}
 const views = [{ id: 'v1', name: 'Web in Q4', filters: { team: ['Web'], f7: ['Q4'] } }]
 
 function show(role: 'admin' | 'member', enabled: boolean) {
@@ -28,9 +56,11 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     people: enabled ? people : [],
     fields: enabled ? fields : [],
     views: enabled ? views : [],
+    daysOff: [] as string[],
   }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(String(init.body)) : {}
+    if (url.endsWith('/workload')) return Response.json(workload)
     if (url === '/api/planning' && init?.method === 'PATCH') {
       state = {
         enabled: body.enabled,
@@ -38,6 +68,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
         people: body.enabled ? people : [],
         fields: body.enabled ? fields : [],
         views: body.enabled ? views : [],
+        daysOff: [] as string[],
       }
     }
     if (url === '/api/planning/types') return Response.json({ id: 't9', archived: false, ...body })
@@ -57,6 +88,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     if (url.startsWith('/api/planning/fields/'))
       return Response.json({ ...fields.find((f) => url.endsWith(f.id)), ...body })
     if (url.startsWith('/api/planning/views/')) return new Response(null, { status: 204 })
+    if (url === '/api/planning/days-off') return Response.json({ dates: [...body.dates].sort() })
     if (url.startsWith('/api/planning/types/'))
       return Response.json({ ...types.find((t) => url.endsWith(t.id)), ...body })
     return Response.json(state)
@@ -203,6 +235,21 @@ test('a field is added and archived; a standard one stays', async () => {
   expect(await screen.findByRole('button', { name: 'Restore field Quarter' })).toBeInTheDocument()
 })
 
+test('a day off is added and removed', async () => {
+  const fetchMock = show('member', true)
+  fireEvent.change(await screen.findByLabelText('New day off'), {
+    target: { value: '2026-11-04' },
+  })
+  fireEvent.click(within(screen.getByRole('group', { name: 'Days off' })).getByText('Add'))
+  expect(await screen.findByText('Wed Nov 4, 2026')).toBeInTheDocument()
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/days-off',
+    expect.objectContaining({ method: 'PUT', body: '{"dates":["2026-11-04"]}' }),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Remove day off 2026-11-04' }))
+  expect(await screen.findByText('None')).toBeInTheDocument()
+})
+
 test('a saved view is deleted for every board', async () => {
   const fetchMock = show('member', true)
   fireEvent.click(await screen.findByRole('button', { name: 'Delete view Web in Q4' }))
@@ -211,4 +258,16 @@ test('a saved view is deleted for every board', async () => {
     '/api/planning/views/v1',
     expect.objectContaining({ method: 'DELETE' }),
   )
+})
+
+test("a person's workload shows the weeks and every stage", async () => {
+  show('member', true)
+  fireEvent.click(await screen.findByRole('button', { name: 'Workload of Oleg' }))
+  const weeks = await screen.findByRole('list', { name: 'Weeks of Oleg' })
+  expect(within(weeks).getAllByRole('listitem')).toHaveLength(12)
+  expect(weeks.querySelectorAll('[data-overlap]')).toHaveLength(1)
+  const link = screen.getByRole('link', { name: /Payment API · Payments/ })
+  expect(link.getAttribute('href')).toBe('/?board=b1')
+  expect(within(link).getByText('Build')).toBeInTheDocument()
+  expect(screen.getByText('Busy')).toBeInTheDocument()
 })

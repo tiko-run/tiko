@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.domain.members import BoardRole, Member, ShareRole
     from app.domain.onboarding import Onboarding
     from app.domain.planning import (
+        IndexedStage,
         PlanningField,
         PlanningPerson,
         SavedView,
@@ -296,6 +297,12 @@ class PlanningFieldRepo(Protocol):
         ...
 
     def update(self, field: PlanningField) -> None: ...
+
+
+class PlanningStageRepo(Protocol):
+    def for_person(self, person_id: str) -> list[IndexedStage]:
+        """The person's stages on every board, from the index saved with each board."""
+        ...
 
 
 class PlanningViewRepo(Protocol):

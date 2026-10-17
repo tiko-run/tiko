@@ -5,9 +5,12 @@ import type { Task } from '@/api/tasks'
 import { TypeIcon } from '@/canvas/nodes/TaskBits'
 import {
   barBox,
+  countDays,
+  dragOnAxis,
   dragSpan,
   formatSpan,
-  rangeDays,
+  stepDays,
+  type Axis,
   type Grip,
   type Span,
 } from '@/modules/gantt/timeline'
@@ -21,8 +24,7 @@ const BAR_COLOR = {
 
 type Props = {
   span: Span
-  range: Span
-  pxPerDay: number
+  axis: Axis
   label: string
   /** Undefined for a plain row; a task row without data yet is drawn like a plain one. */
   task?: Task
@@ -32,19 +34,19 @@ type Props = {
 }
 
 /** A row's bar: drag the body to move it, an end to change that date, in whole days. */
-export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }: Props) {
+export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
   const { getZoom } = useReactFlow()
   const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span } | null>(null)
   const [dragging, setDragging] = useState(false)
-  const box = barBox(span, range, pxPerDay)
+  const box = barBox(span, axis)
 
   if (!box) {
-    const before = span.end < range.start
+    const before = span.end < axis.range.start
     const Icon = before ? ChevronLeft : ChevronRight
     return (
       <span
         title={before ? 'Before the range' : 'After the range'}
-        className={cn('text-muted-foreground absolute top-2', before ? 'left-0' : 'right-0')}
+        className={cn('text-muted-foreground absolute top-[9px]', before ? 'left-0' : 'right-0')}
       >
         <Icon className="size-4" />
       </span>
@@ -60,8 +62,18 @@ export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }
   const move = (event: PointerEvent) => {
     const current = drag.current
     if (!current) return
-    const days = Math.round((event.clientX - current.x) / current.zoom / pxPerDay)
-    const next = dragSpan(current.span, current.grip, days)
+    const steps = Math.round((event.clientX - current.x) / current.zoom / axis.px)
+    // A parent moves by calendar days, so its branch keeps its shape over hidden weekends.
+    const next =
+      steps === 0
+        ? current.span
+        : summary && current.grip === 'move'
+          ? dragSpan(
+              current.span,
+              'move',
+              stepDays(axis, current.span.start, steps) - current.span.start,
+            )
+          : dragOnAxis(axis, current.span, current.grip, steps)
     if (next.start !== span.start || next.end !== span.end) onSpan(next)
   }
   const stop = () => {
@@ -87,11 +99,11 @@ export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }
   const tip = (
     <DatesTip
       span={span}
+      axis={axis}
       note={live ? `${label} · ${task.status_name}` : label}
       shown={dragging}
       left={box.left}
       right={box.left + box.width}
-      width={rangeDays(range.start, range.end) * pxPerDay}
     />
   )
 
@@ -103,11 +115,11 @@ export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }
         <div
           role="slider"
           aria-label={`${label} summary`}
-          aria-valuetext={formatSpan(span)}
+          aria-valuetext={formatSpan(span, countDays(axis, span))}
           onPointerDown={start('move')}
           {...handlers}
           className={cn(
-            'peer absolute top-1 h-5 cursor-grab rounded-[4px] text-[11px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
+            'peer absolute top-[7px] h-5 cursor-grab rounded-[4px] text-[12px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
             live ? BAR_COLOR[task.status_category] : 'bg-foreground/75 text-background',
             task?.status_category === 'done' && 'line-through',
             box.clippedStart && 'rounded-l-none',
@@ -148,11 +160,11 @@ export function GanttBar({ span, range, pxPerDay, label, task, summary, onSpan }
       <div
         role="slider"
         aria-label={`${label} dates`}
-        aria-valuetext={formatSpan(span)}
+        aria-valuetext={formatSpan(span, countDays(axis, span))}
         onPointerDown={start('move')}
         {...handlers}
         className={cn(
-          'peer absolute top-1.5 flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[11px] leading-5 font-medium whitespace-nowrap select-none active:cursor-grabbing',
+          'peer absolute top-[7px] flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[12px] leading-5 font-medium whitespace-nowrap select-none active:cursor-grabbing',
           task && !missing
             ? BAR_COLOR[task.status_category]
             : task
@@ -192,22 +204,23 @@ const TIP_ROOM = 240
 /** Exact dates of a bar, above it. */
 export function DatesTip({
   span,
+  axis,
   note,
   shown,
   left,
   right,
-  width,
   warnings = [],
 }: {
   span: Span
+  axis: Axis
   note: string
   shown: boolean
   left: number
   right: number
-  width: number
   /** Lines that need attention, such as who is away, under the note. */
   warnings?: string[]
 }) {
+  const { width } = axis
   const flip = left + TIP_ROOM > width
   return (
     <span
@@ -220,7 +233,7 @@ export function DatesTip({
       )}
       style={flip ? { right: Math.max(width - right, 0) } : { left: Math.max(left, 0) }}
     >
-      <span className="font-semibold tabular-nums">{formatSpan(span)}</span>
+      <span className="font-semibold tabular-nums">{formatSpan(span, countDays(axis, span))}</span>
       {!shown && <span className="truncate opacity-70">{note}</span>}
       {!shown && warnings.map((line) => <span key={line}>{line}</span>)}
     </span>

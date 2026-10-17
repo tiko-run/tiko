@@ -48,6 +48,7 @@ const planningSchema = z.object({
   people: z.array(personSchema),
   fields: z.array(fieldSchema),
   views: z.array(viewSchema),
+  daysOff: z.array(z.string()),
 })
 export type Planning = z.infer<typeof planningSchema>
 
@@ -60,6 +61,7 @@ export const boardPlanningSchema = z.object({
   types: z.array(stageTypeSchema),
   people: z.array(personSchema),
   fields: z.array(fieldSchema),
+  daysOff: z.array(z.string()),
 })
 export type BoardPlanning = z.infer<typeof boardPlanningSchema>
 
@@ -135,6 +137,14 @@ export function removeView(id: string) {
   })
 }
 
+/** Replaces the instance's days off; answers with them sorted and without repeats. */
+export function setDaysOff(dates: string[]) {
+  return fetchJson('/api/planning/days-off', z.object({ dates: z.array(z.string()) }), {
+    method: 'PUT',
+    body: JSON.stringify({ dates }),
+  })
+}
+
 /** Marks a person away from `start` to `end`, both ISO days; answers with the person. */
 export function addTimeOff(personId: string, span: { start: string; end: string }) {
   return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/off`, personSchema, {
@@ -146,6 +156,29 @@ export function addTimeOff(personId: string, span: { start: string; end: string 
 export function removeTimeOff(personId: string, offId: string) {
   const path = `${encodeURIComponent(personId)}/off/${encodeURIComponent(offId)}`
   return fetchJson(`/api/planning/people/${path}`, personSchema, { method: 'DELETE' })
+}
+
+const workloadSchema = z.object({
+  weeks: z.array(
+    z.object({ start: z.string(), stages: z.number(), overlap: z.boolean(), off: z.boolean() }),
+  ),
+  // Board, row and type are null for a board the reader cannot open.
+  stages: z.array(
+    z.object({
+      board: z.string().nullable(),
+      boardName: z.string().nullable(),
+      row: z.string().nullable(),
+      type: z.string().nullable(),
+      start: z.string(),
+      end: z.string(),
+    }),
+  ),
+})
+export type Workload = z.infer<typeof workloadSchema>
+
+/** A person's stages on every board over the weeks from the current one. */
+export function getWorkload(personId: string) {
+  return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/workload`, workloadSchema)
 }
 
 export function usePlanningQuery(enabled = true) {
