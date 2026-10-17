@@ -83,7 +83,7 @@
 <!-- See docs/guide/src/content/docs/why.mdx. -->
 
 - **Fog it clears**: [what the user can't see or understand today that this feature shows]
-- **Trade-offs**: [principles this feature bends and why the gain outweighs it, or "none"]
+- **Trade-offs**: [principles this feature bends and why the gain outweighs it, or "none"; trust is never traded off]
 
 ## Requirements *(mandatory)*
 
