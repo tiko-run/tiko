@@ -1,15 +1,17 @@
 ---
-import { DEMO, INSTALL_SH } from '../data/site'
+import { DEMO } from '../data/site'
 import BoardSim from './BoardSim.astro'
-import Command from './Command.astro'
 import Icon from './Icon.astro'
+import Install from './Install.astro'
+import Waitlist from './Waitlist.astro'
 
-const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Reads your tracker, never edits it', 'No tracking']
+const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the source of truth', 'No ads, no analytics trackers']
 ---
 
 <section class="hero dots">
   <div class="wrap">
     <div class="copy">
+      <Waitlist source="hero" />
       <h1>A whiteboard where your tasks stay live</h1>
       <p class="sub">
         tiko puts the tasks from Jira and GitHub on an infinite canvas as cards. Arrange them the
@@ -17,7 +19,7 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Reads your tracker, neve
       </p>
       <div class="actions">
         <a class="btn btn-primary" href={DEMO}>Try the demo <Icon name="arrow-right" /></a>
-        <Command text={INSTALL_SH} />
+        <Install />
       </div>
       <ul class="facts">
         {facts.map((fact) => <li><Icon name="check" size={14} />{fact}</li>)}
@@ -76,16 +78,13 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Reads your tracker, neve
     width: 100%;
     margin-top: 2rem;
   }
-  .actions :global(.cmd) {
-    max-width: 100%;
-  }
   .facts {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.375rem 1.25rem;
     margin-top: 1.5rem;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     color: var(--muted-foreground);
   }
   .facts li {

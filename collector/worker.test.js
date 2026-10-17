@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clean } from './worker.js'
+import { clean, signUp } from './worker.js'
 
 const ping = {
   kind: 'ping',
@@ -64,4 +64,21 @@ test('an install without failed_step stores null', () => {
   assert.equal(clean(install).payload.os, 'darwin')
   assert.equal(clean({ ...install, schema: 2, fresh: false }).payload.fresh, false)
   assert.equal(clean({ ...install, schema: 2 }), null)
+})
+
+const signup = { email: ' Ann@Example.com ', source: 'hero', token: 'tok' }
+
+test('a sign-up keeps the address in lower case without spaces', () => {
+  assert.deepEqual(signUp(signup), { email: 'ann@example.com', source: 'hero', token: 'tok', news: false })
+  assert.equal(signUp({ ...signup, news: true }).news, true)
+})
+
+test('refuses a sign-up without a valid address, form or check', () => {
+  assert.equal(signUp({ ...signup, email: 'ann' }), null)
+  assert.equal(signUp({ ...signup, email: 'ann@example' }), null)
+  assert.equal(signUp({ ...signup, email: `${'a'.repeat(250)}@x.io` }), null)
+  assert.equal(signUp({ ...signup, source: 'footer' }), null)
+  assert.equal(signUp({ ...signup, token: '' }), null)
+  assert.equal(signUp({ ...signup, news: 'yes' }), null)
+  assert.equal(signUp(null), null)
 })

@@ -110,9 +110,88 @@ async function rollUp(env) {
   )
 }
 
+// The Cloud waitlist: one e-mail address per person who asked to hear when tiko Cloud opens.
+const MAX_WAITLIST_BODY = 4096
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const SOURCES = ['hero', 'self-host']
+// What the form asked for, stored with the address. Anyone can type any address, so news is only
+// a request: the launch e-mail asks the mailbox owner to confirm it.
+export const CONSENT = { launch: 'cloud-launch-email', news: 'cloud-launch-email+news-requested' }
+const ORIGIN =
+  /^(https:\/\/(www\.)?tiko\.run|https:\/\/([a-z0-9-]+\.)?tiko(-[a-z0-9]+)?\.pages\.dev|http:\/\/localhost:\d+)$/
+
+/** The address and the form it came from, or null when the body is not a sign-up. */
+export function signUp(body) {
+  if (!body || typeof body !== 'object') return null
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+  if (email.length > 254 || !EMAIL.test(email)) return null
+  if (!SOURCES.includes(body.source)) return null
+  if (typeof body.token !== 'string' || !body.token || body.token.length > 2048) return null
+  if (body.news !== undefined && typeof body.news !== 'boolean') return null
+  return { email, source: body.source, token: body.token, news: body.news === true }
+}
+
+async function human(env, token, ip) {
+  const form = new FormData()
+  form.append('secret', env.TURNSTILE_SECRET)
+  form.append('response', token)
+  if (ip) form.append('remoteip', ip)
+  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    body: form,
+  })
+  if (!response.ok) return false
+  return (await response.json()).success === true
+}
+
+async function waitlist(request, env) {
+  const origin = request.headers.get('Origin') ?? ''
+  const cors = ORIGIN.test(origin)
+    ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' }
+    : {}
+  const answer = (status, text = null) => new Response(text, { status, headers: cors })
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: { ...cors, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' },
+    })
+  }
+  if (request.method !== 'POST') return answer(405, 'POST only')
+  const text = await request.text()
+  if (text.length > MAX_WAITLIST_BODY) return answer(413, 'too large')
+  let body
+  try {
+    body = JSON.parse(text)
+  } catch {
+    return answer(400, 'not JSON')
+  }
+  const entry = signUp(body)
+  if (!entry) return answer(400, 'not a sign-up')
+  // The address of the request only goes to the check, never to the database.
+  if (!(await human(env, entry.token, request.headers.get('CF-Connecting-IP')))) {
+    return answer(403, 'check failed')
+  }
+  const country = request.cf?.country ?? request.headers.get('CF-IPCountry') ?? null
+  // The same address again is a success with no second row and keeps the first choice; the news
+  // question is settled in the launch e-mail. A conflict target would need SELECT on the table,
+  // which the Worker's role does not have on purpose.
+  try {
+    await sql(
+      env,
+      `INSERT INTO waitlist (email, source, news, consent, country) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT DO NOTHING`,
+      [entry.email, entry.source, entry.news, entry.news ? CONSENT.news : CONSENT.launch, country],
+    )
+  } catch {
+    return answer(500, 'not stored')
+  }
+  return answer(204)
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+    if (url.pathname === '/v1/waitlist') return waitlist(request, env)
     if (url.pathname !== '/v1/events') return new Response('not found', { status: 404 })
     if (request.method !== 'POST') return new Response('POST only', { status: 405 })
     const text = await request.text()

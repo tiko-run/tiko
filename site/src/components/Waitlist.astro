@@ -1,0 +1,295 @@
+---
+// The tiko Cloud waitlist: a badge in the hero that opens into the form, or the form in a panel.
+import { PRIVACY, TURNSTILE_SITEKEY, WAITLIST_URL } from '../data/site'
+import Icon from './Icon.astro'
+
+interface Props {
+  source: 'hero' | 'self-host'
+}
+const { source } = Astro.props
+const badge = source === 'hero'
+---
+
+<div
+  class:list={['wl', badge ? 'wl-badge' : 'wl-panel']}
+  id={badge ? undefined : 'cloud'}
+  data-waitlist={source}
+  data-url={WAITLIST_URL}
+  data-sitekey={TURNSTILE_SITEKEY}
+>
+  {
+    badge ? (
+      <a class="pill" href="#cloud" data-open>
+        <span class="pill-tag">
+          <Icon name="cloud" size={13} />
+          Cloud
+        </span>
+        <span class="pill-text">Hosted tiko is coming, free plan first</span>
+        <span class="pill-cta">
+          Get notified <Icon name="arrow-right" size={13} />
+        </span>
+      </a>
+    ) : (
+      <div class="head">
+        <p class="title">
+          <b>tiko Cloud</b>
+          <span class="tag"><Icon name="cloud" size={13} />Coming soon</span>
+        </p>
+        <p class="text">tiko hosted by us, with nothing to install. The free plan opens first.</p>
+      </div>
+    )
+  }
+
+  <form class="form" hidden={badge} novalidate>
+    <div class="fields">
+      <label class="sr-only" for={`wl-${source}`}>Your e-mail</label>
+      <input
+        id={`wl-${source}`}
+        name="email"
+        type="email"
+        autocomplete="email"
+        placeholder="you@company.com"
+        required
+        maxlength="254"
+      />
+      <button class="btn btn-primary btn-sm" type="submit">Notify me</button>
+    </div>
+    <div class="meta">
+      <label class="opt">
+        <input type="checkbox" name="news" />
+        Send me tiko news too
+      </label>
+      <p class="note" aria-live="polite">
+        <span data-state="idle">One e-mail at launch, no spam. <a class="link" href={PRIVACY}>Privacy</a></span>
+        <span data-state="done" hidden><Icon name="check" size={14} />You're on the list. We'll write once, when tiko Cloud opens.</span>
+        <span data-state="news" hidden><Icon name="check" size={14} />You're on the list. We'll write when tiko Cloud opens and ask you there to confirm news.</span>
+        <span data-state="bad" hidden>That doesn't look like an e-mail address.</span>
+        <span data-state="error" hidden>Couldn't sign you up. Try again in a minute.</span>
+      </p>
+    </div>
+    <div class="check"></div>
+  </form>
+</div>
+
+<style>
+  .wl {
+    --h: 2.25rem;
+  }
+  /* The hero badge and the form it opens into take the same place. */
+  .wl-badge {
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    max-width: 100%;
+    height: var(--h);
+    padding: 0 0.875rem 0 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    font-size: 0.875rem;
+    transition: border-color 0.15s;
+  }
+  .pill[hidden] {
+    display: none;
+  }
+  .pill:hover {
+    border-color: color-mix(in oklch, var(--border) 50%, var(--muted-foreground));
+  }
+  .pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 1.625rem;
+    padding: 0 0.5rem;
+    border-radius: 5px;
+    background: color-mix(in oklch, var(--primary) 14%, transparent);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .pill-text {
+    overflow: hidden;
+    color: var(--foreground);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pill-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--primary);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .pill-cta :global(svg) {
+    transition: transform 0.15s;
+  }
+  .pill:hover .pill-cta :global(svg) {
+    transform: translateX(2px);
+  }
+  @media (max-width: 560px) {
+    .pill-cta {
+      display: none;
+    }
+  }
+
+  .form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+    width: 100%;
+    max-width: 32rem;
+  }
+  .form[hidden] {
+    display: none;
+  }
+  .fields {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .fields[hidden] {
+    display: none;
+  }
+  input[type='email'] {
+    flex: 1;
+    min-width: 0;
+    height: var(--h);
+    padding: 0 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.9375rem;
+  }
+  input:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+  input[aria-invalid='true'] {
+    border-color: var(--destructive);
+  }
+  .btn {
+    flex: none;
+    height: var(--h);
+  }
+  .btn[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  /* The news tick and the promise sit on one line under the field, as one footnote. */
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.375rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    text-align: left;
+  }
+  .opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    cursor: pointer;
+  }
+  .opt[hidden] {
+    display: none;
+  }
+  .opt input {
+    width: 0.9375rem;
+    height: 0.9375rem;
+    margin: 0;
+    accent-color: var(--primary);
+  }
+  /* Turnstile shows itself only when it needs the visitor. */
+  .check:empty {
+    display: none;
+  }
+  .wl-badge .check {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    z-index: 5;
+  }
+  .wl-badge .form {
+    position: relative;
+  }
+  .note [hidden] {
+    display: none;
+  }
+  .note [data-state='done']:not([hidden]),
+  .note [data-state='news']:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--foreground);
+    font-size: 0.875rem;
+  }
+  .note [data-state='done'] :global(svg),
+  .note [data-state='news'] :global(svg) {
+    flex: none;
+    color: var(--sync-ok);
+  }
+  .note [data-state='bad'],
+  .note [data-state='error'] {
+    color: var(--destructive);
+  }
+
+  .wl-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    max-width: 34rem;
+    margin-top: 2rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+  }
+  .wl-panel input[type='email'] {
+    background: var(--background);
+  }
+  .head {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .title {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 1.0625rem;
+  }
+  .title b {
+    font-weight: 600;
+  }
+  .text {
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 1.5rem;
+    padding: 0 0.5rem;
+    border-radius: 5px;
+    background: color-mix(in oklch, var(--primary) 14%, transparent);
+    color: var(--primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .wl-panel .form {
+    max-width: none;
+  }
+  /* Without scripts the form cannot pass the check, so only the text shows. */
+  :global(html:not(.js)) .wl-panel .form {
+    display: none;
+  }
+</style>
