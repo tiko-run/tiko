@@ -5,3 +5,83 @@ import { ClientRouter } from 'astro:transitions'
 
 <ClientRouter />
 <Default />
+
+<script>
+  // Starlight restores groups the reader collapsed; keep the current page's group open anyway.
+  document.addEventListener('astro:page-load', () => {
+    let node = document.querySelector('#starlight__sidebar a[aria-current="page"]')?.parentElement
+    while (node) {
+      if (node instanceof HTMLDetailsElement) node.open = true
+      node = node.parentElement
+    }
+  })
+</script>
+
+<script>
+  // Click a clip or a still marked data-zoom: it grows from its place to most of the screen; a click or Esc puts it back.
+  const EASE = { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' }
+
+  function open(source: HTMLImageElement | HTMLVideoElement) {
+    const motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? { duration: 0 } : EASE
+    const from = source.getBoundingClientRect()
+    const ratio = from.width / from.height
+    let w = innerWidth * 0.88
+    let h = w / ratio
+    if (h > innerHeight * 0.85) {
+      h = innerHeight * 0.85
+      w = h * ratio
+    }
+    const left = (innerWidth - w) / 2
+    const top = (innerHeight - h) / 2
+
+    const overlay = document.createElement('div')
+    overlay.className = 'tiko-lightbox'
+    const media = source.cloneNode(false) as HTMLImageElement | HTMLVideoElement
+    media.removeAttribute('data-zoom')
+    media.className = 'tiko-lightbox-media'
+    Object.assign(media.style, { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` })
+    if (media instanceof HTMLVideoElement && source instanceof HTMLVideoElement) {
+      media.muted = true
+      media.loop = true
+      media.preload = 'auto'
+      media.currentTime = source.currentTime
+      media.play().catch(() => {})
+    }
+    const backdrop = document.createElement('div')
+    backdrop.className = 'tiko-lightbox-backdrop'
+    overlay.append(backdrop, media)
+    document.body.append(overlay)
+    source.style.visibility = 'hidden'
+
+    const frames = [
+      { transform: `translate(${from.left - left}px, ${from.top - top}px) scale(${from.width / w})` },
+      { transform: 'none' },
+    ]
+    const shade = [{ opacity: 0 }, { opacity: 1 }]
+    media.animate(frames, motion)
+    backdrop.animate(shade, motion)
+
+    const close = () => {
+      document.removeEventListener('keydown', onKey)
+      overlay.removeEventListener('click', close)
+      const back = source.getBoundingClientRect()
+      frames[0].transform = `translate(${back.left - left}px, ${back.top - top}px) scale(${back.width / w})`
+      media.animate([...frames].reverse(), { ...motion, fill: 'forwards' })
+      backdrop.animate([...shade].reverse(), { ...motion, fill: 'forwards' }).onfinish = () => {
+        overlay.remove()
+        source.style.visibility = ''
+      }
+    }
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close()
+    overlay.addEventListener('click', close)
+    document.addEventListener('keydown', onKey)
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = (event.target as Element).closest?.('[data-zoom]')
+    if (target instanceof HTMLImageElement || target instanceof HTMLVideoElement) {
+      event.preventDefault()
+      open(target)
+    }
+  })
+</script>

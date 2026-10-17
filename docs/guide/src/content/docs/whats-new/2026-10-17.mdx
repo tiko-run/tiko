@@ -1,0 +1,36 @@
+---
+title: '2026.10.17'
+description: Update tiko from About in one click, and style many elements at once.
+date: '2026-10-14'
+prev: false
+next: false
+---
+
+import Feature from '../../../components/Feature.astro'
+
+## ✨ New
+
+<Feature area="Updates" title="One-click updates" href="/updates/#update-with-one-click">
+  No more terminal to update: an admin clicks Update now in About and the page comes back on the new version. If the new version does not start, tiko goes back to the previous one with your data intact.
+</Feature>
+
+<Feature area="Updates" title="What you missed" href="/updates/#learn-about-a-release">
+  About lists every release since yours and marks security releases. When one is out, admins see a banner until they update.
+</Feature>
+
+<Feature area="Board" title="Selection bar">
+  Select several sticky notes, shapes or frames and change color, opacity, outline or text in one go. One Undo reverts it all.
+</Feature>
+
+## 💎 Improvements
+
+- **Updates:** tiko notices a new release within half an hour instead of six hours.
+- **Board:** Frames can have a color, so a group of tasks stands out on a busy board.
+
+<details>
+<summary>🔧 Under the hood</summary>
+
+- **Server:** Boards save much faster when many people edit at the same time.
+- **Server:** A crash of tiko loses nothing. If the whole server loses power, the last few changes may be lost.
+
+</details>

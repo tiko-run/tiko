@@ -1,0 +1,55 @@
+---
+title: Next release
+description: Plan a team's work right on the Gantt. See who does what and when, and who is away.
+cover: /casts/gantt-fields.jpg
+prev: false
+next: false
+---
+
+import Feature from '../../../components/Feature.astro'
+import Details from '../../../components/Details.astro'
+import Detail from '../../../components/Detail.astro'
+
+## ✨ New
+
+The Gantt gets a Planning mode for leads who plan a quarter for a team. An admin turns it on in Settings → Planning.
+
+<Feature area="Gantt" title="Stages" href="/gantt/#stages" video="/casts/gantt-stages.mp4" poster="/casts/gantt-stages.jpg">
+  Cut a row into stages such as Discovery, Build or On hold to see what happens when. Every board uses the same stage types.
+</Feature>
+
+<Feature area="Gantt" title="Columns" href="/gantt/#columns" video="/casts/gantt-fields.mp4" poster="/casts/gantt-fields.jpg">
+  Priority, Size, Team and fields of your own sit next to the timeline, and you type values straight into the cells. A task without a value takes it from its parent.
+</Feature>
+
+<Feature area="Gantt" title="People on stages" href="/gantt/#people-on-stages">
+  Put a person on a stage to see who is busy when. Add them by hand or pick them from the people already assigned to the tasks.
+
+  <Details>
+    <Detail title="Names on the bar" image="/casts/people-names.webp">
+      Every stage says who is on it, so the plan answers "who does what" without a click.
+    </Detail>
+    <Detail title="Overload stands out" image="/casts/people-overload.webp">
+      A week turns red when someone has two stages on the same day.
+    </Detail>
+    <Detail wide title="Twelve weeks of one person" video="/casts/people-workload.mp4" poster="/casts/people-workload.jpg">
+      The calendar next to a person in Settings shows stages per week, time off, and the stages behind each number.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Filters and saved views" href="/gantt/#filters-and-views">
+  Show only one team, one person or high-priority work, then save that set as a view to open in one click on any Gantt.
+</Feature>
+
+<Feature area="Gantt" title="Time off" href="/gantt/#time-off">
+  Mark days off and spot clashes at once: a stage whose person is away gets a red outline.
+</Feature>
+
+## 💎 Improvements
+
+- **Guide:** Pages open without a full reload, and the text is larger.
+
+## 🐞 Fixes
+
+- **Guide:** Fixed pages with code jumping right after you open them.

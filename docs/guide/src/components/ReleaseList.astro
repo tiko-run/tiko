@@ -1,0 +1,97 @@
+---
+import { getCollection } from 'astro:content'
+import { byNewest } from '../lib/releases.mjs'
+
+const pages = await getCollection('docs', (entry) => entry.id.startsWith('whats-new/'))
+const releases = pages.sort((a, b) => byNewest(a.id.slice(10), b.id.slice(10)))
+
+const formatDate = (date: string) =>
+  new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+---
+
+<ul class="tiko-releases not-content">
+  {
+    releases.map((entry) => (
+      <li>
+        <a class="tiko-release" href={`/${entry.id}/`}>
+          {entry.data.cover ? (
+            <img class="tiko-release-cover" src={entry.data.cover} alt="" loading="lazy" />
+          ) : (
+            <span class="tiko-release-cover tiko-release-cover-empty" />
+          )}
+          <span class="tiko-release-text">
+            <span class="tiko-release-meta">
+              {entry.data.date ? formatDate(entry.data.date) : 'Coming soon'}
+            </span>
+            <span class="tiko-release-title">{entry.data.title}</span>
+            <span class="tiko-release-desc">{entry.data.description}</span>
+          </span>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .tiko-releases {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .tiko-release {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    gap: 1.25rem;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s;
+  }
+  .tiko-release:hover {
+    border-color: var(--sl-color-accent);
+  }
+  .tiko-release-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    background: var(--sl-color-gray-6);
+  }
+  .tiko-release-cover-empty {
+    background: linear-gradient(135deg, var(--sl-color-accent-low), var(--sl-color-gray-6));
+  }
+  .tiko-release-text {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .tiko-release-meta {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  .tiko-release-title {
+    font-size: var(--sl-text-h4);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .tiko-release-desc {
+    color: var(--sl-color-gray-2);
+    line-height: 1.5;
+  }
+  @media (max-width: 40rem) {
+    .tiko-release {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+  }
+</style>
