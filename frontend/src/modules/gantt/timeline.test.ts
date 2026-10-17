@@ -70,13 +70,11 @@ describe('header', () => {
 
   it('shows months over weeks, clipping the first week to the range', () => {
     const { top, bottom } = header(d('2026-09-30'), end, 'week')
-    expect(top.map((c) => c.label)).toEqual([
-      'September 2026',
-      'October 2026',
-      'November 2026',
-      'December 2026',
-    ])
-    expect(top[0].span).toBe(1)
+    // Sep 28 – Oct 4 has its Thursday in October; Nov 30 – Dec 6 is December's first week.
+    expect(top.map((c) => c.label)).toEqual(['October 2026', 'November 2026', 'December 2026'])
+    expect(top[0].span).toBe(33)
+    expect(top[2].from).toBe(d('2026-11-30') - d('2026-09-30'))
+    for (const cell of top) expect(bottom.some((week) => week.from === cell.from)).toBe(true)
     expect(bottom[0]).toEqual({ label: '30–4', from: 0, span: 5 })
     expect(bottom[1].label).toBe('5–11')
   })

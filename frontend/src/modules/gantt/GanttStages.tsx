@@ -200,9 +200,14 @@ function StageBar({
   onReopen,
 }: BarProps) {
   const getZoom = useZoom()
-  const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span; moved: boolean } | null>(
-    null,
-  )
+  const drag = useRef<{
+    x: number
+    zoom: number
+    grip: Grip
+    span: Span
+    moved: boolean
+    wasOpen: boolean
+  } | null>(null)
   const [dragging, setDragging] = useState(false)
   const measure = useRef<HTMLSpanElement>(null)
   const bar = useRef<HTMLDivElement>(null)
@@ -227,7 +232,7 @@ function StageBar({
     if (event.button !== 0) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
-    drag.current = { x: event.clientX, zoom: getZoom(), grip, span, moved: false }
+    drag.current = { x: event.clientX, zoom: getZoom(), grip, span, moved: false, wasOpen: open }
   }
   const move = (event: PointerEvent) => {
     const current = drag.current
@@ -249,7 +254,8 @@ function StageBar({
     const current = drag.current
     drag.current = null
     setDragging(false)
-    if (current && !current.moved) onOpen(!open)
+    // The press moves focus to the canvas node, which may close the popover before the release.
+    if (current && !current.moved) onOpen(!current.wasOpen)
   }
   const handlers = { onPointerMove: move, onPointerUp: stop, onPointerCancel: stop }
 

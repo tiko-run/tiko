@@ -545,7 +545,12 @@ test('a second click on a stage closes its popover', async () => {
   fireEvent.focusIn(bar.closest('.react-flow__node')!)
   await tick()
   expect(screen.getByLabelText('Add a person')).toBeTruthy()
-  press(bar, 500)
+  // In a browser the press moves focus to the node and the popover closes before the release;
+  // jsdom does not close on focus, Escape stands in for it.
+  fireEvent.pointerDown(bar, { clientX: 500, pointerId: 1, button: 0 })
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+  await tick()
+  fireEvent.pointerUp(bar, { clientX: 500, pointerId: 1 })
   await tick()
   expect(screen.queryByLabelText('Add a person')).toBeNull()
   press(bar, 500)

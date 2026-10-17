@@ -16,6 +16,8 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Fixed
 
 - The welcome tour no longer opens with a focus outline around its close button.
+- A second click on a Gantt stage closes its menu again, instead of reopening it when the Gantt is selected.
+- On the Gantt's Weeks scale, month lines now fall on week lines: a week belongs to the month most of its days are in.
 
 ## [2026.10.22] - 2026-10-17
 

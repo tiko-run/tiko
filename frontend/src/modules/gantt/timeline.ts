@@ -137,9 +137,16 @@ export function header(
   }
   if (scale === 'week') {
     // Months over weeks, the way plans are talked about: "October, the 5–9 week".
+    // A week belongs to the month its Thursday is in, so month lines fall on week lines.
     const sunday = (day: Day) => day - weekday(day) + 6
+    const month = (day: Day) => parts(day - weekday(day) + 3).month
+    const nextWeekMonth = (day: Day) => {
+      let next = sunday(day) + 1
+      while (month(next) === month(day)) next += 7
+      return next
+    }
     return {
-      top: cells(start, end, nextMonth, monthLabel),
+      top: cells(start, end, nextWeekMonth, (day) => monthLabel(day - weekday(day) + 3)),
       bottom: cells(
         start,
         end,
