@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The welcome tour no longer opens with a focus outline around its close button.
+
 ## [2026.10.22] - 2026-10-17
 
 ### Added

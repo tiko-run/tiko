@@ -105,6 +105,12 @@ export function runTour(onEnd?: () => void) {
     nextBtnText: 'Next',
     prevBtnText: 'Back',
     doneBtnText: 'Done',
+    // driver.js focuses the first button, the close cross, and the browser rings it on open.
+    // Focus the dialog itself instead: keys still work and Tab still enters the buttons.
+    onPopoverRender: ({ wrapper }) => {
+      wrapper.tabIndex = -1
+      queueMicrotask(() => wrapper.focus({ preventScroll: true }))
+    },
     // Every way a person ends it passes here; the later onDestroyed is skipped for a tour
     // closed before its first frame.
     onDestroyStarted: () => {
