@@ -47,7 +47,7 @@ export default defineConfig({
             { label: 'All releases', collapsed: true, items: releases },
           ],
         },
-        { label: 'Get started', items: ['index', 'install', 'quick-start'] },
+        { label: 'Get started', items: ['index', 'why', 'install', 'quick-start'] },
         {
           label: 'The board',
           items: ['adding-tasks', 'working-together', 'search', 'keyboard-shortcuts'],

@@ -18,6 +18,7 @@ Profile: **oss** ([strategy](docs/playbook/01-strategy.md)). Research: [docs/res
 
 ## Principles
 
+- **Product principles first.** Every feature answers "which fog does this clear?" and passes the principles in [Why tiko](docs/guide/src/content/docs/why.md). A feature that fails them is reworked or dropped.
 - **Think before coding.** State your assumptions. If something is unclear, ask instead of guessing.
 - **Simplicity.** Minimum code for the task. No features or abstractions "for later". Won't items from the brief are not built.
 - **Surgical changes.** Touch only what is needed, in the style of the surrounding code.

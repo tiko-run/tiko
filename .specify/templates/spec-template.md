@@ -78,6 +78,13 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## Principles check *(mandatory)*
+
+<!-- See docs/guide/src/content/docs/why.md. -->
+
+- **Fog it clears**: [what the user can't see or understand today that this feature shows]
+- **Trade-offs**: [principles this feature bends and why the gain outweighs it, or "none"]
+
 ## Requirements *(mandatory)*
 
 <!--
