@@ -4,9 +4,9 @@ description: "Task list for the performance of live boards"
 
 # Tasks: Performance of live boards
 
-**Input**: [spec.md](spec.md), [baseline.md](baseline.md)
+**Input**: [spec.md](spec.md) and the baseline measurement
 
-**Tests**: per slice, with a local look at its number where `/metrics` shows one. One run of `scripts/load` on the reference setup at the end (Phase 6); its numbers go to `results.md`.
+**Tests**: per slice, with a local look at its number where `/metrics` shows one. One run of `scripts/load` on the reference setup at the end (Phase 6); its numbers are kept with the baseline.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -15,7 +15,7 @@ description: "Task list for the performance of live boards"
 ## Phase 0: Baseline
 
 - [x] T001 Load scripts in `scripts/load/`: `visitors.py`, `rooms.py`, `window.py`, `profile.py`, how to run them
-- [x] T002 Baseline on the reference host: many small rooms, rooms of 30, the profile ([baseline.md](baseline.md))
+- [x] T002 Baseline on the reference host: many small rooms, rooms of 30, the profile
 
 ## Phase 1: Slice `perf-ws-compression` (P1)
 

@@ -6,7 +6,7 @@
 
 **Status**: Approved by the owner at G2 on 2026-10-16.
 
-**Input**: A team lead plans in a spreadsheet: each task row is cut into stages (analysis, build, acceptance, a pause) with the people of each stage, time off sits on the same timeline, Priority and Size are columns, and the plan is filtered by quarter and by team. The owner wants people, priority and focus to become part of tiko as an opt-in Planning mode: shared mechanics that the Gantt uses first and other modules use later. Most tiko users only draw diagrams, so none of this may show up for them.
+**Input**: Teams often plan in a spreadsheet: each task row is cut into stages (analysis, build, acceptance, a pause) with the people of each stage, time off sits on the same timeline, Priority and Size are columns, and the plan is filtered by quarter and by team. The owner wants people, priority and focus to become part of tiko as an opt-in Planning mode: shared mechanics that the Gantt uses first and other modules use later. Most tiko users only draw diagrams, so none of this may show up for them.
 
 ## Why
 

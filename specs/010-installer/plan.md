@@ -54,9 +54,9 @@ README.md                     Quick start: the one line first, the manual way af
 
 ## Domain (owner, outside the repository)
 
-1. Add `tiko.run` to Cloudflare (free plan), switch the nameservers at Namecheap to Cloudflare's.
+1. Add `tiko.run` to Cloudflare (free plan), switch the domain's nameservers to Cloudflare's.
 2. `docs.tiko.run`: CNAME to `tiko-run.github.io`, set as the Pages custom domain of `tiko-run/tiko`; the guide's `site` and `base` change to `https://docs.tiko.run` and `/` in slice 3.
-3. Redirect rules: `tiko.run/install.sh` and `tiko.run/install.ps1` → `https://docs.tiko.run/install.sh` and `.ps1` (302, keeps working when the apex later points at the hosted tiko on DigitalOcean).
+3. Redirect rules: `tiko.run/install.sh` and `tiko.run/install.ps1` → `https://docs.tiko.run/install.sh` and `.ps1` (302, keeps working when the apex later points elsewhere).
 4. `tiko.run` apex: a redirect to `docs.tiko.run` until the landing page exists.
 
 ## Slices

@@ -6,7 +6,7 @@
 
 **Status**: Owner asked on 2026-10-13 for a spec that holds the measurements and every slice of the optimization, to be closed one by one, with one measurement at the end: the owner decided on 2026-10-13 not to measure after every slice.
 
-**Input**: [baseline.md](baseline.md): a load test and a profile of one instance on a 1 vCPU host.
+**Input**: a load test and a profile of one instance on a 1 vCPU host. The measured tables are kept outside the repository.
 
 ## Why
 
@@ -18,7 +18,7 @@ The owner's aim is an instance that carries about 3000 people at once, 30 to a b
 
 A slice is accepted the usual way: its tests, `make check`, and a look at its own number on a local stack where one exists (`/metrics` shows the time of a check and the messages sent). The reference setup is not rented for it.
 
-The whole spec is accepted by one measurement at the end, slice P6: the baseline again with the same scripts on the same reference setup ([scripts/load](../../scripts/load/README.md)). A step passes when a pointer and an edit reach the others in a room within 150 ms at p95, a board opens within 2 s at p95 and there are no errors. The result goes into `results.md` next to the baseline. The expectations below are estimates from the profile; that measurement decides. What it shows as useless is taken out then.
+The whole spec is accepted by one measurement at the end, slice P6: the baseline again with the same scripts on the same reference setup ([scripts/load](../../scripts/load/README.md)). A step passes when a pointer and an edit reach the others in a room within 150 ms at p95, a board opens within 2 s at p95 and there are no errors. The result is kept next to the baseline, outside the repository. The expectations below are estimates from the profile; that measurement decides. What it shows as useless is taken out then.
 
 ## Decisions
 
@@ -90,7 +90,7 @@ The plan (T050; the owner's decisions on 2026-10-13):
 
 ### P6: the remeasure
 
-Tables A, B and C of the baseline again, same scripts, same reference setup, plus a host with 4 cores. `results.md` ends with the two columns side by side, what each slice turned out to be worth and what is still between the result and 100 rooms.
+Tables A, B and C of the baseline again, same scripts, same reference setup, plus a host with 4 cores. The result puts the two columns side by side and says what each slice turned out to be worth and what is still between the result and 100 rooms.
 
 ### P7: the socket path
 

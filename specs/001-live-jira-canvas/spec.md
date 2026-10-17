@@ -244,7 +244,7 @@ Real-time collaboration and board sharing; Jira Cloud, Confluence, Todoist; chan
 - **SC-004**: A board with 300 cards stays smooth to pan and zoom and loads in under 3 seconds.
 - **SC-005**: Reopening a board shows every element exactly as left (position, size, frame membership, collapsed state) in 100% of test runs.
 - **SC-006**: The token never appears in any browser response or log line (verified by automated test).
-- **SC-007**: The founder and at least 3 leads open their board on at least 4 days a week for two consecutive weeks, and rarely press "Refresh all".
+- **SC-007**: At least 4 early users open their board on at least 4 days a week for two consecutive weeks, and rarely press "Refresh all".
 
 ## Assumptions
 

@@ -19,7 +19,7 @@ The landing was written before Planning mode. Two of its promises read wrong: "N
 3. **One install command for the visitor's system.** Windows gets the PowerShell line, everyone else the shell script; no tabs (owner, 2026-10-17). Without JavaScript the shell script shows. The self-hosting block keeps both.
 4. **Planning gets one line in the Gantt tile**, not a section of its own: a whole block for one feature stood out (owner, 2026-10-17).
 5. **Waitlist.** One field for an e-mail address in the hero badge and in the self-hosting block. The address goes to the existing collector Worker (`t.tiko.run/v1/waitlist`), checked by Cloudflare Turnstile, and lands in its own table in the same EU database. The Worker can only insert into it, never read it back. No confirmation e-mail now: one e-mail is sent when Cloud opens. A checkbox, off by default, asks for news too. Anyone can type any address, so the tick is only a request: the launch e-mail asks the owner of the mailbox to confirm news, and every later e-mail has an unsubscribe link. A repeat sign-up keeps the first row. Corners are 8 px like the rest of the site.
-6. **Privacy page.** `tiko.run/privacy/` says what the form keeps (the address, the time, the form, the news tick), where (EU), why (the launch e-mail; news only after it is confirmed there), how long (deleted after the launch e-mail unless news was confirmed) and how to be removed.
+6. **Privacy page.** `tiko.run/privacy/` says what the form keeps (the address, the time, the form, the news tick, the request country), where (EU), why (the launch e-mail; news only after it is confirmed there), how long (deleted after the launch e-mail unless news was confirmed) and how to be removed.
 
 ## User Scenarios & Testing *(mandatory)*
 

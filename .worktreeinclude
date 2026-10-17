@@ -1,3 +1,4 @@
 # Gitignored files a new git worktree gets a copy of from the main checkout.
 .env
 .launch/private-patterns
+.launch/state.json
