@@ -29,7 +29,8 @@ set_real_ip_from ::/0;
 real_ip_header CF-Connecting-IP;
 real_ip_recursive on;" "set values"
 
-for bad in '10.0.0.0/8; include /etc/passwd' '10.0.0.0/8,evil' 'a b'; do
+for bad in '10.0.0.0/8; include /etc/passwd' '10.0.0.0/8,evil' 'a b' '*' '999.999.999.999/99' \
+  '10.0.0.0/33' '256.0.0.1' '::/129' '10.0.0.0/8,' ',10.0.0.0/8' '10.0.0.0/8,,::1' ','; do
   if REAL_IP_CONF=$out TIKO_TRUSTED_PROXIES=$bad sh "$script" 2>/dev/null; then
     echo "FAIL accepted proxies: $bad"
     failed=1
