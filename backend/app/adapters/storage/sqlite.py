@@ -568,16 +568,18 @@ class SqlitePlanningViewRepo:
         ]
 
     def add(self, view: SavedView, limit: int) -> bool:
-        # One statement checks the limit and the name, so two requests cannot both pass.
+        # The transaction holds the write lock, so the check and the insert see the same rows;
+        # names compare in Python because SQLite lower() folds ASCII only.
         with self._db.transaction() as conn:
-            cursor = conn.execute(
+            names = [r["name"] for r in conn.execute("SELECT name FROM planning_views")]
+            if len(names) >= limit or view.name.casefold() in {n.casefold() for n in names}:
+                return False
+            conn.execute(
                 "INSERT INTO planning_views (id, name, filters, position)"
-                " SELECT ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_views)"
-                " WHERE (SELECT COUNT(*) FROM planning_views) < ?"
-                " AND NOT EXISTS (SELECT 1 FROM planning_views WHERE lower(name) = lower(?))",
-                (view.id, view.name, json.dumps(view.filters), limit, view.name),
+                " SELECT ?, ?, ?, COALESCE(MAX(position), 0) + 1 FROM planning_views",
+                (view.id, view.name, json.dumps(view.filters)),
             )
-            return cursor.rowcount == 1
+            return True
 
     def remove(self, view_id: str) -> bool:
         with self._db.transaction() as conn:

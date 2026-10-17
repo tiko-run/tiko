@@ -311,3 +311,5 @@ def test_the_view_name_holds_at_the_store() -> None:
     views = SqlitePlanningViewRepo(Database(":memory:"))
     assert views.add(SavedView(id="v1", name="Web", filters={"team": ["Web"]}), limit=5)
     assert not views.add(SavedView(id="v2", name="WEB", filters={"team": ["Web"]}), limit=5)
+    assert views.add(SavedView(id="v3", name="Straße", filters={}), limit=5)
+    assert not views.add(SavedView(id="v4", name="STRASSE", filters={}), limit=5)
