@@ -14,10 +14,11 @@ const copies = {
 }
 for (const [name, source] of Object.entries(copies)) copyFileSync(source, `public/${name}`)
 
-// /demo is the demo itself, not the guide's page about it.
+// /demo is the demo itself, not the guide's page about it; a page of the site keeps its own path.
+const own = new Set(readdirSync('src/pages').map((file) => file.replace(/\.astro$/, '')))
 const pages = readdirSync('../docs/guide/src/content/docs')
   .map((file) => file.replace(/\.mdx?$/, ''))
-  .filter((page) => page !== 'index' && page !== 'demo')
+  .filter((page) => page !== 'index' && page !== 'demo' && !own.has(page))
   .sort()
 
 const lines = [
