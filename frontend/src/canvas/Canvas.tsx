@@ -655,7 +655,6 @@ export function BoardCanvas({
             soleSelected,
             (content) => flow.updateNodeData(soleSelected.id, { content }),
             side,
-            () => setExpandedId(soleSelected.id),
           )
       : undefined
 

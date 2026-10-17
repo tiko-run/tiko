@@ -7,6 +7,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* The Gantt's titles and fields, set apart from the timeline. */
+  --color-panel: color-mix(in oklch, var(--muted) 70%, var(--card));
   --font-heading: var(--font-sans);
   --font-sans: 'IBM Plex Sans Variable', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;

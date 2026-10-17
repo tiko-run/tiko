@@ -48,7 +48,7 @@ export function GanttColumns({
   return (
     <div data-gantt-columns className="flex shrink-0 flex-col border-r">
       <div
-        className={cn('flex shrink-0 border-b', stickTop !== undefined && 'bg-card sticky z-20')}
+        className={cn('flex shrink-0 border-b', stickTop !== undefined && 'bg-panel sticky z-20')}
         style={{ height: HEADER, top: stickTop }}
       >
         {columns.map((id) => (

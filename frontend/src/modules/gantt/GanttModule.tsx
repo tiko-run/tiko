@@ -249,7 +249,7 @@ export function GanttModule({
   )
   // Expanded, the headers and the title column stay in view while the plan scrolls under them.
   const stickTop = planning.enabled ? FILTER_BAR : 0
-  const stuck = expanded ? 'bg-card sticky z-20' : undefined
+  const stuck = expanded ? 'sticky z-20' : undefined
   const drop = (id: string, depth: number, rowsDown: number, levels: number) => {
     const at = visible.findIndex((t) => t.row.id === id)
     const end = subtreeEnd(content.rows, indexOf.get(id)!)
@@ -262,7 +262,9 @@ export function GanttModule({
   return (
     <div
       className={cn('flex flex-col text-[13px]', !expanded && 'h-full')}
-      style={expanded ? { width: left + axis.width, minHeight: viewHeight } : undefined}
+      style={
+        expanded ? { width: Math.max(width, left + axis.width), minHeight: viewHeight } : undefined
+      }
     >
       {planning.enabled && (
         <div
@@ -273,7 +275,7 @@ export function GanttModule({
         </div>
       )}
       <div className="flex min-h-0 flex-1">
-        <div className={cn('flex shrink-0', expanded && 'bg-card sticky left-0 z-30')}>
+        <div className={cn('bg-panel flex shrink-0', expanded && 'sticky left-0 z-30')}>
           <div
             className="relative flex shrink-0 flex-col border-r"
             style={{ width: content.labelWidth }}
@@ -285,7 +287,7 @@ export function GanttModule({
             />
             <div
               className={cn(
-                'text-muted-foreground flex shrink-0 items-center border-b px-3',
+                'text-muted-foreground bg-panel flex shrink-0 items-center border-b px-3',
                 stuck,
               )}
               style={{ height: HEADER, top: stickTop }}
@@ -563,12 +565,7 @@ function formatRange(start: string, end: string) {
 }
 
 /** Scale, range dates and milestones in the selection bar; Planning options behind "More". */
-export function GanttControls({
-  content,
-  onChange,
-  side,
-  expand,
-}: ModuleControlsProps<GanttContent>) {
+export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
   const planning = usePlanning()
   const current = SCALES.find((s) => s.scale === content.scale) ?? SCALES[1]
   return (
@@ -607,7 +604,6 @@ export function GanttControls({
         <Diamond className="size-4" strokeWidth={1.75} />
         Milestone
       </Button>
-      {expand}
       {planning.enabled && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

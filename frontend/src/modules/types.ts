@@ -1,6 +1,6 @@
 import type { XYPosition } from '@xyflow/react'
 import type { LucideIcon } from 'lucide-react'
-import type { ComponentType, ReactNode } from 'react'
+import type { ComponentType } from 'react'
 import type { z } from 'zod'
 import type { Task } from '@/api/tasks'
 import type { TaskLink } from '@/canvas/tasks-context'
@@ -33,8 +33,6 @@ export type ModuleViewProps<C> = {
 export type ModuleControlsProps<C> = Pick<ModuleViewProps<C>, 'content' | 'onChange'> & {
   /** Where their popovers open: away from the selection, like the bar's own. */
   side: 'top' | 'bottom'
-  /** The Expand or Collapse button; the module puts it before its overflow menu. */
-  expand?: ReactNode
 }
 
 export type ModuleDef<C> = {

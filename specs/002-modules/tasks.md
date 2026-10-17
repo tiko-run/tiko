@@ -93,8 +93,8 @@ description: "Task list for Modules and the Gantt module"
 
 **Independent Test**: see US5 in [spec.md](spec.md).
 
-- [x] T030 [US5] Host: `expandable` on a module kind, `expanded` in its view props, a zoom hook so pointer math works at 1:1; Expand in the module header and the selection bar; the view over the dimmed board with the module's controls, Expand and Collapse as icons before the overflow menu, a sideways scroll bar that starts after the module's fixed columns; Backspace off and undo on while it is open
-- [x] T031 [US5] Gantt: a minimum day width per scale when expanded, sticky filters, date header and task column, "+ quarter" in the date header, opens on today; no eject to the board from there. Tests in `rows.test.ts` and `ModuleExpanded.test.tsx`
+- [x] T030 [US5] Host: `expandable` on a module kind, `expanded` in its view props, a zoom hook so pointer math works at 1:1; Expand in the module header; the view over the dimmed board with the module's controls, Collapse at the header's right, a sideways scroll bar that starts after the module's fixed columns; Backspace off and undo on while it is open
+- [x] T031 [US5] Gantt: a minimum day width per scale when expanded, sticky filters, date header and task column, "+ quarter" in the date header, opens on today; title and field columns on their own panel color, also on the board; no eject to the board from there. Tests in `rows.test.ts` and `ModuleExpanded.test.tsx`
 - [x] T032 [US5] Guide, `CHANGELOG.md`
 
 **Checkpoint**: `make check`, screenshot → G3.

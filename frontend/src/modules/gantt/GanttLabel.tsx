@@ -192,7 +192,7 @@ export function GanttLabel({
           {row.title || 'Untitled'}
         </span>
       )}
-      <span className="bg-card ml-auto hidden shrink-0 items-center group-hover/label:flex">
+      <span className="bg-panel ml-auto hidden shrink-0 items-center group-hover/label:flex">
         {url && <RowAction label={`Open ${name} in the tracker`} Icon={ExternalLink} href={url} />}
         <RowAction label={`Add a task under ${name}`} Icon={ListPlus} onClick={onAddChild} />
         {depth > 0 && (

@@ -1,6 +1,6 @@
-import { Puzzle } from 'lucide-react'
+import { Minimize2, Puzzle } from 'lucide-react'
 import { useContext, useEffect, useRef, useState } from 'react'
-import { ExpandToggle } from '@/canvas/module-controls'
+import { Button } from '@/components/ui/button'
 import type { ModuleNode } from '@/canvas/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ExpandedContext } from '@/modules/expanded'
@@ -20,6 +20,8 @@ type Props = {
 // starts after the module's fixed columns replaces it.
 const CLIP = 24
 
+type Box = { width: number; height: number; scrollWidth: number; gutter: number; under: number }
+
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   (target.isContentEditable ||
@@ -32,20 +34,24 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
   const planning = usePlanning()
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
   const bar = useRef<HTMLDivElement>(null)
-  const [box, setBox] = useState({ width: 0, height: 0, scrollWidth: 0, gutter: 0, under: 0 })
+  const [box, setBox] = useState<Box>({ width: 0, height: 0, scrollWidth: 0, gutter: 0, under: 0 })
   const def = findModule(node.data.kind)
   const parsed = def?.schema.safeParse(node.data.content)
 
   useEffect(() => {
     if (!scroller) return
-    const measure = () =>
-      setBox({
+    const measure = () => {
+      const next = {
         width: scroller.clientWidth,
         height: scroller.offsetHeight - CLIP,
         scrollWidth: scroller.scrollWidth,
         gutter: scroller.offsetWidth - scroller.clientWidth,
         under: scroller.offsetHeight - scroller.clientHeight,
-      })
+      }
+      setBox((last) =>
+        Object.keys(next).every((k) => last[k as keyof Box] === next[k as keyof Box]) ? last : next,
+      )
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(scroller)
@@ -56,7 +62,6 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
   if (!def || !parsed?.success) return null
   const Icon = def.Icon ?? Puzzle
   const inset = def.expandedInset?.(parsed.data, planning) ?? 0
-  const collapse = <ExpandToggle expanded onClick={onClose} />
   // Each side follows the other; an unchanged value fires no scroll event, so no loop.
   const follow = (from: HTMLElement | null, to: HTMLElement | null) => {
     if (from && to && to.scrollLeft !== from.scrollLeft) to.scrollLeft = from.scrollLeft
@@ -85,16 +90,19 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
           <DialogTitle className="mr-2 min-w-0 truncate text-[13px] font-medium">
             {node.data.title || def.name}
           </DialogTitle>
-          {!readOnly && def.Controls ? (
-            <def.Controls
-              content={parsed.data}
-              onChange={onChange}
-              side="bottom"
-              expand={collapse}
-            />
-          ) : (
-            <div className="ml-auto">{collapse}</div>
+          {!readOnly && def.Controls && (
+            <def.Controls content={parsed.data} onChange={onChange} side="bottom" />
           )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Collapse"
+            title="Collapse (Esc)"
+            className="ml-auto"
+            onClick={onClose}
+          >
+            <Minimize2 strokeWidth={1.75} />
+          </Button>
         </header>
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <div
@@ -103,7 +111,9 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
             tabIndex={-1}
             onScroll={(event) => follow(event.currentTarget, bar.current)}
             className="absolute inset-x-0 top-0 overflow-auto outline-none"
-            style={{ height: `calc(100% + ${CLIP}px)` }}
+            // The vertical bar's room is kept even when nothing scrolls, so the width never
+            // changes with it and a plan that almost fits does not flip between two layouts.
+            style={{ height: `calc(100% + ${CLIP}px)`, scrollbarGutter: 'stable' }}
           >
             {/* A viewer scrolls the plan but cannot change it. */}
             <div
@@ -128,18 +138,17 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
             </div>
           </div>
         </div>
-        {box.scrollWidth > box.width + 1 && (
-          <div
-            ref={bar}
-            data-expanded-bar
-            onScroll={(event) => follow(event.currentTarget, scroller)}
-            className="h-3 shrink-0 overflow-x-auto overflow-y-hidden border-t"
-            // Clear of the vertical bar, so both run the same distance.
-            style={{ marginLeft: inset, marginRight: box.gutter }}
-          >
-            <div className="h-px" style={{ width: box.scrollWidth - inset }} />
-          </div>
-        )}
+        {/* Always there, empty when all fits: a bar that came and went would change the height. */}
+        <div
+          ref={bar}
+          data-expanded-bar
+          onScroll={(event) => follow(event.currentTarget, scroller)}
+          className="h-3 shrink-0 overflow-x-auto overflow-y-hidden"
+          // Clear of the vertical bar, so both run the same distance.
+          style={{ marginLeft: inset, marginRight: box.gutter }}
+        >
+          <div className="h-px" style={{ width: Math.max(box.scrollWidth - inset, 0) }} />
+        </div>
       </DialogContent>
     </Dialog>
   )

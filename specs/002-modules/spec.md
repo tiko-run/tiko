@@ -112,7 +112,7 @@ The lead opens a Gantt over the dimmed board to work on a long plan at a readabl
 
 **Acceptance Scenarios**:
 
-1. **Given** a module that can expand, **When** the user clicks Expand in its header or the selection bar, **Then** it opens over the dimmed board with its title, its controls and a Collapse button.
+1. **Given** a module that can expand, **When** the user clicks Expand in its header, **Then** it opens over the dimmed board with its title, its controls and a Collapse button.
 2. **Given** an expanded Gantt, **When** its range does not fit, **Then** each day keeps a readable width for the scale and the timeline scrolls sideways, with the filters, the date header and the task column kept in view.
 3. **Given** an expanded module, **When** the user edits it, **Then** the block on the board changes the same way, undo and redo work, and Backspace never deletes the block behind.
 4. **Given** an expanded module, **When** the user presses Esc outside a field or clicks Collapse, **Then** the board is back as it was.

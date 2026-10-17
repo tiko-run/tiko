@@ -14,7 +14,7 @@ Plan dates stay on the board, not in your tracker.
 
 ## Expand
 
-Click the expand button in the Gantt's header, or **Expand** in the selection bar, to open it over the dimmed board. Days keep a readable width, so a long plan scrolls sideways while the task column and the dates stay in view. The view opens on today. Every change lands on the board's Gantt, and undo works as usual. Press Esc or click the collapse button to go back.
+Click the expand button at the right of the Gantt's header to open it over the dimmed board. Days keep a readable width, so a long plan scrolls sideways while the task column and the dates stay in view. The view opens on today. Every change lands on the board's Gantt, and undo works as usual. Press Esc or click the collapse button to go back.
 
 ## Stages
 

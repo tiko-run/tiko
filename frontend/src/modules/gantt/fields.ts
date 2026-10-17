@@ -10,8 +10,12 @@ export const COLUMN_WIDTH = 88
 export const ADD_COLUMN_WIDTH = 28
 
 /** Room the field columns take between the titles and the timeline; none with Planning off. */
+// The block's own right border, between the last column and the timeline.
+const COLUMNS_BORDER = 1
+
 export function columnsWidth(content: GanttContent, planning: boolean) {
-  return planning ? (content.columns?.length ?? 0) * COLUMN_WIDTH + ADD_COLUMN_WIDTH : 0
+  if (!planning) return 0
+  return (content.columns?.length ?? 0) * COLUMN_WIDTH + ADD_COLUMN_WIDTH + COLUMNS_BORDER
 }
 
 /** The row's own value, or the nearest ancestor's when it has none. */

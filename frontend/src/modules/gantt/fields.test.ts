@@ -95,7 +95,7 @@ describe('columns', () => {
   it('take room only with Planning on', () => {
     const two = { ...content, columns: ['priority', 'f7'] }
     expect(columnsWidth(two, false)).toBe(0)
-    expect(columnsWidth(two, true)).toBe(2 * COLUMN_WIDTH + ADD_COLUMN_WIDTH)
+    expect(columnsWidth(two, true)).toBe(2 * COLUMN_WIDTH + ADD_COLUMN_WIDTH + 1)
   })
 
   it('name the same field on two Gantts, each with its own values', () => {
