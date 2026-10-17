@@ -34,8 +34,7 @@ _SCRYPT = {"n": 2**14, "r": 8, "p": 1}
 
 PER_USERNAME_FAILURES = 10
 PER_USERNAME_WINDOW_S = 15 * 60.0
-# Backstop against guessing across many usernames; a per-IP limit is dodged by forging
-# X-Forwarded-For.
+# Backstop against guessing across many usernames.
 INSTANCE_FAILURES = 30
 INSTANCE_WINDOW_S = 60.0
 

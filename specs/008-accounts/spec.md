@@ -14,14 +14,14 @@ This spec covers step 1. The others get their own specs; nothing here builds the
 
 1. **Accounts and roles** (this spec): people, sessions, a settings window, invites, board sharing, a tracker token per person.
 2. **Real-time** ([spec 009](../009-realtime/spec.md)): several people on one board at once with cursors and presence, on a CRDT (`yjs` in the browser, `pycrdt` and `pycrdt-websocket` on the server, both MIT). Until then two editors are kept apart by the existing `version_conflict` check.
-3. **OIDC SSO** (Keycloak, ADFS, Entra ID) through Authlib. Enterprise license, not AGPL.
+3. **OIDC SSO** (Keycloak, ADFS, Entra ID).
 4. **Several trackers at once**: each person connects their own accounts (Jira, Jira Cloud, GitHub) and a card remembers its tracker, for companies where teams use different trackers. Until then one tracker serves the whole instance.
 5. **Postgres** as a second storage adapter next to SQLite, a Helm chart, backups. Several API replicas need Redis pub/sub for real-time fan-out.
 
 Decisions that stand for every step:
 
 - **Monolith.** One FastAPI process with WebSockets serves hundreds of people; no microservices.
-- **Open core.** Accounts, roles, sharing and real-time are AGPL. SSO, audit log and SCIM go to an enterprise license (the CLA allows it). Code for those does not land in this repository's AGPL tree.
+- **License.** Accounts, roles, sharing and real-time are AGPL.
 - **Fast and light.** No auth framework (better-auth is Node and brings its own tables, sign-up and mail); no new dependency where the standard library does the job.
 - **Works without keys.** No mail server: invites and password resets are links the admin copies and sends however they like.
 
@@ -49,7 +49,7 @@ The owner upgrades an instance that already has boards and a Jira token. After t
 
 ### User Story 5 - Settings in one window with sections (Priority: P1, built right after US1)
 
-Settings grow with this spec: profile, security, people, a tracker per person, instance options, later SSO and audit in the enterprise edition. The side sheet holds one column of forms and already scrolls with just the account and the tracker. The owner opens the main menu, picks "Settings" (or presses `⌘,`), and a window opens over the board: sections on the left grouped as "Account" and "Instance", the picked section on the right. They change their name in Profile, switch the theme in Preferences, close with Esc and are back on the same board at the same spot. A link with `?settings=security` opens the window on that section.
+Settings grow with this spec: profile, security, people, a tracker per person, instance options, later SSO. The side sheet holds one column of forms and already scrolls with just the account and the tracker. The owner opens the main menu, picks "Settings" (or presses `⌘,`), and a window opens over the board: sections on the left grouped as "Account" and "Instance", the picked section on the right. They change their name in Profile, switch the theme in Preferences, close with Esc and are back on the same board at the same spot. A link with `?settings=security` opens the window on that section.
 
 **Why this priority**: People (US2) and My tracker (US4) need a place to live; building them into the sheet first and moving them later is double work.
 

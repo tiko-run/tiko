@@ -53,7 +53,7 @@ Token: `base64(expires_at) + "." + hex(HMAC-SHA256(key, expires_at))`, key = `SH
 
 Cookie: `tiko_session`, `Path=/`, `HttpOnly`, `SameSite=Lax`, `Max-Age` 30 days, `Secure` when `X-Forwarded-Proto` or the request scheme is `https`. `SameSite=Lax` plus JSON-only bodies covers CSRF for this single-user gate.
 
-Login: a wrong password waits as long as a right one (constant-time compare of SHA-256 digests). The limiter counts failures for the whole instance: the client sets `X-Forwarded-For`, so a per-IP limit is dodged by forging it. An attacker can keep the owner locked out by guessing, which is accepted for one user per instance; team mode moves to per-account limits.
+Login: a wrong password waits as long as a right one (constant-time compare of SHA-256 digests). The limiter counts failures for the whole instance; team mode moves to per-account limits.
 
 Frontend: `GET /api/auth/status` on boot returns `{signed_in: bool}`; the app renders SignIn until signed in. Any later `auth_required` drops back to SignIn, for example after a password change.
 
@@ -65,4 +65,4 @@ Railway: template variable `TIKO_PASSWORD=${{secret(20)}}` on the API service; t
 |---|---|
 | Railway or Render do not send `X-Forwarded-Proto`, so the cookie is not `Secure` | Set `Secure` whenever `APP_ENV` is not `local` |
 | The in-memory limiter resets on restart or with several API replicas | Accepted for one user per instance; team mode moves it to the database |
-| Guessing keeps the owner locked out | A generated 20-character password makes guessing pointless; the lockout ends a minute after the attacker stops |
+| Guessing a password | A generated 20-character password makes guessing pointless |

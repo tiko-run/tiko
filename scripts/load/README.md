@@ -1,6 +1,6 @@
 # Load tests
 
-What the numbers in [baseline.md](../../specs/019-performance/baseline.md) and [results.md](../../specs/019-performance/results.md) of `specs/019-performance` were measured with. Run them against a throwaway instance with an empty database, never against one with real boards.
+What the measurements of `specs/019-performance` and `specs/021-performance-2` were taken with; their tables are kept outside the repository. Run them against a throwaway instance with an empty database, never against one with real boards.
 
 | Script | Scenario |
 |---|---|

@@ -6,7 +6,7 @@
 
 **Status**: Approved at G1 and G2 on 2026-10-13. The owner asked for a spec that fixes what the remeasure of spec 019 found and ends with an answer: is this stack at its limit, and if so, which part of it. The slices go in the order below. On 2026-10-13, after R3, the owner changed that order: R4 is not built, R6 goes next, R5 waits for the remeasure (see "The order after R3").
 
-**Input**: [results of spec 019](../019-performance/results.md), its [baseline](../019-performance/baseline.md), and a reading of how tldraw, Figma, Excalidraw and the Yjs servers do the same job (sources under "What others do").
+**Input**: the results of spec 019, its baseline, and a reading of how tldraw, Figma, Excalidraw and the Yjs servers do the same job (sources under "What others do").
 
 ## Why
 
@@ -130,7 +130,7 @@ A pointer that keeps moving does not arrive later for it: the room sends the lat
 
 ### R7 and R8: the remeasure and the verdict
 
-R7 is 019's P6 by the rules of "How it is accepted", plus the target with 8 cores. R8 writes `results.md` and the verdict:
+R7 is 019's P6 by the rules of "How it is accepted", plus the target with 8 cores. R8 writes the results and the verdict:
 
 | Part | It is the limit when | Then |
 |---|---|---|

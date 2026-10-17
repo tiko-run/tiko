@@ -7,6 +7,8 @@
 .claude/
 tmp
 .launch/private-patterns
+# The pipeline's log of decisions; it stays on the owner's machine.
+.launch/state.json
 .playwright-mcp/
 **/.impeccable/live/
 
