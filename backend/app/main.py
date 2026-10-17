@@ -29,6 +29,7 @@ from app.adapters.storage.sqlite import (
     SqliteCredentialRepo,
     SqliteDemoStatusRepo,
     SqliteInviteRepo,
+    SqliteKnownBrowsers,
     SqliteMemberRepo,
     SqlitePlanningFieldRepo,
     SqlitePlanningPeopleRepo,
@@ -249,7 +250,7 @@ def create_app(
         workers.heard("end_session", app.state.sessions.uncache)
         workers.heard("end_person", app.state.sessions.uncache_person)
         workers.heard("recheck_person", app.state.sessions.uncache_person)
-    app.state.accounts = Accounts(users, app.state.sessions, attempts)
+    app.state.accounts = Accounts(users, app.state.sessions, attempts, SqliteKnownBrowsers(db))
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
         demo.DemoVisitors(

@@ -1,4 +1,3 @@
-import ipaddress
 import secrets
 import threading
 import uuid
@@ -7,6 +6,7 @@ from contextlib import AbstractContextManager
 from app.domain.accounts import (
     Limiter,
     Person,
+    address_key,
     check_name,
     check_password,
     check_username,
@@ -33,18 +33,6 @@ LOOKUPS_WINDOW_S = 60.0
 VISITOR_NAME = "Demo visitor"
 # No password hashes to this, so a demo visitor cannot sign in by password.
 NO_PASSWORD = "!"
-
-
-def address_key(address: str) -> str:
-    """What the address limit counts: an IPv4 address, or the /64 an IPv6 address is in,
-    since one connection has all of its /64 to pick from."""
-    try:
-        ip = ipaddress.ip_address(address.strip())
-    except ValueError:
-        return address
-    if ip.version == 6:
-        return str(ipaddress.ip_network((ip, 64), strict=False))
-    return str(ip)
 
 
 def touch(users: UserRepo, user_id: str, now: float) -> str | None:

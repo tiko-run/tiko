@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.domain.accounts import Person, PersonRecord, Role
+from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import (
     CARD,
     LEGACY_CARD,
@@ -1053,6 +1054,37 @@ class SqliteAttempts:
     def drop(self, scope: str, key: str) -> None:
         with self._db.transaction() as conn:
             conn.execute("DELETE FROM attempt_windows WHERE scope = ? AND key = ?", (scope, key))
+
+
+class SqliteKnownBrowsers:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM known_browsers WHERE created_at <= ?", (since,))
+            conn.execute(
+                "INSERT INTO known_browsers (token_hash, user_id, created_at) VALUES (?, ?, ?)",
+                (token_hash, user_id, at),
+            )
+            conn.execute(
+                "DELETE FROM known_browsers WHERE user_id = ? AND token_hash NOT IN"
+                " (SELECT token_hash FROM known_browsers WHERE user_id = ?"
+                " ORDER BY created_at DESC LIMIT ?)",
+                (user_id, user_id, BROWSERS_PER_PERSON),
+            )
+
+    def owner(self, token_hash: str, since: float) -> str | None:
+        with self._db.read() as conn:
+            row = conn.execute(
+                "SELECT user_id FROM known_browsers WHERE token_hash = ? AND created_at > ?",
+                (token_hash, since),
+            ).fetchone()
+        return row["user_id"] if row else None
+
+    def forget(self, user_id: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM known_browsers WHERE user_id = ?", (user_id,))
 
 
 class SqliteSessionRepo:
