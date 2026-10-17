@@ -1,4 +1,3 @@
-import { useReactFlow } from '@xyflow/react'
 import { X } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
 import type { Milestone as MilestoneData } from '@/modules/gantt/plan'
@@ -12,6 +11,7 @@ import {
   xOf,
   type Axis,
 } from '@/modules/gantt/timeline'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
 /** A dated checkpoint: a line through the rows and a diamond with its title in the footer lane. */
 export function Milestone({ milestone, axis, onChange, onRemove }: Props) {
   const { range } = axis
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const [editing, setEditing] = useState(false)
   const [dragging, setDragging] = useState(false)
   const drag = useRef<{ x: number; zoom: number; day: number } | null>(null)

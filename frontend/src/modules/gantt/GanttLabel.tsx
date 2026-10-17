@@ -1,4 +1,3 @@
-import { useReactFlow } from '@xyflow/react'
 import {
   ChevronDown,
   ChevronRight,
@@ -14,6 +13,7 @@ import { useRef, useState, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { TypeIcon } from '@/canvas/nodes/TaskBits'
 import type { Row } from '@/modules/gantt/rows'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
@@ -63,7 +63,7 @@ export function GanttLabel({
   onMove,
   onEject,
 }: Props) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null)
   const [editing, setEditing] = useState(Boolean(fresh))
   const press = useRef<{ x: number; y: number; zoom: number } | null>(null)
@@ -86,14 +86,17 @@ export function GanttLabel({
     press.current = null
     if (!start || offset === null) return
     setOffset(null)
-    const module = (event.currentTarget as Element).closest('.react-flow__node')
-    const box = module?.getBoundingClientRect()
+    const target = event.currentTarget as Element
+    const expandedView = target.closest('[data-module-expanded]')
+    const box = (expandedView ?? target.closest('.react-flow__node'))?.getBoundingClientRect()
     const inside =
       box &&
       event.clientX >= box.left &&
       event.clientX <= box.right &&
       event.clientY >= box.top &&
       event.clientY <= box.bottom
+    // The board is out of reach behind an expanded module, so a row is not ejected from there.
+    if (!inside && expandedView) return
     if (!inside) return onEject({ x: event.clientX, y: event.clientY })
     onMove(Math.round(offset.y / height), Math.round(offset.x / INDENT))
   }
@@ -189,7 +192,7 @@ export function GanttLabel({
           {row.title || 'Untitled'}
         </span>
       )}
-      <span className="bg-card ml-auto hidden shrink-0 items-center group-hover/label:flex">
+      <span className="bg-panel ml-auto hidden shrink-0 items-center group-hover/label:flex">
         {url && <RowAction label={`Open ${name} in the tracker`} Icon={ExternalLink} href={url} />}
         <RowAction label={`Add a task under ${name}`} Icon={ListPlus} onClick={onAddChild} />
         {depth > 0 && (

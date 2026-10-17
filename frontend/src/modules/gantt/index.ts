@@ -1,6 +1,6 @@
 import { ChartGantt } from 'lucide-react'
 import { GanttControls, GanttModule } from '@/modules/gantt/GanttModule'
-import { acceptCard, bodyHeight, rowTask } from '@/modules/gantt/rows'
+import { acceptCard, bodyHeight, rowTask, timelineLeft } from '@/modules/gantt/rows'
 import { ganttDefaults, ganttSchema } from '@/modules/gantt/schema'
 import { defineModule } from '@/modules/types'
 
@@ -12,6 +12,8 @@ export const gantt = defineModule({
   size: { width: 960, height: 320 },
   minSize: { width: 480, height: 200 },
   minHeight: bodyHeight,
+  expandable: true,
+  expandedInset: (content, planning) => timelineLeft(content, planning.enabled),
   defaults: ganttDefaults,
   schema: ganttSchema,
   keys: (content) => content.rows.flatMap((row) => rowTask(row) ?? []),

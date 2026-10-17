@@ -96,7 +96,8 @@
     "gantt-views",
     "gantt-working-days",
     "planning-workload",
-    "usage-stats-v2"
+    "usage-stats-v2",
+    "module-expand"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -209,7 +210,8 @@
     "G3_planning-time-off": "approved",
     "G3_gantt-fields": "approved",
     "G3_gantt-views": "approved",
-    "G3_usage-stats-v2": "approved"
+    "G3_usage-stats-v2": "approved",
+    "G3_module-expand": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",
@@ -303,6 +305,7 @@
     "2026-10-16 planning-people: slice approved at G3 (PR 203). People directory for the instance in Settings → Planning, picked in the stage popover from the list, added on the fly or from the Gantt's task assignees; names after the stage type or centered under it, a people count when they do not fit; a planning live event (message type 100) rereads the lists; public payload carries the board's types and people. Gantt controls: scales in one dropdown, Planning options under More. Main chunk +0.8 KB gzipped. Next: slice planning-time-off.",
     "2026-10-16 planning-time-off: slice approved at G3 (PR 204). Time off as date ranges on a planning person (no reason), in the person row in Settings and on a Time off lane over the Gantt rows, shown only while someone with a stage there is away; a stage overlapping a person's time off gets a destructive outline, a \"!\" and who is away in its tooltip and popover. Module minHeight and acceptCard take the whole PlanningState now. First PR reviewed by CodeRabbit (one real finding: a race on the per-person limit, fixed). Main chunk +2.0 KB gzipped, 4.3 of 8 KB used after three slices. Next: slice gantt-fields.",
     "2026-10-17 gantt-fields: slice approved at G3 (PR 205). Fields as Gantt columns in Planning mode: Priority, Size, Team seeded by migration, own fields from the column \"+\" or Settings → Fields; values are short text in the row, an empty cell shows the nearest ancestor value as a muted placeholder; columns take width from the timeline. Owner polish on the way: centered headers and values, cell hover, Time off lane filled with --muted and initials, stage popover no longer reopens on a second click, the people count opens its own list. Main chunk +0.3 KB gzipped, 4.6 of 8 KB used. Next: slice gantt-views.",
-    "2026-10-17 gantt-views: slice approved at G3. A strip above the Gantt in Planning mode with saved views as pills, filter chips, \"+ Filter\" and \"Save as view\"; filters match inherited values, each part of a comma-separated value, and Team through people on stages, parents of matches stay. Views are instance data (planning_views, migration 021), deleted in Settings → Planning → Views. Public payload names the fields and people of the filters. Main chunk +0.3 KB gzipped, 4.9 of 8 KB used. Next: slice gantt-working-days."
+    "2026-10-17 gantt-views: slice approved at G3. A strip above the Gantt in Planning mode with saved views as pills, filter chips, \"+ Filter\" and \"Save as view\"; filters match inherited values, each part of a comma-separated value, and Team through people on stages, parents of matches stay. Views are instance data (planning_views, migration 021), deleted in Settings → Planning → Views. Public payload names the fields and people of the filters. Main chunk +0.3 KB gzipped, 4.9 of 8 KB used. Next: slice gantt-working-days.",
+    "2026-10-17 module-expand: slice approved at G3 (PR 215). A module kind marked expandable opens over the dimmed board from the corner icon of its header; the view edits the same block, undo on and Backspace off while open, Esc closes. Gantt there keeps a minimum day width per scale and scrolls sideways under sticky filters, date header and title columns, opens on today, quarter buttons in the header. Scroll bars drawn over the content, shown while scrolling (issue 214 rolls them out app-wide). On the board the title and field columns sit on --panel."
   ]
 }

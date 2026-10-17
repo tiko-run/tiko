@@ -89,6 +89,12 @@ export function withShortcut(id: ShortcutId) {
 const dialogOpen = () =>
   document.querySelector('[data-slot="dialog-content"], [data-slot="sheet-content"]') !== null
 
+/** For undo and redo: an expanded module edits the board, so its view lets them through. */
+export const dialogOverBoard = () =>
+  document.querySelector(
+    '[data-slot="dialog-content"]:not([data-module-expanded]), [data-slot="sheet-content"]',
+  ) !== null
+
 /** Binds a shortcut from the registry; ignored while typing in inputs or with a dialog open. */
 export function useShortcut(id: ShortcutId, handler: HotkeyCallback, options?: Options) {
   // The library memoizes the callback; a ref keeps the latest one without dependency lists.

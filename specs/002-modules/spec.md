@@ -100,6 +100,24 @@ The lead adds milestones (a date with a title, shown as a diamond and a vertical
 3. **Given** a dependency where the second bar starts before the first ends, **When** the user looks at it, **Then** the line is drawn in the warning color.
 4. **Given** a row or a line, **When** the user deletes it, **Then** lines attached to a deleted row go with it.
 
+---
+
+### User Story 5 - Expand a module over the board (Priority: P2)
+
+The lead opens a Gantt over the dimmed board to work on a long plan at a readable size, then goes back to the board where it was.
+
+**Why this priority**: A plan of a quarter or more is hard to read inside a block on the canvas. Any module that needs the whole screen gets the same view.
+
+**Independent Test**: Expand a Gantt of three months on the Days scale: day numbers read, the timeline scrolls sideways under the task column, the view opens on today. Drag a bar two days, press Backspace, undo, press Esc: the bar is back, the module is still on the board.
+
+**Acceptance Scenarios**:
+
+1. **Given** a module that can expand, **When** the user clicks Expand in its header, **Then** it opens over the dimmed board with its title, its controls and a Collapse button.
+2. **Given** an expanded Gantt, **When** its range does not fit, **Then** each day keeps a readable width for the scale and the timeline scrolls sideways, with the filters, the date header and the task column kept in view.
+3. **Given** an expanded module, **When** the user edits it, **Then** the block on the board changes the same way, undo and redo work, and Backspace never deletes the block behind.
+4. **Given** an expanded module, **When** the user presses Esc outside a field or clicks Collapse, **Then** the board is back as it was.
+5. **Given** a viewer of a shared board, **When** they expand a module, **Then** they scroll it but cannot change it.
+
 ### Edge Cases
 
 - A module bigger than the screen: the canvas pans and zooms over it like over a frame; scroll inside the module is not used, the module grows instead.
@@ -126,6 +144,7 @@ The lead adds milestones (a date with a title, shown as a diamond and a vertical
 - **FR-009b**: Gantt rows form a tree up to 5 levels deep; a row with children shows a bar covering its own dates and its descendants and can be collapsed.
 - **FR-010**: Gantt has milestones (date, title) and finish-to-start dependency lines between rows.
 - **FR-011**: Plan dates live only on the board and are never written to the tracker.
+- **FR-011b**: A module kind may open expanded over the dimmed board at 1:1 scale; the view edits the same block, and the module decides how to fill and scroll the space.
 - **FR-012**: The module follows `DESIGN.md` tokens in light and dark themes.
 
 ### Key Entities

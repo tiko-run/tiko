@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useReactFlow } from '@xyflow/react'
 import { Plus, Trash2, Users } from 'lucide-react'
 import {
   Fragment,
@@ -44,6 +43,7 @@ import {
   type Span,
 } from '@/modules/gantt/timeline'
 import { stageColors } from '@/planning/colors'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 
@@ -71,7 +71,7 @@ const BELOW_PADDING = 4
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
 export function GanttStages({ row, axis, types, people, assignees, below, label, onRow }: Props) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const [open, setOpen] = useState<string | null>(null)
   const [ghost, setGhost] = useState<Span | null>(null)
   const draw = useRef<{ day: number; gap: Span; x: number; left: number; zoom: number } | null>(
@@ -199,7 +199,7 @@ function StageBar({
   onRow,
   onReopen,
 }: BarProps) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span; moved: boolean } | null>(
     null,
   )

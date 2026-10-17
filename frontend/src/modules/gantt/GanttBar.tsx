@@ -1,4 +1,3 @@
-import { useReactFlow } from '@xyflow/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
@@ -14,6 +13,7 @@ import {
   type Grip,
   type Span,
 } from '@/modules/gantt/timeline'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 
 const BAR_COLOR = {
@@ -35,7 +35,7 @@ type Props = {
 
 /** A row's bar: drag the body to move it, an end to change that date, in whole days. */
 export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span } | null>(null)
   const [dragging, setDragging] = useState(false)
   const box = barBox(span, axis)

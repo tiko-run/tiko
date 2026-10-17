@@ -3,7 +3,15 @@ import type { TaskLink } from '@/canvas/tasks-context'
 import { columnsWidth } from '@/modules/gantt/fields'
 import { FILTER_BAR, shownRows } from '@/modules/gantt/filters'
 import type { GanttContent } from '@/modules/gantt/schema'
-import { dayAt, formatDay, makeAxis, newSpan, parseDay, type Span } from '@/modules/gantt/timeline'
+import {
+  dayAt,
+  formatDay,
+  makeAxis,
+  newSpan,
+  parseDay,
+  type Scale,
+  type Span,
+} from '@/modules/gantt/timeline'
 import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
 import { insertRow } from '@/modules/gantt/tree'
 import type { PlanningState } from '@/planning/context'
@@ -29,11 +37,22 @@ export function timelineLeft(content: GanttContent, planning: boolean) {
   return content.labelWidth + columnsWidth(content, planning)
 }
 
+// Expanded, a day column keeps at least this width so the header labels fit; the rest scrolls.
+export const EXPANDED_PX: Record<Scale, number> = { day: 40, week: 14, month: 4, quarter: 1.5 }
+
 /** Working days only is a Planning option; with Planning off every day is shown. */
-export function axisOf(content: GanttContent, width: number, planning: PlanningState) {
+export function axisOf(
+  content: GanttContent,
+  width: number,
+  planning: PlanningState,
+  expanded = false,
+) {
   const working = planning.enabled && Boolean(content.workingDays)
   const timeline = Math.max(width - timelineLeft(content, planning.enabled), 1)
-  return makeAxis(range(content), timeline, working, planning.daysOff)
+  const axis = makeAxis(range(content), timeline, working, planning.daysOff)
+  const px = EXPANDED_PX[content.scale]
+  if (!expanded || axis.px >= px) return axis
+  return makeAxis(range(content), (timeline / axis.px) * px, working, planning.daysOff)
 }
 
 export function rowHeight(content: GanttContent, planning: boolean) {
