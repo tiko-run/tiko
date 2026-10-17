@@ -130,7 +130,15 @@ function HeaderRow({ cells, top }: { cells: ReturnType<typeof placed>; top: bool
   )
 }
 
-export function GanttModule({ content, width, selected, expanded, onChange: write, host }: Props) {
+export function GanttModule({
+  content,
+  width,
+  height: viewHeight,
+  selected,
+  expanded,
+  onChange: write,
+  host,
+}: Props) {
   // Every change passes here, so no tree edit leaves a leaf apart from its stages.
   const onChange = (next: GanttContent) => write(fitLeaves(next))
   const tasks = useContext(TasksContext)
@@ -143,10 +151,7 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
   const [picked, setPicked] = useState<string | null>(null)
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const todayLine = useRef<HTMLDivElement>(null)
-  // Expanded, the plan opens on today rather than on the first day of the range.
-  useEffect(() => {
-    if (expanded) todayLine.current?.scrollIntoView({ block: 'nearest', inline: 'center' })
-  }, [expanded])
+  const opened = useRef(false)
   const span = range(content)
   const { start, end } = span
   const axis = axisOf(content, width, planning, expanded)
@@ -156,6 +161,15 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
   // Shaded like a weekend, on days the Gantt shows.
   const daysOff = [...axis.off].filter((day) => day >= start && day <= end && !isWeekend(day))
   const now = today()
+  const left = timelineLeft(content, planning.enabled)
+  const todayX = xOf(axis, now)
+  // Expanded, the plan opens with today in the middle of the timeline, once.
+  useEffect(() => {
+    if (!expanded || opened.current || width <= 0) return
+    opened.current = true
+    const scroller = todayLine.current?.closest('[data-expanded-scroll]')
+    if (scroller) scroller.scrollLeft = todayX - (width - left) / 2
+  }, [expanded, todayX, width, left])
   const before = quarterBefore(start)
   const after = quarterAfter(end)
   const height = rowHeight(content, planning.enabled)
@@ -217,6 +231,22 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
     onChange(addChild(content, parentId, row))
   }
   // Rows dropped among the others: the dragged subtree is left out when counting places.
+  const quarters = (
+    <>
+      <QuarterButton
+        side="start"
+        inside={expanded}
+        disabled={!fitsRange(before, end)}
+        onClick={() => onChange({ ...content, start: formatDay(before) })}
+      />
+      <QuarterButton
+        side="end"
+        inside={expanded}
+        disabled={!fitsRange(start, after)}
+        onClick={() => onChange({ ...content, end: formatDay(after) })}
+      />
+    </>
+  )
   // Expanded, the headers and the title column stay in view while the plan scrolls under them.
   const stickTop = planning.enabled ? FILTER_BAR : 0
   const stuck = expanded ? 'bg-card sticky z-20' : undefined
@@ -231,8 +261,8 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
 
   return (
     <div
-      className={cn('flex flex-col text-[13px]', expanded ? 'min-h-full' : 'h-full')}
-      style={expanded ? { width: timelineLeft(content, planning.enabled) + axis.width } : undefined}
+      className={cn('flex flex-col text-[13px]', !expanded && 'h-full')}
+      style={expanded ? { width: left + axis.width, minHeight: viewHeight } : undefined}
     >
       {planning.enabled && (
         <div
@@ -323,6 +353,8 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
           <div className={cn('border-b', stuck)} style={{ top: stickTop }}>
             <HeaderRow cells={top} top />
             <HeaderRow cells={bottom} top={false} />
+            {/* Expanded, the buttons ride in the header so they stay in view. */}
+            {selected && expanded && quarters}
           </div>
           <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
             {/* Under the week lines, so the Time off lane keeps the grid. */}
@@ -437,20 +469,7 @@ export function GanttModule({ content, width, selected, expanded, onChange: writ
                 : 'Drop cards here, or add a task or a row.'}
             </p>
           )}
-          {selected && !expanded && (
-            <>
-              <QuarterButton
-                side="start"
-                disabled={!fitsRange(before, end)}
-                onClick={() => onChange({ ...content, start: formatDay(before) })}
-              />
-              <QuarterButton
-                side="end"
-                disabled={!fitsRange(start, after)}
-                onClick={() => onChange({ ...content, end: formatDay(after) })}
-              />
-            </>
-          )}
+          {selected && !expanded && quarters}
         </div>
       </div>
     </div>
@@ -496,10 +515,13 @@ function ColumnResizer({
 
 function QuarterButton({
   side,
+  inside,
   disabled,
   onClick,
 }: {
   side: 'start' | 'end'
+  /** Within the timeline's edges rather than across them. */
+  inside: boolean
   disabled: boolean
   onClick: () => void
 }) {
@@ -514,7 +536,7 @@ function QuarterButton({
       onClick={onClick}
       className={cn(
         'nodrag nopan absolute top-1/2 size-6 -translate-y-1/2 rounded-full shadow-sm',
-        side === 'start' ? '-left-3' : '-right-3',
+        side === 'start' ? (inside ? 'left-1' : '-left-3') : inside ? 'right-1' : '-right-3',
       )}
     >
       <Plus className="size-3.5" />
@@ -541,7 +563,12 @@ function formatRange(start: string, end: string) {
 }
 
 /** Scale, range dates and milestones in the selection bar; Planning options behind "More". */
-export function GanttControls({ content, onChange, side }: ModuleControlsProps<GanttContent>) {
+export function GanttControls({
+  content,
+  onChange,
+  side,
+  expand,
+}: ModuleControlsProps<GanttContent>) {
   const planning = usePlanning()
   const current = SCALES.find((s) => s.scale === content.scale) ?? SCALES[1]
   return (
@@ -580,6 +607,7 @@ export function GanttControls({ content, onChange, side }: ModuleControlsProps<G
         <Diamond className="size-4" strokeWidth={1.75} />
         Milestone
       </Button>
+      {expand}
       {planning.enabled && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

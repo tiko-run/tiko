@@ -82,9 +82,11 @@ test('opens the module over the board and edits the same block', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Expand', hidden: true }))
   const dialog = screen.getByRole('dialog', { name: 'Q4 plan' })
   // Days keep a readable width: 92 days of weeks at 14px after the 160px titles, scrolled sideways.
-  const root = dialog.querySelector('[data-gantt-body]')!.closest<HTMLElement>('.min-h-full')!
+  const root = dialog.querySelector('[data-gantt-body]')!.parentElement!.parentElement!
   expect(root.style.width).toBe(`${160 + 92 * 14}px`)
 
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Add a quarter after' }))
+  expect(current().end).toBe('2027-03-31')
   fireEvent.click(within(dialog).getByRole('button', { name: 'Milestone' }))
   expect(current().milestones).toHaveLength(1)
 

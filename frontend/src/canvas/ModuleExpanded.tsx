@@ -1,12 +1,13 @@
-import { Minimize2, Puzzle } from 'lucide-react'
-import { useContext, useEffect, useState } from 'react'
+import { Puzzle } from 'lucide-react'
+import { useContext, useEffect, useRef, useState } from 'react'
+import { ExpandToggle } from '@/canvas/module-controls'
 import type { ModuleNode } from '@/canvas/types'
-import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { ExpandedContext } from '@/modules/expanded'
 import { ModuleHostContext } from '@/modules/host-context'
 import { findModule } from '@/modules/registry'
 import { cn } from '@/lib/utils'
+import { usePlanning } from '@/planning/context'
 
 type Props = {
   node: ModuleNode
@@ -14,6 +15,10 @@ type Props = {
   onChange: (content: unknown) => void
   onClose: () => void
 }
+
+// The view's own sideways bar is pushed this far below the visible area; one of ours that
+// starts after the module's fixed columns replaces it.
+const CLIP = 24
 
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -24,22 +29,38 @@ const typing = (target: EventTarget | null) =>
 /** A module over the dimmed board at full size; it edits the same block the board shows. */
 export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
   const host = useContext(ModuleHostContext)
-  const [body, setBody] = useState<HTMLDivElement | null>(null)
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const planning = usePlanning()
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const bar = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState({ width: 0, height: 0, scrollWidth: 0, gutter: 0, under: 0 })
   const def = findModule(node.data.kind)
   const parsed = def?.schema.safeParse(node.data.content)
 
   useEffect(() => {
-    if (!body) return
-    const measure = () => setSize({ width: body.clientWidth, height: body.clientHeight })
+    if (!scroller) return
+    const measure = () =>
+      setBox({
+        width: scroller.clientWidth,
+        height: scroller.offsetHeight - CLIP,
+        scrollWidth: scroller.scrollWidth,
+        gutter: scroller.offsetWidth - scroller.clientWidth,
+        under: scroller.offsetHeight - scroller.clientHeight,
+      })
     measure()
     const observer = new ResizeObserver(measure)
-    observer.observe(body)
+    observer.observe(scroller)
+    if (scroller.firstElementChild) observer.observe(scroller.firstElementChild)
     return () => observer.disconnect()
-  }, [body])
+  }, [scroller])
 
   if (!def || !parsed?.success) return null
   const Icon = def.Icon ?? Puzzle
+  const inset = def.expandedInset?.(parsed.data, planning) ?? 0
+  const collapse = <ExpandToggle expanded onClick={onClose} />
+  // Each side follows the other; an unchanged value fires no scroll event, so no loop.
+  const follow = (from: HTMLElement | null, to: HTMLElement | null) => {
+    if (from && to && to.scrollLeft !== from.scrollLeft) to.scrollLeft = from.scrollLeft
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -51,7 +72,7 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
         // The body takes focus so arrow keys scroll it and no button opens with a ring.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
-          body?.focus()
+          scroller?.focus()
         }}
         // Esc in a field ends the edit there; the view stays open.
         onEscapeKeyDown={(event) => {
@@ -64,43 +85,61 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
           <DialogTitle className="mr-2 min-w-0 truncate text-[13px] font-medium">
             {node.data.title || def.name}
           </DialogTitle>
-          {!readOnly && def.Controls && (
-            <def.Controls content={parsed.data} onChange={onChange} side="bottom" />
+          {!readOnly && def.Controls ? (
+            <def.Controls
+              content={parsed.data}
+              onChange={onChange}
+              side="bottom"
+              expand={collapse}
+            />
+          ) : (
+            <div className="ml-auto">{collapse}</div>
           )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Collapse"
-            title="Collapse (Esc)"
-            className="ml-auto"
-            onClick={onClose}
-          >
-            <Minimize2 strokeWidth={1.75} />
-          </Button>
         </header>
-        <div
-          ref={setBody}
-          tabIndex={-1}
-          className="relative min-h-0 flex-1 overflow-auto outline-none"
-        >
-          {/* A viewer scrolls the plan but cannot change it. */}
-          <div className={cn('h-full', readOnly && 'pointer-events-none')}>
-            {size && (
-              <ExpandedContext.Provider value>
-                <def.View
-                  id={node.id}
-                  content={parsed.data}
-                  width={size.width}
-                  height={size.height}
-                  selected={!readOnly}
-                  expanded
-                  onChange={onChange}
-                  host={host}
-                />
-              </ExpandedContext.Provider>
-            )}
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <div
+            ref={setScroller}
+            data-expanded-scroll
+            tabIndex={-1}
+            onScroll={(event) => follow(event.currentTarget, bar.current)}
+            className="absolute inset-x-0 top-0 overflow-auto outline-none"
+            style={{ height: `calc(100% + ${CLIP}px)` }}
+          >
+            {/* A viewer scrolls the plan but cannot change it. */}
+            <div
+              className={cn('w-max min-w-full', readOnly && 'pointer-events-none')}
+              // Fills the hidden strip the native bar leaves, so nothing scrolls up and down for it.
+              style={{ paddingBottom: Math.max(CLIP - box.under, 0) }}
+            >
+              {scroller && (
+                <ExpandedContext.Provider value>
+                  <def.View
+                    id={node.id}
+                    content={parsed.data}
+                    width={box.width}
+                    height={box.height}
+                    selected={!readOnly}
+                    expanded
+                    onChange={onChange}
+                    host={host}
+                  />
+                </ExpandedContext.Provider>
+              )}
+            </div>
           </div>
         </div>
+        {box.scrollWidth > box.width + 1 && (
+          <div
+            ref={bar}
+            data-expanded-bar
+            onScroll={(event) => follow(event.currentTarget, scroller)}
+            className="h-3 shrink-0 overflow-x-auto overflow-y-hidden border-t"
+            // Clear of the vertical bar, so both run the same distance.
+            style={{ marginLeft: inset, marginRight: box.gutter }}
+          >
+            <div className="h-px" style={{ width: box.scrollWidth - inset }} />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
