@@ -1,19 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import {
   barBox,
+  countDays,
   currentQuarter,
   dayAt,
+  dragOnAxis,
   dragSpan,
   fitsRange,
   formatDay,
   formatSpan,
   header,
+  makeAxis,
   newSpan,
   parseDay,
   quarterAfter,
   quarterBefore,
   rangeDays,
+  stepDays,
   today,
+  xOf,
 } from '@/modules/gantt/timeline'
 
 const d = parseDay
@@ -63,12 +68,17 @@ describe('header', () => {
     }
   })
 
-  it('shows quarters over ISO weeks, clipping the first week to the range', () => {
+  it('shows months over weeks, clipping the first week to the range', () => {
     const { top, bottom } = header(d('2026-09-30'), end, 'week')
-    expect(top.map((c) => c.label)).toEqual(['Q3 2026', 'Q4 2026'])
+    expect(top.map((c) => c.label)).toEqual(['Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026'])
     expect(top[0].span).toBe(1)
-    expect(bottom[0]).toEqual({ label: 'W40', from: 0, span: 5 })
-    expect(bottom[1].label).toBe('W41')
+    expect(bottom[0]).toEqual({ label: '30–4', from: 0, span: 5 })
+    expect(bottom[1].label).toBe('5–11')
+  })
+
+  it('names a week by its working days when weekends are hidden', () => {
+    const { bottom } = header(d('2026-10-05'), d('2026-10-31'), 'week', true)
+    expect(bottom.map((c) => c.label)).toEqual(['5–9', '12–16', '19–23', '26–30'])
   })
 
   it('shows months over days and marks weekends', () => {
@@ -96,20 +106,14 @@ describe('header', () => {
     const { bottom } = header(start, end, 'month')
     expect(bottom.map((c) => c.label)).toEqual(['Sep', 'Oct', 'Nov', 'Dec'])
   })
-
-  it('numbers the week of 1 January by ISO rules', () => {
-    expect(header(d('2026-12-28'), d('2027-01-10'), 'week').bottom.map((c) => c.label)).toEqual([
-      'W53',
-      'W1',
-    ])
-  })
 })
 
 describe('bars', () => {
   const range = { start: d('2026-10-01'), end: d('2026-10-31') }
+  const axis = makeAxis(range, 310)
 
   it('places a bar by its days, end day included', () => {
-    expect(barBox({ start: d('2026-10-03'), end: d('2026-10-04') }, range, 10)).toEqual({
+    expect(barBox({ start: d('2026-10-03'), end: d('2026-10-04') }, axis)).toEqual({
       left: 20,
       width: 20,
       clippedStart: false,
@@ -118,15 +122,15 @@ describe('bars', () => {
   })
 
   it('clips a bar at the range edges and hides one fully outside', () => {
-    const box = barBox({ start: d('2026-09-20'), end: d('2026-10-02') }, range, 10)
+    const box = barBox({ start: d('2026-09-20'), end: d('2026-10-02') }, axis)
     expect(box).toMatchObject({ left: 0, width: 20, clippedStart: true })
-    expect(barBox({ start: d('2026-11-02'), end: d('2026-11-05') }, range, 10)).toBeNull()
+    expect(barBox({ start: d('2026-11-02'), end: d('2026-11-05') }, axis)).toBeNull()
   })
 
   it('maps x to a day inside the range', () => {
-    expect(formatDay(dayAt(25, range, 10))).toBe('2026-10-03')
-    expect(formatDay(dayAt(-40, range, 10))).toBe('2026-10-01')
-    expect(formatDay(dayAt(9999, range, 10))).toBe('2026-10-31')
+    expect(formatDay(dayAt(25, axis))).toBe('2026-10-03')
+    expect(formatDay(dayAt(-40, axis))).toBe('2026-10-01')
+    expect(formatDay(dayAt(9999, axis))).toBe('2026-10-31')
   })
 
   it('moves and stretches by whole days without inverting', () => {
@@ -154,4 +158,52 @@ it('a span reads as weekdays, dates and its length', () => {
   expect(formatSpan(span('2026-12-28', '2027-01-08'))).toBe(
     'Mon Dec 28, 2026 – Fri Jan 8, 2027 · 12 days',
   )
+})
+
+describe('working days', () => {
+  // Thu Oct 1 to Sat Oct 31: 22 weekdays, Nov 4 is outside, Oct 14 is a day off.
+  const range = { start: d('2026-10-01'), end: d('2026-10-31') }
+  const axis = makeAxis(range, 220, true, ['2026-10-14', '2026-11-04'])
+
+  it('gives weekends no width', () => {
+    expect(axis.px).toBe(10)
+    expect(xOf(axis, d('2026-10-02'))).toBe(10)
+    expect(xOf(axis, d('2026-10-03'))).toBe(20)
+    expect(xOf(axis, d('2026-10-05'))).toBe(20)
+    expect(barBox({ start: d('2026-10-02'), end: d('2026-10-05') }, axis)).toMatchObject({
+      left: 10,
+      width: 20,
+    })
+  })
+
+  it('draws a weekend-only bar with no width, for the caller to widen', () => {
+    expect(barBox({ start: d('2026-10-03'), end: d('2026-10-04') }, axis)?.width).toBe(0)
+  })
+
+  it('maps x to shown days only', () => {
+    expect(formatDay(dayAt(25, axis))).toBe('2026-10-05')
+    expect(formatDay(dayAt(9999, axis))).toBe('2026-10-30')
+  })
+
+  it('snaps a dragged bar to working days and keeps its working length', () => {
+    const span = { start: d('2026-10-05'), end: d('2026-10-09') }
+    const moved = dragOnAxis(axis, span, 'move', 3)
+    expect([formatDay(moved.start), formatDay(moved.end)]).toEqual(['2026-10-08', '2026-10-14'])
+    const stretched = dragOnAxis(axis, span, 'end', 1)
+    expect(formatDay(stretched.end)).toBe('2026-10-12')
+    expect(dragOnAxis(axis, span, 'start', 0)).toEqual(span)
+  })
+
+  it('steps over weekends', () => {
+    expect(formatDay(stepDays(axis, d('2026-10-05'), 4))).toBe('2026-10-09')
+    expect(formatDay(stepDays(axis, d('2026-10-09'), 1))).toBe('2026-10-12')
+  })
+
+  it('counts neither weekends nor days off', () => {
+    expect(countDays(axis, { start: d('2026-10-12'), end: d('2026-10-16') })).toBe(4)
+    expect(countDays(axis, { start: d('2026-10-05'), end: d('2026-10-11') })).toBe(5)
+    expect(countDays(makeAxis(range, 310), { start: d('2026-10-05'), end: d('2026-10-11') })).toBe(
+      7,
+    )
+  })
 })

@@ -37,7 +37,7 @@ One read for everything a Gantt needs. With Planning off, and always on a demo i
 | `PATCH /api/planning/fields/{id}` | `{"name"?, "archived"?}` | standard fields: name only |
 | `POST /api/planning/views` | `{"name", "filters"}` | name 1–40, unique; `filters` as in Gantt content; up to 100 views |
 | `DELETE /api/planning/views/{id}` | | answers `204` |
-| `PUT /api/planning/days-off` | `{"dates": [...]}` | up to 400 dates |
+| `PUT /api/planning/days-off` | `{"dates": [...]}` | replaces the list; up to 400 dates, answered sorted without repeats |
 
 Each answers with the created or changed object; the two time off routes answer with the person, time off included. A change, the switch included, is broadcast to every open board as a `planning` live event (message type 100 in the [live contract](../../009-realtime/contracts/live.md)), so other people's Gantts refresh their lists.
 
@@ -59,4 +59,4 @@ A stage on a board the reader cannot open has `board`, `boardName`, `row` and `t
 
 ## Public link
 
-A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people, fields}` limited to the ids on that board: fields by the Gantts' `columns` and `filters`, people by stages and `filters`), so a viewer sees stages and names without access to the directory. With Planning off, and always on a demo instance, `planning` is `null`.
+A board's public payload carries the names and type colors used on its Gantts (`planning: {types, people, fields, daysOff}` limited to what the board uses: fields by the Gantts' `columns` and `filters`, people by stages and `filters`, days off by the ranges of Gantts with `workingDays`), so a viewer sees stages and names without access to the directory. With Planning off, and always on a demo instance, `planning` is `null`.

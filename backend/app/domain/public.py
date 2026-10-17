@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.domain.attempts import MemoryAttempts
-from app.domain.boards import stage_refs, task_refs
+from app.domain.boards import stage_refs, task_refs, working_ranges
 from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
 from app.domain.live import room_key
 from app.domain.planning import BoardPlanning, Planning
@@ -144,5 +144,9 @@ def public_board(
         tasks=guest_tasks(task_refs(record.doc, default_source), open_sources, base_url)[0],
         default_source=default_source,
         refresh_interval_s=refresh_interval_s,
-        planning=planning.for_board(*stage_refs(record.doc)) if planning else None,
+        planning=(
+            planning.for_board(*stage_refs(record.doc), working_ranges(record.doc))
+            if planning
+            else None
+        ),
     )

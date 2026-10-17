@@ -7,6 +7,7 @@ export type PlanningState = {
   people: Person[]
   fields: Field[]
   views: SavedView[]
+  daysOff: string[]
 }
 
 // Off until the instance says otherwise: a guest or a demo visitor never asks.
@@ -16,6 +17,7 @@ export const PlanningContext = createContext<PlanningState>({
   people: [],
   fields: [],
   views: [],
+  daysOff: [],
 })
 
 export const usePlanning = () => useContext(PlanningContext)

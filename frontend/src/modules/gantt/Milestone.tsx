@@ -3,26 +3,35 @@ import { X } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
 import type { Milestone as MilestoneData } from '@/modules/gantt/plan'
 import { FOOTER, HEADER } from '@/modules/gantt/rows'
-import { formatDate, formatDay, parseDay, type Span } from '@/modules/gantt/timeline'
+import {
+  formatDate,
+  formatDay,
+  isWeekend,
+  parseDay,
+  stepDays,
+  xOf,
+  type Axis,
+} from '@/modules/gantt/timeline'
 import { cn } from '@/lib/utils'
 
 type Props = {
   milestone: MilestoneData
-  range: Span
-  pxPerDay: number
+  axis: Axis
   onChange: (change: Partial<Omit<MilestoneData, 'id'>>) => void
   onRemove: () => void
 }
 
 /** A dated checkpoint: a line through the rows and a diamond with its title in the footer lane. */
-export function Milestone({ milestone, range, pxPerDay, onChange, onRemove }: Props) {
+export function Milestone({ milestone, axis, onChange, onRemove }: Props) {
+  const { range } = axis
   const { getZoom } = useReactFlow()
   const [editing, setEditing] = useState(false)
   const [dragging, setDragging] = useState(false)
   const drag = useRef<{ x: number; zoom: number; day: number } | null>(null)
   const day = parseDay(milestone.date)
   if (day < range.start || day > range.end) return null
-  const x = (day - range.start + 0.5) * pxPerDay
+  // On a hidden weekend it stands on the line before Monday.
+  const x = xOf(axis, day) + (axis.working && isWeekend(day) ? 0 : axis.px / 2)
 
   const down = (event: PointerEvent) => {
     if ((event.target as Element).closest('button, input')) return
@@ -33,8 +42,9 @@ export function Milestone({ milestone, range, pxPerDay, onChange, onRemove }: Pr
   const move = (event: PointerEvent) => {
     const start = drag.current
     if (!start) return
-    const days = Math.round((event.clientX - start.x) / start.zoom / pxPerDay)
-    const next = Math.min(Math.max(start.day + days, range.start), range.end)
+    const steps = Math.round((event.clientX - start.x) / start.zoom / axis.px)
+    const moved = steps === 0 ? start.day : stepDays(axis, start.day, steps)
+    const next = Math.min(Math.max(moved, range.start), range.end)
     if (next !== day) onChange({ date: formatDay(next) })
   }
   const stop = () => {

@@ -63,3 +63,11 @@ Time off belongs to a person, not to a board: mark it once and every Gantt where
 - Click a range on the lane to remove it.
 
 A stage whose person is away on any of its days gets a red outline and a "!" before its type. Its tooltip and popover say who is away and when, for example "Anna is away Mon Oct 5 – Fri Oct 9". Remove the time off or move the stage and the warning goes.
+
+## Working days
+
+With Planning on, **⋯ → Working days only** hides Saturdays and Sundays from a Gantt. Stages snap to working days, a click on free days adds five of them, and every date range counts working days only: "Mon Oct 12 – Fri Oct 16 · 5 days".
+
+Days off are holidays for the whole tiko, such as a national holiday or a team day. Add them in **Settings → Stages and people → Days off**. On a Gantt with working days only, a day off is shaded like a weekend and does not count, so a stage across it lasts one day less.
+
+With **Weeks**, the header shows months over weeks, and each week reads by its dates, such as 5–9 and 12–16.

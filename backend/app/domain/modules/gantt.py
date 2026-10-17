@@ -97,6 +97,8 @@ class GanttContent(_Strict):
     links: list[Link] = Field(default_factory=list, max_length=400)
     # Where stage people show; absent means inline, so older content stays the same.
     people: Literal["inline", "below"] | None = None
+    # Weekends hidden and days off not counted; absent means every day, as before.
+    workingDays: bool | None = None  # noqa: N815 - mirrors the frontend
     # Field ids shown as columns, in order.
     columns: list[FieldId] | None = Field(default=None, max_length=MAX_COLUMNS)
     # Field id or "person" to the values a row must match; a key with no values is not kept.

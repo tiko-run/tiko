@@ -42,6 +42,7 @@ const planning: PlanningState = {
   people: [person('mia', 'Mia', ['Web']), person('ivan', 'Ivan', ['Core'])],
   fields: [],
   views: [],
+  daysOff: [],
 }
 // The scenario of the spec: Quarter Q4 and Team Web keep "Partner onboarding" for Mia's stage.
 const rows = [

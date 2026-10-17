@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -350,6 +350,20 @@ def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
                     types.add(stage["type"])
                     people.update(stage.get("people", []))
     return types, people, fields
+
+
+def working_ranges(doc: BoardDoc) -> tuple[tuple[date, date], ...]:
+    """Date ranges of the board's Gantts that count working days, for the days off a guest needs."""
+    return tuple(
+        (
+            date.fromisoformat(node.data.content["start"]),
+            date.fromisoformat(node.data.content["end"]),
+        )
+        for node in doc.nodes
+        if isinstance(node, ModuleNode)
+        and node.data.kind == "gantt"
+        and node.data.content.get("workingDays")
+    )
 
 
 def _summary(row: BoardRow, role: BoardRole) -> BoardSummary:

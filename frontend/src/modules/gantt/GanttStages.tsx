@@ -33,11 +33,13 @@ import {
 } from '@/modules/gantt/stages'
 import {
   barBox,
+  countDays,
   dayAt,
-  dragSpan,
+  dragOnAxis,
   formatDay,
   formatSpan,
-  rangeDays,
+  stepDays,
+  type Axis,
   type Grip,
   type Span,
 } from '@/modules/gantt/timeline'
@@ -47,8 +49,7 @@ import { toastError } from '@/lib/toast'
 
 type Props = {
   row: Row
-  range: Span
-  pxPerDay: number
+  axis: Axis
   types: StageType[]
   people: Person[]
   /** Assignees of this Gantt's tasks, offered in the popover until someone adds them. */
@@ -60,25 +61,16 @@ type Props = {
   onRow: (row: Row) => void
 }
 
-// A click without a drag adds one week.
-const CLICK_DAYS = 7
+// A click without a drag adds one week: 7 days, or 5 with working days only.
+const CLICK_WEEK = 7
+const CLICK_WORK_WEEK = 5
 const MOVE_PX = 3
 // The `px-1.5` of the bar and the `px-0.5` of the line under it, both sides.
 const BAR_PADDING = 12
 const BELOW_PADDING = 4
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
-export function GanttStages({
-  row,
-  range,
-  pxPerDay,
-  types,
-  people,
-  assignees,
-  below,
-  label,
-  onRow,
-}: Props) {
+export function GanttStages({ row, axis, types, people, assignees, below, label, onRow }: Props) {
   const { getZoom } = useReactFlow()
   const [open, setOpen] = useState<string | null>(null)
   const [ghost, setGhost] = useState<Span | null>(null)
@@ -87,7 +79,7 @@ export function GanttStages({
   )
   const stages = shownStages(row)
   const dayUnder = (clientX: number, left: number, zoom: number) =>
-    dayAt((clientX - left) / zoom, range, pxPerDay)
+    dayAt((clientX - left) / zoom, axis)
 
   const startDraw = (event: PointerEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget || event.button !== 0) return
@@ -118,7 +110,13 @@ export function GanttStages({
     const moved = Math.abs(event.clientX - current.x) >= MOVE_PX
     const span = moved
       ? (ghost ?? { start: current.day, end: current.day })
-      : { start: current.day, end: Math.min(current.day + CLICK_DAYS - 1, current.gap.end) }
+      : {
+          start: current.day,
+          end: Math.min(
+            stepDays(axis, current.day, (axis.working ? CLICK_WORK_WEEK : CLICK_WEEK) - 1),
+            current.gap.end,
+          ),
+        }
     const added = addStage(row, span, nextType(types, row, span.start))
     if (!added) return
     onRow(added.row)
@@ -142,8 +140,7 @@ export function GanttStages({
           key={stage.id}
           row={row}
           stage={stage}
-          range={range}
-          pxPerDay={pxPerDay}
+          axis={axis}
           types={types}
           people={people}
           assignees={assignees}
@@ -155,13 +152,13 @@ export function GanttStages({
           onReopen={setOpen}
         />
       ))}
-      {ghost && <Ghost span={ghost} range={range} pxPerDay={pxPerDay} />}
+      {ghost && <Ghost span={ghost} axis={axis} />}
     </div>
   )
 }
 
-function Ghost({ span, range, pxPerDay }: { span: Span; range: Span; pxPerDay: number }) {
-  const box = barBox(span, range, pxPerDay)
+function Ghost({ span, axis }: { span: Span; axis: Axis }) {
+  const box = barBox(span, axis)
   if (!box) return null
   return (
     <div
@@ -175,8 +172,7 @@ function Ghost({ span, range, pxPerDay }: { span: Span; range: Span; pxPerDay: n
 type BarProps = {
   row: Row
   stage: Stage
-  range: Span
-  pxPerDay: number
+  axis: Axis
   types: StageType[]
   people: Person[]
   assignees: string[]
@@ -192,8 +188,7 @@ type BarProps = {
 function StageBar({
   row,
   stage,
-  range,
-  pxPerDay,
+  axis,
   types,
   people,
   assignees,
@@ -213,7 +208,8 @@ function StageBar({
   const bar = useRef<HTMLDivElement>(null)
   const [crowded, setCrowded] = useState(false)
   const span = stageSpan(stage)
-  const box = barBox(span, range, pxPerDay)
+  const box = barBox(span, axis)
+  const days = countDays(axis, span)
   const width = box ? Math.max(box.width, 4) : 0
   const type = types.find((t) => t.id === stage.type)
   const name = stage.type === '' ? 'No stage' : (type?.name ?? 'Unknown')
@@ -239,8 +235,8 @@ function StageBar({
     if (!current.moved && Math.abs(event.clientX - current.x) < MOVE_PX) return
     current.moved = true
     setDragging(true)
-    const days = Math.round((event.clientX - current.x) / current.zoom / pxPerDay)
-    const wanted = dragSpan(current.span, current.grip, days)
+    const steps = Math.round((event.clientX - current.x) / current.zoom / axis.px)
+    const wanted = dragOnAxis(axis, current.span, current.grip, steps)
     const next = stage.id === BARE ? wanted : clampStage(row, stage.id, wanted, current.grip)
     if (next.start === span.start && next.end === span.end) return
     onRow(
@@ -266,7 +262,7 @@ function StageBar({
             ref={bar}
             role="slider"
             aria-label={`${name} stage of ${row.title || row.key || 'row'}`}
-            aria-valuetext={formatSpan(span)}
+            aria-valuetext={formatSpan(span, days)}
             onPointerDown={start('move')}
             {...handlers}
             className={cn(
@@ -329,12 +325,12 @@ function StageBar({
         )}
         <DatesTip
           span={span}
+          axis={axis}
           note={`${names ? `${name} · ${names}` : name} · ${label}`}
           warnings={away}
           shown={dragging}
           left={box.left}
           right={box.left + box.width}
-          width={rangeDays(range.start, range.end) * pxPerDay}
         />
         <PopoverContent
           side="bottom"
@@ -348,6 +344,7 @@ function StageBar({
           <StageForm
             row={row}
             stage={stage}
+            dates={formatSpan(span, days)}
             types={types}
             people={people}
             assignees={assignees}
@@ -438,6 +435,7 @@ function StageForm({
   types,
   people,
   assignees,
+  dates,
   away,
   onRow,
   onReopen,
@@ -445,6 +443,8 @@ function StageForm({
 }: {
   row: Row
   stage: Stage
+  /** "Mon Oct 5 – Fri Oct 16 · 10 days", counted as the Gantt counts. */
+  dates: string
   types: StageType[]
   people: Person[]
   assignees: string[]
@@ -556,9 +556,7 @@ function StageForm({
           </Button>
         </form>
       )}
-      <div className="text-muted-foreground text-[12px] tabular-nums">
-        {formatSpan(stageSpan(stage))}
-      </div>
+      <div className="text-muted-foreground text-[12px] tabular-nums">{dates}</div>
       {away.map((line) => (
         <p key={line} className="text-destructive text-[12px]">
           {line}

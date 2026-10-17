@@ -48,6 +48,7 @@ const planningSchema = z.object({
   people: z.array(personSchema),
   fields: z.array(fieldSchema),
   views: z.array(viewSchema),
+  daysOff: z.array(z.string()),
 })
 export type Planning = z.infer<typeof planningSchema>
 
@@ -60,6 +61,7 @@ export const boardPlanningSchema = z.object({
   types: z.array(stageTypeSchema),
   people: z.array(personSchema),
   fields: z.array(fieldSchema),
+  daysOff: z.array(z.string()),
 })
 export type BoardPlanning = z.infer<typeof boardPlanningSchema>
 
@@ -132,6 +134,14 @@ export function addView(input: { name: string; filters: Filters }) {
 export function removeView(id: string) {
   return fetchJson(`/api/planning/views/${encodeURIComponent(id)}`, z.null(), {
     method: 'DELETE',
+  })
+}
+
+/** Replaces the instance's days off; answers with them sorted and without repeats. */
+export function setDaysOff(dates: string[]) {
+  return fetchJson('/api/planning/days-off', z.object({ dates: z.array(z.string()) }), {
+    method: 'PUT',
+    body: JSON.stringify({ dates }),
   })
 }
 

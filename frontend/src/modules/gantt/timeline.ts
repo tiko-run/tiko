@@ -37,12 +37,6 @@ function weekday(day: Day) {
   return (day + 3) % 7
 }
 
-function isoWeek(day: Day) {
-  const thursday = day - weekday(day) + 3
-  const { year } = parts(thursday)
-  return Math.floor((thursday - Date.UTC(year, 0, 1) / MS_PER_DAY) / 7) + 1
-}
-
 function quarterIndex(day: Day) {
   const { year, month } = parts(day)
   return year * 4 + Math.floor(month / 3)
@@ -99,8 +93,17 @@ const nextYear = (day: Day) => monthStart(parts(day).year + 1, 0)
 const quarterLabel = (day: Day) => `Q${(quarterIndex(day) % 4) + 1} ${parts(day).year}`
 const monthLabel = (day: Day) => `${MONTHS[parts(day).month]} ${parts(day).year}`
 
-/** Two header rows: a coarse one on top and the scale's own units below. */
-export function header(start: Day, end: Day, scale: Scale): { top: Cell[]; bottom: Cell[] } {
+// "5–9": a week's first and last shown day; months sit in the row above.
+const dayRange = (from: Day, to: Day) =>
+  from === to ? String(parts(from).date) : `${parts(from).date}–${parts(to).date}`
+
+/** Two header rows: a coarse one on top and the scale's own units below, in days from `start`. */
+export function header(
+  start: Day,
+  end: Day,
+  scale: Scale,
+  working = false,
+): { top: Cell[]; bottom: Cell[] } {
   if (scale === 'day') {
     return {
       top: cells(start, end, nextMonth, monthLabel),
@@ -118,40 +121,110 @@ export function header(start: Day, end: Day, scale: Scale): { top: Cell[]; botto
       bottom: cells(start, end, nextQuarter, (day) => `Q${(quarterIndex(day) % 4) + 1}`),
     }
   }
-  const top = cells(start, end, nextQuarter, quarterLabel)
   if (scale === 'week') {
+    // Months over weeks, the way plans are talked about: "October, the 5–9 week".
+    const sunday = (day: Day) => day - weekday(day) + 6
     return {
-      top,
+      top: cells(start, end, nextMonth, monthLabel),
       bottom: cells(
         start,
         end,
-        (day) => day - weekday(day) + 7,
-        (day) => `W${isoWeek(day)}`,
+        (day) => sunday(day) + 1,
+        (day) => dayRange(day, Math.min(sunday(day) - (working ? 2 : 0), end)),
       ),
     }
   }
-  return { top, bottom: cells(start, end, nextMonth, (day) => MONTHS[parts(day).month]) }
+  return {
+    top: cells(start, end, nextQuarter, quarterLabel),
+    bottom: cells(start, end, nextMonth, (day) => MONTHS[parts(day).month]),
+  }
 }
 
 export type Span = { start: Day; end: Day }
 
+/**
+ * The timeline's days in pixels. With working days only, Saturday and Sunday take no width
+ * and every count runs over the days that are shown; days off stay shown but do not count.
+ */
+export type Axis = {
+  range: Span
+  px: number
+  working: boolean
+  off: ReadonlySet<Day>
+  width: number
+}
+
+const mod = (n: number, m: number) => ((n % m) + m) % m
+
+// Weekdays from Monday Dec 29, 1969 up to, not including, the day.
+function weekdaysBefore(day: Day) {
+  const n = day + 3
+  return Math.floor(n / 7) * 5 + Math.min(mod(n, 7), 5)
+}
+
+function column(range: Span, working: boolean, day: Day) {
+  return working ? weekdaysBefore(day) - weekdaysBefore(range.start) : day - range.start
+}
+
+function dayOfColumn(axis: Axis, col: number): Day {
+  if (!axis.working) return axis.range.start + col
+  const n = weekdaysBefore(axis.range.start) + col
+  return Math.floor(n / 5) * 7 + mod(n, 5) - 3
+}
+
+export function makeAxis(
+  range: Span,
+  width: number,
+  working = false,
+  daysOff: string[] = [],
+): Axis {
+  const columns = Math.max(column(range, working, range.end + 1), 1)
+  const px = width / columns
+  return { range, px, working, off: new Set(working ? daysOff.map(parseDay) : []), width }
+}
+
+/** The left edge of a day; a hidden weekend sits where the next Monday starts. */
+export function xOf(axis: Axis, day: Day) {
+  return column(axis.range, axis.working, day) * axis.px
+}
+
+export function isWeekend(day: Day) {
+  return weekday(day) >= 5
+}
+
 /** Where a bar sits in timeline pixels, clipped to the range; null when it is all outside. */
-export function barBox(span: Span, range: Span, pxPerDay: number) {
+export function barBox(span: Span, axis: Axis) {
+  const { range } = axis
   const from = Math.max(span.start, range.start)
   const to = Math.min(span.end, range.end)
   if (from > to) return null
+  const left = xOf(axis, from)
   return {
-    left: (from - range.start) * pxPerDay,
-    width: rangeDays(from, to) * pxPerDay,
+    left,
+    width: xOf(axis, to + 1) - left,
     clippedStart: span.start < range.start,
     clippedEnd: span.end > range.end,
   }
 }
 
-/** The day under a timeline x, kept inside the range. */
-export function dayAt(x: number, range: Span, pxPerDay: number): Day {
-  const day = range.start + Math.floor(x / pxPerDay)
-  return Math.min(Math.max(day, range.start), range.end)
+/** The shown day under a timeline x, kept inside the range. */
+export function dayAt(x: number, axis: Axis): Day {
+  const last = column(axis.range, axis.working, axis.range.end + 1) - 1
+  const day = dayOfColumn(axis, Math.min(Math.max(Math.floor(x / axis.px), 0), Math.max(last, 0)))
+  return Math.min(Math.max(day, axis.range.start), axis.range.end)
+}
+
+/** The day `steps` shown days after `day`. */
+export function stepDays(axis: Axis, day: Day, steps: number): Day {
+  return dayOfColumn(axis, column(axis.range, axis.working, day) + steps)
+}
+
+/** Days a span lasts; with working days only, weekends and days off are left out. */
+export function countDays(axis: Axis, span: Span) {
+  if (!axis.working) return rangeDays(span.start, span.end)
+  let off = 0
+  for (const day of axis.off) if (day >= span.start && day <= span.end && !isWeekend(day)) off++
+  return weekdaysBefore(span.end + 1) - weekdaysBefore(span.start) - off
 }
 
 export type Grip = 'move' | 'start' | 'end'
@@ -161,6 +234,17 @@ export function dragSpan(span: Span, grip: Grip, days: number): Span {
   if (grip === 'move') return { start: span.start + days, end: span.end + days }
   if (grip === 'start') return { start: Math.min(span.start + days, span.end), end: span.end }
   return { start: span.start, end: Math.max(span.end + days, span.start) }
+}
+
+/** `dragSpan` over the shown days, so a bar snaps to working days when weekends are hidden. */
+export function dragOnAxis(axis: Axis, span: Span, grip: Grip, steps: number): Span {
+  if (!axis.working || steps === 0) return dragSpan(span, grip, steps)
+  const first = column(axis.range, true, span.start)
+  const last = Math.max(column(axis.range, true, span.end + 1) - 1, first)
+  const moved = dragSpan({ start: first, end: last }, grip, steps)
+  const start = grip === 'end' ? span.start : dayOfColumn(axis, moved.start)
+  const end = grip === 'start' ? span.end : dayOfColumn(axis, moved.end)
+  return { start, end: Math.max(end, start) }
 }
 
 /** A new bar: a week from the given day, or from today when it is in range, else the range start. */
@@ -176,8 +260,7 @@ export function formatDate(day: Day, year = false) {
 }
 
 /** "Mon Oct 5 – Fri Oct 16 · 12 days"; years only when the span crosses one. */
-export function formatSpan(span: Span) {
-  const days = rangeDays(span.start, span.end)
+export function formatSpan(span: Span, days = rangeDays(span.start, span.end)) {
   const length = `${days} ${days === 1 ? 'day' : 'days'}`
   if (span.start === span.end) return `${formatDate(span.start)} · ${length}`
   const years = parts(span.start).year !== parts(span.end).year

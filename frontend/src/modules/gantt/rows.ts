@@ -3,7 +3,7 @@ import type { TaskLink } from '@/canvas/tasks-context'
 import { columnsWidth } from '@/modules/gantt/fields'
 import { FILTER_BAR, shownRows } from '@/modules/gantt/filters'
 import type { GanttContent } from '@/modules/gantt/schema'
-import { dayAt, formatDay, newSpan, parseDay, rangeDays, type Span } from '@/modules/gantt/timeline'
+import { dayAt, formatDay, makeAxis, newSpan, parseDay, type Span } from '@/modules/gantt/timeline'
 import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
 import { insertRow } from '@/modules/gantt/tree'
 import type { PlanningState } from '@/planning/context'
@@ -29,9 +29,11 @@ export function timelineLeft(content: GanttContent, planning: boolean) {
   return content.labelWidth + columnsWidth(content, planning)
 }
 
-export function pxPerDay(content: GanttContent, width: number, planning: boolean) {
-  const { start, end } = range(content)
-  return Math.max(width - timelineLeft(content, planning), 1) / rangeDays(start, end)
+/** Working days only is a Planning option; with Planning off every day is shown. */
+export function axisOf(content: GanttContent, width: number, planning: PlanningState) {
+  const working = planning.enabled && Boolean(content.workingDays)
+  const timeline = Math.max(width - timelineLeft(content, planning.enabled), 1)
+  return makeAxis(range(content), timeline, working, planning.daysOff)
 }
 
 export function rowHeight(content: GanttContent, planning: boolean) {
@@ -106,10 +108,7 @@ export function acceptCard(
 ): GanttContent | null {
   if (content.rows.length >= MAX_ROWS || planned(content, task)) return null
   const left = timelineLeft(content, planning.enabled)
-  const day =
-    at.x >= left
-      ? dayAt(at.x - left, range(content), pxPerDay(content, width, planning.enabled))
-      : undefined
+  const day = at.x >= left ? dayAt(at.x - left, axisOf(content, width, planning)) : undefined
   // Between the visible rows it fell on, next to the row above it.
   const visible = shownRows(content, planning)
   const slot = Math.min(

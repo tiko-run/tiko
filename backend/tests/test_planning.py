@@ -28,6 +28,7 @@ def test_off_by_default(client: TestClient) -> None:
         "people": [],
         "fields": [],
         "views": [],
+        "daysOff": [],
     }
 
 
@@ -313,3 +314,16 @@ def test_the_view_name_holds_at_the_store() -> None:
     assert not views.add(SavedView(id="v2", name="WEB", filters={"team": ["Web"]}), limit=5)
     assert views.add(SavedView(id="v3", name="Straße", filters={}), limit=5)
     assert not views.add(SavedView(id="v4", name="STRASSE", filters={}), limit=5)
+
+
+def test_a_member_sets_the_days_off(client: TestClient, monkeypatch) -> None:
+    path = "/api/planning/days-off"
+    assert client.put(path, json={"dates": ["2026-11-04"]}).status_code == 422
+    client.patch("/api/planning", json={"enabled": True})
+    ann = member(client)
+    dates = ["2026-12-31", "2026-11-04", "2026-11-04"]
+    assert ann.put(path, json={"dates": dates}).json() == {"dates": ["2026-11-04", "2026-12-31"]}
+    assert client.get("/api/planning").json()["daysOff"] == ["2026-11-04", "2026-12-31"]
+    assert ann.put(path, json={"dates": []}).json() == {"dates": []}
+    assert client.put(path, json={"dates": ["2026-11-31"]}).status_code == 422
+    assert client.put(path, json={"dates": ["2026-11-04"] * 401}).status_code == 422

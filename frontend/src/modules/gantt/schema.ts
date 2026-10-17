@@ -40,6 +40,7 @@ export const ganttSchema = z.object({
   people: z.enum(['inline', 'below']).optional(),
   columns: z.array(z.string()).optional(),
   filters: z.record(z.string(), z.array(z.string())).optional(),
+  workingDays: z.boolean().optional(),
 })
 
 export type GanttContent = z.infer<typeof ganttSchema>
