@@ -1,0 +1,140 @@
+---
+title: '2026.10.22'
+description: Plan a quarter in the Gantt, with stages, the people on them, their time off and working days.
+date: '2026-10-17'
+cover: /casts/gantt-overview.jpg
+prev: false
+next: false
+---
+
+import Feature from '../../../components/Feature.astro'
+import Details from '../../../components/Details.astro'
+import Detail from '../../../components/Detail.astro'
+
+## ✨ New
+
+<Feature area="Gantt" title="Plan with stages" href="/gantt/#stages" video="/casts/gantt-overview.mp4" poster="/casts/gantt-overview.jpg">
+  See a whole quarter on one chart: every task is cut into stages such as Discovery, Design and Build, with the people planned for each one. Drag across a row to add a stage, or click for a week, and the next stage picks the type that follows.
+
+  <Details layout="three">
+    <Detail title="Turn it on once" image="/casts/planning-toggle.webp">
+      Planning is off by default. An admin turns it on in Settings, and every Gantt on this tiko gets stages.
+    </Detail>
+    <Detail title="Your own stage types" image="/casts/planning-types.webp">
+      Rename, recolor or archive the types every board shares, so the chart speaks your team's words.
+    </Detail>
+    <Detail title="A new type on the spot" image="/casts/planning-newtype.webp">
+      Missing a phase? Add it from any stage with New type, without leaving the chart.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="People on stages" href="/gantt/#people-on-stages">
+  Put people on a stage to see who works on what, and when. They come from one list for the whole tiko, and most of them never need an account.
+
+  <Details>
+    <Detail title="Names where you want them" image="/casts/people-below.webp">
+      Show names after the stage type, or under each stage when the bars are short.
+    </Detail>
+    <Detail title="A count when names don't fit" image="/casts/people-count.webp">
+      A short stage shows how many people it has. Click it to see who they are.
+    </Detail>
+    <Detail title="Add someone while you plan" image="/casts/people-add.webp">
+      Type a new name in a stage and add the person to the list in one step.
+    </Detail>
+    <Detail title="Assignees from your tracker" image="/casts/people-tracker.webp">
+      The assignees of the Gantt's tasks are offered too. Nobody is added until you pick them.
+    </Detail>
+    <Detail title="One list for every board" image="/casts/people-settings.webp">
+      Keep names and teams in Settings. Teams then work in filters across every Gantt.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Columns" href="/gantt/#columns">
+  Show Priority, Size, Team or a field of your own next to the task titles, and type values straight into the cells. Values stay on the board and never go to your tracker.
+
+  <Details layout="three">
+    <Detail title="Children follow the parent" image="/casts/columns-inherit.webp">
+      Set a value once on a parent row and its children show it in gray. Type over it where a child differs.
+    </Detail>
+    <Detail title="A field of your own" image="/casts/columns-new.webp">
+      Need a Quarter or a Budget code? Type its name, and every Gantt can show it.
+    </Detail>
+    <Detail title="Fields in Settings" image="/casts/columns-settings.webp">
+      Rename the standard fields or archive your own. Archived fields keep their values in the rows.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Filters and views" href="/gantt/#filters-and-views">
+  Narrow a busy chart to one team, one person or one priority. Save the filters as a view, and every Gantt on this tiko can apply it in one click.
+
+  <Details layout="three">
+    <Detail title="Where a team takes part" image="/casts/filters-team.webp">
+      A team filter also finds tasks owned by other teams where one of its people has a stage.
+    </Detail>
+    <Detail title="One person's plan" image="/casts/filters-person.webp">
+      Filter by a person to see only the tasks they work on.
+    </Detail>
+    <Detail title="Views for every Gantt" image="/casts/filters-views.webp">
+      Saved views sit above the rows. Click one to apply it, click it again to show every task.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Time off" href="/gantt/#time-off">
+  Mark when someone is away, once, and every Gantt where they have a stage shows it. A stage that clashes with time off gets a red outline, so you spot the problem before it happens.
+
+  <Details layout="hero">
+    <Detail title="Draw it on the chart" video="/casts/timeoff-lane.mp4" poster="/casts/timeoff-lane.jpg">
+      Drag across the Time off lane and pick who is away. Their stages in those days turn red at once.
+    </Detail>
+    <Detail title="Who is away, and when" image="/casts/timeoff-away.webp">
+      Open a red stage to see whose time off it overlaps.
+    </Detail>
+    <Detail title="Or add it in Settings" image="/casts/timeoff-settings.webp">
+      Pick the first and last day under a person. tiko keeps only the dates, never the reason.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Settings" title="Workload" href="/gantt/#workload" video="/casts/people-workload.mp4" poster="/casts/people-workload.jpg">
+  See the next twelve weeks of one person across every board, and the days they have two stages at once. Click a stage in the list to open its board.
+
+  <Details>
+    <Detail title="Clashes in red" image="/casts/people-overload.webp">
+      A week turns red when two stages fall on the same working day. A week with time off is hatched.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Working days" href="/gantt/#working-days">
+  Hide weekends from a Gantt with Working days only. Stages snap to working days and every duration counts only the days people work.
+
+  <Details>
+    <Detail wide title="Weekends out of the way" video="/casts/working-toggle.mp4" poster="/casts/working-toggle.jpg">
+      Turn it on from the Gantt's menu. Weeks then read Monday to Friday, such as 19–23.
+    </Detail>
+    <Detail title="Holidays for everyone" image="/casts/working-daysoff.webp">
+      Days off from Settings are shaded on the chart and left out of every count.
+    </Detail>
+    <Detail title="Durations you can trust" image="/casts/working-count.webp">
+      A stage from Monday to Friday reads 5 days, not 7.
+    </Detail>
+    <Detail title="Days off in Settings" image="/casts/working-settings.webp">
+      Add a national holiday or a team day once, and every Gantt with working days respects it.
+    </Detail>
+  </Details>
+</Feature>
+
+## 💎 Improvements
+
+- **Gantt:** The chart is easier to read: larger text and stages, taller rows, centered header labels and months spelled out.
+- **Gantt:** The Weeks scale shows months over weeks, and each week reads by its dates, such as 5–9, instead of a week number.
+- **Guide:** What's new: a page for every release, with what you can try, short clips and pictures. Click a clip or a picture to see it full size.
+- **Guide:** Pages open without a full reload, the header stays in place, and the text is larger everywhere.
+
+## 🐞 Fixes
+
+- **Guide:** Fixed pages with code blocks jumping right after you open them.
