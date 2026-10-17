@@ -163,7 +163,7 @@ function Ghost({ span, axis }: { span: Span; axis: Axis }) {
   return (
     <div
       aria-hidden
-      className="border-primary bg-accent pointer-events-none absolute top-1.5 h-5 rounded-[4px] border border-dashed"
+      className="border-primary bg-accent pointer-events-none absolute top-1.5 h-[22px] rounded-[4px] border border-dashed"
       style={{ left: box.left, width: Math.max(box.width, 4) }}
     />
   )
@@ -266,7 +266,7 @@ function StageBar({
             onPointerDown={start('move')}
             {...handlers}
             className={cn(
-              'peer absolute top-1.5 flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[11px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
+              'peer absolute top-1.5 flex h-[22px] cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[12px] leading-[22px] font-semibold whitespace-nowrap select-none active:cursor-grabbing',
               !type && 'bg-card text-muted-foreground border font-medium',
               box.clippedStart && 'rounded-l-none',
               box.clippedEnd && 'rounded-r-none',
@@ -304,14 +304,14 @@ function StageBar({
         <span
           ref={measure}
           aria-hidden
-          className="invisible absolute top-0 left-0 text-[11px] font-semibold whitespace-nowrap"
+          className="invisible absolute top-0 left-0 text-[12px] font-semibold whitespace-nowrap"
         >
           {below ? <Names named={named} /> : [name, <Names key="n" named={named} lead=" · " />]}
         </span>
         {below && named.length > 0 && (
           <div
             data-stage-people
-            className="text-muted-foreground pointer-events-none absolute top-7 flex justify-center px-0.5 text-[11px] leading-4"
+            className="text-muted-foreground pointer-events-none absolute top-[30px] flex justify-center px-0.5 text-[11px] leading-4"
             style={{ left: box.left, width }}
           >
             {crowded ? (

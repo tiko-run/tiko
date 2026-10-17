@@ -46,7 +46,7 @@ export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
     return (
       <span
         title={before ? 'Before the range' : 'After the range'}
-        className={cn('text-muted-foreground absolute top-2', before ? 'left-0' : 'right-0')}
+        className={cn('text-muted-foreground absolute top-[9px]', before ? 'left-0' : 'right-0')}
       >
         <Icon className="size-4" />
       </span>
@@ -119,7 +119,7 @@ export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
           onPointerDown={start('move')}
           {...handlers}
           className={cn(
-            'peer absolute top-1 h-5 cursor-grab rounded-[4px] text-[11px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
+            'peer absolute top-[7px] h-5 cursor-grab rounded-[4px] text-[12px] leading-5 font-semibold whitespace-nowrap select-none active:cursor-grabbing',
             live ? BAR_COLOR[task.status_category] : 'bg-foreground/75 text-background',
             task?.status_category === 'done' && 'line-through',
             box.clippedStart && 'rounded-l-none',
@@ -164,7 +164,7 @@ export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
         onPointerDown={start('move')}
         {...handlers}
         className={cn(
-          'peer absolute top-1.5 flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[11px] leading-5 font-medium whitespace-nowrap select-none active:cursor-grabbing',
+          'peer absolute top-[7px] flex h-5 cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[12px] leading-5 font-medium whitespace-nowrap select-none active:cursor-grabbing',
           task && !missing
             ? BAR_COLOR[task.status_category]
             : task

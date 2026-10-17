@@ -67,7 +67,7 @@ function renderModule(data: ModuleNodeType['data']) {
 test('renders a known module through its view', () => {
   renderModule({ kind: 'gantt', content: gantt })
   expect(screen.getByText('Gantt')).toBeTruthy()
-  expect(screen.getByText('Oct 2026')).toBeTruthy()
+  expect(screen.getByText('October 2026')).toBeTruthy()
   expect(screen.getByText('5–11')).toBeTruthy()
 })
 

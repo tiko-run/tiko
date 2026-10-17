@@ -116,8 +116,8 @@ function HeaderRow({ cells, top }: { cells: ReturnType<typeof placed>; top: bool
         <div
           key={cell.from}
           className={cn(
-            'absolute inset-y-0 truncate border-l px-1.5 leading-6',
-            top ? 'text-foreground font-medium' : 'text-muted-foreground',
+            'absolute inset-y-0 truncate border-l px-1.5 text-center text-[12px] leading-6',
+            top ? 'text-foreground font-semibold' : 'text-muted-foreground',
           )}
           style={{ left: cell.left, width: cell.width }}
         >
@@ -220,7 +220,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   }
 
   return (
-    <div className="flex h-full flex-col text-[12px]">
+    <div className="flex h-full flex-col text-[13px]">
       {planning.enabled && (
         <GanttFilters content={content} planning={planning} onChange={onChange} />
       )}

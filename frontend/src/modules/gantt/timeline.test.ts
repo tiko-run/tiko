@@ -70,7 +70,12 @@ describe('header', () => {
 
   it('shows months over weeks, clipping the first week to the range', () => {
     const { top, bottom } = header(d('2026-09-30'), end, 'week')
-    expect(top.map((c) => c.label)).toEqual(['Sep 2026', 'Oct 2026', 'Nov 2026', 'Dec 2026'])
+    expect(top.map((c) => c.label)).toEqual([
+      'September 2026',
+      'October 2026',
+      'November 2026',
+      'December 2026',
+    ])
     expect(top[0].span).toBe(1)
     expect(bottom[0]).toEqual({ label: '30–4', from: 0, span: 5 })
     expect(bottom[1].label).toBe('5–11')
@@ -83,7 +88,7 @@ describe('header', () => {
 
   it('shows months over days and marks weekends', () => {
     const { top, bottom } = header(start, d('2026-10-04'), 'day')
-    expect(top.map((c) => c.label)).toEqual(['Sep 2026', 'Oct 2026'])
+    expect(top.map((c) => c.label)).toEqual(['September 2026', 'October 2026'])
     expect(bottom.map((c) => c.label)).toEqual(['28', '29', '30', '1', '2', '3', '4'])
     expect(bottom.map((c) => Boolean(c.weekend))).toEqual([
       false,

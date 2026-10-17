@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The Gantt reads easier: larger text and stages, taller rows, header labels centered and months spelled out.
 - The Gantt's Weeks scale shows months over weeks, and each week reads by its dates, such as 5–9, instead of its ISO number.
 - The guide keeps its header in place and transitions between pages without a full reload.
 - Larger text in the guide, from the sidebar to the page body.

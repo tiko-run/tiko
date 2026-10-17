@@ -91,7 +91,7 @@ export function Milestone({ milestone, axis, onChange, onRemove }: Props) {
         ) : (
           <span
             className={cn(
-              'bg-background/90 max-w-40 truncate rounded-sm px-0.5 text-[11px] font-medium',
+              'bg-background/90 max-w-40 truncate rounded-sm px-0.5 text-[12px] font-medium',
               !milestone.title && 'text-muted-foreground',
             )}
           >

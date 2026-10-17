@@ -460,7 +460,7 @@ test('names below the bars make the rows taller', () => {
   const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
   expect(bar.textContent).toBe('Build')
   const row = bar.closest('[data-gantt-row]') as HTMLElement
-  expect(row.style.height).toBe('48px')
+  expect(row.style.height).toBe('50px')
   const line = row.querySelector('[data-stage-people]') as HTMLElement
   expect(line.textContent).toBe('Ivan')
   expect(line.className).toContain('justify-center')
@@ -469,7 +469,7 @@ test('names below the bars make the rows taller', () => {
 test('names below are ignored with Planning off', () => {
   renderGantt({}, staged(['p1'], { people: 'below' }), OFF)
   const row = document.querySelector('[data-gantt-row]') as HTMLElement
-  expect(row.style.height).toBe('32px')
+  expect(row.style.height).toBe('34px')
 })
 
 test('the popover adds someone from the list and removes them again', () => {

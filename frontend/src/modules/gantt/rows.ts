@@ -14,9 +14,9 @@ export type Row = GanttContent['rows'][number]
 export const LABEL_WIDTH = { min: 120, max: 480 }
 export const HEADER_ROW = 24
 export const HEADER = HEADER_ROW * 2
-export const ROW_HEIGHT = 32
+export const ROW_HEIGHT = 34
 // Names in a line under each stage, like the spreadsheet the plan came from.
-export const ROW_HEIGHT_BELOW = 48
+export const ROW_HEIGHT_BELOW = 50
 export const FOOTER = 40
 export const MAX_ROWS = 200
 

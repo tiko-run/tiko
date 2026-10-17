@@ -9,6 +9,20 @@ const MS_PER_DAY = 86_400_000
 export const MAX_RANGE_DAYS = 1096
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function parseDay(iso: string): Day {
@@ -91,7 +105,7 @@ const nextQuarter = (day: Day) => quarterBounds(quarterIndex(day) + 1).start
 const nextYear = (day: Day) => monthStart(parts(day).year + 1, 0)
 
 const quarterLabel = (day: Day) => `Q${(quarterIndex(day) % 4) + 1} ${parts(day).year}`
-const monthLabel = (day: Day) => `${MONTHS[parts(day).month]} ${parts(day).year}`
+const monthLabel = (day: Day) => `${MONTH_NAMES[parts(day).month]} ${parts(day).year}`
 
 // "5–9": a week's first and last shown day; months sit in the row above.
 const dayRange = (from: Day, to: Day) =>
