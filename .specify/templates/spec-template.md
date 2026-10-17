@@ -80,7 +80,7 @@
 
 ## Principles check *(mandatory)*
 
-<!-- See docs/guide/src/content/docs/why.md. -->
+<!-- See docs/guide/src/content/docs/why.mdx. -->
 
 - **Fog it clears**: [what the user can't see or understand today that this feature shows]
 - **Trade-offs**: [principles this feature bends and why the gain outweighs it, or "none"]
