@@ -11,7 +11,14 @@ import {
 import type { GanttContent } from '@/modules/gantt/schema'
 import type { PlanningState } from '@/planning/context'
 
-const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [], views: [] }
+const OFF: PlanningState = {
+  enabled: false,
+  types: [],
+  people: [],
+  fields: [],
+  views: [],
+  daysOff: [],
+}
 
 const row = (id: string, key?: string): Row => ({
   id,

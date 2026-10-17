@@ -10,10 +10,11 @@ import { DatesTip } from '@/modules/gantt/GanttBar'
 import { LANE_ROW, type PlacedAway } from '@/modules/gantt/timeoff'
 import {
   barBox,
+  countDays,
   dayAt,
   formatDay,
   formatSpan,
-  rangeDays,
+  type Axis,
   type Span,
 } from '@/modules/gantt/timeline'
 import { cn } from '@/lib/utils'
@@ -22,8 +23,7 @@ import { toastError } from '@/lib/toast'
 type Props = {
   items: PlacedAway[]
   height: number
-  range: Span
-  pxPerDay: number
+  axis: Axis
   people: Person[]
 }
 
@@ -37,14 +37,14 @@ const HATCH = {
 }
 
 /** Who is away over this Gantt's range; drag across free days to mark someone else away. */
-export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
+export function TimeOffLane({ items, height, axis, people }: Props) {
   const { getZoom } = useReactFlow()
   const [ghost, setGhost] = useState<Span | null>(null)
   const [asking, setAsking] = useState<Span | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const draw = useRef<{ day: number; x: number; left: number; zoom: number } | null>(null)
   const dayUnder = (clientX: number, left: number, zoom: number) =>
-    dayAt((clientX - left) / zoom, range, pxPerDay)
+    dayAt((clientX - left) / zoom, axis)
 
   const startDraw = (event: PointerEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget || event.button !== 0) return
@@ -69,7 +69,7 @@ export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
     const moved = Math.abs(event.clientX - current.x) >= MOVE_PX
     const span = moved
       ? (ghost ?? { start: current.day, end: current.day })
-      : { start: current.day, end: Math.min(current.day + CLICK_DAYS - 1, range.end) }
+      : { start: current.day, end: Math.min(current.day + CLICK_DAYS - 1, axis.range.end) }
     setGhost(span)
     setAsking(span)
   }
@@ -77,7 +77,7 @@ export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
     setAsking(null)
     setGhost(null)
   }
-  const ghostBox = ghost && barBox(ghost, range, pxPerDay)
+  const ghostBox = ghost && barBox(ghost, axis)
 
   return (
     <div
@@ -97,8 +97,7 @@ export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
         <AwayBar
           key={item.off.id}
           item={item}
-          range={range}
-          pxPerDay={pxPerDay}
+          axis={axis}
           open={open === item.off.id}
           onOpen={(next) => setOpen(next ? item.off.id : null)}
         />
@@ -114,7 +113,7 @@ export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
           </PopoverAnchor>
           {asking && (
             <PopoverContent side="bottom" align="start" className="w-64 p-3">
-              <WhoIsAway span={asking} people={people} onDone={stopAsking} />
+              <WhoIsAway span={asking} axis={axis} people={people} onDone={stopAsking} />
             </PopoverContent>
           )}
         </Popover>
@@ -125,23 +124,22 @@ export function TimeOffLane({ items, height, range, pxPerDay, people }: Props) {
 
 function AwayBar({
   item,
-  range,
-  pxPerDay,
+  axis,
   open,
   onOpen,
 }: {
   item: PlacedAway
-  range: Span
-  pxPerDay: number
+  axis: Axis
   open: boolean
   onOpen: (open: boolean) => void
 }) {
   const queryClient = useQueryClient()
   const [removing, setRemoving] = useState(false)
   const bar = useRef<HTMLButtonElement>(null)
-  const box = barBox(item.span, range, pxPerDay)
+  const box = barBox(item.span, axis)
   if (!box) return null
   const { person, off } = item
+  const dates = formatSpan(item.span, countDays(axis, item.span))
   const remove = async () => {
     setRemoving(true)
     try {
@@ -162,7 +160,7 @@ function AwayBar({
           <button
             ref={bar}
             type="button"
-            aria-label={`${person.name} is away ${formatSpan(item.span)}`}
+            aria-label={`${person.name} is away ${dates}`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => onOpen(!open)}
             className={cn(
@@ -183,11 +181,11 @@ function AwayBar({
         </PopoverAnchor>
         <DatesTip
           span={item.span}
+          axis={axis}
           note={`${person.name} · time off`}
           shown={false}
           left={box.left}
           right={box.left + box.width}
-          width={rangeDays(range.start, range.end) * pxPerDay}
         />
         <PopoverContent
           side="bottom"
@@ -199,9 +197,7 @@ function AwayBar({
         >
           <div className="flex flex-col gap-2 text-[13px]">
             <div className="font-semibold">{person.name} is away</div>
-            <div className="text-muted-foreground text-[12px] tabular-nums">
-              {formatSpan(item.span)}
-            </div>
+            <div className="text-muted-foreground text-[12px] tabular-nums">{dates}</div>
             <p className="text-muted-foreground text-[12px]">
               Time off belongs to the person, so it shows on every board where they have a stage.
               Only the dates are kept.
@@ -240,7 +236,17 @@ function Initial({ person }: { person: Person }) {
 }
 
 /** The people list for a range drawn on the lane; a pick marks that person away. */
-function WhoIsAway({ span, people, onDone }: { span: Span; people: Person[]; onDone: () => void }) {
+function WhoIsAway({
+  span,
+  axis,
+  people,
+  onDone,
+}: {
+  span: Span
+  axis: Axis
+  people: Person[]
+  onDone: () => void
+}) {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [saving, setSaving] = useState(false)
@@ -267,7 +273,9 @@ function WhoIsAway({ span, people, onDone }: { span: Span; people: Person[]; onD
   return (
     <div className="flex flex-col gap-2 text-[13px]">
       <div className="font-semibold">Who is away?</div>
-      <div className="text-muted-foreground text-[12px] tabular-nums">{formatSpan(span)}</div>
+      <div className="text-muted-foreground text-[12px] tabular-nums">
+        {formatSpan(span, countDays(axis, span))}
+      </div>
       <Input
         autoFocus
         aria-label="Find a person"

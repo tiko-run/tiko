@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Response
 
 from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor, is_demo, not_on_demo
 from app.domain.planning import (
+    DaysOff,
     FieldChange,
     FieldIn,
     PersonChange,
@@ -100,6 +101,11 @@ def change_field(
 @router.post("/views", dependencies=Writer)
 def add_view(body: ViewIn, person: CurrentPerson, service: PlanningDep) -> SavedView:
     return service.add_view(body)
+
+
+@router.put("/days-off", dependencies=Writer)
+def set_days_off(body: DaysOff, person: CurrentPerson, service: PlanningDep) -> DaysOff:
+    return service.set_days_off(body)
 
 
 @router.delete("/views/{view_id}", status_code=204, dependencies=Writer)

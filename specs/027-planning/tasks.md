@@ -56,9 +56,9 @@ Slice `gantt-views`.
 
 Slice `gantt-working-days`.
 
-- [ ] T020 [US6] Backend: days off list; `workingDays` in Gantt content
-- [ ] T021 [US6] Gantt: weekends hidden, snapping and working-day counts, days off shaded; months over weeks in the Weeks header
-- [ ] T022 [US6] Tests: toggle, snapping, count with a day off, header; guide, changelog
+- [x] T020 [US6] Backend: days off list; `workingDays` in Gantt content
+- [x] T021 [US6] Gantt: weekends hidden, snapping and working-day counts, days off shaded; months over weeks in the Weeks header
+- [x] T022 [US6] Tests: toggle, snapping, count with a day off, header; guide, changelog
 
 ## Phase 7: User Story 7 - A person's workload (P3)
 

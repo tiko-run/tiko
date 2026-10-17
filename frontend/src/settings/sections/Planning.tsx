@@ -17,6 +17,7 @@ import {
   PLANNING_KEY,
   removeTimeOff,
   removeView,
+  setDaysOff,
   setPlanning,
   storeField,
   storePerson,
@@ -24,6 +25,7 @@ import {
   usePlanningQuery,
   type Field,
   type Hue,
+  type Planning as PlanningData,
   type Person,
   type SavedView,
   type StageType,
@@ -32,6 +34,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { formatDate, parseDay } from '@/modules/gantt/timeline'
 import { offDates } from '@/modules/gantt/timeoff'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
@@ -74,6 +77,7 @@ export function Planning({ me }: { me: Me }) {
       {enabled && planning.data && <People people={planning.data.people} />}
       {enabled && planning.data && <Fields fields={planning.data.fields} />}
       {enabled && planning.data && <Views views={planning.data.views} />}
+      {enabled && planning.data && <DaysOff dates={planning.data.daysOff} />}
     </div>
   )
 }
@@ -428,6 +432,67 @@ function Views({ views }: { views: SavedView[] }) {
           ))}
         </ul>
       )}
+    </Group>
+  )
+}
+
+/** Holidays and other days nobody works: shaded and not counted on working-day Gantts. */
+function DaysOff({ dates }: { dates: string[] }) {
+  const queryClient = useQueryClient()
+  const [draft, setDraft] = useState('')
+  const save = useMutation({
+    mutationFn: (next: string[]) => setDaysOff(next),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<PlanningData>(
+        PLANNING_KEY,
+        (was) => was && { ...was, daysOff: saved.dates },
+      )
+      setDraft('')
+    },
+    onError: toastError,
+  })
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (draft && !dates.includes(draft)) save.mutate([...dates, draft])
+  }
+  return (
+    <Group title="Days off">
+      <p className="text-muted-foreground text-[13px]">
+        Holidays for everyone. A Gantt with "Working days only" shades them and leaves them out of
+        every count.
+      </p>
+      <div className="flex flex-wrap items-center gap-1 text-[12px]">
+        {dates.map((iso) => (
+          <span
+            key={iso}
+            className="bg-muted flex items-center gap-0.5 rounded-full py-0.5 pr-0.5 pl-2 tabular-nums"
+          >
+            {formatDate(parseDay(iso), true)}
+            <button
+              type="button"
+              aria-label={`Remove day off ${iso}`}
+              disabled={save.isPending}
+              onClick={() => save.mutate(dates.filter((d) => d !== iso))}
+              className="text-muted-foreground hover:text-foreground rounded-full p-0.5"
+            >
+              <X className="size-3" />
+            </button>
+          </span>
+        ))}
+        {dates.length === 0 && <span className="text-muted-foreground mr-1">None</span>}
+        <form onSubmit={submit} className="flex items-center gap-1">
+          <Input
+            type="date"
+            aria-label="New day off"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            className="h-7 w-36 text-[12px]"
+          />
+          <Button type="submit" size="xs" variant="outline" disabled={!draft || save.isPending}>
+            Add
+          </Button>
+        </form>
+      </div>
     </Group>
   )
 }

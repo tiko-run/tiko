@@ -11,9 +11,12 @@ All notable changes to this project are documented here. The format follows [Kee
 - Columns in the Gantt in Planning mode: Priority, Size, Team and fields of your own, typed straight into the cells. An empty cell shows the parent row's value.
 - Filters and saved views in the Gantt in Planning mode: filter rows by any field or by person, with inherited values and teams counted through people on stages, and save a set of filters as a view every Gantt can use.
 - Time off for people in Planning mode: dates only, added in Settings or on a Time off lane in the Gantt. A stage whose person is away gets a red outline and says who is away.
+- Working days only in the Gantt in Planning mode: weekends are hidden, stages snap to working days, and durations leave out the days off listed in Settings.
 
 ### Changed
 
+- The Gantt reads easier: larger text and stages, taller rows, header labels centered and months spelled out.
+- The Gantt's Weeks scale shows months over weeks, and each week reads by its dates, such as 5–9, instead of its ISO number.
 - The guide keeps its header in place and transitions between pages without a full reload.
 - Larger text in the guide, from the sidebar to the page body.
 

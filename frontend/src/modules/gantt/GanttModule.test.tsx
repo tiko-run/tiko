@@ -84,7 +84,14 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [], views: [] }
+const OFF: PlanningState = {
+  enabled: false,
+  types: [],
+  people: [],
+  fields: [],
+  views: [],
+  daysOff: [],
+}
 
 function renderGantt(
   host: Partial<ModuleHost> = {},
@@ -319,6 +326,7 @@ const PLANNING: PlanningState = {
   people: [],
   fields: [],
   views: [],
+  daysOff: [],
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -452,7 +460,7 @@ test('names below the bars make the rows taller', () => {
   const bar = screen.getByRole('slider', { name: 'Build stage of Payment API' })
   expect(bar.textContent).toBe('Build')
   const row = bar.closest('[data-gantt-row]') as HTMLElement
-  expect(row.style.height).toBe('48px')
+  expect(row.style.height).toBe('50px')
   const line = row.querySelector('[data-stage-people]') as HTMLElement
   expect(line.textContent).toBe('Ivan')
   expect(line.className).toContain('justify-center')
@@ -461,7 +469,7 @@ test('names below the bars make the rows taller', () => {
 test('names below are ignored with Planning off', () => {
   renderGantt({}, staged(['p1'], { people: 'below' }), OFF)
   const row = document.querySelector('[data-gantt-row]') as HTMLElement
-  expect(row.style.height).toBe('32px')
+  expect(row.style.height).toBe('34px')
 })
 
 test('the popover adds someone from the list and removes them again', () => {
@@ -808,4 +816,53 @@ test('"Save as view" stores the filters for the instance', async () => {
   } finally {
     vi.unstubAllGlobals()
   }
+})
+
+const WORK: GanttContent = {
+  ...content,
+  start: '2026-10-05',
+  end: '2026-10-16',
+  scale: 'day',
+  workingDays: true,
+  rows: [
+    {
+      id: 'a',
+      title: 'Payment API',
+      start: '2026-10-12',
+      end: '2026-10-16',
+      stages: [{ id: 's1', type: 't3', start: '2026-10-12', end: '2026-10-16', people: [] }],
+    },
+  ],
+}
+
+test('working days only is switched on in the Gantt options', () => {
+  renderGantt({}, content, PLANNING)
+  fireEvent.keyDown(screen.getByRole('button', { name: 'More Gantt options' }), { key: 'Enter' })
+  fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Working days only' }))
+  expect(current().workingDays).toBe(true)
+})
+
+test('with working days only weekends vanish and a day off is shaded and not counted', () => {
+  renderGantt({}, WORK, { ...PLANNING, daysOff: ['2026-10-14'] })
+  const body = document.querySelector('[data-gantt-body]')!
+  // Two weeks of five days each: no Saturday 10 or Sunday 11.
+  expect(within(body as HTMLElement).queryByText('10')).toBeNull()
+  expect(within(body as HTMLElement).getByText('12')).toBeTruthy()
+  expect(document.querySelectorAll('[data-gantt-day-off]')).toHaveLength(1)
+  const stage = screen.getByRole('slider', { name: 'Build stage of Payment API' })
+  expect(stage.getAttribute('aria-valuetext')).toBe('Mon Oct 12 – Fri Oct 16 · 4 days')
+})
+
+test('a click with working days only adds five working days', () => {
+  renderGantt({}, WORK, PLANNING)
+  press(document.querySelector('[data-gantt-stages]')!, 0)
+  expect(rows()[0].stages!.map((s) => [s.start, s.end])).toEqual([
+    ['2026-10-05', '2026-10-09'],
+    ['2026-10-12', '2026-10-16'],
+  ])
+})
+
+test('working days are ignored with Planning off', () => {
+  renderGantt({}, WORK)
+  expect(screen.getByText('10')).toBeTruthy()
 })

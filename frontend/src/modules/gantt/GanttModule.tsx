@@ -6,6 +6,7 @@ import { taskRef, TasksContext } from '@/canvas/tasks-context'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -36,13 +37,13 @@ import {
 } from '@/modules/gantt/plan'
 import {
   addRows,
+  axisOf,
   FOOTER,
   HEADER,
   HEADER_ROW,
   LABEL_WIDTH,
   makeRow,
   MAX_ROWS,
-  pxPerDay,
   range,
   ROW_HEIGHT,
   rowHeight,
@@ -70,10 +71,13 @@ import {
   fitsRange,
   formatDay,
   header,
+  isWeekend,
   parseDay,
   quarterAfter,
   quarterBefore,
   today,
+  xOf,
+  type Axis,
   type Cell,
   type Span,
   type Scale,
@@ -95,19 +99,29 @@ const SCALES: { scale: Scale; label: string }[] = [
   { scale: 'quarter', label: 'Quarters' },
 ]
 
-function HeaderRow({ cells, pxPerDay, top }: { cells: Cell[]; pxPerDay: number; top: boolean }) {
+/** Header cells in pixels; a cell of hidden weekend days only is left out. */
+function placed(cells: Cell[], axis: Axis) {
+  return cells.flatMap((cell) => {
+    const from = axis.range.start + cell.from
+    const left = xOf(axis, from)
+    const width = xOf(axis, from + cell.span) - left
+    return width > 0 ? [{ ...cell, left, width }] : []
+  })
+}
+
+function HeaderRow({ cells, top }: { cells: ReturnType<typeof placed>; top: boolean }) {
   return (
     <div className={cn('relative', !top && 'border-t')} style={{ height: HEADER_ROW }}>
       {cells.map((cell) => (
         <div
           key={cell.from}
           className={cn(
-            'absolute inset-y-0 truncate border-l px-1.5 leading-6',
-            top ? 'text-foreground font-medium' : 'text-muted-foreground',
+            'absolute inset-y-0 truncate border-l px-1.5 text-center text-[12px] leading-6',
+            top ? 'text-foreground font-semibold' : 'text-muted-foreground',
           )}
-          style={{ left: cell.from * pxPerDay, width: cell.span * pxPerDay }}
+          style={{ left: cell.left, width: cell.width }}
         >
-          {cell.span * pxPerDay >= MIN_LABEL_PX && cell.label}
+          {cell.width >= MIN_LABEL_PX && cell.label}
         </div>
       ))}
     </div>
@@ -128,8 +142,12 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const span = range(content)
   const { start, end } = span
-  const scale = pxPerDay(content, width, planning.enabled)
-  const { top, bottom } = header(start, end, content.scale)
+  const axis = axisOf(content, width, planning)
+  const cells = header(start, end, content.scale, axis.working)
+  const top = placed(cells.top, axis)
+  const bottom = placed(cells.bottom, axis)
+  // Shaded like a weekend, on days the Gantt shows.
+  const daysOff = [...axis.off].filter((day) => day >= start && day <= end && !isWeekend(day))
   const now = today()
   const before = quarterBefore(start)
   const after = quarterAfter(end)
@@ -147,7 +165,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const bars = new Map<string, BarPlace>()
   visible.forEach(({ row }, i) => {
     const rowSpan = barSpan(row)
-    const box = barBox(rowSpan, span, scale)
+    const box = barBox(rowSpan, axis)
     if (!box) return
     // Bars keep to the top of a taller row; the names sit under them.
     const y = lane + i * height + ROW_HEIGHT / 2
@@ -202,7 +220,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   }
 
   return (
-    <div className="flex h-full flex-col text-[12px]">
+    <div className="flex h-full flex-col text-[13px]">
       {planning.enabled && (
         <GanttFilters content={content} planning={planning} onChange={onChange} />
       )}
@@ -276,8 +294,8 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
         )}
         <div data-gantt-body className="relative min-w-0 flex-1">
           <div className="border-b">
-            <HeaderRow cells={top} pxPerDay={scale} top />
-            <HeaderRow cells={bottom} pxPerDay={scale} top={false} />
+            <HeaderRow cells={top} top />
+            <HeaderRow cells={bottom} top={false} />
           </div>
           <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
             {/* Under the week lines, so the Time off lane keeps the grid. */}
@@ -291,26 +309,32 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                   'absolute inset-y-0 border-l border-border/60',
                   cell.weekend && 'bg-muted/60',
                 )}
-                style={{ left: cell.from * scale, width: cell.span * scale }}
+                style={{ left: cell.left, width: cell.width }}
+              />
+            ))}
+            {daysOff.map((day) => (
+              <div
+                key={day}
+                data-gantt-day-off
+                title="Day off"
+                className="bg-muted/60 absolute inset-y-0"
+                style={{ left: xOf(axis, day), width: axis.px }}
               />
             ))}
           </div>
           {/* After the grid: the lane is in the flow above the rows, the grid must not cover it. */}
           {lane > 0 && (
-            <TimeOffLane
-              items={away.items}
-              height={lane}
-              range={span}
-              pxPerDay={scale}
-              people={planning.people}
-            />
+            <TimeOffLane items={away.items} height={lane} axis={axis} people={planning.people} />
           )}
           {now >= start && now <= end && (
             <div
               data-testid="gantt-today"
               title="Today"
               className="bg-primary pointer-events-none absolute bottom-0 z-10 w-px"
-              style={{ left: (now - start + 0.5) * scale, top: HEADER }}
+              style={{
+                left: xOf(axis, now) + (axis.working && isWeekend(now) ? 0 : axis.px / 2),
+                top: HEADER,
+              }}
             />
           )}
           {visible.map(({ row, hasChildren }) => (
@@ -323,8 +347,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
               {planning.enabled && !hasChildren ? (
                 <GanttStages
                   row={row}
-                  range={span}
-                  pxPerDay={scale}
+                  axis={axis}
                   types={planning.types}
                   people={planning.people}
                   assignees={assignees}
@@ -336,8 +359,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                 <GanttBar
                   span={barSpan(row)}
                   summary={hasChildren}
-                  range={span}
-                  pxPerDay={scale}
+                  axis={axis}
                   label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
                   task={taskOf(row)}
                   onSpan={(next) =>
@@ -372,8 +394,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
             <Milestone
               key={milestone.id}
               milestone={milestone}
-              range={span}
-              pxPerDay={scale}
+              axis={axis}
               onChange={(change) => onChange(updateMilestone(content, milestone.id, change))}
               onRemove={() => onChange(removeMilestone(content, milestone.id))}
             />
@@ -552,6 +573,16 @@ export function GanttControls({ content, onChange, side }: ModuleControlsProps<G
               <DropdownMenuRadioItem value="inline">After the stage type</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="below">Under each stage</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={Boolean(content.workingDays)}
+              onCheckedChange={(on) => {
+                const { workingDays: _working, ...rest } = content
+                onChange(on ? { ...content, workingDays: true } : rest)
+              }}
+            >
+              Working days only
+            </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => openSettings('planning')}>
               <Users className="size-4" strokeWidth={1.75} />

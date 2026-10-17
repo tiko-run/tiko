@@ -28,6 +28,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     people: enabled ? people : [],
     fields: enabled ? fields : [],
     views: enabled ? views : [],
+    daysOff: [] as string[],
   }
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const body = init?.body ? JSON.parse(String(init.body)) : {}
@@ -38,6 +39,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
         people: body.enabled ? people : [],
         fields: body.enabled ? fields : [],
         views: body.enabled ? views : [],
+        daysOff: [] as string[],
       }
     }
     if (url === '/api/planning/types') return Response.json({ id: 't9', archived: false, ...body })
@@ -57,6 +59,7 @@ function show(role: 'admin' | 'member', enabled: boolean) {
     if (url.startsWith('/api/planning/fields/'))
       return Response.json({ ...fields.find((f) => url.endsWith(f.id)), ...body })
     if (url.startsWith('/api/planning/views/')) return new Response(null, { status: 204 })
+    if (url === '/api/planning/days-off') return Response.json({ dates: [...body.dates].sort() })
     if (url.startsWith('/api/planning/types/'))
       return Response.json({ ...types.find((t) => url.endsWith(t.id)), ...body })
     return Response.json(state)
@@ -201,6 +204,21 @@ test('a field is added and archived; a standard one stays', async () => {
   expect(screen.queryByRole('button', { name: 'Archive field Priority' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Archive field Quarter' }))
   expect(await screen.findByRole('button', { name: 'Restore field Quarter' })).toBeInTheDocument()
+})
+
+test('a day off is added and removed', async () => {
+  const fetchMock = show('member', true)
+  fireEvent.change(await screen.findByLabelText('New day off'), {
+    target: { value: '2026-11-04' },
+  })
+  fireEvent.click(within(screen.getByRole('group', { name: 'Days off' })).getByText('Add'))
+  expect(await screen.findByText('Wed Nov 4, 2026')).toBeInTheDocument()
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/planning/days-off',
+    expect.objectContaining({ method: 'PUT', body: '{"dates":["2026-11-04"]}' }),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Remove day off 2026-11-04' }))
+  expect(await screen.findByText('None')).toBeInTheDocument()
 })
 
 test('a saved view is deleted for every board', async () => {

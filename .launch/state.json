@@ -93,7 +93,8 @@
     "planning-people",
     "planning-time-off",
     "gantt-fields",
-    "gantt-views"
+    "gantt-views",
+    "gantt-working-days"
   ],
   "gates": {
     "G1_scope": "approved",

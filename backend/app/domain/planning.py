@@ -1,3 +1,4 @@
+import json
 import secrets
 from collections.abc import Callable
 from datetime import date
@@ -15,6 +16,7 @@ from app.domain.ports import (
 )
 
 ENABLED_KEY = "planning_enabled"
+DAYS_OFF_KEY = "planning_days_off"
 
 Hue = Literal[25, 60, 75, 150, 200, 250, 300, 340]
 TypeName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
@@ -27,6 +29,7 @@ Source = Literal["manual", "tracker"]
 MAX_OFF = 100
 MAX_FIELDS = 50
 MAX_VIEWS = 100
+MAX_DAYS_OFF = 400
 # Mirror MAX_FILTERS and MAX_FILTER_VALUES in modules/gantt.py: a view is a Gantt's filters.
 MAX_FILTERS = 20
 MAX_FILTER_VALUES = 20
@@ -91,6 +94,7 @@ class PlanningView(BaseModel):
     people: list[PlanningPerson] = []
     fields: list[PlanningField] = []
     views: list[SavedView] = []
+    daysOff: list[date] = []  # noqa: N815 - mirrors the contract
 
 
 class BoardPlanning(BaseModel):
@@ -99,6 +103,7 @@ class BoardPlanning(BaseModel):
     types: list[StageType]
     people: list[PlanningPerson]
     fields: list[PlanningField]
+    daysOff: list[date] = []  # noqa: N815 - mirrors the contract
 
 
 class PlanningChange(BaseModel):
@@ -171,6 +176,12 @@ class ViewIn(BaseModel):
     filters: Filters
 
 
+class DaysOff(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dates: Annotated[list[date], Field(max_length=MAX_DAYS_OFF)]
+
+
 class Planning:
     """Planning mode: the instance switch and what every Gantt on the instance shares."""
 
@@ -205,10 +216,15 @@ class Planning:
             people=self._people.all(),
             fields=self._fields.all(),
             views=self._views.all(),
+            daysOff=self._days_off(),
         )
 
     def for_board(
-        self, type_ids: set[str], person_ids: set[str], field_ids: set[str]
+        self,
+        type_ids: set[str],
+        person_ids: set[str],
+        field_ids: set[str],
+        ranges: tuple[tuple[date, date], ...] = (),
     ) -> BoardPlanning | None:
         if not self.enabled():
             return None
@@ -216,6 +232,7 @@ class Planning:
             types=[t for t in self._types.all() if t.id in type_ids],
             people=[p for p in self._people.all() if p.id in person_ids],
             fields=[f for f in self._fields.all() if f.id in field_ids],
+            daysOff=[d for d in self._days_off() if any(s <= d <= e for s, e in ranges)],
         )
 
     def set_enabled(self, on: bool) -> PlanningView:
@@ -320,6 +337,17 @@ class Planning:
         if not self._views.remove(view_id):
             raise NotFound("No such view.")
         self._on_change()
+
+    def set_days_off(self, body: DaysOff) -> DaysOff:
+        self._require_enabled()
+        dates = sorted(set(body.dates))
+        self._settings.set_many({DAYS_OFF_KEY: json.dumps([d.isoformat() for d in dates])})
+        self._on_change()
+        return DaysOff(dates=dates)
+
+    def _days_off(self) -> list[date]:
+        stored = self._settings.get_all().get(DAYS_OFF_KEY)
+        return [date.fromisoformat(d) for d in json.loads(stored)] if stored else []
 
     def _check_field_name(self, name: str, own_id: str | None) -> None:
         taken = {f.name.casefold() for f in self._fields.all() if not f.archived and f.id != own_id}
