@@ -87,6 +87,18 @@ description: "Task list for Modules and the Gantt module"
 
 **Checkpoint**: `make check`, `make smoke`, screenshot → G3.
 
+## Phase 4: Slice 15 `feat/module-expand` — expand a module (US5)
+
+**Goal**: a module that needs the whole screen opens over the board.
+
+**Independent Test**: see US5 in [spec.md](spec.md).
+
+- [x] T030 [US5] Host: `expandable` on a module kind, `expanded` in its view props, a zoom hook so pointer math works at 1:1; Expand in the module header and the selection bar; the view over the dimmed board with the module's controls; Backspace off and undo on while it is open
+- [x] T031 [US5] Gantt: a minimum day width per scale when expanded, sticky filters, date header and task column, opens on today; no eject to the board from there. Tests in `rows.test.ts` and `ModuleExpanded.test.tsx`
+- [x] T032 [US5] Guide, `CHANGELOG.md`
+
+**Checkpoint**: `make check`, screenshot → G3.
+
 ## Dependencies
 
 - Slice 12 → 13 → 14, each merged into `main` before the next starts.

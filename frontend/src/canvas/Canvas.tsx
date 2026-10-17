@@ -37,6 +37,7 @@ import { Guides } from '@/canvas/Guides'
 import { gridPositions } from '@/canvas/layout'
 import { absorbCards } from '@/canvas/modules'
 import { moduleControls } from '@/canvas/module-controls'
+import { ModuleExpanded } from '@/canvas/ModuleExpanded'
 import { AnchorNode } from '@/canvas/nodes/AnchorNode'
 import { FrameNode } from '@/canvas/nodes/FrameNode'
 import { TaskCardNode } from '@/canvas/nodes/TaskCardNode'
@@ -62,7 +63,13 @@ import { useLiveBoard, type LiveStatus } from '@/live/useLiveBoard'
 import { toast } from 'sonner'
 import { ERROR_MS } from '@/lib/toast'
 import { readViewport, saveViewport } from '@/live/viewport'
-import type { AppEdge, AppNode, TaskCardNode as TaskCardNodeType, TimerData } from '@/canvas/types'
+import type {
+  AppEdge,
+  AppNode,
+  ModuleNode as ModuleNodeType,
+  TaskCardNode as TaskCardNodeType,
+  TimerData,
+} from '@/canvas/types'
 import { newId } from '@/lib/id'
 import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
@@ -73,11 +80,12 @@ import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canv
 import { resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
 import { barNodes, withStyle, type Kind, type Style } from '@/canvas/selection-props'
+import { ExpandModuleContext } from '@/modules/expanded'
 import { ModuleHostContext } from '@/modules/host-context'
 import { PlanningContext } from '@/planning/context'
 import { findModule } from '@/modules/registry'
 import type { ModuleHost } from '@/modules/types'
-import { useShortcut } from '@/lib/shortcuts'
+import { dialogOverBoard, useShortcut } from '@/lib/shortcuts'
 import { askNotify, primeAudio } from '@/focus/alerts'
 import { BESIDE, dropTimers, holdsTimers, TIMER_SIZE } from '@/timers/attach'
 import { flyTo, useFlashingId } from '@/canvas/fly'
@@ -195,6 +203,7 @@ export function BoardCanvas({
   const [tool, setTool] = useState<Tool>('select')
   const [connecting, setConnecting] = useState(false)
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const refresh = useRefresh(board.id, { background: !guest && waitsForStatus(nodes), guest })
   const tasks = useMemo(
     () => indexTasks(newest([board.tasks, added, refresh.data?.tasks ?? {}]), board.default_source),
@@ -277,8 +286,8 @@ export function BoardCanvas({
     )
   }, [presence, nodes, flow])
   const guides = useGuides(onNodesChange)
-  useShortcut('undo', live.undo, { enabled: !readOnly })
-  useShortcut('redo', live.redo, { enabled: !readOnly })
+  useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
+  useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
 
   // One card goes to the point or cascades from the viewport center; several form a grid there.
   const addCards = useCallback(
@@ -626,10 +635,17 @@ export function BoardCanvas({
   }
 
   const selected = nodes.filter((n) => n.selected)
+  const expandedNode = nodes.find(
+    (n): n is ModuleNodeType => n.id === expandedId && n.type === 'module',
+  )
   const inBar = barNodes(nodes)
   // Hidden while the selection moves or changes size: it would cover the guides and the neighbors.
   const barShown =
-    !readOnly && !placing && inBar.length > 0 && !nodes.some((n) => n.dragging || n.resizing)
+    !readOnly &&
+    !placing &&
+    !expandedNode &&
+    inBar.length > 0 &&
+    !nodes.some((n) => n.dragging || n.resizing)
   const timerHolder = selected.length === 1 && holdsTimers(selected[0]) ? selected[0] : undefined
   const soleSelected = inBar.length === 1 ? inBar[0] : undefined
   const controls =
@@ -639,6 +655,7 @@ export function BoardCanvas({
             soleSelected,
             (content) => flow.updateNodeData(soleSelected.id, { content }),
             side,
+            () => setExpandedId(soleSelected.id),
           )
       : undefined
 
@@ -765,7 +782,8 @@ export function BoardCanvas({
         colorMode={theme}
         proOptions={{ hideAttribution: true }}
         minZoom={0.1}
-        deleteKeyCode={readOnly ? null : ['Backspace', 'Delete']}
+        // An expanded module covers the board: Backspace there must not delete the selection.
+        deleteKeyCode={readOnly || expandedNode ? null : ['Backspace', 'Delete']}
         multiSelectionKeyCode="Shift"
         selectionOnDrag={tool === 'select'}
         panOnDrag={tool === 'hand' ? true : [1]}
@@ -839,22 +857,32 @@ export function BoardCanvas({
           <ReadOnlyContext.Provider value={readOnly}>
             <SelectedByContext.Provider value={live.selections}>
               <ModuleHostContext.Provider value={moduleHost}>
-                {readOnly ? (
-                  surface
-                ) : (
-                  <CanvasContextMenu
-                    target={menuTarget}
-                    onPlace={placeAt}
-                    onAddCards={addCards}
-                    onAddModule={addModule}
-                    onDelete={deleteSelection}
-                    cards={cardCounts}
-                    onCollapse={setCollapsed}
-                    onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                  >
-                    {surface}
-                  </CanvasContextMenu>
-                )}
+                <ExpandModuleContext.Provider value={setExpandedId}>
+                  {readOnly ? (
+                    surface
+                  ) : (
+                    <CanvasContextMenu
+                      target={menuTarget}
+                      onPlace={placeAt}
+                      onAddCards={addCards}
+                      onAddModule={addModule}
+                      onDelete={deleteSelection}
+                      cards={cardCounts}
+                      onCollapse={setCollapsed}
+                      onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                    >
+                      {surface}
+                    </CanvasContextMenu>
+                  )}
+                  {expandedNode && (
+                    <ModuleExpanded
+                      node={expandedNode}
+                      readOnly={readOnly}
+                      onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
+                      onClose={() => setExpandedId(null)}
+                    />
+                  )}
+                </ExpandModuleContext.Provider>
               </ModuleHostContext.Provider>
             </SelectedByContext.Provider>
             {guest ? (

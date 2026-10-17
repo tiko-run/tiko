@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
+
 ### Changed
 
 - The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still only counts, nothing about any one person, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.

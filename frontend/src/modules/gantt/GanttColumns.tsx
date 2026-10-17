@@ -26,6 +26,8 @@ type Props = {
   rowHeight: number
   /** Height of the Time off lane, kept empty here so cells stay level with their rows. */
   lane: number
+  /** Expanded: the header sticks this far from the top while rows scroll. */
+  stickTop?: number
   onChange: (content: GanttContent) => void
   onRow: (row: Row) => void
 }
@@ -37,6 +39,7 @@ export function GanttColumns({
   fields,
   rowHeight,
   lane,
+  stickTop,
   onChange,
   onRow,
 }: Props) {
@@ -44,7 +47,10 @@ export function GanttColumns({
   const nameOf = (id: string) => fields.find((f) => f.id === id)?.name ?? 'Unknown'
   return (
     <div data-gantt-columns className="flex shrink-0 flex-col border-r">
-      <div className="flex shrink-0 border-b" style={{ height: HEADER }}>
+      <div
+        className={cn('flex shrink-0 border-b', stickTop !== undefined && 'bg-card sticky z-20')}
+        style={{ height: HEADER, top: stickTop }}
+      >
         {columns.map((id) => (
           <div
             key={id}

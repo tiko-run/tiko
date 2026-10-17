@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   acceptCard,
   addRows,
+  axisOf,
   bodyHeight,
   HEADER,
   MAX_ROWS,
@@ -56,6 +57,20 @@ describe('rows', () => {
       bodyHeight({ ...base, rows: [row('a')] }, OFF),
     )
     expect(bodyHeight(base, OFF) - bodyHeight({ ...base, rows: [row('a')] }, OFF)).toBe(ROW_HEIGHT)
+  })
+})
+
+describe('expanded axis', () => {
+  it('keeps the width of a day readable and lets the timeline run past the screen', () => {
+    // Weeks: 31 days need at least 14px each, 434px of timeline.
+    const axis = axisOf(base, WIDTH, OFF, true)
+    expect(axis.px).toBe(14)
+    expect(axis.width).toBe(434)
+  })
+
+  it('fills the screen when the range fits on it', () => {
+    expect(axisOf(base, base.labelWidth + 620, OFF, true).px).toBe(20)
+    expect(axisOf(base, WIDTH, OFF).px).toBe(10)
   })
 })
 

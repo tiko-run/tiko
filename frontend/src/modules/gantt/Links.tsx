@@ -1,9 +1,9 @@
-import { useReactFlow } from '@xyflow/react'
 import { X } from 'lucide-react'
 import { useRef, type PointerEvent } from 'react'
 import { linkConflict, linkPath, type Link } from '@/modules/gantt/plan'
 import { HEADER, ROW_HEIGHT } from '@/modules/gantt/rows'
 import type { Span } from '@/modules/gantt/timeline'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 
 /** A visible row's bar in timeline pixels, below the header. */
@@ -116,7 +116,7 @@ export function ConnectHandle({
   onWire: (wire: { from: Point; to: Point } | null) => void
   onDrop: (target: Element | null) => void
 }) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const drag = useRef<{ x: number; y: number; zoom: number } | null>(null)
   const from = { x: bar.right, y: bar.y }
   const point = (event: PointerEvent, start: { x: number; y: number; zoom: number }) => ({

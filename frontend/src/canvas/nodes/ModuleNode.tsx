@@ -1,10 +1,12 @@
 import { NodeResizer, useReactFlow, type NodeProps } from '@xyflow/react'
-import { Puzzle } from 'lucide-react'
+import { Maximize2, Puzzle } from 'lucide-react'
 import { memo, useCallback, useContext, useEffect } from 'react'
 import { MODULE_HEADER as HEADER } from '@/canvas/modules'
 import { EditableText } from '@/canvas/nodes/EditableText'
+import { Button } from '@/components/ui/button'
 import { Handles } from '@/canvas/nodes/Handles'
 import type { ModuleNode as ModuleNodeType } from '@/canvas/types'
+import { ExpandModuleContext } from '@/modules/expanded'
 import { ModuleHostContext } from '@/modules/host-context'
 import { findModule } from '@/modules/registry'
 import { cn } from '@/lib/utils'
@@ -16,6 +18,7 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
   const planning = usePlanning()
   const { updateNodeData, updateNode } = useReactFlow()
   const host = useContext(ModuleHostContext)
+  const expand = useContext(ExpandModuleContext)
   const def = findModule(data.kind)
   const parsed = def?.schema.safeParse(data.content)
   const onChange = useCallback(
@@ -41,6 +44,7 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
           width: width ?? def.size.width,
           height: Math.max((height ?? def.size.height) - HEADER, 0),
           selected: Boolean(selected),
+          expanded: false,
           onChange,
           host,
         }
@@ -74,6 +78,18 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
           singleLine
           className="min-w-0 flex-1 truncate"
         />
+        {view && def?.expandable && expand && (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Expand"
+            title="Expand"
+            className="nodrag text-muted-foreground -mr-1.5"
+            onClick={() => expand(id)}
+          >
+            <Maximize2 strokeWidth={1.75} />
+          </Button>
+        )}
       </div>
       {/* A viewer sees the module but cannot click into it to change it. */}
       <div

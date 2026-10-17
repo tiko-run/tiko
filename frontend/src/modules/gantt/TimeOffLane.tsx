@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useReactFlow } from '@xyflow/react'
 import { Trash2 } from 'lucide-react'
 import { useRef, useState, type PointerEvent } from 'react'
 import { addTimeOff, HUES, removeTimeOff, storePerson, type Person } from '@/api/planning'
@@ -17,6 +16,7 @@ import {
   type Axis,
   type Span,
 } from '@/modules/gantt/timeline'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 
@@ -38,7 +38,7 @@ const HATCH = {
 
 /** Who is away over this Gantt's range; drag across free days to mark someone else away. */
 export function TimeOffLane({ items, height, axis, people }: Props) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const [ghost, setGhost] = useState<Span | null>(null)
   const [asking, setAsking] = useState<Span | null>(null)
   const [open, setOpen] = useState<string | null>(null)

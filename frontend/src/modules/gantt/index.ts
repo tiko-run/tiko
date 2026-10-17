@@ -12,6 +12,7 @@ export const gantt = defineModule({
   size: { width: 960, height: 320 },
   minSize: { width: 480, height: 200 },
   minHeight: bodyHeight,
+  expandable: true,
   defaults: ganttDefaults,
   schema: ganttSchema,
   keys: (content) => content.rows.flatMap((row) => rowTask(row) ?? []),

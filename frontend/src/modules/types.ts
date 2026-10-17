@@ -22,6 +22,8 @@ export type ModuleViewProps<C> = {
   width: number
   height: number
   selected: boolean
+  /** Shown over the dimmed board: width and height are the visible area, the content may scroll. */
+  expanded: boolean
   /** Writes the module's content; goes through undo like any board change. */
   onChange: (next: C) => void
   host: ModuleHost
@@ -42,6 +44,8 @@ export type ModuleDef<C> = {
   minSize: { width: number; height: number }
   /** Body height the content needs; the block grows to it so nothing is hidden. */
   minHeight?: (content: C, planning: PlanningState) => number
+  /** Can open over the dimmed board to be worked on at full size. */
+  expandable?: boolean
   defaults: () => C
   schema: z.ZodType<C>
   /** Live tasks inside the content, refreshed with the board's cards. */

@@ -1,6 +1,6 @@
-import { useReactFlow, type XYPosition } from '@xyflow/react'
+import type { XYPosition } from '@xyflow/react'
 import { CalendarRange, ChevronDown, Diamond, Ellipsis, Plus, Users } from 'lucide-react'
-import { useContext, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { useContext, useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ import { GanttColumns } from '@/modules/gantt/GanttColumns'
 import { GanttFilters } from '@/modules/gantt/GanttFilters'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
 import { GanttStages } from '@/modules/gantt/GanttStages'
-import { activeFilters, shownRows } from '@/modules/gantt/filters'
+import { activeFilters, FILTER_BAR, shownRows } from '@/modules/gantt/filters'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
 import { Milestone } from '@/modules/gantt/Milestone'
 import {
@@ -48,6 +48,7 @@ import {
   ROW_HEIGHT,
   rowHeight,
   rowTask,
+  timelineLeft,
   updateRow,
   type Row,
 } from '@/modules/gantt/rows'
@@ -83,6 +84,7 @@ import {
   type Scale,
 } from '@/modules/gantt/timeline'
 import type { ModuleControlsProps, ModuleViewProps } from '@/modules/types'
+import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { didOnboarding } from '@/onboarding/done'
 import { usePlanning } from '@/planning/context'
@@ -128,7 +130,7 @@ function HeaderRow({ cells, top }: { cells: ReturnType<typeof placed>; top: bool
   )
 }
 
-export function GanttModule({ content, width, selected, onChange: write, host }: Props) {
+export function GanttModule({ content, width, selected, expanded, onChange: write, host }: Props) {
   // Every change passes here, so no tree edit leaves a leaf apart from its stages.
   const onChange = (next: GanttContent) => write(fitLeaves(next))
   const tasks = useContext(TasksContext)
@@ -140,9 +142,14 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   const [fresh, setFresh] = useState<string | null>(null)
   const [picked, setPicked] = useState<string | null>(null)
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
+  const todayLine = useRef<HTMLDivElement>(null)
+  // Expanded, the plan opens on today rather than on the first day of the range.
+  useEffect(() => {
+    if (expanded) todayLine.current?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [expanded])
   const span = range(content)
   const { start, end } = span
-  const axis = axisOf(content, width, planning)
+  const axis = axisOf(content, width, planning, expanded)
   const cells = header(start, end, content.scale, axis.working)
   const top = placed(cells.top, axis)
   const bottom = placed(cells.bottom, axis)
@@ -210,6 +217,9 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
     onChange(addChild(content, parentId, row))
   }
   // Rows dropped among the others: the dragged subtree is left out when counting places.
+  // Expanded, the headers and the title column stay in view while the plan scrolls under them.
+  const stickTop = planning.enabled ? FILTER_BAR : 0
+  const stuck = expanded ? 'bg-card sticky z-20' : undefined
   const drop = (id: string, depth: number, rowsDown: number, levels: number) => {
     const at = visible.findIndex((t) => t.row.id === id)
     const end = subtreeEnd(content.rows, indexOf.get(id)!)
@@ -220,80 +230,97 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
   }
 
   return (
-    <div className="flex h-full flex-col text-[13px]">
+    <div
+      className={cn('flex flex-col text-[13px]', expanded ? 'min-h-full' : 'h-full')}
+      style={expanded ? { width: timelineLeft(content, planning.enabled) + axis.width } : undefined}
+    >
       {planning.enabled && (
-        <GanttFilters content={content} planning={planning} onChange={onChange} />
+        <div
+          className={cn('shrink-0', expanded && 'bg-card sticky top-0 left-0 z-40')}
+          style={expanded ? { width } : undefined}
+        >
+          <GanttFilters content={content} planning={planning} onChange={onChange} />
+        </div>
       )}
       <div className="flex min-h-0 flex-1">
-        <div
-          className="relative flex shrink-0 flex-col border-r"
-          style={{ width: content.labelWidth }}
-        >
-          <ColumnResizer
-            width={content.labelWidth}
-            max={Math.min(LABEL_WIDTH.max, width - LABEL_WIDTH.min)}
-            onWidth={(labelWidth) => onChange({ ...content, labelWidth })}
-          />
+        <div className={cn('flex shrink-0', expanded && 'bg-card sticky left-0 z-30')}>
           <div
-            className="text-muted-foreground flex shrink-0 items-center border-b px-3"
-            style={{ height: HEADER }}
+            className="relative flex shrink-0 flex-col border-r"
+            style={{ width: content.labelWidth }}
           >
-            {formatRange(content.start, content.end)}
-          </div>
-          {lane > 0 && (
+            <ColumnResizer
+              width={content.labelWidth}
+              max={Math.min(LABEL_WIDTH.max, width - LABEL_WIDTH.min)}
+              onWidth={(labelWidth) => onChange({ ...content, labelWidth })}
+            />
             <div
-              className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
-              style={{ height: lane }}
+              className={cn(
+                'text-muted-foreground flex shrink-0 items-center border-b px-3',
+                stuck,
+              )}
+              style={{ height: HEADER, top: stickTop }}
             >
-              Time off
+              {formatRange(content.start, content.end)}
             </div>
-          )}
-          {visible.map(({ row, depth, hasChildren }) => (
-            <GanttLabel
-              key={row.id}
-              row={row}
-              depth={depth}
-              hasChildren={hasChildren}
-              height={height}
-              task={taskOf(row)}
-              url={taskOf(row)?.url}
-              fresh={row.id === fresh}
-              onTitle={(title) => onChange(updateRow(content, row.id, (r) => ({ ...r, title })))}
-              onRemove={() => onChange(liftRemove(content, row.id))}
-              onToggle={() =>
-                onChange(updateRow(content, row.id, (r) => ({ ...r, collapsed: !r.collapsed })))
-              }
-              onIndent={() => onChange(indent(content, row.id))}
-              onOutdent={() => onChange(outdent(content, row.id))}
-              onAddChild={() => addChildRow(row.id)}
-              onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
-              onEject={(screen) => eject(row, screen)}
-            />
-          ))}
-          <div className="mt-auto flex shrink-0 items-center gap-1 px-1" style={{ height: FOOTER }}>
-            <GanttAdd
-              disabled={full}
-              onTasks={addTasks}
-              onPlain={(title) => {
-                didOnboarding('gantt_task')
-                onChange(addRows(content, [makeRow(content, { title })]))
-              }}
-            />
+            {lane > 0 && (
+              <div
+                className="text-muted-foreground bg-muted shrink-0 border-b px-3 leading-8 font-medium"
+                style={{ height: lane }}
+              >
+                Time off
+              </div>
+            )}
+            {visible.map(({ row, depth, hasChildren }) => (
+              <GanttLabel
+                key={row.id}
+                row={row}
+                depth={depth}
+                hasChildren={hasChildren}
+                height={height}
+                task={taskOf(row)}
+                url={taskOf(row)?.url}
+                fresh={row.id === fresh}
+                onTitle={(title) => onChange(updateRow(content, row.id, (r) => ({ ...r, title })))}
+                onRemove={() => onChange(liftRemove(content, row.id))}
+                onToggle={() =>
+                  onChange(updateRow(content, row.id, (r) => ({ ...r, collapsed: !r.collapsed })))
+                }
+                onIndent={() => onChange(indent(content, row.id))}
+                onOutdent={() => onChange(outdent(content, row.id))}
+                onAddChild={() => addChildRow(row.id)}
+                onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
+                onEject={(screen) => eject(row, screen)}
+              />
+            ))}
+            <div
+              className="mt-auto flex shrink-0 items-center gap-1 px-1"
+              style={{ height: FOOTER }}
+            >
+              <GanttAdd
+                disabled={full}
+                onTasks={addTasks}
+                onPlain={(title) => {
+                  didOnboarding('gantt_task')
+                  onChange(addRows(content, [makeRow(content, { title })]))
+                }}
+              />
+            </div>
           </div>
+          {planning.enabled && (
+            <GanttColumns
+              content={content}
+              visible={visible.map(({ row }) => row)}
+              fields={planning.fields}
+              rowHeight={height}
+              lane={lane}
+              stickTop={expanded ? stickTop : undefined}
+              onChange={onChange}
+              onRow={(next) => onChange(updateRow(content, next.id, () => next))}
+            />
+          )}
         </div>
-        {planning.enabled && (
-          <GanttColumns
-            content={content}
-            visible={visible.map(({ row }) => row)}
-            fields={planning.fields}
-            rowHeight={height}
-            lane={lane}
-            onChange={onChange}
-            onRow={(next) => onChange(updateRow(content, next.id, () => next))}
-          />
-        )}
         <div data-gantt-body className="relative min-w-0 flex-1">
-          <div className="border-b">
+          <div className={cn('border-b', stuck)} style={{ top: stickTop }}>
             <HeaderRow cells={top} top />
             <HeaderRow cells={bottom} top={false} />
           </div>
@@ -328,6 +355,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
           )}
           {now >= start && now <= end && (
             <div
+              ref={todayLine}
               data-testid="gantt-today"
               title="Today"
               className="bg-primary pointer-events-none absolute bottom-0 z-10 w-px"
@@ -409,7 +437,7 @@ export function GanttModule({ content, width, selected, onChange: write, host }:
                 : 'Drop cards here, or add a task or a row.'}
             </p>
           )}
-          {selected && (
+          {selected && !expanded && (
             <>
               <QuarterButton
                 side="start"
@@ -439,7 +467,7 @@ function ColumnResizer({
   max: number
   onWidth: (width: number) => void
 }) {
-  const { getZoom } = useReactFlow()
+  const getZoom = useZoom()
   const drag = useRef<{ x: number; width: number; zoom: number } | null>(null)
   const move = (event: PointerEvent) => {
     const start = drag.current
