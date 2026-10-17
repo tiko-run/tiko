@@ -52,8 +52,8 @@ Trackers show work as lists and columns. A plan that spans several projects ends
 tiko puts the same tasks on an infinite canvas and keeps them current. What makes it different:
 
 - **Cards are live.** Each one shows the task's real status, refreshed while the board is open.
-- **Your tracker stays in charge.** tiko reads tasks and never edits them. Each person connects their own token and sees only what their tracker access allows.
-- **It is yours.** Self-hosted, one SQLite file, no tracking.
+- **Your tracker stays in charge.** tiko shows tasks as they are in your tracker. Each person connects their own token and sees only what their tracker access allows.
+- **It is yours.** Self-hosted, one SQLite file, no ads or analytics trackers.
 
 Works with Jira Data Center and Server and with public GitHub issues today. Jira Cloud, Linear, Plane and others are planned: [all trackers](https://docs.tiko.run/trackers/).
 
@@ -189,4 +189,4 @@ Bug reports, ideas and pull requests are welcome, and a new tracker provider is 
 
 [GNU AGPL v3](LICENSE) (`AGPL-3.0-only`) © The tiko Authors. Use, self-host and modify tiko for free, privately or inside a company. If you let people use a changed version over a network, offer them its source under the same license.
 
-The name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md), third-party components are listed in [THIRD_PARTY.md](THIRD_PARTY.md). For other terms, such as embedding tiko in a closed product, email smacktur@gmail.com. Releases up to and including `v2026.10.6` were published under the MIT License and stay available under it.
+The name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md), third-party components are listed in [THIRD_PARTY.md](THIRD_PARTY.md). For other terms, such as embedding tiko in a closed product, email hi@tiko.run. Releases up to and including `v2026.10.6` were published under the MIT License and stay available under it.

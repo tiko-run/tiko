@@ -1,0 +1,22 @@
+---
+// One install command: the shell script, or PowerShell when install.ts sees Windows.
+import { INSTALL_PS1, INSTALL_SH } from '../data/site'
+import Command from './Command.astro'
+---
+
+<div class="install" data-install>
+  <div data-for="sh"><Command text={INSTALL_SH} /></div>
+  <div data-for="ps1" hidden><Command text={INSTALL_PS1} prompt=">" /></div>
+</div>
+
+<style>
+  .install {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+  [hidden] {
+    display: none;
+  }
+</style>

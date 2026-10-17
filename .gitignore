@@ -47,3 +47,6 @@ site/public/og.png
 
 # wrangler cache of the collector Worker
 .wrangler/
+
+# Local Worker secrets for wrangler dev.
+.dev.vars

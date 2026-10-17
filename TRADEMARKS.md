@@ -20,4 +20,4 @@ A fork under a different name is welcome: rename it, replace the logo, and keep 
 
 tiko shows the logos of the task trackers it reads from, such as Jira and GitHub, next to their tasks, only to say where a task comes from. These names and logos belong to their owners. tiko is not affiliated with them or endorsed by them.
 
-Questions and permission requests: open an issue or email smacktur@gmail.com.
+Questions and permission requests: open an issue or email hi@tiko.run.

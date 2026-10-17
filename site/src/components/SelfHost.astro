@@ -2,12 +2,13 @@
 import { DOCS, INSTALL_PS1, INSTALL_SH } from '../data/site'
 import Command from './Command.astro'
 import Icon from './Icon.astro'
+import Waitlist from './Waitlist.astro'
 
 const points = [
   { icon: 'database', title: 'One SQLite file', text: 'Boards, people and settings live in one file on your server, with no database to run.' },
   { icon: 'lock', title: 'Tokens stay on the server', text: 'Tracker tokens are encrypted and never sent back to the browser or written to logs.' },
-  { icon: 'eye', title: 'Read-only by design', text: 'tiko reads tasks and never edits them. Each person sees what their own tracker access allows.' },
-  { icon: 'shield-check', title: 'No tracking', text: 'It talks to your tracker, checks GitHub for releases and sends a few usage counts with no personal data. Each turns off.' },
+  { icon: 'eye', title: 'Your tracker stays in charge', text: 'Cards show tasks as they are in your tracker. Each person uses their own token and sees what their access allows.' },
+  { icon: 'shield-check', title: 'Anonymous counts only', text: 'A daily ping with the version and rough counts, never people or board contents. Error reports are off by default. Each turns off with one setting.', href: 'https://docs.tiko.run/privacy/' },
 ]
 const RAILWAY =
   'https://railway.com/deploy/tiko?referralCode=wFuy8y&utm_medium=integration&utm_source=button&utm_campaign=tiko'
@@ -35,19 +36,18 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
         Or <a class="link" href={`${DOCS}/install/`}>run Docker Compose yourself</a>, deploy on <a class="link" href={RAILWAY}>Railway</a> or <a class="link" href={RENDER}>Render</a>.
       </p>
 
-      <div class="cloud reveal">
-        <Icon name="cloud" size={18} />
-        <p><b>tiko Cloud</b> is tiko hosted by us, with nothing to install and a free plan.</p>
-        <span class="tag">Coming soon</span>
-      </div>
+      <div class="reveal"><Waitlist source="self-host" /></div>
     </div>
 
     <ul class="points reveal">
       {
-        points.map(({ icon, title, text }) => (
+        points.map(({ icon, title, text, href }) => (
           <li>
             <h3><Icon name={icon} size={16} />{title}</h3>
-            <p>{text}</p>
+            <p>
+              {text}{' '}
+              {href && <a class="link" href={href}>What is sent</a>}
+            </p>
           </li>
         ))
       }
@@ -75,7 +75,7 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
   }
   .os {
     margin-top: 0.5rem;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 500;
     color: var(--muted-foreground);
   }
@@ -83,37 +83,6 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
     margin-top: 1.25rem;
     font-size: 0.9375rem;
     color: var(--muted-foreground);
-  }
-  .cloud {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    max-width: 34rem;
-    margin-top: 2rem;
-    padding: 0.875rem 1rem;
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    font-size: 0.9375rem;
-    color: var(--muted-foreground);
-  }
-  .cloud :global(svg) {
-    color: var(--primary);
-  }
-  .cloud b {
-    font-weight: 600;
-    color: var(--foreground);
-  }
-  .tag {
-    margin-left: auto;
-    padding: 0.125rem 0.5rem;
-    border-radius: 3px;
-    background: var(--progress);
-    color: var(--progress-fg);
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    white-space: nowrap;
   }
   .points {
     display: grid;

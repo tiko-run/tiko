@@ -7,9 +7,13 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 
 - Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
+- Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news, and unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
 
 ### Changed
 
+- tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
+- The site, the README and About now say "No ads, no analytics trackers" and "Your tracker stays the source of truth" instead of "No tracking" and "never edits it"; the site links to the list of usage counts tiko sends.
+- Write to tiko at hi@tiko.run, report a vulnerability to security@tiko.run and a Code of Conduct issue to conduct@tiko.run.
 - The Gantt's task column and field columns now sit on a light gray panel, so it is clear where the timeline starts.
 - The **+** at the ends of a Gantt's timeline adds one step of its scale instead of a whole quarter: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 - The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still only counts, nothing about any one person, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.

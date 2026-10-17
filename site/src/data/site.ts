@@ -3,6 +3,11 @@ export const DOCS = 'https://docs.tiko.run'
 export const REPO = 'https://github.com/tiko-run/tiko'
 export const INSTALL_SH = 'curl -fsSL https://tiko.run/install.sh | sh'
 export const INSTALL_PS1 = 'irm https://tiko.run/install.ps1 | iex'
+export const PRIVACY = '/privacy/'
+
+export const WAITLIST_URL = import.meta.env.PUBLIC_WAITLIST_URL || 'https://t.tiko.run/v1/waitlist'
+// Cloudflare's always-pass test key in `astro dev`; the real one only works on tiko.run.
+export const TURNSTILE_SITEKEY = import.meta.env.DEV ? '1x00000000000000000000AA' : '0x4AAAAAAFZdeZlrplRW-RBM'
 
 export const TITLE = 'tiko: open-source canvas with live Jira and GitHub task cards'
 export const DESCRIPTION =
@@ -18,8 +23,8 @@ export const FAQ = [
     a: 'Jira Data Center and Server, and GitHub issues and pull requests. Jira Cloud, Linear and Plane are planned. One board can mix tasks from several trackers.',
   },
   {
-    q: 'Does tiko change my tasks?',
-    a: 'No. tiko only reads tasks and never edits them. Each person connects their own token and sees what their tracker access allows.',
+    q: 'Does tiko replace my tracker?',
+    a: 'No. Your tracker stays the source of truth: tiko shows tasks as they are there and keeps its own layout, notes and plans on the board. Each person connects their own token and sees what their tracker access allows.',
   },
   {
     q: 'How fresh are the statuses?',

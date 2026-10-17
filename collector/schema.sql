@@ -31,3 +31,16 @@ END $$;
 GRANT SELECT, INSERT, DELETE ON events TO collector;
 GRANT USAGE ON SEQUENCE events_id_seq TO collector;
 GRANT INSERT, UPDATE, SELECT ON events_monthly TO collector;
+
+-- The Cloud waitlist: what https://tiko.run/privacy/ lists, nothing more.
+CREATE TABLE IF NOT EXISTS waitlist (
+    email TEXT PRIMARY KEY,
+    signed_up_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    source TEXT NOT NULL,
+    -- True only when the person ticked news and updates; otherwise the launch e-mail only.
+    news BOOLEAN NOT NULL DEFAULT false,
+    consent TEXT NOT NULL,
+    country TEXT
+);
+-- The Worker adds addresses and cannot read them back.
+GRANT INSERT ON waitlist TO collector;

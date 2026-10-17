@@ -27,6 +27,7 @@
   --timer-fired: oklch(0.66 0.19 30);
   --timer-fired-foreground: oklch(0.99 0.01 30);
   --sync-ok: oklch(0.65 0.17 150);
+  --destructive: oklch(0.58 0.2 27);
   --focus-fill: oklch(0.945 0.05 150);
   --focus-fill-2: oklch(0.945 0.06 95);
   --focus-ink: oklch(0.4 0.11 150);
@@ -39,7 +40,7 @@
   --font: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
   --radius: 6px;
-  --page: 70rem;
+  --page: 79rem;
   --gutter: 1.5rem;
 }
 
@@ -58,6 +59,7 @@
     --accent: oklch(0.35 0.035 255);
     --emblem-dot: #5a5f66;
     --sync-ok: oklch(0.72 0.17 150);
+    --destructive: oklch(0.702 0.164 26);
     --focus-fill: oklch(0.38 0.045 150);
     --focus-fill-2: oklch(0.38 0.05 95);
     --focus-ink: oklch(0.9 0.1 150);
@@ -79,6 +81,7 @@
   --accent: oklch(0.35 0.035 255);
   --emblem-dot: #5a5f66;
   --sync-ok: oklch(0.72 0.17 150);
+  --destructive: oklch(0.702 0.164 26);
   --focus-fill: oklch(0.38 0.045 150);
   --focus-fill-2: oklch(0.38 0.05 95);
   --focus-ink: oklch(0.9 0.1 150);
@@ -91,7 +94,9 @@
 *::after {
   box-sizing: border-box;
 }
+/* 17 px at the browser's default size: Plex reads smaller than its size, and rem spacing grows with it. */
 html {
+  font-size: 106.25%;
   scroll-behavior: smooth;
   scroll-padding-top: 5rem;
   -webkit-text-size-adjust: 100%;
@@ -182,7 +187,7 @@ kbd {
 }
 .h2 {
   max-width: 22ch;
-  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  font-size: clamp(1.875rem, 3.8vw, 2.875rem);
   font-weight: 600;
   line-height: 1.12;
   letter-spacing: -0.025em;
@@ -190,8 +195,8 @@ kbd {
 }
 .lead {
   margin-top: 1rem;
-  max-width: 56ch;
-  font-size: 1.0625rem;
+  max-width: 58ch;
+  font-size: 1.125rem;
   color: var(--muted-foreground);
   text-wrap: pretty;
 }
@@ -282,7 +287,7 @@ kbd {
   border-radius: 8px;
   background: var(--card);
   font-family: var(--mono);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 .cmd-prompt {
   color: var(--muted-foreground);
