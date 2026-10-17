@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Plus, X } from 'lucide-react'
+import { Archive, ArchiveRestore, CalendarRange, Plus, X } from 'lucide-react'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { Me } from '@/api/auth'
 import {
@@ -40,6 +40,7 @@ import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import { stageColors } from '@/planning/colors'
 import { Group, SectionHeader } from '@/settings/sections/Section'
+import { Workload } from '@/settings/sections/Workload'
 
 export function Planning({ me }: { me: Me }) {
   const queryClient = useQueryClient()
@@ -74,7 +75,9 @@ export function Planning({ me }: { me: Me }) {
         </p>
       </Group>
       {enabled && planning.data && <StageTypes types={planning.data.types} />}
-      {enabled && planning.data && <People people={planning.data.people} />}
+      {enabled && planning.data && (
+        <People people={planning.data.people} types={planning.data.types} />
+      )}
       {enabled && planning.data && <Fields fields={planning.data.fields} />}
       {enabled && planning.data && <Views views={planning.data.views} />}
       {enabled && planning.data && <DaysOff dates={planning.data.daysOff} />}
@@ -190,8 +193,9 @@ const SOURCES: Record<Person['source'], string> = {
   tracker: 'Tracker assignee',
 }
 
-function People({ people }: { people: Person[] }) {
+function People({ people, types }: { people: Person[]; types: StageType[] }) {
   const queryClient = useQueryClient()
+  const [open, setOpen] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [teams, setTeams] = useState('')
   const replace = (saved: Person) => storePerson(queryClient, saved)
@@ -252,6 +256,16 @@ function People({ people }: { people: Person[] }) {
                 </span>
                 <Button
                   size="icon"
+                  variant={open === p.id ? 'secondary' : 'ghost'}
+                  aria-label={`Workload of ${p.name}`}
+                  aria-expanded={open === p.id}
+                  title="Stages on every board over the next twelve weeks"
+                  onClick={() => setOpen(open === p.id ? null : p.id)}
+                >
+                  <CalendarRange className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
                   variant="ghost"
                   aria-label={`Archive ${p.name}`}
                   title="Archive: stages keep the name, nobody offers it again"
@@ -261,6 +275,7 @@ function People({ people }: { people: Person[] }) {
                 </Button>
               </div>
               <TimeOffList person={p} />
+              {open === p.id && <Workload person={p} types={types} />}
             </li>
           ))}
         </ul>
@@ -447,6 +462,7 @@ function DaysOff({ dates }: { dates: string[] }) {
         PLANNING_KEY,
         (was) => was && { ...was, daysOff: saved.dates },
       )
+      void queryClient.invalidateQueries({ queryKey: ['workload'] })
       setDraft('')
     },
     onError: toastError,
@@ -502,7 +518,11 @@ function TimeOffList({ person }: { person: Person }) {
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState(false)
   const [span, setSpan] = useState({ start: '', end: '' })
-  const replace = (saved: Person) => storePerson(queryClient, saved)
+  const replace = (saved: Person) => {
+    storePerson(queryClient, saved)
+    // An open workload card reads time off from the server.
+    void queryClient.invalidateQueries({ queryKey: ['workload', saved.id] })
+  }
   const add = useMutation({
     mutationFn: () => addTimeOff(person.id, span),
     onSuccess: (saved) => {

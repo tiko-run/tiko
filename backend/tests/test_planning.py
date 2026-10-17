@@ -1,8 +1,14 @@
 """Spec 027: the Planning switch, the stage type library and the people directory."""
 
+import json
+
 from fastapi.testclient import TestClient
 
-from app.adapters.storage.sqlite import Database, SqlitePlanningPeopleRepo
+from app.adapters.storage.sqlite import (
+    Database,
+    SqlitePlanningPeopleRepo,
+    SqlitePlanningStageRepo,
+)
 from app.config import Settings
 from app.domain.planning import PlanningPerson, TimeOff
 from app.main import create_app
@@ -327,3 +333,128 @@ def test_a_member_sets_the_days_off(client: TestClient, monkeypatch) -> None:
     assert ann.put(path, json={"dates": []}).json() == {"dates": []}
     assert client.put(path, json={"dates": ["2026-11-31"]}).status_code == 422
     assert client.put(path, json={"dates": ["2026-11-04"] * 401}).status_code == 422
+
+
+def plan_board(client: TestClient, name: str, rows: list[dict]) -> str:
+    board_id = client.post("/api/boards", json={"name": name}).json()["id"]
+    content = {"start": "2026-10-01", "end": "2026-12-31", "rows": rows}
+    node = {
+        "id": "g",
+        "type": "module",
+        "position": {"x": 0, "y": 0},
+        "data": {"kind": "gantt", "content": content},
+    }
+    doc = {"nodes": [node], "edges": []}
+    version = client.get(f"/api/boards/{board_id}").json()["version"]
+    saved = client.put(f"/api/boards/{board_id}", json={"version": version, "doc": doc})
+    assert saved.is_success, saved.text
+    return board_id
+
+
+def staged(row_id: str, title: str, person: str, start: str, end: str, **extra) -> dict:
+    stage = {"id": f"s-{row_id}", "type": "t1", "start": start, "end": end, "people": [person]}
+    return {"id": row_id, "title": title, "start": start, "end": end, "stages": [stage]} | extra
+
+
+def test_a_workload_counts_stages_across_boards(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ivan = client.post("/api/planning/people", json={"name": "Ivan"}).json()["id"]
+    client.post(
+        f"/api/planning/people/{ivan}/off", json={"start": "2026-11-02", "end": "2026-11-06"}
+    )
+    payments = plan_board(
+        client, "Payments", [staged("r1", "Payment API", ivan, "2026-10-19", "2026-10-30")]
+    )
+    ann = member(client)
+    plan_board(ann, "Design", [staged("r2", "Checkout UI", ivan, "2026-10-26", "2026-11-06")])
+    path = f"/api/planning/people/{ivan}/workload?from=2026-10-14&weeks=4"
+
+    mine = client.get(path).json()
+    assert [w["start"] for w in mine["weeks"]] == [
+        "2026-10-12",
+        "2026-10-19",
+        "2026-10-26",
+        "2026-11-02",
+    ]
+    assert [w["stages"] for w in mine["weeks"]] == [0, 1, 2, 1]
+    assert [w["overlap"] for w in mine["weeks"]] == [False, False, True, False]
+    assert [w["off"] for w in mine["weeks"]] == [False, False, False, True]
+    assert [s["boardName"] for s in mine["stages"]] == ["Payments", "Design"]
+
+    # Ann cannot open the admin's board: that stage keeps only its dates.
+    theirs = ann.get(path).json()["stages"]
+    assert theirs[0] == {
+        "board": None,
+        "boardName": None,
+        "row": None,
+        "type": None,
+        "start": "2026-10-19",
+        "end": "2026-10-30",
+    }
+    assert theirs[1]["row"] == "Checkout UI"
+
+    # Saving the board rewrites its part of the index.
+    board = client.get(f"/api/boards/{payments}").json()
+    board["doc"]["nodes"][0]["data"]["content"]["rows"] = []
+    client.put(
+        f"/api/boards/{payments}",
+        json={"version": board["version"], "doc": board["doc"]},
+    )
+    assert [w["stages"] for w in client.get(path).json()["weeks"]] == [0, 0, 1, 1]
+    client.delete(f"/api/boards/{payments}")
+    assert len(client.get(path).json()["stages"]) == 1
+
+
+def test_a_parent_rows_hidden_stages_do_not_count(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": True})
+    ivan = client.post("/api/planning/people", json={"name": "Ivan"}).json()["id"]
+    plan_board(
+        client,
+        "Plan",
+        [
+            staged("p", "Checkout", ivan, "2026-10-05", "2026-10-09"),
+            staged("c", "Checkout UI", ivan, "2026-10-05", "2026-10-09", parent="p"),
+        ],
+    )
+    weeks = client.get(f"/api/planning/people/{ivan}/workload?from=2026-10-05&weeks=1").json()
+    assert weeks["weeks"][0] == {"start": "2026-10-05", "stages": 1, "overlap": False, "off": False}
+
+
+def test_workload_rules(client: TestClient) -> None:
+    assert client.get("/api/planning/people/p1/workload").status_code == 422
+    client.patch("/api/planning", json={"enabled": True})
+    assert client.get("/api/planning/people/nobody/workload").status_code == 404
+    ivan = client.post("/api/planning/people", json={"name": "Ivan"}).json()["id"]
+    path = f"/api/planning/people/{ivan}/workload"
+    assert len(client.get(path).json()["weeks"]) == 12
+    assert client.get(f"{path}?weeks=27").status_code == 422
+    assert TestClient(client.app).get(path).status_code == 401
+
+
+def test_the_migration_fills_the_index_from_saved_boards() -> None:
+    from pathlib import Path
+
+    db = Database(":memory:")
+    content = {
+        "start": "2026-10-01",
+        "end": "2026-12-31",
+        "rows": [
+            staged("p", "Checkout", "p1", "2026-10-05", "2026-10-09"),
+            staged("c", "", "p1", "2026-10-12", "2026-10-16", parent="p", key="WEB-7"),
+        ],
+    }
+    node = {"id": "g", "type": "module", "position": {"x": 0, "y": 0}}
+    doc = {"nodes": [node | {"data": {"kind": "gantt", "content": content}}], "edges": []}
+    migrations = Path(__file__).resolve().parents[1] / "app/adapters/storage/migrations"
+    script = (migrations / "022_planning_stages.sql").read_text()
+    with db.transaction() as conn:
+        conn.execute(
+            "INSERT INTO boards (id, name, doc, version, created_at, updated_at)"
+            " VALUES ('b1', 'Plan', ?, 1, '', '')",
+            (json.dumps(doc),),
+        )
+        conn.execute(script[script.index("INSERT INTO planning_stages") :])
+    stages = SqlitePlanningStageRepo(db).for_person("p1")
+    assert [(s.board_name, s.row, str(s.start)) for s in stages] == [
+        ("Plan", "WEB-7", "2026-10-12")
+    ]
