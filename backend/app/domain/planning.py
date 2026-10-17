@@ -1,7 +1,7 @@
 import json
 import secrets
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
@@ -10,6 +10,7 @@ from app.domain.errors import NotFound, ValidationFailed
 from app.domain.ports import (
     PlanningFieldRepo,
     PlanningPeopleRepo,
+    PlanningStageRepo,
     PlanningTypeRepo,
     PlanningViewRepo,
     SettingsRepo,
@@ -30,6 +31,7 @@ MAX_OFF = 100
 MAX_FIELDS = 50
 MAX_VIEWS = 100
 MAX_DAYS_OFF = 400
+MAX_WEEKS = 26
 # Mirror MAX_FILTERS and MAX_FILTER_VALUES in modules/gantt.py: a view is a Gantt's filters.
 MAX_FILTERS = 20
 MAX_FILTER_VALUES = 20
@@ -95,6 +97,40 @@ class PlanningView(BaseModel):
     fields: list[PlanningField] = []
     views: list[SavedView] = []
     daysOff: list[date] = []  # noqa: N815 - mirrors the contract
+
+
+class IndexedStage(BaseModel):
+    """A person's stage as the index keeps it: enough to list it without opening the board."""
+
+    board: str
+    board_name: str
+    row: str
+    type: str
+    start: date
+    end: date
+
+
+class WorkloadWeek(BaseModel):
+    start: date
+    stages: int
+    overlap: bool
+    off: bool
+
+
+class WorkloadStage(BaseModel):
+    """A stage on a board the reader cannot open keeps only its dates."""
+
+    board: str | None
+    boardName: str | None  # noqa: N815 - mirrors the contract
+    row: str | None
+    type: str | None
+    start: date
+    end: date
+
+
+class Workload(BaseModel):
+    weeks: list[WorkloadWeek]
+    stages: list[WorkloadStage]
 
 
 class BoardPlanning(BaseModel):
@@ -192,6 +228,7 @@ class Planning:
         people: PlanningPeopleRepo,
         fields: PlanningFieldRepo,
         views: PlanningViewRepo,
+        stages: PlanningStageRepo,
         on_change: Callable[[], None] = lambda: None,
         new_id: Callable[[], str] = lambda: secrets.token_hex(6),
     ) -> None:
@@ -200,6 +237,7 @@ class Planning:
         self._people = people
         self._fields = fields
         self._views = views
+        self._stages = stages
         # Told after every write, so open Gantts reread the lists.
         self._on_change = on_change
         self._new_id = new_id
@@ -344,6 +382,54 @@ class Planning:
         self._settings.set_many({DAYS_OFF_KEY: json.dumps([d.isoformat() for d in dates])})
         self._on_change()
         return DaysOff(dates=dates)
+
+    def workload(
+        self, person_id: str, start: date, weeks: int, can_open: Callable[[str], bool]
+    ) -> Workload:
+        """Weeks from the Monday of `start`: stages per week, overlaps on working days, time off."""
+        self._require_enabled()
+        person = self._person(person_id)
+        first = start - timedelta(days=start.weekday())
+        last = first + timedelta(days=7 * weeks - 1)
+        stages = [
+            s for s in self._stages.for_person(person_id) if s.start <= last and s.end >= first
+        ]
+        days_off = set(self._days_off())
+        away = [(o.start, o.end) for o in person.off]
+        out: list[WorkloadWeek] = []
+        for week in range(weeks):
+            monday = first + timedelta(days=7 * week)
+            sunday = monday + timedelta(days=6)
+            working = [
+                d for d in (monday + timedelta(days=i) for i in range(5)) if d not in days_off
+            ]
+            out.append(
+                WorkloadWeek(
+                    start=monday,
+                    stages=sum(1 for s in stages if s.start <= sunday and s.end >= monday),
+                    overlap=any(
+                        sum(1 for s in stages if s.start <= d <= s.end) > 1 for d in working
+                    ),
+                    off=any(a <= d <= b for d in working for a, b in away),
+                )
+            )
+        opens: dict[str, bool] = {}
+        listed = []
+        for s in stages:
+            if s.board not in opens:
+                opens[s.board] = can_open(s.board)
+            shown = opens[s.board]
+            listed.append(
+                WorkloadStage(
+                    board=s.board if shown else None,
+                    boardName=s.board_name if shown else None,
+                    row=s.row if shown else None,
+                    type=s.type if shown else None,
+                    start=s.start,
+                    end=s.end,
+                )
+            )
+        return Workload(weeks=out, stages=listed)
 
     def _days_off(self) -> list[date]:
         stored = self._settings.get_all().get(DAYS_OFF_KEY)

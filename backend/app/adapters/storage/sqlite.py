@@ -11,13 +11,27 @@ from datetime import datetime
 from pathlib import Path
 
 from app.domain.accounts import Person, PersonRecord, Role
-from app.domain.boards import CARD, LEGACY_CARD, BoardDoc, BoardRecord, BoardRow
+from app.domain.boards import (
+    CARD,
+    LEGACY_CARD,
+    BoardDoc,
+    BoardRecord,
+    BoardRow,
+    planned_stages,
+)
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
 from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
-from app.domain.planning import PlanningField, PlanningPerson, SavedView, StageType, TimeOff
+from app.domain.planning import (
+    IndexedStage,
+    PlanningField,
+    PlanningPerson,
+    SavedView,
+    StageType,
+    TimeOff,
+)
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -173,6 +187,16 @@ class Database:
             return False
 
 
+def _index_stages(conn: sqlite3.Connection, board_id: str, doc: BoardDoc) -> None:
+    # In the transaction that saves the board, so the workload never sees a half-saved plan.
+    conn.execute("DELETE FROM planning_stages WHERE board_id = ?", (board_id,))
+    conn.executemany(
+        'INSERT INTO planning_stages (board_id, person_id, row_title, type, start, "end")'
+        " VALUES (?, ?, ?, ?, ?, ?)",
+        [(board_id, *stage) for stage in planned_stages(doc)],
+    )
+
+
 class SqliteBoardRepo:
     def __init__(self, db: Database) -> None:
         self._db = db
@@ -243,6 +267,7 @@ class SqliteBoardRepo:
             "INSERT INTO board_members (board_id, user_id, role) VALUES (?, ?, 'owner')",
             (board_id, owner_id),
         )
+        _index_stages(conn, board_id, doc)
         # Someone who made a board of their own needs no welcome board later.
         conn.execute(
             "UPDATE users SET welcomed_at = ? WHERE id = ? AND welcomed_at IS NULL",
@@ -295,6 +320,8 @@ class SqliteBoardRepo:
                 " WHERE id = ? RETURNING version",
                 (doc.model_dump_json(exclude_none=True), ydoc, now_iso(), board_id),
             ).fetchone()
+            if row is not None:
+                _index_stages(conn, board_id, doc)
         if row is None:
             raise NotFound("board not found")
         return row["version"]
@@ -320,6 +347,7 @@ class SqliteBoardRepo:
                 if exists is None:
                     raise NotFound("board not found")
                 raise VersionConflict("board was changed elsewhere; reload it")
+            _index_stages(conn, board_id, doc)
         return version + 1
 
     def rename(self, board_id: str, name: str) -> None:
@@ -335,6 +363,7 @@ class SqliteBoardRepo:
         with self._db.transaction() as conn:
             # Foreign keys are off in this SQLite connection, so members go by hand.
             conn.execute("DELETE FROM board_members WHERE board_id = ?", (board_id,))
+            conn.execute("DELETE FROM planning_stages WHERE board_id = ?", (board_id,))
             cursor = conn.execute("DELETE FROM boards WHERE id = ?", (board_id,))
         if cursor.rowcount == 0:
             raise NotFound("board not found")
@@ -552,6 +581,32 @@ class SqlitePlanningFieldRepo:
                 "UPDATE planning_fields SET name = ?, archived = ? WHERE id = ?",
                 (field.name, int(field.archived), field.id),
             )
+
+
+class SqlitePlanningStageRepo:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def for_person(self, person_id: str) -> list[IndexedStage]:
+        # A board deleted without its index rows (a demo board swept away) drops out here.
+        with self._db.read() as conn:
+            rows = conn.execute(
+                'SELECT s.board_id, b.name AS board_name, s.row_title, s.type, s.start, s."end"'
+                " FROM planning_stages s JOIN boards b ON b.id = s.board_id"
+                " WHERE s.person_id = ? ORDER BY s.start",
+                (person_id,),
+            ).fetchall()
+        return [
+            IndexedStage(
+                board=r["board_id"],
+                board_name=r["board_name"],
+                row=r["row_title"],
+                type=r["type"],
+                start=r["start"],
+                end=r["end"],
+            )
+            for r in rows
+        ]
 
 
 class SqlitePlanningViewRepo:

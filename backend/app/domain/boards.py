@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, NamedTuple
 
 from pydantic import (
     AwareDatetime,
@@ -350,6 +350,35 @@ def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
                     types.add(stage["type"])
                     people.update(stage.get("people", []))
     return types, people, fields
+
+
+class PlannedStage(NamedTuple):
+    person: str
+    row: str
+    type: str
+    start: str
+    end: str
+
+
+def planned_stages(doc: BoardDoc) -> list[PlannedStage]:
+    """One entry per person on each drawn stage of the board's Gantts, for the workload index."""
+    out: list[PlannedStage] = []
+    for node in doc.nodes:
+        if not (isinstance(node, ModuleNode) and node.data.kind == "gantt"):
+            continue
+        rows = node.data.content.get("rows", [])
+        # A parent keeps stages from before it had children; they are not drawn.
+        parents = {row.get("parent") for row in rows}
+        for row in rows:
+            if row.get("id") in parents:
+                continue
+            title = row.get("title") or row.get("key") or ""
+            for stage in row.get("stages") or []:
+                for person in stage.get("people", []):
+                    out.append(
+                        PlannedStage(person, title, stage["type"], stage["start"], stage["end"])
+                    )
+    return out
 
 
 def working_ranges(doc: BoardDoc) -> tuple[tuple[date, date], ...]:

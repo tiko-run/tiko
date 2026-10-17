@@ -1,9 +1,19 @@
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
-from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor, is_demo, not_on_demo
+from app.api.deps import (
+    CurrentAdmin,
+    CurrentPerson,
+    NotDemoVisitor,
+    is_demo,
+    members,
+    not_on_demo,
+)
+from app.domain.members import Members
 from app.domain.planning import (
+    MAX_WEEKS,
     DaysOff,
     FieldChange,
     FieldIn,
@@ -20,6 +30,7 @@ from app.domain.planning import (
     TypeChange,
     TypeIn,
     ViewIn,
+    Workload,
 )
 
 router = APIRouter(prefix="/planning", tags=["planning"])
@@ -112,3 +123,20 @@ def set_days_off(body: DaysOff, person: CurrentPerson, service: PlanningDep) -> 
 def remove_view(view_id: str, person: CurrentPerson, service: PlanningDep) -> Response:
     service.remove_view(view_id)
     return Response(status_code=204)
+
+
+@router.get("/people/{person_id}/workload", dependencies=[Depends(not_on_demo)])
+def get_workload(
+    person_id: str,
+    person: CurrentPerson,
+    service: PlanningDep,
+    access: Annotated[Members, Depends(members)],
+    start: Annotated[date | None, Query(alias="from")] = None,
+    weeks: Annotated[int, Query(ge=1, le=MAX_WEEKS)] = 12,
+) -> Workload:
+    return service.workload(
+        person_id,
+        start or date.today(),
+        weeks,
+        lambda board_id: access.role(person, board_id) is not None,
+    )

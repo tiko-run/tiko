@@ -55,7 +55,7 @@ Each answers with the created or changed object; the two time off routes answer 
 }
 ```
 
-A stage on a board the reader cannot open has `board`, `boardName`, `row` and `type` set to `null`. `weeks` is at most 26.
+Weeks run from the Monday of `from` (default today); `weeks` defaults to 12 and is at most 26. `stages` are the ones that overlap those weeks, by start date. A week's `overlap` means two stages on one working day (weekends and the instance's days off do not count); `off` means the person is away on one of its working days. A stage on a board the reader cannot open has `board`, `boardName`, `row` and `type` set to `null`.
 
 ## Public link
 

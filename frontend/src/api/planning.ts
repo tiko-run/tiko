@@ -158,6 +158,29 @@ export function removeTimeOff(personId: string, offId: string) {
   return fetchJson(`/api/planning/people/${path}`, personSchema, { method: 'DELETE' })
 }
 
+const workloadSchema = z.object({
+  weeks: z.array(
+    z.object({ start: z.string(), stages: z.number(), overlap: z.boolean(), off: z.boolean() }),
+  ),
+  // Board, row and type are null for a board the reader cannot open.
+  stages: z.array(
+    z.object({
+      board: z.string().nullable(),
+      boardName: z.string().nullable(),
+      row: z.string().nullable(),
+      type: z.string().nullable(),
+      start: z.string(),
+      end: z.string(),
+    }),
+  ),
+})
+export type Workload = z.infer<typeof workloadSchema>
+
+/** A person's stages on every board over the weeks from the current one. */
+export function getWorkload(personId: string) {
+  return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/workload`, workloadSchema)
+}
+
 export function usePlanningQuery(enabled = true) {
   return useQuery({ queryKey: PLANNING_KEY, queryFn: getPlanning, enabled, staleTime: 60_000 })
 }

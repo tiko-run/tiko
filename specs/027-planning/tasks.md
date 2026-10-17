@@ -64,6 +64,6 @@ Slice `gantt-working-days`.
 
 Slice `planning-workload`.
 
-- [ ] T023 [US7] Backend: `planning_stages` index rewritten on board save, backfilled by the migration; workload endpoint with access rules
-- [ ] T024 [US7] Person card: twelve-week strip, overlap in red, time off hatched, stages with board links, "Busy" for boards without access
-- [ ] T025 [US7] Tests: overlap across boards, hidden details without access, index updated on save; guide, changelog
+- [x] T023 [US7] Backend: `planning_stages` index rewritten on board save, backfilled by the migration; workload endpoint with access rules
+- [x] T024 [US7] Person card: twelve-week strip, overlap in red, time off hatched, stages with board links, "Busy" for boards without access
+- [x] T025 [US7] Tests: overlap across boards, hidden details without access, index updated on save; guide, changelog
