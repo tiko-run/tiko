@@ -12,7 +12,8 @@ services:
       TIKO_WORKERS: ${TIKO_WORKERS:-1}
       # Built from source; the usage stats say so (guide: Usage stats).
       TIKO_DEPLOY: ${TIKO_DEPLOY:-source}
-    ports: ["${TIKO_API_PORT:-8000}:8000"]
+    # Only this machine: past the web container a client could name any address of its own.
+    ports: ["127.0.0.1:${TIKO_API_PORT:-8000}:8000"]
     volumes: ["./data:/app/data"]  # SQLite and other local data survive rebuilds
     # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
     ulimits:

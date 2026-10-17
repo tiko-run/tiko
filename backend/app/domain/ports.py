@@ -155,7 +155,8 @@ class KnownBrowsers(Protocol):
     """Browsers a person signed in from, by the hash of their cookie's token."""
 
     def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
-        """Keeps a browser; forgets those added at `since` or earlier."""
+        """Keeps a browser; forgets those added at `since` or earlier, and all but the person's
+        newest `BROWSERS_PER_PERSON`."""
         ...
 
     def owner(self, token_hash: str, since: float) -> str | None:

@@ -2,6 +2,8 @@ import threading
 from collections import deque
 
 _KEEP_WINDOWS = 1024
+# How many of a person's newest browsers stay known; the table does not grow with sign-ins.
+BROWSERS_PER_PERSON = 10
 
 
 class MemoryBrowsers:
@@ -15,6 +17,9 @@ class MemoryBrowsers:
         with self._lock:
             self._browsers = {k: v for k, v in self._browsers.items() if v[1] > since}
             self._browsers[token_hash] = (user_id, at)
+            theirs = sorted((v[1], k) for k, v in self._browsers.items() if v[0] == user_id)
+            for _, old in theirs[:-BROWSERS_PER_PERSON]:
+                del self._browsers[old]
 
     def owner(self, token_hash: str, since: float) -> str | None:
         with self._lock:

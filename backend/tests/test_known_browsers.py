@@ -16,6 +16,7 @@ from app.domain.accounts import (
     PER_USERNAME_FAILURES,
     Accounts,
 )
+from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.errors import InvalidCredentials, TooManyAttempts
 from app.domain.sessions import Sessions
 from app.main import create_app
@@ -109,6 +110,15 @@ def test_a_browser_is_known_for_a_year(accounts):
             accounts.sign_in("alice", "nope", later + i * 0.01)
     with pytest.raises(TooManyAttempts):
         accounts.sign_in("alice", LONG, later + 1, browser=browser)
+
+
+def test_only_the_newest_browsers_of_a_person_stay_known(accounts):
+    _, first = accounts.sign_in("alice", LONG, NOW)
+    for i in range(BROWSERS_PER_PERSON):
+        accounts.sign_in("alice", LONG, NOW + 1 + i)
+    fail(accounts, PER_USERNAME_FAILURES)
+    with pytest.raises(TooManyAttempts):
+        accounts.sign_in("alice", LONG, NOW + 100, browser=first)
 
 
 def test_wrong_passwords_from_one_address_hold_up_that_address_only(accounts):

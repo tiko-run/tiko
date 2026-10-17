@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.domain.accounts import Person, PersonRecord, Role
+from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import (
     CARD,
     LEGACY_CARD,
@@ -1065,6 +1066,12 @@ class SqliteKnownBrowsers:
             conn.execute(
                 "INSERT INTO known_browsers (token_hash, user_id, created_at) VALUES (?, ?, ?)",
                 (token_hash, user_id, at),
+            )
+            conn.execute(
+                "DELETE FROM known_browsers WHERE user_id = ? AND token_hash NOT IN"
+                " (SELECT token_hash FROM known_browsers WHERE user_id = ?"
+                " ORDER BY created_at DESC LIMIT ?)",
+                (user_id, user_id, BROWSERS_PER_PERSON),
             )
 
     def owner(self, token_hash: str, since: float) -> str | None:
