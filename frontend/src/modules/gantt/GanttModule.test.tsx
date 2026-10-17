@@ -556,6 +556,9 @@ test('a second click on a stage closes its popover', async () => {
   press(bar, 500)
   await tick()
   expect(screen.getByLabelText('Add a person')).toBeTruthy()
+  press(bar, 500)
+  await tick()
+  expect(screen.queryByLabelText('Add a person')).toBeNull()
 })
 
 test('an assignee of a task in this Gantt is added from the tracker when picked', async () => {
