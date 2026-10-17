@@ -44,7 +44,7 @@ const FIELDS = {
 }
 
 // Fields a schema 1 sender does not have; they are stored as null.
-const SINCE_2 = ['fresh', 'boards_active', 'os']
+const SINCE_2 = { install: ['fresh'], ping: ['boards_active', 'os'] }
 
 /** The event to store, or null when it is not one of ours. */
 export function clean(body) {
@@ -53,7 +53,7 @@ export function clean(body) {
   if (!fields) return null
   const payload = {}
   for (const [name, valid] of Object.entries(fields)) {
-    if (body.schema === 1 && SINCE_2.includes(name)) {
+    if (body.schema === 1 && SINCE_2[body.kind].includes(name)) {
       payload[name] = null
       continue
     }

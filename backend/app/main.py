@@ -148,13 +148,14 @@ def _host_os(settings: Settings) -> HostOs | None:
 async def ping_daily(privacy: Privacy, sleep=asyncio.sleep, clock=time.time) -> None:
     await sleep(usage.FIRST_PING_S)
     while True:
-        left = await anyio.to_thread.run_sync(privacy.ping_due_in, clock())
-        if left <= 0:
-            try:
+        try:
+            left = await anyio.to_thread.run_sync(privacy.ping_due_in, clock())
+            if left <= 0:
                 await anyio.to_thread.run_sync(privacy.send_ping, clock())
-            except Exception:
-                # Usage stats never make noise in the log of the instance they describe.
-                log.debug("usage ping failed", exc_info=True)
+                left = usage.PING_EVERY_S
+        except Exception:
+            # Usage stats never make noise in the log of the instance they describe.
+            log.debug("usage ping failed", exc_info=True)
             left = usage.PING_EVERY_S
         await sleep(left + random.uniform(0, usage.PING_JITTER_S))
 

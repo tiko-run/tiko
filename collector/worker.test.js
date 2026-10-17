@@ -61,6 +61,7 @@ test('an install without failed_step stores null', () => {
   assert.equal(clean({ ...install, failed_step: 'pull' }).payload.failed_step, 'pull')
   assert.equal(clean({ ...install, failed_step: 'Error: disk full at /home/ann' }), null)
   assert.equal(clean(install).payload.fresh, null)
+  assert.equal(clean(install).payload.os, 'darwin')
   assert.equal(clean({ ...install, schema: 2, fresh: false }).payload.fresh, false)
   assert.equal(clean({ ...install, schema: 2 }), null)
 })
