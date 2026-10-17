@@ -4,7 +4,7 @@ from typing import Literal, Self
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.domain.usage import Deploy
+from app.domain.usage import Deploy, HostOs
 
 # The updater of compose.release.yml expects the database here, inside ./data.
 DEFAULT_DB_PATH = "data/app.db"
@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     tiko_usage_stats: bool | None = None
     # How tiko runs, set by the installer and the templates; empty: found from the platform.
     tiko_deploy: Deploy | None = None
+    # The system the installer ran on; inside a container tiko itself sees only Linux.
+    tiko_host_os: HostOs | None = None
     tiko_stats_url: str = "https://t.tiko.run/v1/events"
     # Error reports, off unless this or an admin in Settings → Privacy turns them on; set, it
     # wins and locks the switch.

@@ -344,6 +344,10 @@ class UsageCounts(Protocol):
 
     def boards(self) -> int: ...
 
+    def boards_active(self, since: str) -> int:
+        """Boards changed by someone after `since`; a board as it was made does not count."""
+        ...
+
     def sources(self) -> set[str]:
         """Trackers the cards on this instance were read from."""
         ...

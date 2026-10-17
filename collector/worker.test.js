@@ -4,7 +4,7 @@ import { clean } from './worker.js'
 
 const ping = {
   kind: 'ping',
-  schema: 1,
+  schema: 2,
   instance_id: '0b6f1c7e-3f4a-4c55-9b1e-6d2a8f0e9c41',
   version: '2026.10.20',
   deploy: 'installer',
@@ -12,12 +12,22 @@ const ping = {
   trackers: ['github', 'jira_dc'],
   people: '2-5',
   boards: '6-20',
+  boards_active: '2-5',
+  os: 'linux',
   updater: true,
 }
 
 test('keeps a documented ping as it is', () => {
   const { kind, schema, ...fields } = ping
   assert.deepEqual(clean(ping), { kind, schema, payload: fields })
+})
+
+test('a schema 1 ping stores the newer fields as null', () => {
+  const { boards_active, os, ...old } = ping
+  const event = clean({ ...old, schema: 1, os: 'linux' })
+  assert.equal(event.schema, 1)
+  assert.equal(event.payload.boards_active, null)
+  assert.equal(event.payload.os, null)
 })
 
 test('drops fields it does not know', () => {
@@ -30,7 +40,9 @@ test('refuses values outside the documented ones', () => {
   assert.equal(clean({ ...ping, people: '7' }), null)
   assert.equal(clean({ ...ping, trackers: ['https://jira.example.com'] }), null)
   assert.equal(clean({ ...ping, version: 'my-fork' }), null)
-  assert.equal(clean({ ...ping, schema: 2 }), null)
+  assert.equal(clean({ ...ping, schema: 3 }), null)
+  assert.equal(clean({ ...ping, os: 'freebsd' }), null)
+  assert.equal(clean({ ...ping, boards_active: undefined }), null)
   assert.equal(clean({ ...ping, kind: 'click' }), null)
   assert.equal(clean({ ...ping, people: undefined }), null)
 })
@@ -48,4 +60,8 @@ test('an install without failed_step stores null', () => {
   assert.equal(clean(install).payload.failed_step, null)
   assert.equal(clean({ ...install, failed_step: 'pull' }).payload.failed_step, 'pull')
   assert.equal(clean({ ...install, failed_step: 'Error: disk full at /home/ann' }), null)
+  assert.equal(clean(install).payload.fresh, null)
+  assert.equal(clean(install).payload.os, 'darwin')
+  assert.equal(clean({ ...install, schema: 2, fresh: false }).payload.fresh, false)
+  assert.equal(clean({ ...install, schema: 2 }), null)
 })

@@ -44,6 +44,8 @@ $Dir = [IO.Path]::GetFullPath($Dir).TrimEnd('\')
 # Turned off once, the install stays quiet on every upgrade; read before the notice.
 $OldEnv = Join-Path $Dir '.env'
 if ((Test-Path $OldEnv) -and (Select-String -Path $OldEnv -Pattern '^TIKO_USAGE_STATS=false' -Quiet)) { $Stats = $false }
+# Tells a new install from a retry or a reinstall in the usage stats.
+$Fresh = -not (Test-Path $OldEnv)
 $Upgrade = $false
 $NeedsRestart = $false
 $FreshDocker = $false
@@ -259,6 +261,8 @@ function Initialize-Folder {
     Write-EnvLine $envFile 'TIKO_PORT' "$Port"
   }
   Write-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
+  # Inside its container tiko sees Linux; the usage stats need the system it was installed on.
+  Write-EnvLine $envFile 'TIKO_HOST_OS' 'windows'
   if (-not $Stats) { Write-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
   Initialize-Updater $envFile
 
@@ -346,10 +350,11 @@ function Send-InstallEvent([string]$FailedStep) {
   }
   $cpu = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
   $body = [ordered]@{
-    kind = 'install'; schema = 1; version = $installed; os = 'windows'
+    kind = 'install'; schema = 2; version = $installed; os = 'windows'
     arch = $(if ($cpu -eq 'ARM64') { 'arm64' } elseif ($cpu -eq 'AMD64') { 'amd64' } else { 'other' })
     installer = 'ps1'
     updater = ($Updater -eq 'yes') -or ((Test-Path $OldEnv) -and (Select-String -Path $OldEnv -Pattern '^COMPOSE_PROFILES=.*updater' -Quiet))
+    fresh = $Fresh
     failed_step = $(if ($FailedStep) { $FailedStep } else { $null })
   } | ConvertTo-Json -Compress
   try {

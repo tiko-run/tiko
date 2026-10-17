@@ -31,3 +31,13 @@ Slice `error-reports`.
 - [x] T012 [US2] Settings → Privacy: error reports toggle, locked by `TIKO_ERROR_REPORTS`
 - [x] T013 [US2] Tests: scrubbing with a fake transport, nothing sent when off, sent after turning on without a restart
 - [x] T014 [US2] Guide page section on error reports, `THIRD_PARTY.md`, `make licenses`, changelog
+
+## Phase 3: User Story 4 - Tell used instances from running ones (P2)
+
+Slice `usage-stats-v2`.
+
+- [x] T015 [US4] API: last ping time in settings, no ping before 24 hours have passed; `make dev-api` with `TIKO_USAGE_STATS=false`
+- [x] T016 [US4] Ping schema 2: `boards_active` (changed in 7 days, the welcome board as made does not count) and `os`
+- [x] T017 [US4] Install event schema 2: `fresh` in `install.sh` and `install.ps1`
+- [x] T018 [US4] Collector: schema 1 and 2, missing new fields stored as `null`; tests; deploy
+- [x] T019 [US4] Guide page, contract, changelog

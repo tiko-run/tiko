@@ -6,7 +6,7 @@ import { Privacy } from '@/settings/sections/Privacy'
 afterEach(() => vi.unstubAllGlobals())
 
 const base = { error_reports: false, error_reports_available: true }
-const ping = { kind: 'ping', schema: 1, version: '2026.10.20', people: '2-5' }
+const ping = { kind: 'ping', schema: 2, version: '2026.10.20', people: '2-5' }
 
 function show(privacy: Record<string, unknown>) {
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {

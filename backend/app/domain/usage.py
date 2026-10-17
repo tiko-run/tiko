@@ -1,5 +1,7 @@
 import logging
+import time
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
@@ -9,14 +11,16 @@ from app.domain.ports import SettingsRepo, StatsSender, UsageCounts
 
 log = logging.getLogger(__name__)
 
-SCHEMA = 1
+SCHEMA = 2
 FIRST_PING_S = 600
 PING_EVERY_S = 86400
 PING_JITTER_S = 3600
+ACTIVE_DAYS = 7
 
 Bucket = Literal["0", "1", "2-5", "6-20", "21-100", "100+"]
 Tracker = Literal["demo", "jira_dc", "github"]
 Deploy = Literal["installer", "compose", "railway", "render", "source", "demo"]
+HostOs = Literal["linux", "darwin", "windows", "other"]
 
 # Snapshot sources as stored, named as the guide lists them.
 _TRACKERS: dict[str, Tracker] = {"demo": "demo", "jira": "jira_dc", "github": "github"}
@@ -45,6 +49,8 @@ class Ping(BaseModel):
     trackers: list[Tracker]
     people: Bucket
     boards: Bucket
+    boards_active: Bucket
+    os: HostOs | None
     updater: bool
 
     def body(self) -> dict:
@@ -91,6 +97,7 @@ class Privacy:
         deploy: Deploy,
         arch: str,
         updater: bool,
+        os: HostOs | None = None,
         usage_env: bool | None = None,
         errors_env: bool | None = None,
         errors_dsn: str = "",
@@ -101,6 +108,7 @@ class Privacy:
         self._version = version
         self._deploy = deploy
         self._arch = arch
+        self._os = os
         self._updater = updater
         self._env: dict[Switch, bool | None] = {
             "usage_stats": usage_env,
@@ -132,6 +140,7 @@ class Privacy:
         return self._errors_available and self._on("error_reports", default=False)
 
     def ping(self) -> Ping:
+        since = datetime.now(UTC) - timedelta(days=ACTIVE_DAYS)
         trackers = sorted({_TRACKERS[s] for s in self._counts.sources() if s in _TRACKERS})
         return Ping(
             instance_id=self.instance_id(),
@@ -141,10 +150,17 @@ class Privacy:
             trackers=trackers,
             people=bucket(self._counts.people()),
             boards=bucket(self._counts.boards()),
+            boards_active=bucket(self._counts.boards_active(since.isoformat(timespec="seconds"))),
+            os=self._os,
             updater=self._updater,
         )
 
-    def send_ping(self) -> bool:
+    def ping_due_in(self, now: float) -> float:
+        """Seconds until the next ping; kept in the database, so a restart does not send one."""
+        last = self._repo.get_all().get("last_ping_at")
+        return 0.0 if last is None else float(last) + PING_EVERY_S - now
+
+    def send_ping(self, now: float | None = None) -> bool:
         if not self.enabled():
             return False
         try:
@@ -153,6 +169,7 @@ class Privacy:
             # Nobody should notice the collector being down.
             log.debug("usage ping not sent", exc_info=True)
             return False
+        self._repo.set_many({"last_ping_at": str(time.time() if now is None else now)})
         return True
 
     def view(self) -> PrivacyView:

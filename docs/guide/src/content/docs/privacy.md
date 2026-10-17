@@ -22,12 +22,13 @@ The installer sends one event at the end, or when a step fails.
 ```json
 {
   "kind": "install",
-  "schema": 1,
+  "schema": 2,
   "version": "2026.10.20",
   "os": "linux",
   "arch": "amd64",
   "installer": "sh",
   "updater": true,
+  "fresh": true,
   "failed_step": null
 }
 ```
@@ -41,16 +42,17 @@ The installer sends one event at the end, or when a step fails.
 | `arch` | processor type: `amd64`, `arm64` or `other` |
 | `installer` | `sh` or `ps1` |
 | `updater` | whether one-click updates were turned on |
+| `fresh` | `true` when the folder had no tiko install before, `false` for a retry or a reinstall |
 | `failed_step` | empty, or the step that failed: `docker-check`, `download`, `pull`, `start`, `health`; never the error text |
 
 ### Once a day
 
-A running instance sends one ping 10 minutes after it starts and then once a day.
+A running instance sends one ping 10 minutes after it starts and then once a day. The time of the last ping is kept in the database, so a restart within a day sends nothing extra.
 
 ```json
 {
   "kind": "ping",
-  "schema": 1,
+  "schema": 2,
   "instance_id": "0b6f1c7e-3f4a-4c55-9b1e-6d2a8f0e9c41",
   "version": "2026.10.20",
   "deploy": "installer",
@@ -58,6 +60,8 @@ A running instance sends one ping 10 minutes after it starts and then once a day
   "trackers": ["github", "jira_dc"],
   "people": "2-5",
   "boards": "6-20",
+  "boards_active": "2-5",
+  "os": "linux",
   "updater": true
 }
 ```
@@ -73,6 +77,8 @@ A running instance sends one ping 10 minutes after it starts and then once a day
 | `trackers` | kinds of trackers the cards come from: `demo`, `jira_dc`, `github`. No addresses |
 | `people` | active accounts as a range: `1`, `2-5`, `6-20`, `21-100`, `100+` |
 | `boards` | boards as a range, the same ranges plus `0` |
+| `boards_active` | boards someone changed in the last 7 days, the same ranges. It tells an instance in use from one that only runs; it comes from the time a board last changed, not from sign-ins |
+| `os` | the system tiko was installed on: `linux`, `darwin`, `windows` or `other`; empty when tiko runs in a container set up by hand, where the host is unknown |
 | `updater` | whether one-click updates are on |
 
 An admin sees the exact next ping in Settings → Privacy → Show what is sent.
@@ -90,7 +96,7 @@ The collector runs on Cloudflare, which sees the IP address of the request as an
 
 Events go to `https://t.tiko.run/v1/events`, a small Cloudflare Worker whose code is in [`collector/`](https://github.com/tiko-run/tiko/tree/main/collector). It keeps only the fields above and adds the time it got them and the country. The rows sit in a Postgres database in the EU (Frankfurt), and only the tiko maintainers read them. We delete single rows after 13 months and keep monthly totals per field value and country.
 
-A new field means a new `schema`, a line in the changelog and an update of this page.
+A new field means a new `schema`, a line in the changelog and an update of this page. Schema 2 added `boards_active`, `os` and `fresh`. None of them is about a person, and the install event and the ping share no id, so an install cannot be tied to the instance it became.
 
 ## Turn it off
 

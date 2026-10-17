@@ -51,6 +51,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TIKO_DIR: /tmp/tiko-install
+      # CI installs are not installs: they stay out of the usage stats.
+      TIKO_USAGE_STATS: "false"
       TIKO_COMPOSE_URL: file://${{ github.workspace }}/compose.release.yml
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

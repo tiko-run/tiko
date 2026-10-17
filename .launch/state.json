@@ -95,7 +95,8 @@
     "gantt-fields",
     "gantt-views",
     "gantt-working-days",
-    "planning-workload"
+    "planning-workload",
+    "usage-stats-v2"
   ],
   "gates": {
     "G1_scope": "approved",
@@ -207,7 +208,8 @@
     "G3_planning-people": "approved",
     "G3_planning-time-off": "approved",
     "G3_gantt-fields": "approved",
-    "G3_gantt-views": "approved"
+    "G3_gantt-views": "approved",
+    "G3_usage-stats-v2": "approved"
   },
   "notes": [
     "2026-10-05 legal: self-hosted, no data collected by the project; MIT, make licenses green, README Privacy section. Privacy Policy and Terms only for a public demo.",

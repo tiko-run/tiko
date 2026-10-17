@@ -30,6 +30,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_ERROR_REPORTS` | Error reports, see [Error reports](../privacy/#error-reports). `true` turns them on, `false` off; either locks the switch in Settings → Privacy | unset (off) |
 | `TIKO_ERROR_REPORTS_DSN` | Where error reports go: your own Sentry DSN instead of ours. `TIKO_ERROR_REPORTS=false` keeps the Sentry client from starting at all | the tiko project's Sentry (EU) |
 | `TIKO_DEPLOY` | How tiko runs, reported in the usage stats; the installer sets `installer`, Railway and Render are found on their own | unset (`compose`) |
+| `TIKO_HOST_OS` | The system tiko was installed on, reported in the usage stats: `linux`, `darwin`, `windows` or `other`. The installer sets it, since inside a container tiko sees only Linux | unset |
 | `TIKO_PORT` | Port on your machine that Docker Compose gives the web UI | `3000` |
 | `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`. The release compose file does not publish the API | `8000` |
 

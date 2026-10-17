@@ -76,6 +76,18 @@ The README, the site and About say "no telemetry". tiko does not track people an
 
 12. **Rule.** The project constitution records it: usage stats carry no personal data, are on by default, documented and off with one setting; error reports are off by default.
 
+13. **Schema 2: activity and honest counts** (approved by the owner on 2026-10-17). The first days of data showed four gaps: a running instance looked used even when nobody opened it, installs could not be compared with running instances per OS, a retried install counted as a new one, and every restart sent a ping, so `make dev-api` with its reload filled the table with the owner's own machine. Schema 2 closes them without a single field about people and without a key that ties an install to an instance:
+
+   | Change | Where | Why |
+   |---|---|---|
+   | `boards_active`: boards changed in the last 7 days, same buckets as `boards` | ping | tells a used instance from one that only runs; read from the time a board last changed, no sign-ins or sessions |
+   | `os`: `linux`, `darwin`, `windows`, `other` | ping | compares installs with running instances per OS, by totals per day, not by a shared id |
+   | `fresh`: no earlier tiko install in the folder | install | tells a new install from a retry or a reinstall |
+   | the time of the last ping is kept in the database; a ping goes only when 24 hours have passed | API | a restart no longer sends a ping |
+   | `make dev-api` runs with `TIKO_USAGE_STATS=false` | Makefile | our own development does not count |
+
+   The collector takes schema 1 and 2; fields a schema 1 sender does not know are stored as `null`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Count installs and running instances (Priority: P1) 🎯
@@ -118,6 +130,18 @@ A person reads "No tracking" on the site, follows the link and in two minutes kn
 1. **Given** `rg -i "no telemetry"` over `README.md`, `site/`, `frontend/src` and `docs/guide`, **Then** it finds nothing.
 2. **Given** a new field in the ping, **Then** the guide test fails until the page lists it.
 3. **Given** Settings → Privacy, **When** an admin opens "Show what is sent", **Then** they see the JSON of the next ping.
+
+### User Story 4 - Tell used instances from running ones (Priority: P2)
+
+The owner sees 310 instances pinged in the last 7 days, 180 of them with `boards_active` above `0`, and 140 installs on Linux last week, 120 of them `fresh`, against 95 new Linux instances.
+
+**Independent Test**: a board changed today and one untouched since its creation give `boards_active: "1"`; two restarts within a day send one ping; the collector stores a schema 1 ping with `os: null` and a schema 2 ping with all fields.
+
+**Acceptance Scenarios**:
+
+1. **Given** a fresh instance with only the welcome board, **Then** `boards_active` is `0`.
+2. **Given** a ping sent an hour ago, **When** the API restarts, **Then** no ping goes until 24 hours after the last one.
+3. **Given** `install.sh` run twice into the same folder, **Then** the first event has `fresh: true` and the second `fresh: false`.
 
 ## Requirements *(mandatory)*
 
