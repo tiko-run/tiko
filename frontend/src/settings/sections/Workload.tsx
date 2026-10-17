@@ -55,7 +55,7 @@ export function Workload({ person, types }: { person: Person; types: StageType[]
                 week.stages === 0 && 'text-muted-foreground',
                 week.overlap && 'border-destructive bg-destructive/10 text-destructive',
               )}
-              style={week.off && !week.overlap ? HATCH : undefined}
+              style={week.off ? HATCH : undefined}
             >
               {week.stages}
             </span>

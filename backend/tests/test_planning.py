@@ -445,7 +445,8 @@ def test_the_migration_fills_the_index_from_saved_boards() -> None:
     }
     node = {"id": "g", "type": "module", "position": {"x": 0, "y": 0}}
     doc = {"nodes": [node | {"data": {"kind": "gantt", "content": content}}], "edges": []}
-    script = Path("app/adapters/storage/migrations/022_planning_stages.sql").read_text()
+    migrations = Path(__file__).resolve().parents[1] / "app/adapters/storage/migrations"
+    script = (migrations / "022_planning_stages.sql").read_text()
     with db.transaction() as conn:
         conn.execute(
             "INSERT INTO boards (id, name, doc, version, created_at, updated_at)"

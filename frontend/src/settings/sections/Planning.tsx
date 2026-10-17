@@ -462,6 +462,7 @@ function DaysOff({ dates }: { dates: string[] }) {
         PLANNING_KEY,
         (was) => was && { ...was, daysOff: saved.dates },
       )
+      void queryClient.invalidateQueries({ queryKey: ['workload'] })
       setDraft('')
     },
     onError: toastError,
@@ -517,7 +518,11 @@ function TimeOffList({ person }: { person: Person }) {
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState(false)
   const [span, setSpan] = useState({ start: '', end: '' })
-  const replace = (saved: Person) => storePerson(queryClient, saved)
+  const replace = (saved: Person) => {
+    storePerson(queryClient, saved)
+    // An open workload card reads time off from the server.
+    void queryClient.invalidateQueries({ queryKey: ['workload', saved.id] })
+  }
   const add = useMutation({
     mutationFn: () => addTimeOff(person.id, span),
     onSuccess: (saved) => {
