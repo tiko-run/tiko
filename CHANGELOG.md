@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.22] - 2026-10-17
+
 ### Added
 
 - Planning mode for the Gantt, off by default: an admin turns it on in Settings → Planning, and rows can then be cut into stages such as Discovery, Build or On hold. Stage types are shared by every board.
