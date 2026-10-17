@@ -63,37 +63,37 @@ Works with Jira Data Center and Server and with public GitHub issues today. Jira
 
 Add cards by key, link or query, or paste links straight from your tracker tabs. [Adding tasks →](https://docs.tiko.run/adding-tasks/)
 
-<!-- demo: GIF or screencast of adding cards -->
+[![A task card added by its key, more cards from a query, and a status that updates from the tracker](https://media.tiko.run/readme/readme-add.webp)](https://media.tiko.run/readme/readme-add.mp4)
 
 ### Arrange them the way you think
 
 Frames, sticky notes, text and arrows around the cards, with smart guides that snap things into place. [The board →](https://docs.tiko.run/adding-tasks/#around-the-cards)
 
-<!-- demo: GIF or screencast of frames, notes and arrows -->
+[![A smart guide lines up a card, a frame groups two cards, and an arrow joins a sticky note to a card](https://media.tiko.run/readme/readme-arrange.webp)](https://media.tiko.run/readme/readme-arrange.mp4)
 
 ### Plan on a timeline
 
 Drop cards onto a Gantt to get bars with live status, stages, milestones and dependency lines. [Gantt →](https://docs.tiko.run/gantt/)
 
-<!-- demo: GIF or screencast of the Gantt module -->
+[![A card dropped onto a Gantt becomes a bar with stages, and a dependency line joins two bars](https://media.tiko.run/readme/readme-gantt.webp)](https://media.tiko.run/readme/readme-gantt.mp4)
 
 ### Wait without watching
 
 Put a timer next to a card. It goes off after a set time or when the task leaves its status. A focus timer with music sits at the top of the screen. [Timers and focus →](https://docs.tiko.run/focus-and-timers/)
 
-<!-- demo: GIF or screencast of timers -->
+[![A timer on a card goes off when the task leaves its status, then the focus timer starts](https://media.tiko.run/readme/readme-timers.webp)](https://media.tiko.run/readme/readme-timers.mp4)
 
 ### Find anything from the keyboard
 
 `⌘K` searches the board and runs commands, and every tool has a shortcut. [Search →](https://docs.tiko.run/search/) · [Shortcuts →](https://docs.tiko.run/keyboard-shortcuts/)
 
-<!-- demo: GIF or screencast of the palette -->
+[![The command palette filters cards by assignee, jumps to one, and switches the theme](https://media.tiko.run/readme/readme-palette.webp)](https://media.tiko.run/readme/readme-palette.mp4)
 
 ### Work on a board together
 
 Invite people with a link and give each board viewers and editors. Everyone on a board sees each other's changes as they happen. [Working together →](https://docs.tiko.run/working-together/) · [Sharing →](https://docs.tiko.run/security/#sharing-boards)
 
-<!-- demo: GIF or screencast of two people on one board -->
+[![A second person's cursor, card drag and sticky note appear live on the board](https://media.tiko.run/readme/readme-together.webp)](https://media.tiko.run/readme/readme-together.mp4)
 
 ## Install
 
