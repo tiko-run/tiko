@@ -81,6 +81,7 @@ test('opens the module over the board and edits the same block', () => {
   renderBoard()
   fireEvent.click(screen.getByRole('button', { name: 'Expand', hidden: true }))
   const dialog = screen.getByRole('dialog', { name: 'Q4 plan' })
+  expect(document.activeElement).toBe(dialog.querySelector('[data-expanded-scroll]'))
   // Days keep a readable width: 92 days of weeks at 14px after the 160px titles, scrolled sideways.
   const root = dialog.querySelector('[data-gantt-body]')!.parentElement!.parentElement!
   expect(root.style.width).toBe(`${160 + 92 * 14}px`)

@@ -62,7 +62,10 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
         // The body takes focus so arrow keys scroll it and no button opens with a ring.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
-          scroller?.focus()
+          // From the dialog itself: the scroller state is still empty in this first render.
+          ;(event.currentTarget as HTMLElement)
+            .querySelector<HTMLElement>('[data-expanded-scroll]')
+            ?.focus()
         }}
         // Esc in a field ends the edit there; the view stays open.
         onEscapeKeyDown={(event) => {
