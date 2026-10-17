@@ -608,3 +608,11 @@
     display: none;
   }
 }
+
+/* For a scroller that draws its own bars over the content. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

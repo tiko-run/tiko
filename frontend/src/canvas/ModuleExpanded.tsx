@@ -1,5 +1,6 @@
 import { Minimize2, Puzzle } from 'lucide-react'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
+import { OverlayScrollbars } from '@/components/OverlayScrollbars'
 import { Button } from '@/components/ui/button'
 import type { ModuleNode } from '@/canvas/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -16,11 +17,7 @@ type Props = {
   onClose: () => void
 }
 
-// The view's own sideways bar is pushed this far below the visible area; one of ours that
-// starts after the module's fixed columns replaces it.
-const CLIP = 24
-
-type Box = { width: number; height: number; scrollWidth: number; gutter: number; under: number }
+type Box = { width: number; height: number }
 
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -33,39 +30,27 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
   const host = useContext(ModuleHostContext)
   const planning = usePlanning()
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
-  const bar = useRef<HTMLDivElement>(null)
-  const [box, setBox] = useState<Box>({ width: 0, height: 0, scrollWidth: 0, gutter: 0, under: 0 })
+  const [box, setBox] = useState<Box>({ width: 0, height: 0 })
   const def = findModule(node.data.kind)
   const parsed = def?.schema.safeParse(node.data.content)
 
   useEffect(() => {
     if (!scroller) return
     const measure = () => {
-      const next = {
-        width: scroller.clientWidth,
-        height: scroller.offsetHeight - CLIP,
-        scrollWidth: scroller.scrollWidth,
-        gutter: scroller.offsetWidth - scroller.clientWidth,
-        under: scroller.offsetHeight - scroller.clientHeight,
-      }
-      setBox((last) =>
-        Object.keys(next).every((k) => last[k as keyof Box] === next[k as keyof Box]) ? last : next,
-      )
+      const width = scroller.clientWidth
+      const height = scroller.clientHeight
+      // Same size, same object: a resize that changes nothing renders nothing.
+      setBox((last) => (last.width === width && last.height === height ? last : { width, height }))
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(scroller)
-    if (scroller.firstElementChild) observer.observe(scroller.firstElementChild)
     return () => observer.disconnect()
   }, [scroller])
 
   if (!def || !parsed?.success) return null
   const Icon = def.Icon ?? Puzzle
   const inset = def.expandedInset?.(parsed.data, planning) ?? 0
-  // Each side follows the other; an unchanged value fires no scroll event, so no loop.
-  const follow = (from: HTMLElement | null, to: HTMLElement | null) => {
-    if (from && to && to.scrollLeft !== from.scrollLeft) to.scrollLeft = from.scrollLeft
-  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -104,23 +89,15 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
             <Minimize2 strokeWidth={1.75} />
           </Button>
         </header>
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="relative min-h-0 flex-1">
           <div
             ref={setScroller}
             data-expanded-scroll
             tabIndex={-1}
-            onScroll={(event) => follow(event.currentTarget, bar.current)}
-            className="absolute inset-x-0 top-0 overflow-auto outline-none"
-            // The vertical bar's room is kept even when nothing scrolls, so the width never
-            // changes with it and a plan that almost fits does not flip between two layouts.
-            style={{ height: `calc(100% + ${CLIP}px)`, scrollbarGutter: 'stable' }}
+            className="no-scrollbar absolute inset-0 overflow-auto outline-none"
           >
             {/* A viewer scrolls the plan but cannot change it. */}
-            <div
-              className={cn('w-max min-w-full', readOnly && 'pointer-events-none')}
-              // Fills the hidden strip the native bar leaves, so nothing scrolls up and down for it.
-              style={{ paddingBottom: Math.max(CLIP - box.under, 0) }}
-            >
+            <div className={cn('w-max min-w-full', readOnly && 'pointer-events-none')}>
               {scroller && (
                 <ExpandedContext.Provider value>
                   <def.View
@@ -137,17 +114,7 @@ export function ModuleExpanded({ node, readOnly, onChange, onClose }: Props) {
               )}
             </div>
           </div>
-        </div>
-        {/* Always there, empty when all fits: a bar that came and went would change the height. */}
-        <div
-          ref={bar}
-          data-expanded-bar
-          onScroll={(event) => follow(event.currentTarget, scroller)}
-          className="h-3 shrink-0 overflow-x-auto overflow-y-hidden"
-          // Clear of the vertical bar, so both run the same distance.
-          style={{ marginLeft: inset, marginRight: box.gutter }}
-        >
-          <div className="h-px" style={{ width: Math.max(box.scrollWidth - inset, 0) }} />
+          <OverlayScrollbars target={scroller} insetLeft={inset} />
         </div>
       </DialogContent>
     </Dialog>
