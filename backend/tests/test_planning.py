@@ -302,3 +302,12 @@ def test_no_views_on_a_demo_instance() -> None:
     web = {"name": "Web", "filters": {"team": ["Web"]}}
     assert admin.post("/api/planning/views", json=web).status_code == 403
     assert admin.delete("/api/planning/views/v1").status_code == 403
+
+
+def test_the_view_name_holds_at_the_store() -> None:
+    from app.adapters.storage.sqlite import SqlitePlanningViewRepo
+    from app.domain.planning import SavedView
+
+    views = SqlitePlanningViewRepo(Database(":memory:"))
+    assert views.add(SavedView(id="v1", name="Web", filters={"team": ["Web"]}), limit=5)
+    assert not views.add(SavedView(id="v2", name="WEB", filters={"team": ["Web"]}), limit=5)

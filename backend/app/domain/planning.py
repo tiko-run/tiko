@@ -309,6 +309,8 @@ class Planning:
             raise ValidationFailed(f"A view named {body.name} already exists.")
         view = SavedView(id=self._new_id(), name=body.name, filters=body.filters)
         if not self._views.add(view, MAX_VIEWS):
+            if body.name.casefold() in {v.name.casefold() for v in self._views.all()}:
+                raise ValidationFailed(f"A view named {body.name} already exists.")
             raise ValidationFailed(f"Planning can have up to {MAX_VIEWS} views.")
         self._on_change()
         return view

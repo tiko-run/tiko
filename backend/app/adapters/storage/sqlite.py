@@ -568,13 +568,14 @@ class SqlitePlanningViewRepo:
         ]
 
     def add(self, view: SavedView, limit: int) -> bool:
-        # One statement counts and inserts, so two requests stay in the limit.
+        # One statement checks the limit and the name, so two requests cannot both pass.
         with self._db.transaction() as conn:
             cursor = conn.execute(
                 "INSERT INTO planning_views (id, name, filters, position)"
                 " SELECT ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM planning_views)"
-                " WHERE (SELECT COUNT(*) FROM planning_views) < ?",
-                (view.id, view.name, json.dumps(view.filters), limit),
+                " WHERE (SELECT COUNT(*) FROM planning_views) < ?"
+                " AND NOT EXISTS (SELECT 1 FROM planning_views WHERE lower(name) = lower(?))",
+                (view.id, view.name, json.dumps(view.filters), limit, view.name),
             )
             return cursor.rowcount == 1
 

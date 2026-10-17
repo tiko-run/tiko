@@ -304,7 +304,7 @@ class PlanningViewRepo(Protocol):
         ...
 
     def add(self, view: SavedView, limit: int) -> bool:
-        """False, and nothing stored, when there are `limit` views already."""
+        """False, and nothing stored, at `limit` views or when the name is taken."""
         ...
 
     def remove(self, view_id: str) -> bool:
