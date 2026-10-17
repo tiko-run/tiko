@@ -23,6 +23,8 @@ services:
     restart: unless-stopped
     environment:
       TIKO_WORKERS: ${TIKO_WORKERS:-1}
+      TIKO_TRUSTED_PROXIES: ${TIKO_TRUSTED_PROXIES:-}
+      TIKO_CLIENT_IP_HEADER: ${TIKO_CLIENT_IP_HEADER:-}
     ports: ["${TIKO_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }

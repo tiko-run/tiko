@@ -57,6 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: shellcheck -s sh install/install.sh
+      - run: shellcheck -s sh frontend/real-ip.envsh scripts/test-real-ip.sh
       - run: sh install/install.sh --yes --port 3100
       - name: Sign in with the generated password
         run: |

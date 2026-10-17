@@ -35,6 +35,7 @@ test:  ## unit and API tests
 	cd updater && uv run --project ../backend pytest -q
 	cd frontend && npm test
 	cd collector && node --test
+	sh scripts/test-real-ip.sh
 
 lint:  ## linters and format check
 	cd backend && uv run ruff check . && uv run ruff format --check .
