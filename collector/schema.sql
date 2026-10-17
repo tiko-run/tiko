@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS waitlist (
     email TEXT PRIMARY KEY,
     signed_up_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     source TEXT NOT NULL,
-    -- True only when the person ticked news and updates; otherwise the launch e-mail only.
+    -- True when the form asked for news; the launch e-mail asks the mailbox owner to confirm it.
     news BOOLEAN NOT NULL DEFAULT false,
     consent TEXT NOT NULL,
     country TEXT

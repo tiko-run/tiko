@@ -114,8 +114,9 @@ async function rollUp(env) {
 const MAX_WAITLIST_BODY = 4096
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const SOURCES = ['hero', 'self-host']
-// What the person agreed to, stored with the address: the launch e-mail, and news only when ticked.
-export const CONSENT = { launch: 'cloud-launch-email', news: 'cloud-launch-email+news' }
+// What the form asked for, stored with the address. Anyone can type any address, so news is only
+// a request: the launch e-mail asks the mailbox owner to confirm it.
+export const CONSENT = { launch: 'cloud-launch-email', news: 'cloud-launch-email+news-requested' }
 const ORIGIN =
   /^(https:\/\/(www\.)?tiko\.run|https:\/\/([a-z0-9-]+\.)?tiko(-[a-z0-9]+)?\.pages\.dev|http:\/\/localhost:\d+)$/
 
@@ -171,8 +172,9 @@ async function waitlist(request, env) {
     return answer(403, 'check failed')
   }
   const country = request.cf?.country ?? request.headers.get('CF-IPCountry') ?? null
-  // The same address again is a success with no second row. A conflict target would need SELECT
-  // on the table, which the Worker's role does not have on purpose.
+  // The same address again is a success with no second row and keeps the first choice; the news
+  // question is settled in the launch e-mail. A conflict target would need SELECT on the table,
+  // which the Worker's role does not have on purpose.
   try {
     await sql(
       env,

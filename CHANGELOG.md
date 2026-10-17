@@ -7,7 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 
 - Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
-- Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news, and unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
+- Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news: that message asks you to confirm it, and you can unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
 
 ### Changed
 

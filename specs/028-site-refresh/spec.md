@@ -18,8 +18,8 @@ The landing was written before Planning mode. Two of its promises read wrong: "N
 2. **Wording.** "Your tracker stays the source of truth" replaces "Reads your tracker, never edits it"; "No ads, no analytics trackers" and "Anonymous counts only" replace "No tracking".
 3. **One install command for the visitor's system.** Windows gets the PowerShell line, everyone else the shell script; no tabs (owner, 2026-10-17). Without JavaScript the shell script shows. The self-hosting block keeps both.
 4. **Planning gets one line in the Gantt tile**, not a section of its own: a whole block for one feature stood out (owner, 2026-10-17).
-5. **Waitlist.** One field for an e-mail address in the hero badge and in the self-hosting block. The address goes to the existing collector Worker (`t.tiko.run/v1/waitlist`), checked by Cloudflare Turnstile, and lands in its own table in the same EU database. The Worker can only insert into it, never read it back. No confirmation e-mail now: one e-mail is sent when Cloud opens. A checkbox, off by default, adds news and updates with an unsubscribe link in every e-mail. Corners are 8 px like the rest of the site.
-6. **Privacy page.** `tiko.run/privacy/` says what the form keeps (the address, the time, the form, the news tick), where (EU), why (the launch e-mail; news only with the tick), how long (without the tick the address is deleted after the launch e-mail) and how to be removed.
+5. **Waitlist.** One field for an e-mail address in the hero badge and in the self-hosting block. The address goes to the existing collector Worker (`t.tiko.run/v1/waitlist`), checked by Cloudflare Turnstile, and lands in its own table in the same EU database. The Worker can only insert into it, never read it back. No confirmation e-mail now: one e-mail is sent when Cloud opens. A checkbox, off by default, asks for news too. Anyone can type any address, so the tick is only a request: the launch e-mail asks the owner of the mailbox to confirm news, and every later e-mail has an unsubscribe link. A repeat sign-up keeps the first row. Corners are 8 px like the rest of the site.
+6. **Privacy page.** `tiko.run/privacy/` says what the form keeps (the address, the time, the form, the news tick), where (EU), why (the launch e-mail; news only after it is confirmed there), how long (deleted after the launch e-mail unless news was confirmed) and how to be removed.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -31,7 +31,7 @@ The landing was written before Planning mode. Two of its promises read wrong: "N
 
 1. **Given** the hero, **Then** a badge above the headline says tiko Cloud is coming with a free plan first; **When** clicked, **Then** it turns into an e-mail field with a button in place.
 2. **Given** a valid address and a passed Turnstile check, **When** sent, **Then** the form says the person will hear once when Cloud opens.
-3. **Given** a bad address, a failed check or a body over the limit, **Then** the Worker answers 400 and stores nothing.
+3. **Given** a bad address, **Then** the Worker answers 400; a failed check, 403; a body over the limit, 413; and it stores nothing.
 4. **Given** the form, **Then** a line under it links to `/privacy/`.
 
 ### User Story 2 - The page reads as tiko today (Priority: P1)

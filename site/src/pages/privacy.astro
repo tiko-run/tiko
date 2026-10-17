@@ -25,13 +25,13 @@ const CONTACT = 'privacy@tiko.run'
         <dt>What we keep</dt>
         <dd>Your e-mail address, the time you sent it, which form you used, whether you ticked news and updates, and the country your request came from. Not your IP address.</dd>
         <dt>Why</dt>
-        <dd>To send you one e-mail when tiko Cloud opens. If you ticked news and updates, we also write now and then about what is new in tiko. No spam, and the address is never shared or sold.</dd>
+        <dd>To send you one e-mail when tiko Cloud opens. If you ticked news, that e-mail asks you to confirm it, and only after you confirm do we write now and then about what is new in tiko. No spam, and the address is never shared or sold.</dd>
         <dt>Where</dt>
         <dd>In a Postgres database run by Neon in the EU (Frankfurt). The form sends it through a Cloudflare Worker, which can add addresses but not read them back.</dd>
         <dt>Bot check</dt>
         <dd>The form uses Cloudflare Turnstile to tell people from bots. It loads only when you use the form. Cloudflare's own <a class="link" href="https://www.cloudflare.com/turnstile-privacy-policy/">Turnstile privacy addendum</a> applies to it.</dd>
         <dt>How long</dt>
-        <dd>Without the tick: until we have sent the e-mail about Cloud opening, then the address is deleted. With the tick: until you unsubscribe, which every e-mail lets you do in one click.</dd>
+        <dd>Until we have sent the e-mail about Cloud opening, then the address is deleted, unless you confirmed news from it. Then until you unsubscribe, which every e-mail lets you do in one click.</dd>
         <dt>Removal</dt>
         <dd>Write to <a class="link" href={`mailto:${CONTACT}`}>{CONTACT}</a> from that address, and we delete it. The same address can ask what we keep about it.</dd>
       </dl>
