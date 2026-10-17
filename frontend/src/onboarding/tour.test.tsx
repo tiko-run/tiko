@@ -120,3 +120,11 @@ test('while the tour runs the board gets no keys, pastes or clicks on the highli
   document.removeEventListener('keydown', board)
   document.removeEventListener('paste', board)
 })
+
+test('opens with focus on the dialog, not on the close cross', async () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true }))
+  const tour = runTour()
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(document.activeElement).toHaveClass('driver-popover')
+  tour.destroy()
+})
