@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - The Gantt's task column and field columns now sit on a light gray panel, so it is clear where the timeline starts.
+- The **+** at the ends of a Gantt's timeline adds one step of its scale instead of a whole quarter: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 - The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still only counts, nothing about any one person, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.
 
 ### Fixed

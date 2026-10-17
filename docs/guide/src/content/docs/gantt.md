@@ -9,6 +9,7 @@ Add a Gantt from the modules tool (`M`) to plan tasks on a timeline right on the
 - Nest rows under a parent row; its bar spans its children.
 - Mark milestones.
 - Draw dependency lines between bars. A line turns amber when a task starts before the one it depends on ends.
+- Select the Gantt and click **+** at either end of the timeline to add a step of its scale: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 
 Plan dates stay on the board, not in your tracker.
 
@@ -80,4 +81,4 @@ With Planning on, **⋯ → Working days only** hides Saturdays and Sundays from
 
 Days off are holidays for the whole tiko, such as a national holiday or a team day. Add them in **Settings → Stages and people → Days off**. On a Gantt with working days only, a day off is shaded like a weekend and does not count, so a stage across it lasts one day less.
 
-With **Weeks**, the header shows months over weeks, and each week reads by its dates, such as 5–9 and 12–16.
+With **Weeks**, the header shows months over weeks, and each week reads by its dates, such as 5–9 and 12–16. A week belongs to the month most of its days are in.
