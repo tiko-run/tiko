@@ -11,16 +11,8 @@ server {
     # The API gets a new IP on every redeploy (Railway, Render); re-resolve instead of caching it at start.
     resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
 
-    # The client's address for the API: a proxy in front of tiko sits on a private network and
-    # is believed about who it forwards for; a forwarded address sent from anywhere else is not.
-    set_real_ip_from 10.0.0.0/8;
-    set_real_ip_from 172.16.0.0/12;
-    set_real_ip_from 192.168.0.0/16;
-    set_real_ip_from 127.0.0.0/8;
-    set_real_ip_from fc00::/7;
-    set_real_ip_from ::1;
-    real_ip_header X-Forwarded-For;
-    real_ip_recursive on;
+    # The client's address for the API, from TIKO_TRUSTED_PROXIES: real-ip.envsh.
+    include /etc/nginx/real-ip.conf;
 
     location /api/ {
         # $api_upstream is the process of the board in the path, or any of them, over the
