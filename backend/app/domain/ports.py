@@ -151,6 +151,22 @@ class Attempts(Protocol):
         ...
 
 
+class KnownBrowsers(Protocol):
+    """Browsers a person signed in from, by the hash of their cookie's token."""
+
+    def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
+        """Keeps a browser; forgets those added at `since` or earlier."""
+        ...
+
+    def owner(self, token_hash: str, since: float) -> str | None:
+        """The person of a browser added later than `since`."""
+        ...
+
+    def forget(self, user_id: str) -> None:
+        """Forgets every browser of a person."""
+        ...
+
+
 class LiveBoards(Protocol):
     """Open sockets of live boards. Every call returns at once and is safe from any thread."""
 

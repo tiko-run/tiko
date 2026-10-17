@@ -4,6 +4,28 @@ from collections import deque
 _KEEP_WINDOWS = 1024
 
 
+class MemoryBrowsers:
+    """The `KnownBrowsers` port in the memory of one process: for tests and a single process."""
+
+    def __init__(self) -> None:
+        self._browsers: dict[str, tuple[str, float]] = {}
+        self._lock = threading.Lock()
+
+    def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
+        with self._lock:
+            self._browsers = {k: v for k, v in self._browsers.items() if v[1] > since}
+            self._browsers[token_hash] = (user_id, at)
+
+    def owner(self, token_hash: str, since: float) -> str | None:
+        with self._lock:
+            found = self._browsers.get(token_hash)
+        return found[0] if found and found[1] > since else None
+
+    def forget(self, user_id: str) -> None:
+        with self._lock:
+            self._browsers = {k: v for k, v in self._browsers.items() if v[0] != user_id}
+
+
 class MemoryAttempts:
     """The `Attempts` port in the memory of one process: for tests and a single process."""
 

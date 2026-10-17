@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
 - The site, the README and About now say "No ads, no analytics trackers" and "Your tracker stays the source of truth" instead of "No tracking" and "never edits it"; the site links to the list of usage counts tiko sends.
 - Write to tiko at hi@tiko.run, report a vulnerability to security@tiko.run and a Code of Conduct issue to conduct@tiko.run.

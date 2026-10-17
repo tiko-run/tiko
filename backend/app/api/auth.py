@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.api.deps import AccountsDep, CurrentPerson, SessionsDep
 from app.api.gate import COOKIE
-from app.domain.accounts import Person
+from app.domain.accounts import BROWSER_TTL_S, Person
 from app.domain.demo import DemoVisitors
 from app.domain.errors import NotFound
 from app.domain.sessions import SESSION_TTL_S
@@ -59,15 +59,36 @@ def signed_in(request: Request, token: str) -> Response:
     return response
 
 
-@router.post("/login", status_code=204)
-def login(body: SignInRequest, request: Request, accounts: AccountsDep) -> Response:
-    return signed_in(request, accounts.sign_in(body.username, body.password, time.time()))
+# Kept after signing out: it tells that this browser signed in as the person before.
+BROWSER_COOKIE = "tiko_device"
 
 
 def _address(request: Request) -> str:
-    # The web container's nginx works the client out and is the only way in to a demo.
+    # The web container's nginx works the client out and is the only way in to the API.
     peer = request.client.host if request.client else ""
     return request.headers.get("x-real-ip") or peer
+
+
+@router.post("/login", status_code=204)
+def login(body: SignInRequest, request: Request, accounts: AccountsDep) -> Response:
+    session, browser = accounts.sign_in(
+        body.username,
+        body.password,
+        time.time(),
+        address=_address(request),
+        browser=request.cookies.get(BROWSER_COOKIE),
+    )
+    response = signed_in(request, session)
+    if browser:
+        response.set_cookie(
+            BROWSER_COOKIE,
+            browser,
+            max_age=int(BROWSER_TTL_S),
+            httponly=True,
+            samesite="lax",
+            secure=_https(request),
+        )
+    return response
 
 
 @router.post("/demo", status_code=204)

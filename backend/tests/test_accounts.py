@@ -58,7 +58,7 @@ def test_password_hash_is_salted_scrypt():
 
 
 def test_session_lives_until_it_expires(accounts, sessions):
-    token = accounts.sign_in("Alice", LONG, NOW)
+    token, _ = accounts.sign_in("Alice", LONG, NOW)
     assert sessions.resolve(token, NOW).username == "alice"
     assert sessions.resolve(token, NOW + SESSION_TTL_S) is None
 
@@ -69,14 +69,14 @@ def test_unknown_tokens_are_rejected(sessions, token):
 
 
 def test_ending_a_session_takes_effect_at_once(accounts, sessions):
-    token = accounts.sign_in("alice", LONG, NOW)
+    token, _ = accounts.sign_in("alice", LONG, NOW)
     assert sessions.resolve(token, NOW)
     sessions.end(token)
     assert sessions.resolve(token, NOW + 1) is None
 
 
 def test_disabled_person_drops_out_after_the_cache(db, accounts, sessions):
-    token = accounts.sign_in("alice", LONG, NOW)
+    token, _ = accounts.sign_in("alice", LONG, NOW)
     assert sessions.resolve(token, NOW)
     with db.transaction() as conn:
         conn.execute("UPDATE users SET disabled_at = 'now'")
@@ -116,8 +116,8 @@ def test_username_rules(accounts, username):
 
 
 def test_changing_password_ends_the_other_sessions(accounts, sessions):
-    person = sessions.resolve(keep := accounts.sign_in("alice", LONG, NOW), NOW)
-    other = accounts.sign_in("alice", LONG, NOW)
+    person = sessions.resolve(keep := accounts.sign_in("alice", LONG, NOW)[0], NOW)
+    other, _ = accounts.sign_in("alice", LONG, NOW)
     with pytest.raises(InvalidCredentials):
         accounts.change_password(person, "nope", "new-password-1", keep)
     with pytest.raises(WeakPassword):

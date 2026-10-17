@@ -1055,6 +1055,31 @@ class SqliteAttempts:
             conn.execute("DELETE FROM attempt_windows WHERE scope = ? AND key = ?", (scope, key))
 
 
+class SqliteKnownBrowsers:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM known_browsers WHERE created_at <= ?", (since,))
+            conn.execute(
+                "INSERT INTO known_browsers (token_hash, user_id, created_at) VALUES (?, ?, ?)",
+                (token_hash, user_id, at),
+            )
+
+    def owner(self, token_hash: str, since: float) -> str | None:
+        with self._db.read() as conn:
+            row = conn.execute(
+                "SELECT user_id FROM known_browsers WHERE token_hash = ? AND created_at > ?",
+                (token_hash, since),
+            ).fetchone()
+        return row["user_id"] if row else None
+
+    def forget(self, user_id: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("DELETE FROM known_browsers WHERE user_id = ?", (user_id,))
+
+
 class SqliteSessionRepo:
     def __init__(self, db: Database) -> None:
         self._db = db
