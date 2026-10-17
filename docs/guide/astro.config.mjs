@@ -1,6 +1,18 @@
 // @ts-check
 import { defineConfig } from 'astro/config'
+import { readdirSync } from 'node:fs'
 import starlight from '@astrojs/starlight'
+import { byNewest } from './src/lib/releases.mjs'
+
+// Release pages are named 2026-10-21; the sidebar shows them as versions, newest first.
+const releases = readdirSync(new URL('./src/content/docs/whats-new/', import.meta.url))
+  .filter((file) => file.endsWith('.mdx'))
+  .map((file) => file.slice(0, -4))
+  .sort(byNewest)
+  .map((name) => ({
+    slug: `whats-new/${name}`,
+    label: name.replaceAll('-', '.'),
+  }))
 
 export default defineConfig({
   site: 'https://docs.tiko.run',
@@ -28,6 +40,13 @@ export default defineConfig({
         PageTitle: './src/components/PageTitle.astro',
       },
       sidebar: [
+        {
+          label: "What's new",
+          items: [
+            { slug: 'whats-new', label: 'Overview' },
+            { label: 'All releases', collapsed: true, items: releases },
+          ],
+        },
         { label: 'Get started', items: ['index', 'install', 'quick-start'] },
         {
           label: 'The board',

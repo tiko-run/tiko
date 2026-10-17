@@ -14,6 +14,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - A person's workload in Planning mode: twelve weeks of their stages across every board, with clashes in red and time off hatched. Stages on boards you cannot open show as Busy.
 - Working days only in the Gantt in Planning mode: weekends are hidden, stages snap to working days, and durations leave out the days off listed in Settings.
 
+- What's new in the guide: a page per release with what you can try, told in a few lines, with short clips and pictures where they help, and the fixes and smaller changes below. Click a clip or a picture to see it full size.
+
 ### Changed
 
 - The Gantt reads easier: larger text and stages, taller rows, header labels centered and months spelled out.

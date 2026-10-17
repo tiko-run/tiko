@@ -1,0 +1,63 @@
+---
+interface Props {
+  title: string
+  image?: string
+  video?: string
+  poster?: string
+  /** Take the whole row of the grid, for a clip that needs the size. */
+  wide?: boolean
+}
+
+import { media } from '../lib/media'
+
+const { title, image, video, poster, wide } = Astro.props
+---
+
+<figure class:list={['tiko-detail', { 'tiko-detail-wide': wide }]}>
+  {
+    video ? (
+      <video data-zoom class="tiko-feature-video tiko-detail-media" src={media(video)} poster={media(poster)} muted loop playsinline preload="none" />
+    ) : (
+      image && <img data-zoom class="tiko-detail-media" src={media(image)} alt="" loading="lazy" />
+    )
+  }
+  <figcaption>
+    <strong>{title}</strong>
+    <slot />
+  </figcaption>
+</figure>
+
+<style>
+  .tiko-detail {
+    margin: 0;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.625rem;
+    overflow: hidden;
+    background: var(--sl-color-bg);
+  }
+  .tiko-detail-wide {
+    grid-column: 1 / -1;
+  }
+  .tiko-detail-media {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    background: var(--sl-color-gray-6);
+  }
+  figcaption {
+    padding: 0.625rem 0.75rem 0.75rem;
+    font-size: var(--sl-text-sm);
+    line-height: 1.5;
+    color: var(--sl-color-gray-2);
+  }
+  figcaption strong {
+    display: block;
+    margin-bottom: 0.125rem;
+    color: var(--sl-color-white);
+    font-weight: 600;
+  }
+  figcaption :global(p) {
+    margin: 0;
+  }
+</style>

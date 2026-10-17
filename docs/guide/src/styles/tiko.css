@@ -258,3 +258,27 @@ starlight-toc a {
   border: 0;
   border-radius: 0;
 }
+
+/* Media in What's new open full size on click (script in Head.astro). */
+[data-zoom] {
+  cursor: zoom-in;
+}
+.tiko-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  cursor: zoom-out;
+}
+.tiko-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(8 12 20 / 0.8);
+  backdrop-filter: blur(4px);
+}
+.tiko-lightbox-media {
+  position: fixed;
+  transform-origin: 0 0;
+  border-radius: 12px;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
+  object-fit: contain;
+}

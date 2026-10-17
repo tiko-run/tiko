@@ -1,0 +1,161 @@
+---
+// The smaller things inside a feature: a grid of tiles, or a carousel once there are more than four.
+interface Props {
+  /** grid: two columns; three: three columns; hero: the first tile large on the left; carousel: a row to swipe. */
+  layout?: 'grid' | 'three' | 'hero' | 'carousel'
+}
+
+const html = await Astro.slots.render('default')
+const count = (html.match(/<figure/g) ?? []).length
+const layout = Astro.props.layout ?? (count > 4 ? 'carousel' : 'grid')
+---
+
+<div class="tiko-details" data-layout={layout}>
+  <div class="tiko-details-head">
+    <p class="tiko-details-label">What's inside</p>
+    {
+      layout === 'carousel' && (
+        <div class="tiko-details-nav">
+          <button type="button" data-step="-1" aria-label="Previous">
+            ←
+          </button>
+          <button type="button" data-step="1" aria-label="Next">
+            →
+          </button>
+        </div>
+      )
+    }
+  </div>
+  <div class="tiko-details-tiles">
+    <Fragment set:html={html} />
+  </div>
+  {layout === 'carousel' && <div class="tiko-details-dots" aria-hidden="true" />}
+</div>
+
+<script>
+  // Arrows scroll by one tile; dots follow the scroll.
+  function setup() {
+    for (const box of document.querySelectorAll<HTMLElement>('.tiko-details[data-layout="carousel"]')) {
+      if (box.dataset.ready) continue
+      box.dataset.ready = '1'
+      const track = box.querySelector<HTMLElement>('.tiko-details-tiles')!
+      const tiles = [...track.children] as HTMLElement[]
+      const dots = box.querySelector<HTMLElement>('.tiko-details-dots')!
+      dots.replaceChildren(...tiles.map(() => document.createElement('span')))
+      const step = () => tiles[1].offsetLeft - tiles[0].offsetLeft
+      const update = () => {
+        const i = Math.round(track.scrollLeft / step())
+        ;[...dots.children].forEach((d, k) => d.classList.toggle('on', k === i))
+        const [prev, next] = box.querySelectorAll<HTMLButtonElement>('[data-step]')
+        prev.disabled = track.scrollLeft < 4
+        next.disabled = track.scrollLeft + track.clientWidth > track.scrollWidth - 4
+      }
+      for (const button of box.querySelectorAll<HTMLButtonElement>('[data-step]')) {
+        button.addEventListener('click', () =>
+          track.scrollBy({ left: Number(button.dataset.step) * step(), behavior: 'smooth' }),
+        )
+      }
+      track.addEventListener('scroll', update, { passive: true })
+      update()
+    }
+  }
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  .tiko-details {
+    margin-top: 1rem;
+  }
+  .tiko-details-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .tiko-details .tiko-details-label {
+    margin: 0;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+  .tiko-details-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  [data-layout='three'] .tiko-details-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  [data-layout='hero'] .tiko-details-tiles {
+    grid-template-columns: 2fr 1fr;
+  }
+  [data-layout='hero'] .tiko-details-tiles > :global(:first-child) {
+    grid-row: span 2;
+  }
+  [data-layout='carousel'] .tiko-details-tiles {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  [data-layout='carousel'] .tiko-details-tiles::-webkit-scrollbar {
+    display: none;
+  }
+  /* Two tiles and a peek of the next one, so the row reads as one to swipe. */
+  [data-layout='carousel'] .tiko-details-tiles > :global(*) {
+    flex: 0 0 calc(46% - 0.375rem);
+    scroll-snap-align: start;
+  }
+  .tiko-details-nav {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .tiko-details-nav button {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-white);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .tiko-details-nav button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .tiko-details-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.375rem;
+    margin-top: 0.625rem;
+  }
+  .tiko-details-dots :global(span) {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    background: var(--sl-color-gray-5);
+    transition: background 0.2s, width 0.2s;
+  }
+  .tiko-details-dots :global(span.on) {
+    width: 1rem;
+    background: var(--sl-color-accent);
+  }
+  @media (max-width: 40rem) {
+    .tiko-details-tiles,
+    [data-layout='three'] .tiko-details-tiles,
+    [data-layout='hero'] .tiko-details-tiles {
+      grid-template-columns: 1fr;
+    }
+    [data-layout='hero'] .tiko-details-tiles > :global(:first-child) {
+      grid-row: auto;
+    }
+    [data-layout='carousel'] .tiko-details-tiles > :global(*) {
+      flex-basis: 85%;
+    }
+  }
+</style>

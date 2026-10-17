@@ -1,0 +1,98 @@
+---
+interface Props {
+  title: string
+  area?: string
+  href?: string
+  video?: string
+  poster?: string
+}
+
+import { media } from '../lib/media'
+
+const { title, area, href, video, poster } = Astro.props
+---
+
+<article class="tiko-feature not-content">
+  {
+    video && (
+      <video data-zoom class="tiko-feature-video" src={media(video)} poster={media(poster)} muted loop playsinline preload="none" />
+    )
+  }
+  <div class="tiko-feature-body">
+    {area && <p class="tiko-feature-area">{area}</p>}
+    <h3>{title}</h3>
+    <slot />
+    {href && <a class="tiko-feature-link" href={href}>Read in the guide →</a>}
+  </div>
+</article>
+
+<script>
+  // A release page holds several clips: play only the ones on screen, and none with reduced motion.
+  function setup() {
+    const videos = document.querySelectorAll<HTMLVideoElement>('.tiko-feature-video')
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      videos.forEach((video) => (video.controls = true))
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const { target, isIntersecting } of entries) {
+          const video = target as HTMLVideoElement
+          if (isIntersecting) video.play().catch(() => {})
+          else video.pause()
+        }
+      },
+      { threshold: 0.5 },
+    )
+    videos.forEach((video) => observer.observe(video))
+  }
+  document.addEventListener('astro:page-load', setup)
+</script>
+
+<style>
+  .tiko-feature {
+    margin-top: 1.5rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--sl-color-bg);
+  }
+  .tiko-feature-video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--sl-color-gray-6);
+  }
+  .tiko-feature-body {
+    padding: 1rem 1.25rem 1.125rem;
+  }
+  .tiko-feature-body .tiko-feature-area {
+    margin: 0 0 0.125rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sl-color-accent);
+  }
+  .tiko-feature-body h3 {
+    margin: 0 0 0.375rem;
+    font-size: var(--sl-text-h4);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .tiko-feature-body :global(p) {
+    margin: 0;
+    color: var(--sl-color-gray-2);
+    line-height: var(--sl-line-height);
+  }
+  .tiko-feature-link {
+    display: inline-block;
+    margin-top: 0.625rem;
+    font-weight: 500;
+    color: var(--sl-color-accent);
+    text-decoration: none;
+  }
+  .tiko-feature-link:hover {
+    text-decoration: underline;
+  }
+</style>
