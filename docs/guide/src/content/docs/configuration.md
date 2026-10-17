@@ -17,6 +17,8 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
 | `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
 | `TIKO_SOCKET_DIR` | A directory shared by both containers; the web container reaches the API over Unix sockets in it. See [A Unix socket between the containers](#a-unix-socket-between-the-containers) | empty: the network |
+| `TIKO_TRUSTED_PROXIES` | Proxies in front of tiko whose word on the client's address the web container takes, as comma-separated networks. See [The client's address](#the-clients-address) | private networks |
+| `TIKO_CLIENT_IP_HEADER` | The header those proxies put the client's address in | `X-Forwarded-For` |
 | `TIKO_WORKERS` | API processes, one core each. Set it for both containers, as the compose files do. See [Several processes](#several-processes) | `1` |
 | `GITHUB_TOKEN` | Read-only GitHub token that raises the request limit for public issues from 60 to 5000 an hour, so GitHub cards update at the board's pace. See [GitHub Issues](../github-issues/) | unset |
 | `JIRA_TLS_VERIFY` | Verify Jira's TLS certificate; `false` skips the check | `true` |
@@ -41,6 +43,28 @@ The refresh interval is set in Settings → Task source, not in the environment.
 ## Behind your own reverse proxy
 
 Live boards use a WebSocket at `/api/boards/<id>/live`, on the same address as the rest of tiko. The proxy in front of tiko has to pass WebSocket upgrades to the web container (port 3000) and keep idle connections open. Without that, boards open view-only with "Live connection unavailable". Public links use `/api/public/<token>/live/<room>` the same way and fall back to checking for changes every few seconds.
+
+### The client's address
+
+tiko counts sign-in attempts and new demo visitors by the client's address. The web container takes it from the proxy in front only when that proxy is one it trusts: by default a proxy on a private network, the usual case for a reverse proxy on the same host or in the same Docker network, which puts the address in `X-Forwarded-For`. Set both variables on the web container when tiko sits behind something else:
+
+| In front of tiko | `TIKO_TRUSTED_PROXIES` | `TIKO_CLIENT_IP_HEADER` |
+|---|---|---|
+| A reverse proxy on the same host or network | leave empty | leave empty |
+| Railway | `0.0.0.0/0,::/0` | leave empty |
+| Cloudflare, straight to your server | Cloudflare's networks, see below | `CF-Connecting-IP` |
+
+Railway's edge writes `X-Forwarded-For` itself and drops what the client sent, so every hop in it can be believed. Trust everything only where the platform does that: anywhere else a client could name any address.
+
+Cloudflare publishes its networks; join them into the variable:
+
+```bash
+echo "TIKO_TRUSTED_PROXIES=$(curl -fsS https://www.cloudflare.com/ips-v4 https://www.cloudflare.com/ips-v6 | paste -sd, -)"
+```
+
+The list changes now and then; refresh it when Cloudflare announces a change. Keep the server itself reachable only through Cloudflare, or a client that reaches it directly can send `CF-Connecting-IP` too. A bad value stops the web container with a line that names it.
+
+To check, sign in from two networks and look at the web container's log: each request starts with the client's address, not the proxy's.
 
 ### Several processes
 
@@ -78,7 +102,7 @@ volumes:
 The API keeps its ports as well, so health checks and metrics work as before. Platforms that run the two services apart, like Render and Railway, have no shared directory: leave it off there.
 
 
-Caddy and Traefik pass WebSockets without extra settings:
+Caddy and Traefik pass WebSockets and the visitor's address without extra settings:
 
 ```text
 tiko.example.com {
@@ -86,7 +110,7 @@ tiko.example.com {
 }
 ```
 
-nginx needs the upgrade headers and a longer read timeout:
+nginx needs the upgrade headers, the visitor's address and a longer read timeout:
 
 ```nginx
 map $http_upgrade $connection_upgrade {
@@ -102,6 +126,8 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # The visitor's address, set anew so a client cannot add one of its own.
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_read_timeout 1h;

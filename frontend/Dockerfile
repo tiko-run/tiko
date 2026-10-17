@@ -18,6 +18,7 @@ RUN sed -i -e 's/worker_connections .*/worker_connections 16384;/' \
     && grep -q 'worker_connections 16384;' /etc/nginx/nginx.conf \
     && grep -q '^worker_rlimit_nofile 32768;' /etc/nginx/nginx.conf && nginx -t
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --chmod=755 real-ip.envsh /docker-entrypoint.d/15-real-ip.envsh
 COPY --chmod=755 api-upstream.envsh /docker-entrypoint.d/16-api-upstream.envsh
 COPY --chmod=755 api-workers.envsh /docker-entrypoint.d/17-api-workers.envsh
 COPY --from=build /app/dist /usr/share/nginx/html

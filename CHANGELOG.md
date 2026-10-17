@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Run tiko behind Railway or Cloudflare and still count each visitor on their own: `TIKO_TRUSTED_PROXIES` and `TIKO_CLIENT_IP_HEADER` tell the web container which proxy to believe about the visitor's address, which sign-in and demo limits use. Values per platform are in [The client's address](https://docs.tiko.run/configuration/#the-clients-address).
 - Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
 - Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news: that message asks you to confirm it, and you can unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
 
@@ -21,6 +22,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Behind nginx set up from the guide's example, tiko sees each visitor's own address again: the example now passes it on.
 - The welcome tour no longer opens with a focus outline around its close button.
 - A second click on a Gantt stage closes its menu again, instead of reopening it when the Gantt is selected.
 - On the Gantt's Weeks scale, month lines now fall on week lines: a week belongs to the month most of its days are in.
