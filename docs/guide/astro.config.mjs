@@ -11,7 +11,7 @@ const releases = readdirSync(new URL('./src/content/docs/whats-new/', import.met
   .sort(byNewest)
   .map((name) => ({
     slug: `whats-new/${name}`,
-    label: name === 'next' ? 'Next release' : name.replaceAll('-', '.'),
+    label: name.replaceAll('-', '.'),
   }))
 
 export default defineConfig({

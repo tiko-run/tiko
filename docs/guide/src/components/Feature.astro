@@ -7,13 +7,15 @@ interface Props {
   poster?: string
 }
 
+import { media } from '../lib/media'
+
 const { title, area, href, video, poster } = Astro.props
 ---
 
 <article class="tiko-feature not-content">
   {
     video && (
-      <video data-zoom class="tiko-feature-video" src={video} poster={poster} muted loop playsinline preload="none" />
+      <video data-zoom class="tiko-feature-video" src={media(video)} poster={media(poster)} muted loop playsinline preload="none" />
     )
   }
   <div class="tiko-feature-body">

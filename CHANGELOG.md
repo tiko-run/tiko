@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - Filters and saved views in the Gantt in Planning mode: filter rows by any field or by person, with inherited values and teams counted through people on stages, and save a set of filters as a view every Gantt can use.
 - Time off for people in Planning mode: dates only, added in Settings or on a Time off lane in the Gantt. A stage whose person is away gets a red outline and says who is away.
 
+- What's new in the guide: a page per release with what you can try, told in a few lines with short clips and pictures, and the fixes and smaller changes below. Click a clip or a picture to see it full size.
+
 ### Changed
 
 - The guide keeps its header in place and transitions between pages without a full reload.

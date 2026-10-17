@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content'
 import { byNewest } from '../lib/releases.mjs'
+import { media } from '../lib/media'
 
 const pages = await getCollection('docs', (entry) => entry.id.startsWith('whats-new/'))
 const releases = pages.sort((a, b) => byNewest(a.id.slice(10), b.id.slice(10)))
@@ -20,13 +21,13 @@ const formatDate = (date: string) =>
       <li>
         <a class="tiko-release" href={`/${entry.id}/`}>
           {entry.data.cover ? (
-            <img class="tiko-release-cover" src={entry.data.cover} alt="" loading="lazy" />
+            <img class="tiko-release-cover" src={media(entry.data.cover)} alt="" loading="lazy" />
           ) : (
             <span class="tiko-release-cover tiko-release-cover-empty" />
           )}
           <span class="tiko-release-text">
             <span class="tiko-release-meta">
-              {entry.data.date ? formatDate(entry.data.date) : 'Coming soon'}
+              {entry.data.date && formatDate(entry.data.date)}
             </span>
             <span class="tiko-release-title">{entry.data.title}</span>
             <span class="tiko-release-desc">{entry.data.description}</span>

@@ -8,15 +8,17 @@ interface Props {
   wide?: boolean
 }
 
+import { media } from '../lib/media'
+
 const { title, image, video, poster, wide } = Astro.props
 ---
 
 <figure class:list={['tiko-detail', { 'tiko-detail-wide': wide }]}>
   {
     video ? (
-      <video data-zoom class="tiko-feature-video tiko-detail-media" src={video} poster={poster} muted loop playsinline preload="none" />
+      <video data-zoom class="tiko-feature-video tiko-detail-media" src={media(video)} poster={media(poster)} muted loop playsinline preload="none" />
     ) : (
-      image && <img data-zoom class="tiko-detail-media" src={image} alt="" loading="lazy" />
+      image && <img data-zoom class="tiko-detail-media" src={media(image)} alt="" loading="lazy" />
     )
   }
   <figcaption>
