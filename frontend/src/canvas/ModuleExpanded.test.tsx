@@ -86,8 +86,8 @@ test('opens the module over the board and edits the same block', () => {
   const root = dialog.querySelector('[data-gantt-body]')!.parentElement!.parentElement!
   expect(root.style.width).toBe(`${160 + 92 * 14}px`)
 
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Add a quarter after' }))
-  expect(current().end).toBe('2027-03-31')
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Add a month after' }))
+  expect(current().end).toBe('2027-01-31')
   fireEvent.click(within(dialog).getByRole('button', { name: 'Milestone' }))
   expect(current().milestones).toHaveLength(1)
 

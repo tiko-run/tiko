@@ -66,14 +66,29 @@ export function currentQuarter(day: Day) {
   return quarterBounds(quarterIndex(day))
 }
 
-/** One calendar quarter more before the quarter the range starts in. */
-export function quarterBefore(start: Day): Day {
-  return quarterBounds(quarterIndex(start) - 1).start
+// What one click on a "+" at the timeline's edge adds, by scale.
+const STEPS: Record<Scale, { unit: string; days?: number; months?: number }> = {
+  day: { unit: 'week', days: 7 },
+  week: { unit: 'month', months: 1 },
+  month: { unit: 'quarter', months: 3 },
+  quarter: { unit: 'year', months: 12 },
 }
 
-/** One calendar quarter more after the quarter the range ends in. */
-export function quarterAfter(end: Day): Day {
-  return quarterBounds(quarterIndex(end) + 1).end
+/** The same date `n` months away, or the month's last day when it is shorter. */
+function addMonths(day: Day, n: number): Day {
+  const { year, month, date } = parts(day)
+  const last = monthStart(year, month + n + 1) - 1
+  return Math.min(monthStart(year, month + n) + date - 1, last)
+}
+
+/** The scale's step, such as "month", and the range edge one step further out. */
+export function extend(day: Day, scale: Scale, side: 'start' | 'end') {
+  const { unit, days, months } = STEPS[scale]
+  const sign = side === 'start' ? -1 : 1
+  if (days) return { unit, day: day + sign * days }
+  // Months count from the day after the end, so Oct 1 – Oct 31 grows to Nov 30, not Nov 31.
+  if (side === 'start') return { unit, day: addMonths(day, -months!) }
+  return { unit, day: addMonths(day + 1, months!) - 1 }
 }
 
 export function rangeDays(start: Day, end: Day) {
@@ -137,9 +152,16 @@ export function header(
   }
   if (scale === 'week') {
     // Months over weeks, the way plans are talked about: "October, the 5–9 week".
+    // A week belongs to the month its Thursday is in, so month lines fall on week lines.
     const sunday = (day: Day) => day - weekday(day) + 6
+    const month = (day: Day) => parts(day - weekday(day) + 3).month
+    const nextWeekMonth = (day: Day) => {
+      let next = sunday(day) + 1
+      while (month(next) === month(day)) next += 7
+      return next
+    }
     return {
-      top: cells(start, end, nextMonth, monthLabel),
+      top: cells(start, end, nextWeekMonth, (day) => monthLabel(day - weekday(day) + 3)),
       bottom: cells(
         start,
         end,

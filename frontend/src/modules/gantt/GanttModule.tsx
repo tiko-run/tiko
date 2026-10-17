@@ -69,13 +69,12 @@ import {
 } from '@/modules/gantt/tree'
 import {
   barBox,
+  extend,
   fitsRange,
   formatDay,
   header,
   isWeekend,
   parseDay,
-  quarterAfter,
-  quarterBefore,
   today,
   xOf,
   type Axis,
@@ -170,8 +169,8 @@ export function GanttModule({
     const scroller = todayLine.current?.closest('[data-expanded-scroll]')
     if (scroller) scroller.scrollLeft = todayX - (width - left) / 2
   }, [expanded, todayX, width, left])
-  const before = quarterBefore(start)
-  const after = quarterAfter(end)
+  const before = extend(start, content.scale, 'start')
+  const after = extend(end, content.scale, 'end')
   const height = rowHeight(content, planning.enabled)
   const away = timeOffLane(content, planning, span)
   const lane = laneHeight(away.lanes)
@@ -231,19 +230,21 @@ export function GanttModule({
     onChange(addChild(content, parentId, row))
   }
   // Rows dropped among the others: the dragged subtree is left out when counting places.
-  const quarters = (
+  const extenders = (
     <>
-      <QuarterButton
+      <ExtendButton
         side="start"
+        unit={before.unit}
         inside={expanded}
-        disabled={!fitsRange(before, end)}
-        onClick={() => onChange({ ...content, start: formatDay(before) })}
+        disabled={!fitsRange(before.day, end)}
+        onClick={() => onChange({ ...content, start: formatDay(before.day) })}
       />
-      <QuarterButton
+      <ExtendButton
         side="end"
+        unit={after.unit}
         inside={expanded}
-        disabled={!fitsRange(start, after)}
-        onClick={() => onChange({ ...content, end: formatDay(after) })}
+        disabled={!fitsRange(start, after.day)}
+        onClick={() => onChange({ ...content, end: formatDay(after.day) })}
       />
     </>
   )
@@ -356,7 +357,7 @@ export function GanttModule({
             <HeaderRow cells={top} top />
             <HeaderRow cells={bottom} top={false} />
             {/* Expanded, the buttons ride in the header so they stay in view. */}
-            {selected && expanded && quarters}
+            {selected && expanded && extenders}
           </div>
           <div className="absolute inset-x-0 bottom-0" style={{ top: HEADER }}>
             {/* Under the week lines, so the Time off lane keeps the grid. */}
@@ -471,7 +472,7 @@ export function GanttModule({
                 : 'Drop cards here, or add a task or a row.'}
             </p>
           )}
-          {selected && !expanded && quarters}
+          {selected && !expanded && extenders}
         </div>
       </div>
     </div>
@@ -515,19 +516,22 @@ function ColumnResizer({
   )
 }
 
-function QuarterButton({
+function ExtendButton({
   side,
+  unit,
   inside,
   disabled,
   onClick,
 }: {
   side: 'start' | 'end'
+  /** What a click adds, such as "month". */
+  unit: string
   /** Within the timeline's edges rather than across them. */
   inside: boolean
   disabled: boolean
   onClick: () => void
 }) {
-  const label = side === 'start' ? 'Add a quarter before' : 'Add a quarter after'
+  const label = `Add a ${unit} ${side === 'start' ? 'before' : 'after'}`
   return (
     <Button
       variant="outline"

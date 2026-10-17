@@ -3,6 +3,7 @@ import {
   barBox,
   countDays,
   currentQuarter,
+  extend,
   dayAt,
   dragOnAxis,
   dragSpan,
@@ -13,12 +14,11 @@ import {
   makeAxis,
   newSpan,
   parseDay,
-  quarterAfter,
-  quarterBefore,
   rangeDays,
   stepDays,
   today,
   xOf,
+  type Scale,
 } from '@/modules/gantt/timeline'
 
 const d = parseDay
@@ -40,11 +40,19 @@ describe('quarters', () => {
     expect([formatDay(q.start), formatDay(q.end)]).toEqual(['2026-10-01', '2026-12-31'])
   })
 
-  it('adds a calendar quarter on either side', () => {
-    expect(formatDay(quarterBefore(d('2026-10-01')))).toBe('2026-07-01')
-    expect(formatDay(quarterBefore(d('2026-01-20')))).toBe('2025-10-01')
-    expect(formatDay(quarterAfter(d('2026-12-31')))).toBe('2027-03-31')
-    expect(formatDay(quarterAfter(d('2026-08-10')))).toBe('2026-12-31')
+  it('adds one step of the scale on either side', () => {
+    const at = (iso: string, scale: Scale, side: 'start' | 'end') => {
+      const { unit, day } = extend(d(iso), scale, side)
+      return `${unit} ${formatDay(day)}`
+    }
+    expect(at('2026-10-05', 'day', 'start')).toBe('week 2026-09-28')
+    expect(at('2026-12-31', 'day', 'end')).toBe('week 2027-01-07')
+    expect(at('2026-10-05', 'week', 'start')).toBe('month 2026-09-05')
+    expect(at('2026-03-31', 'week', 'start')).toBe('month 2026-02-28')
+    expect(at('2026-10-31', 'week', 'end')).toBe('month 2026-11-30')
+    expect(at('2026-11-15', 'week', 'end')).toBe('month 2026-12-15')
+    expect(at('2026-12-31', 'month', 'end')).toBe('quarter 2027-03-31')
+    expect(at('2026-10-01', 'quarter', 'start')).toBe('year 2025-10-01')
   })
 
   it('limits the range to about 3 years', () => {
@@ -70,13 +78,11 @@ describe('header', () => {
 
   it('shows months over weeks, clipping the first week to the range', () => {
     const { top, bottom } = header(d('2026-09-30'), end, 'week')
-    expect(top.map((c) => c.label)).toEqual([
-      'September 2026',
-      'October 2026',
-      'November 2026',
-      'December 2026',
-    ])
-    expect(top[0].span).toBe(1)
+    // Sep 28 – Oct 4 has its Thursday in October; Nov 30 – Dec 6 is December's first week.
+    expect(top.map((c) => c.label)).toEqual(['October 2026', 'November 2026', 'December 2026'])
+    expect(top[0].span).toBe(33)
+    expect(top[2].from).toBe(d('2026-11-30') - d('2026-09-30'))
+    for (const cell of top) expect(bottom.some((week) => week.from === cell.from)).toBe(true)
     expect(bottom[0]).toEqual({ label: '30–4', from: 0, span: 5 })
     expect(bottom[1].label).toBe('5–11')
   })
