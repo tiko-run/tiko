@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still nothing about people, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.
+
 ### Fixed
 
 - The welcome tour no longer opens with a focus outline around its close button.

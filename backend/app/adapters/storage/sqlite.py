@@ -731,6 +731,14 @@ class SqliteUsageCounts:
         with self._db.read() as conn:
             return conn.execute("SELECT COUNT(*) FROM boards").fetchone()[0]
 
+    def boards_active(self, since: str) -> int:
+        with self._db.read() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) FROM boards WHERE updated_at >= ?"
+                " AND (version > 1 OR updated_at > created_at)",
+                (since,),
+            ).fetchone()[0]
+
     def sources(self) -> set[str]:
         with self._db.read() as conn:
             rows = conn.execute("SELECT DISTINCT source FROM task_snapshots_v3").fetchall()

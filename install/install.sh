@@ -250,6 +250,8 @@ prepare_dir() {
   fi
 
   keep_env TIKO_DEPLOY installer
+  # Inside its container tiko sees Linux; the usage stats need the system it was installed on.
+  case "$OS" in Linux) keep_env TIKO_HOST_OS linux ;; Darwin) keep_env TIKO_HOST_OS darwin ;; esac
   [ "$STATS" = true ] || keep_env TIKO_USAGE_STATS false
   choose_updater
 
@@ -330,6 +332,8 @@ find_install() {
     if [ "$(uname -s)" = Linux ] && [ "$(id -u)" = 0 ]; then DIR=/opt/tiko; else DIR="$HOME/tiko"; fi
   fi
   if grep -q '^TIKO_USAGE_STATS=false' "$DIR/.env" 2>/dev/null; then STATS=false; fi
+  # Tells a new install from a retry or a reinstall in the usage stats.
+  if [ -f "$DIR/.env" ]; then FRESH=false; else FRESH=true; fi
 }
 
 stats_notice() {
@@ -355,8 +359,8 @@ send_install_event() {
   updater=false
   if [ "$UPDATER" = yes ] || grep -q '^COMPOSE_PROFILES=.*updater' "$DIR/.env" 2>/dev/null; then updater=true; fi
   case "$(uname -s)" in Linux) os=linux ;; Darwin) os=darwin ;; *) os=other ;; esac
-  body=$(printf '{"kind":"install","schema":1,"version":%s,"os":"%s","arch":"%s","installer":"sh","updater":%s,"failed_step":%s}' \
-    "$(json_string "$installed")" "$os" "$arch" "$updater" "$(json_string "$1")")
+  body=$(printf '{"kind":"install","schema":2,"version":%s,"os":"%s","arch":"%s","installer":"sh","updater":%s,"fresh":%s,"failed_step":%s}' \
+    "$(json_string "$installed")" "$os" "$arch" "$updater" "$FRESH" "$(json_string "$1")")
   if has curl; then
     curl -fsS -m 3 -X POST -H 'Content-Type: application/json' -d "$body" "$STATS_URL" >/dev/null 2>&1 || true
   elif has wget; then

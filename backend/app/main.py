@@ -63,7 +63,7 @@ from app.domain.sessions import Sessions, iso
 from app.domain.settings import LockedField, SettingsService, normalize_base_url
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
-from app.domain.usage import Deploy, Privacy
+from app.domain.usage import Deploy, HostOs, Privacy
 from app.observability import (
     DEMO_LIMIT,
     DEMO_VISITORS,
@@ -135,15 +135,28 @@ def _arch() -> str:
     )
 
 
-async def ping_daily(privacy: Privacy, sleep=asyncio.sleep) -> None:
+def _host_os(settings: Settings) -> HostOs | None:
+    if settings.tiko_host_os:
+        return settings.tiko_host_os
+    # In a container set up by hand the host is unknown: Linux is only the container's.
+    if Path("/.dockerenv").exists():
+        return None
+    system = platform.system()
+    return {"Linux": "linux", "Darwin": "darwin", "Windows": "windows"}.get(system, "other")
+
+
+async def ping_daily(privacy: Privacy, sleep=asyncio.sleep, clock=time.time) -> None:
     await sleep(usage.FIRST_PING_S)
     while True:
-        try:
-            await anyio.to_thread.run_sync(privacy.send_ping)
-        except Exception:
-            # Usage stats never make noise in the log of the instance they describe.
-            log.debug("usage ping failed", exc_info=True)
-        await sleep(usage.PING_EVERY_S + random.uniform(0, usage.PING_JITTER_S))
+        left = await anyio.to_thread.run_sync(privacy.ping_due_in, clock())
+        if left <= 0:
+            try:
+                await anyio.to_thread.run_sync(privacy.send_ping, clock())
+            except Exception:
+                # Usage stats never make noise in the log of the instance they describe.
+                log.debug("usage ping failed", exc_info=True)
+            left = usage.PING_EVERY_S
+        await sleep(left + random.uniform(0, usage.PING_JITTER_S))
 
 
 def create_app(
@@ -350,6 +363,7 @@ def create_app(
         deploy,
         _arch(),
         updater=updater is not None,
+        os=_host_os(settings),
         usage_env=settings.tiko_usage_stats,
         errors_env=settings.tiko_error_reports,
         errors_dsn=settings.tiko_error_reports_dsn,

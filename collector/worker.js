@@ -7,6 +7,7 @@ const DEPLOY = ['installer', 'compose', 'railway', 'render', 'source', 'demo']
 const BUCKET = ['0', '1', '2-5', '6-20', '21-100', '100+']
 const TRACKER = ['demo', 'jira_dc', 'github']
 const STEP = ['docker-check', 'download', 'pull', 'start', 'health']
+const SCHEMAS = [1, 2]
 const VERSION = /^\d{4}\.\d{1,2}\.\d{1,3}$/
 const ARCH = /^[a-z0-9_]{1,16}$/
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -25,6 +26,7 @@ const FIELDS = {
     installer: oneOf(['sh', 'ps1']),
     updater: bool,
     failed_step: (v) => v === null || oneOf(STEP)(v),
+    fresh: bool,
   },
   ping: {
     instance_id: matches(UUID),
@@ -34,23 +36,33 @@ const FIELDS = {
     trackers: (v) => Array.isArray(v) && v.length <= TRACKER.length && v.every(oneOf(TRACKER)),
     people: oneOf(BUCKET),
     boards: oneOf(BUCKET),
+    boards_active: oneOf(BUCKET),
+    // Unknown when tiko runs in a container set up by hand.
+    os: (v) => v === null || oneOf(OS)(v),
     updater: bool,
   },
 }
 
+// Fields a schema 1 sender does not have; they are stored as null.
+const SINCE_2 = ['fresh', 'boards_active', 'os']
+
 /** The event to store, or null when it is not one of ours. */
 export function clean(body) {
-  if (!body || typeof body !== 'object' || body.schema !== 1) return null
+  if (!body || typeof body !== 'object' || !SCHEMAS.includes(body.schema)) return null
   const fields = FIELDS[body.kind]
   if (!fields) return null
   const payload = {}
   for (const [name, valid] of Object.entries(fields)) {
+    if (body.schema === 1 && SINCE_2.includes(name)) {
+      payload[name] = null
+      continue
+    }
     // A missing field is null: only the fields that allow null pass.
     const value = body[name] === undefined ? null : body[name]
     if (!valid(value)) return null
     payload[name] = value
   }
-  return { kind: body.kind, schema: 1, payload }
+  return { kind: body.kind, schema: body.schema, payload }
 }
 
 async function sql(env, query, params = []) {
