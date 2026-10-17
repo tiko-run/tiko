@@ -138,10 +138,16 @@ def test_a_parent_keeps_hidden_stages_outside_its_dates():
     assert content.rows[0].stages[0].id == "s1"
 
 
-def test_values_and_columns_are_optional():
+def test_values_columns_and_filters_are_optional():
     content = gantt(rows=[row("a")])
     dumped = content.model_dump(exclude_none=True)
     assert "values" not in dumped["rows"][0] and "columns" not in dumped
+    assert "filters" not in dumped
+
+
+def test_the_chart_keeps_its_filters():
+    filters = {"f7": ["Q4"], "team": ["Web"], "person": ["p5"]}
+    assert gantt(filters=filters).filters == filters
 
 
 def test_rows_keep_values_and_the_chart_its_columns():
@@ -160,6 +166,10 @@ def test_rows_keep_values_and_the_chart_its_columns():
         ({"rows": [row("a", values={str(i): "x" for i in range(21)})]}, "at most 20"),
         ({"columns": [str(i) for i in range(7)]}, "at most 6"),
         ({"columns": ["priority", "priority"]}, "duplicate column id priority"),
+        ({"filters": {"team": []}}, "at least 1 item"),
+        ({"filters": {"team": [""]}}, "at least 1 character"),
+        ({"filters": {"team": [str(i) for i in range(21)]}}, "at most 20"),
+        ({"filters": {str(i): ["x"] for i in range(21)}}, "at most 20"),
     ],
 )
 def test_value_and_column_rules(extra, reason):

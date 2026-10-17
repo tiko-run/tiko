@@ -35,11 +35,19 @@ const fieldSchema = z.object({
 })
 export type Field = z.infer<typeof fieldSchema>
 
+// Field id or "person" to the values a row must match, as a Gantt's `filters` keeps them.
+const filtersSchema = z.record(z.string(), z.array(z.string()))
+export type Filters = z.infer<typeof filtersSchema>
+
+const viewSchema = z.object({ id: z.string(), name: z.string(), filters: filtersSchema })
+export type SavedView = z.infer<typeof viewSchema>
+
 const planningSchema = z.object({
   enabled: z.boolean(),
   types: z.array(stageTypeSchema),
   people: z.array(personSchema),
   fields: z.array(fieldSchema),
+  views: z.array(viewSchema),
 })
 export type Planning = z.infer<typeof planningSchema>
 
@@ -114,6 +122,19 @@ export function changeField(id: string, change: { name?: string; archived?: bool
   })
 }
 
+export function addView(input: { name: string; filters: Filters }) {
+  return fetchJson('/api/planning/views', viewSchema, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function removeView(id: string) {
+  return fetchJson(`/api/planning/views/${encodeURIComponent(id)}`, z.null(), {
+    method: 'DELETE',
+  })
+}
+
 /** Marks a person away from `start` to `end`, both ISO days; answers with the person. */
 export function addTimeOff(personId: string, span: { start: string; end: string }) {
   return fetchJson(`/api/planning/people/${encodeURIComponent(personId)}/off`, personSchema, {
@@ -138,7 +159,7 @@ export function freeHue(types: StageType[]): Hue {
   return HUES.find((h) => !used.has(h)) ?? HUES[active.length % HUES.length]
 }
 
-function storeInList<K extends 'types' | 'people' | 'fields'>(
+function storeInList<K extends 'types' | 'people' | 'fields' | 'views'>(
   queryClient: QueryClient,
   list: K,
   saved: Planning[K][number],
@@ -168,6 +189,18 @@ export function storePerson(queryClient: QueryClient, saved: Person) {
 /** Puts a saved field into the cached list, in place or at the end. */
 export function storeField(queryClient: QueryClient, saved: Field) {
   storeInList(queryClient, 'fields', saved)
+}
+
+/** Puts a saved view at the end of the cached list. */
+export function storeView(queryClient: QueryClient, saved: SavedView) {
+  storeInList(queryClient, 'views', saved)
+}
+
+export function dropView(queryClient: QueryClient, id: string) {
+  queryClient.setQueryData<Planning>(
+    PLANNING_KEY,
+    (was) => was && { ...was, views: was.views.filter((view) => view.id !== id) },
+  )
 }
 
 /** Splits "Web, Core" into teams, as the person's teams field takes them. */

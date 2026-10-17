@@ -10,6 +10,7 @@ from app.domain.ports import (
     PlanningFieldRepo,
     PlanningPeopleRepo,
     PlanningTypeRepo,
+    PlanningViewRepo,
     SettingsRepo,
 )
 
@@ -25,6 +26,14 @@ Source = Literal["manual", "tracker"]
 
 MAX_OFF = 100
 MAX_FIELDS = 50
+MAX_VIEWS = 100
+# Mirror MAX_FILTERS and MAX_FILTER_VALUES in modules/gantt.py: a view is a Gantt's filters.
+MAX_FILTERS = 20
+MAX_FILTER_VALUES = 20
+FilterKey = Annotated[str, Field(min_length=1, max_length=40)]
+FilterValue = Annotated[str, Field(min_length=1, max_length=100)]
+FilterValues = Annotated[list[FilterValue], Field(min_length=1, max_length=MAX_FILTER_VALUES)]
+Filters = Annotated[dict[FilterKey, FilterValues], Field(max_length=MAX_FILTERS)]
 
 DEFAULT_TYPES: tuple[tuple[str, Hue], ...] = (
     ("Discovery", 75),
@@ -68,11 +77,20 @@ class PlanningField(BaseModel):
     archived: bool = False
 
 
+class SavedView(BaseModel):
+    """A named set of Gantt filters: field id or `person` to the values that match."""
+
+    id: str
+    name: str
+    filters: dict[str, list[str]]
+
+
 class PlanningView(BaseModel):
     enabled: bool
     types: list[StageType] = []
     people: list[PlanningPerson] = []
     fields: list[PlanningField] = []
+    views: list[SavedView] = []
 
 
 class BoardPlanning(BaseModel):
@@ -146,6 +164,13 @@ class FieldChange(BaseModel):
     archived: bool | None = None
 
 
+class ViewIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: FieldName
+    filters: Filters
+
+
 class Planning:
     """Planning mode: the instance switch and what every Gantt on the instance shares."""
 
@@ -155,6 +180,7 @@ class Planning:
         types: PlanningTypeRepo,
         people: PlanningPeopleRepo,
         fields: PlanningFieldRepo,
+        views: PlanningViewRepo,
         on_change: Callable[[], None] = lambda: None,
         new_id: Callable[[], str] = lambda: secrets.token_hex(6),
     ) -> None:
@@ -162,6 +188,7 @@ class Planning:
         self._types = types
         self._people = people
         self._fields = fields
+        self._views = views
         # Told after every write, so open Gantts reread the lists.
         self._on_change = on_change
         self._new_id = new_id
@@ -177,6 +204,7 @@ class Planning:
             types=self._types.all(),
             people=self._people.all(),
             fields=self._fields.all(),
+            views=self._views.all(),
         )
 
     def for_board(
@@ -274,6 +302,24 @@ class Planning:
         self._fields.update(changed)
         self._on_change()
         return changed
+
+    def add_view(self, body: ViewIn) -> SavedView:
+        self._require_enabled()
+        if body.name.casefold() in {v.name.casefold() for v in self._views.all()}:
+            raise ValidationFailed(f"A view named {body.name} already exists.")
+        view = SavedView(id=self._new_id(), name=body.name, filters=body.filters)
+        if not self._views.add(view, MAX_VIEWS):
+            if body.name.casefold() in {v.name.casefold() for v in self._views.all()}:
+                raise ValidationFailed(f"A view named {body.name} already exists.")
+            raise ValidationFailed(f"Planning can have up to {MAX_VIEWS} views.")
+        self._on_change()
+        return view
+
+    def remove_view(self, view_id: str) -> None:
+        self._require_enabled()
+        if not self._views.remove(view_id):
+            raise NotFound("No such view.")
+        self._on_change()
 
     def _check_field_name(self, name: str, own_id: str | None) -> None:
         taken = {f.name.casefold() for f in self._fields.all() if not f.archived and f.id != own_id}

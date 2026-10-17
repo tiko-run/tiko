@@ -48,9 +48,9 @@ Slice `gantt-fields`.
 
 Slice `gantt-views`.
 
-- [ ] T017 [US5] Backend: `planning_views`, endpoints; `filters` in Gantt content
-- [ ] T018 [US5] Gantt: filter chips and "+ Filter", matching with inherited values, comma parts, Team through people, parents kept; views as pills, "Save as view"
-- [ ] T019 [US5] Tests: each match rule, saved view on another board, reload; guide, changelog
+- [x] T017 [US5] Backend: `planning_views`, endpoints; `filters` in Gantt content
+- [x] T018 [US5] Gantt: filter chips and "+ Filter", matching with inherited values, comma parts, Team through people, parents kept; views as pills, "Save as view"
+- [x] T019 [US5] Tests: each match rule, saved view on another board, reload; guide, changelog
 
 ## Phase 6: User Story 6 - Plan in working days (P3)
 

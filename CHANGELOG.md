@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Planning mode for the Gantt, off by default: an admin turns it on in Settings → Planning, and rows can then be cut into stages such as Discovery, Build or On hold. Stage types are shared by every board.
 - People on Gantt stages in Planning mode: one list of people for the whole tiko, added by hand, on the fly from a stage, or picked from the assignees of the Gantt's tasks. Names show after the stage type or under each stage.
 - Columns in the Gantt in Planning mode: Priority, Size, Team and fields of your own, typed straight into the cells. An empty cell shows the parent row's value.
+- Filters and saved views in the Gantt in Planning mode: filter rows by any field or by person, with inherited values and teams counted through people on stages, and save a set of filters as a view every Gantt can use.
 - Time off for people in Planning mode: dates only, added in Settings or on a Time off lane in the Gantt. A stage whose person is away gets a red outline and says who is away.
 
 ### Changed

@@ -163,12 +163,14 @@ export function BoardCanvas({
             types: guestPlanning?.types ?? [],
             people: guestPlanning?.people ?? [],
             fields: guestPlanning?.fields ?? [],
+            views: [],
           }
         : {
             enabled: planningData?.enabled ?? false,
             types: planningData?.types ?? [],
             people: planningData?.people ?? [],
             fields: planningData?.fields ?? [],
+            views: planningData?.views ?? [],
           },
     [guest, guestPlanning, planningData],
   )

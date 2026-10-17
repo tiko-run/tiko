@@ -17,7 +17,7 @@ from app.domain.invites import Invite
 from app.domain.live import LiveDoc
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
-from app.domain.planning import PlanningField, PlanningPerson, StageType, TimeOff
+from app.domain.planning import PlanningField, PlanningPerson, SavedView, StageType, TimeOff
 from app.domain.tasks import Task, now_iso
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -552,6 +552,39 @@ class SqlitePlanningFieldRepo:
                 "UPDATE planning_fields SET name = ?, archived = ? WHERE id = ?",
                 (field.name, int(field.archived), field.id),
             )
+
+
+class SqlitePlanningViewRepo:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def all(self) -> list[SavedView]:
+        with self._db.read() as conn:
+            rows = conn.execute(
+                "SELECT id, name, filters FROM planning_views ORDER BY position"
+            ).fetchall()
+        return [
+            SavedView(id=r["id"], name=r["name"], filters=json.loads(r["filters"])) for r in rows
+        ]
+
+    def add(self, view: SavedView, limit: int) -> bool:
+        # The transaction holds the write lock, so the check and the insert see the same rows;
+        # names compare in Python because SQLite lower() folds ASCII only.
+        with self._db.transaction() as conn:
+            names = [r["name"] for r in conn.execute("SELECT name FROM planning_views")]
+            if len(names) >= limit or view.name.casefold() in {n.casefold() for n in names}:
+                return False
+            conn.execute(
+                "INSERT INTO planning_views (id, name, filters, position)"
+                " SELECT ?, ?, ?, COALESCE(MAX(position), 0) + 1 FROM planning_views",
+                (view.id, view.name, json.dumps(view.filters)),
+            )
+            return True
+
+    def remove(self, view_id: str) -> bool:
+        with self._db.transaction() as conn:
+            cursor = conn.execute("DELETE FROM planning_views WHERE id = ?", (view_id,))
+            return cursor.rowcount == 1
 
 
 class SqlitePlanningPeopleRepo:

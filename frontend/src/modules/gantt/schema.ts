@@ -39,6 +39,7 @@ export const ganttSchema = z.object({
   links: z.array(z.object({ id: z.string(), from: z.string(), to: z.string() })).default([]),
   people: z.enum(['inline', 'below']).optional(),
   columns: z.array(z.string()).optional(),
+  filters: z.record(z.string(), z.array(z.string())).optional(),
 })
 
 export type GanttContent = z.infer<typeof ganttSchema>

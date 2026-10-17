@@ -84,7 +84,7 @@ function Board({ start }: { start: GanttContent }) {
   )
 }
 
-const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [] }
+const OFF: PlanningState = { enabled: false, types: [], people: [], fields: [], views: [] }
 
 function renderGantt(
   host: Partial<ModuleHost> = {},
@@ -318,6 +318,7 @@ const PLANNING: PlanningState = {
   ],
   people: [],
   fields: [],
+  views: [],
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -746,6 +747,64 @@ test('a new field from the picker becomes a column', async () => {
     fireEvent.change(field, { target: { value: 'Budget code' } })
     fireEvent.submit(field)
     await vi.waitFor(() => expect(current().columns).toEqual(['f7', 'f9']))
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+const VIEWS: PlanningState = {
+  ...FIELDS,
+  fields: [...FIELDS.fields, { id: 'team', name: 'Team', standard: true, archived: false }],
+  views: [{ id: 'v1', name: 'Next quarter', filters: { f7: ['Q1'] } }],
+}
+
+test('no filter bar with Planning off', () => {
+  renderGantt({}, tree({ filters: { f7: ['Q1'] } }), OFF)
+  expect(document.querySelector('[data-gantt-filters]')).toBeNull()
+  expect(screen.getAllByText('Payment API').length).toBeGreaterThan(0)
+})
+
+test('a filter picked from "+ Filter" hides rows and shows a chip', () => {
+  renderGantt({}, tree(), VIEWS)
+  fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Quarter' }))
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Q4' }))
+  expect(current().filters).toEqual({ f7: ['Q4'] })
+  fireEvent.click(screen.getByRole('button', { name: 'Remove the Quarter filter' }))
+  expect(current()).not.toHaveProperty('filters')
+})
+
+test('a filter that matches nothing says so and keeps its chip', () => {
+  renderGantt({}, tree({ filters: { f7: ['Q3'] } }), VIEWS)
+  expect(screen.getByText('No tasks match these filters.')).toBeTruthy()
+  expect(screen.getByText('Quarter:')).toBeTruthy()
+  expect(screen.queryByLabelText('Quarter of Payment API')).toBeNull()
+})
+
+test('a saved view applies its filters, a second click shows every task', () => {
+  renderGantt({}, tree(), VIEWS)
+  fireEvent.click(screen.getByRole('button', { name: 'Next quarter' }))
+  expect(current().filters).toEqual({ f7: ['Q1'] })
+  expect(screen.queryByRole('button', { name: 'Save as view' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Next quarter', pressed: true }))
+  expect(current()).not.toHaveProperty('filters')
+})
+
+test('"Save as view" stores the filters for the instance', async () => {
+  const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+    Response.json({ id: 'v2', ...JSON.parse(String(init?.body)) }),
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  try {
+    renderGantt({}, tree({ filters: { f7: ['Q4'] } }), VIEWS)
+    fireEvent.click(screen.getByRole('button', { name: 'Save as view' }))
+    const name = screen.getByLabelText('View name')
+    fireEvent.change(name, { target: { value: 'Q4 plan' } })
+    fireEvent.submit(name)
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/planning/views')
+    expect(JSON.parse(String(init?.body))).toEqual({ name: 'Q4 plan', filters: { f7: ['Q4'] } })
   } finally {
     vi.unstubAllGlobals()
   }
