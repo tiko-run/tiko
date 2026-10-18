@@ -74,6 +74,15 @@ def test_admin_tests_a_cloud_url_before_saving(cloud):
     assert no_email.status_code == 422
 
 
+def test_cloud_credentials_never_go_over_plain_http(cloud, fake):
+    connect(cloud, base_url="http://example.atlassian.net")
+    fake.requests.clear()
+    refused = cloud.post("/api/settings/jira/test", json={})
+    assert refused.status_code == 422
+    assert "https" in refused.json()["error"]["message"]
+    assert all("authorization" not in r.headers for r in fake.requests)
+
+
 def test_secrets_stay_on_the_server(cloud):
     connect(cloud)
     text = cloud.get("/api/settings").text + cloud.get("/api/me/tracker").text

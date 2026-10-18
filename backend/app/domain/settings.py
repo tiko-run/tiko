@@ -335,6 +335,9 @@ class SettingsService:
         kind = self.jira_kind(url) or "dc"
         if kind == "dc":
             return JiraCredentials(base_url=url, token=secret)
+        # Basic auth carries the e-mail and token in every request, readable on plain HTTP.
+        if urlparse(url).scheme != "https":
+            raise ValidationFailed("base_url: Jira Cloud needs an https:// address")
         cloud_email = (email or "").strip() or stored_email
         if not cloud_email and plain is not None:
             raise ValidationFailed("email: enter the e-mail of your Atlassian account")
