@@ -43,3 +43,22 @@ export const FAQ = [
     a: 'Yes. tiko is free software under AGPL-3.0: run it on your own server for as many people as you like. A hosted tiko Cloud with a free plan is coming.',
   },
 ]
+
+// Our own copy only: wraps the product name for `.tiko` in set:html.
+export const brand = (text: string) => text.replace(/\btiko\b/g, '<b class="tiko">tiko</b>')
+
+// Trackers for the landing page: `live` ones work today, the rest are on the way.
+export const TRACKERS = [
+  { id: 'jira', name: 'Jira', live: true },
+  { id: 'github', name: 'GitHub', live: true },
+  { id: 'linear', name: 'Linear' },
+  { id: 'gitlab', name: 'GitLab' },
+  { id: 'plane', name: 'Plane' },
+  { id: 'notion', name: 'Notion' },
+  { id: 'todoist', name: 'Todoist' },
+  { id: 'ticktick', name: 'TickTick' },
+  { id: 'trello', name: 'Trello' },
+  { id: 'clickup', name: 'ClickUp' },
+  { id: 'asana', name: 'Asana' },
+  { id: 'confluence', name: 'Confluence' },
+]

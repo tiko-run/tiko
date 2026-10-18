@@ -1,0 +1,34 @@
+---
+// A tracker's logo, unchanged: Jira and GitHub from the web app's own files, the rest from
+// simple-icons in their brand color. Near-black marks follow the text color, as GitHub's does.
+import { readFileSync } from 'node:fs'
+import Mark from './Mark.astro'
+
+interface Props {
+  id: string
+  size?: number
+}
+const { id, size = 18 } = Astro.props
+const own = id === 'jira' || id === 'github'
+
+let path = ''
+let fill = 'currentColor'
+if (!own) {
+  const svg = readFileSync(`node_modules/simple-icons/icons/${id}.svg`, 'utf8')
+  path = svg.match(/<path d="([^"]+)"/)?.[1] ?? ''
+  const icons = (await import('simple-icons')) as unknown as Record<string, { slug: string; hex: string }>
+  const hex = Object.values(icons).find((icon) => icon?.slug === id)?.hex ?? '000000'
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  if (0.2126 * r + 0.7152 * g + 0.0722 * b > 0.18) fill = `#${hex}`
+}
+---
+
+{
+  own ? (
+    <Mark tracker={id as 'jira' | 'github'} size={size} />
+  ) : (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path d={path} fill={fill} />
+    </svg>
+  )
+}

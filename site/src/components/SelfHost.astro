@@ -1,7 +1,9 @@
 ---
-import { DOCS, INSTALL_PS1, INSTALL_SH } from '../data/site'
+import { DOCS, INSTALL_PS1, INSTALL_SH, TRACKERS } from '../data/site'
+import Brand from './Brand.astro'
 import Command from './Command.astro'
 import Icon from './Icon.astro'
+import Logo from './Logo.astro'
 import Waitlist from './Waitlist.astro'
 
 const points = [
@@ -39,26 +41,42 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
       <div class="reveal"><Waitlist source="self-host" /></div>
     </div>
 
-    <ul class="points reveal">
-      {
-        points.map(({ icon, title, text, href }) => (
-          <li>
-            <h3><Icon name={icon} size={16} />{title}</h3>
-            <p>
-              {text}{' '}
-              {href && <a class="link" href={href}>What is sent</a>}
-            </p>
-          </li>
-        ))
-      }
-    </ul>
+    <!-- Where things live, drawn as a small map: your server as a frame, the tracker and the
+         daily ping outside it. -->
+    <div class="map reveal">
+      <div class="server">
+        <span class="frame-title">Your server</span>
+        <div class="app"><Brand mark="emblem" height={22} /><b class="tiko">tiko</b><small>in Docker</small></div>
+        <ul class="inside">
+          {
+            [points[0], points[1]].map(({ icon, title, text }) => (
+              <li class="node">
+                <h3><Icon name={icon} size={16} />{title}</h3>
+                <p>{text}</p>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <ul class="outside">
+        <li class="node tracker">
+          <h3><Icon name={points[2].icon} size={16} />{points[2].title}</h3>
+          <p>{points[2].text}</p>
+          <span class="logos" aria-hidden="true">{TRACKERS.filter((t) => t.live).map((t) => <Logo id={t.id} size={16} />)}</span>
+        </li>
+        <li class="node ping">
+          <h3><Icon name={points[3].icon} size={16} />{points[3].title}</h3>
+          <p>{points[3].text} <a class="link" href={points[3].href}>What is sent</a></p>
+        </li>
+      </ul>
+    </div>
   </div>
 </section>
 
 <style>
   .cols {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: clamp(2rem, 6vw, 5rem);
     align-items: start;
   }
@@ -84,23 +102,124 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
     font-size: 0.9375rem;
     color: var(--muted-foreground);
   }
-  .points {
+  /* The map: a frame for the server, nodes inside and outside, joined by connectors. */
+  .map {
+    --gap: 3rem;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    overflow: hidden;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--gap);
+    margin-top: 2.5rem;
+  }
+  .server {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.25rem;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--border);
+    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), var(--background));
   }
-  @media (max-width: 480px) {
-    .points {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  .frame-title {
+    position: absolute;
+    left: 4px;
+    bottom: calc(100% + 6px);
+    font-size: 0.9375rem;
+    font-weight: 600;
   }
-  .points li {
-    padding: 1.25rem;
+  .app {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-self: start;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .app small {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+  .inside {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+    padding-left: 1.5rem;
+  }
+  /* A line from tiko down to what it keeps on the server. */
+  .inside::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: -1.25rem;
+    bottom: 2.5rem;
+    border-left: 1.5px solid var(--muted-foreground);
+    opacity: 0.5;
+  }
+  .inside .node::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 1.4rem;
+    width: 1rem;
+    border-top: 1.5px solid var(--muted-foreground);
+    opacity: 0.5;
+  }
+  .outside {
+    display: grid;
+    align-content: space-between;
+    gap: 1.25rem;
+  }
+  .node {
+    position: relative;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  /* Connectors out of the frame: solid to the tracker, dashed for the ping. */
+  .outside .node::before {
+    content: '';
+    position: absolute;
+    right: calc(100% + 1px);
+    top: 1.4rem;
+    width: var(--gap);
+    border-top: 1.5px solid var(--muted-foreground);
+    opacity: 0.6;
+  }
+  .outside .node::after {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: calc(1.4rem - 4px);
+    border: 4.5px solid transparent;
+    border-left-color: var(--muted-foreground);
+    opacity: 0.6;
+  }
+  .outside .ping {
+    border-style: dashed;
+    box-shadow: none;
+  }
+  .outside .ping::before {
+    border-top-style: dashed;
+  }
+  .logos {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 640px) {
+    .map {
+      grid-template-columns: minmax(0, 1fr);
+      --gap: 1.25rem;
+    }
+    .outside .node::before,
+    .outside .node::after {
+      display: none;
+    }
   }
   h3 {
     display: flex;
@@ -112,7 +231,7 @@ const RENDER = 'https://render.com/deploy?repo=https://github.com/tiko-run/tiko'
   h3 :global(svg) {
     color: var(--muted-foreground);
   }
-  .points p {
+  .node p {
     margin-top: 0.375rem;
     font-size: 0.875rem;
     color: var(--muted-foreground);

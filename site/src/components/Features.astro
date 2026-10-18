@@ -7,7 +7,7 @@ import Icon from './Icon.astro'
 
 <section class="section" id="features">
   <div class="wrap">
-    <h2 class="h2 reveal">Your tracker keeps the tasks. tiko gives them a place.</h2>
+    <h2 class="h2 reveal">Your tracker keeps the tasks. <b class="tiko">tiko</b> gives them a place.</h2>
     <p class="lead reveal">
       Lists and columns hide how work fits together. On a canvas you group it, plan it and see
       what is waiting on what, with statuses that are never out of date.
@@ -19,14 +19,14 @@ import Icon from './Icon.astro'
           <div class="art live">
             <span class="chip"><i></i>Synced just now</span>
             <div class="fc" style="--y:44px">
-              <span class="ty story"></span><span class="k">APP-112</span>Retry payments<span class="lz progress">In progress</span>
+              <span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-112</span>Retry payments<span class="lz progress">In progress</span>
             </div>
             <div class="fc turning" style="--y:88px">
-              <span class="ty task"></span><span class="k">APP-118</span>Billing cron
+              <span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Billing cron
               <span class="swap"><span class="lz progress">In review</span><span class="lz done">Done</span></span>
             </div>
             <div class="fc" style="--y:132px">
-              <span class="ty bug"></span><span class="k">APP-127</span>Flaky login test<span class="lz">To do</span>
+              <span class="ty"><Icon name="bug" size={14} /></span><span class="k">APP-127</span>Flaky login test<span class="lz">To do</span>
             </div>
           </div>
         </div>
@@ -57,10 +57,10 @@ import Icon from './Icon.astro'
         <div class="visual dots" aria-hidden="true">
           <div class="art plan">
             <div class="gm">
-              <div class="gm-head">Oct<span>5</span><span>12</span><span>19</span><span>26</span></div>
-              <div class="gm-row"><i class="progress" style="--l:6%;--w:38%"></i></div>
-              <div class="gm-row"><i class="done" style="--l:24%;--w:34%;--t:0.25s"></i></div>
-              <div class="gm-row"><i style="--l:60%;--w:30%;--t:0.5s"></i></div>
+              <div class="gm-head">Oct<span>5–11</span><span>12–18</span><span>19–25</span><span>26–1</span></div>
+              <div class="gm-row"><i class="progress" style="--l:2%;--w:58%"><Icon name="bookmark" size={14} /><span>APP-112 Retry payments</span></i></div>
+              <div class="gm-row"><i class="done" style="--l:28%;--w:52%;--t:0.25s"><Icon name="square-check" size={14} /><span>APP-118 Billing cron</span></i></div>
+              <div class="gm-row"><i style="--l:60%;--w:39%;--t:0.5s"><Icon name="square-check" size={14} /><span>APP-121 Notes</span></i></div>
               <span class="gm-today"></span>
               <span class="gm-stone"></span>
             </div>
@@ -76,13 +76,14 @@ import Icon from './Icon.astro'
       <article class="tile reveal">
         <div class="visual dots" aria-hidden="true">
           <div class="art wait">
-            <span class="cube"><span class="run"><Icon name="alarm-clock" size={14} />2m</span><span class="fired"><Icon name="bell" size={18} /></span></span>
+            <span class="cube"><span class="run"><Icon name="alarm-clock" size={14} />2m</span><span class="fired"><Icon name="bell-ring" size={14} /></span></span>
             <div class="fc" style="--x:74px;--y:52px">
-              <span class="ty task"></span><span class="k">APP-118</span>Billing cron<span class="lz progress">In review</span>
+              <span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Billing cron<span class="lz progress">In review</span>
             </div>
             <div class="went">
-              <b>Ping QA about the cron</b>
-              <small>On APP-118 · Went off at 15:30</small>
+              <span class="went-cube"><Icon name="bell-ring" size={14} /></span>
+              <span><b>Ping QA about the cron</b><small>On APP-118 · Went off at 15:30</small></span>
+              <span class="went-act"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
             </div>
           </div>
         </div>
@@ -98,9 +99,9 @@ import Icon from './Icon.astro'
           <div class="art find">
             <div class="pal">
               <div class="pal-in"><Icon name="search" size={14} /><span class="typing">billing</span><i></i></div>
-              <div class="pal-row on"><span class="ty task"></span><span class="k">APP-118</span><span><mark>Billing</mark> cron</span><small>In review</small></div>
-              <div class="pal-row"><span class="ty story"></span><span class="k">APP-131</span><span>New <mark>billing</mark> page</span><small>To do</small></div>
-              <div class="pal-row"><Icon name="sticky-note" size={13} /><span>Ask finance about <mark>billing</mark></span></div>
+              <div class="pal-row on"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span><span><mark>Billing</mark> cron</span><small>In Review · Anna Lee</small></div>
+              <div class="pal-row"><span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-131</span><span>New <mark>billing</mark> page</span><small>To do</small></div>
+              <div class="pal-row"><span class="ty"><Icon name="sticky-note" size={14} /></span><span>Ask finance about <mark>billing</mark></span><small>in Ideas</small></div>
             </div>
           </div>
         </div>
@@ -114,12 +115,13 @@ import Icon from './Icon.astro'
       <article class="tile reveal" style="--d:0.16s">
         <div class="visual dots" aria-hidden="true">
           <div class="art team">
-            <span class="faces"><i style="--c:oklch(0.62 0.19 330)">A</i><i style="--c:oklch(0.62 0.16 160)">M</i><i style="--c:oklch(0.6 0.15 250)">K</i></span>
+            <span class="faces"><i style="--c:var(--p-anna)">AL</i><i style="--c:var(--p-max)">MK</i><i style="--c:var(--p-kim)">KS</i></span>
             <div class="fc held" style="--x:52px;--y:84px">
-              <span class="ty story"></span><span class="k">APP-112</span>Retry failed payments
+              <span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-112</span>Retry failed payments
+              <span class="held-by">AL</span>
             </div>
-            <span class="ptr anna"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Anna</b></span>
-            <span class="ptr max"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Max</b></span>
+            <span class="ptr anna"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><span class="tag"><i>AL</i><b>Anna</b></span></span>
+            <span class="ptr max"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><span class="tag"><i>MK</i><b>Max</b></span></span>
           </div>
         </div>
         <div class="body">
@@ -202,7 +204,22 @@ import Icon from './Icon.astro'
     margin: -100px 0 0 -160px;
     font-size: 13px;
     line-height: 1.35;
+    --r-md: 4.8px;
+    --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+    --p-anna: oklch(0.58 0.17 340);
+    --p-max: oklch(0.58 0.17 165);
+    --p-kim: oklch(0.58 0.17 255);
+    --tint: 60%;
   }
+  :global(:root[data-theme='dark']) .art {
+    --tint: 20%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .art {
+      --tint: 20%;
+    }
+  }
+  /* Task card as TaskCardNode draws it: muted type icon, key, title, status in one line. */
   .fc {
     position: absolute;
     left: var(--x, 24px);
@@ -210,26 +227,22 @@ import Icon from './Icon.astro'
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 8px;
+    padding: 4px 8px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: var(--card);
+    line-height: 20px;
     white-space: nowrap;
   }
   .ty {
+    display: grid;
     flex: none;
+    place-items: center;
+    color: var(--muted-foreground);
+  }
+  .ty :global(svg) {
     width: 14px;
     height: 14px;
-    border-radius: 3px;
-  }
-  .story {
-    background: var(--type-story);
-  }
-  .task {
-    background: var(--type-task);
-  }
-  .bug {
-    background: var(--type-bug);
   }
   .k {
     font-family: var(--mono);
@@ -237,8 +250,9 @@ import Icon from './Icon.astro'
     color: var(--primary);
   }
   .lz {
-    padding: 1px 5px;
+    padding-inline: 4px;
     border-radius: 3px;
+    line-height: 16px;
     background: var(--todo);
     color: var(--todo-fg);
     font-size: 11px;
@@ -314,7 +328,6 @@ import Icon from './Icon.astro'
     48%,
     94% {
       text-decoration-color: currentColor;
-      color: var(--muted-foreground);
     }
     100% {
       text-decoration-color: transparent;
@@ -352,27 +365,29 @@ import Icon from './Icon.astro'
     position: absolute;
     inset: 44px 30px 22px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+    border-radius: var(--r-md);
+    background: color-mix(in oklch, var(--sticky-green) var(--tint), transparent);
   }
   .fr b {
     position: absolute;
-    left: 2px;
+    left: 0;
     bottom: calc(100% + 4px);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
   }
   .st {
     position: absolute;
     left: 54px;
     top: 68px;
-    width: 86px;
+    width: 90px;
     height: 86px;
-    padding: 9px;
-    border-radius: 3px;
+    padding: 12px;
+    border-radius: var(--r-md);
     color: var(--sticky-foreground);
+    font-size: 14px;
     font-style: normal;
-    box-shadow: 0 1px 3px oklch(0.2 0.02 260 / 0.12);
+    line-height: 1.35;
   }
   .yellow {
     background: var(--sticky-yellow);
@@ -387,7 +402,7 @@ import Icon from './Icon.astro'
     left: 44px;
     right: 44px;
     top: 68px;
-    border-top: 1px dashed var(--primary);
+    border-top: 1px solid var(--primary);
     animation: guide 6.5s infinite;
   }
   @keyframes slide {
@@ -424,7 +439,7 @@ import Icon from './Icon.astro'
     inset: 24px 16px 20px;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--card);
   }
   .gm-head {
@@ -446,25 +461,48 @@ import Icon from './Icon.astro'
     height: 36px;
     margin-left: 52px;
   }
+  /* Bars as GanttBar draws them: 20 px, radius 4, the type icon and the label inside. */
   .gm-row i {
     position: absolute;
     left: var(--l);
     top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     width: var(--w);
     height: 20px;
+    padding-inline: 6px;
+    overflow: hidden;
     border-radius: 4px;
     background: var(--todo);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+    color: var(--todo-fg);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
     transform-origin: left;
     animation: grow 7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--t, 0s) infinite both;
   }
+  .gm-row i :global(svg) {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    opacity: 0.8;
+  }
+  .gm-row i span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .gm-row .progress {
     background: var(--progress);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+    color: var(--progress-fg);
   }
   .gm-row .done {
     background: var(--done);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+    color: var(--done-fg);
+    text-decoration: line-through;
   }
   .gm-today {
     position: absolute;
@@ -478,8 +516,9 @@ import Icon from './Icon.astro'
     position: absolute;
     right: 20px;
     bottom: 7px;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 1px;
     background: var(--foreground);
     transform: rotate(45deg);
   }
@@ -509,13 +548,14 @@ import Icon from './Icon.astro'
     display: grid;
     width: 40px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--timer);
     color: var(--timer-foreground);
     font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1;
+    box-shadow: 0 1px 2px oklch(0.3 0.07 60 / 0.25);
     animation: fire 7s infinite;
   }
   .cube span {
@@ -523,6 +563,12 @@ import Icon from './Icon.astro'
     display: grid;
     place-items: center;
     align-content: center;
+    gap: 2px;
+  }
+  .cube :global(svg) {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
   }
   .cube .fired {
     animation: appear 7s infinite;
@@ -530,25 +576,62 @@ import Icon from './Icon.astro'
   .cube .run {
     animation: appear 7s infinite reverse;
   }
+  /* The note of a timer that went off, as TimerNotes draws it. */
   .went {
     position: absolute;
     left: 28px;
     right: 28px;
-    top: 112px;
-    padding: 9px 12px;
+    top: 104px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 8px;
+    padding: 8px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
     animation: appear 7s infinite;
+  }
+  .went-cube {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--r-md);
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+  }
+  .went-cube :global(svg) {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
   }
   .went b {
     display: block;
     font-weight: 500;
   }
   .went small {
+    display: block;
     font-size: 12px;
     color: var(--muted-foreground);
+  }
+  .went-act {
+    grid-column: 2;
+    display: flex;
+    gap: 4px;
+  }
+  .went-act i {
+    height: 24px;
+    padding-inline: 8px;
+    border-radius: var(--r-md);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 24px;
+  }
+  .went-act .primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
   @keyframes fire {
     0%,
@@ -569,31 +652,34 @@ import Icon from './Icon.astro'
   /* Find: the palette with a query being typed. */
   .pal {
     position: absolute;
-    inset: 20px 14px auto;
+    inset: 16px 10px auto;
     padding-bottom: 6px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 6px;
     background: var(--card);
-    box-shadow: var(--shadow);
+    box-shadow: 0 20px 25px -5px oklch(0 0 0 / 0.1), 0 8px 10px -6px oklch(0 0 0 / 0.1);
   }
+  /* Search palette rows: 36 px, kind icon, key, the text cut around the match, muted context. */
   .pal-in {
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 40px;
+    height: 48px;
     margin-bottom: 6px;
-    padding-inline: 12px;
+    padding-inline: 14px;
     border-bottom: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 15px;
     color: var(--muted-foreground);
+  }
+  .pal-in :global(svg) {
+    width: 16px;
+    height: 16px;
   }
   .typing {
     display: inline-block;
-    width: 7ch;
+    width: 3.3em;
     overflow: hidden;
     color: var(--foreground);
-    font-family: var(--mono);
-    font-size: 13px;
     white-space: nowrap;
     animation: typing 6s steps(7) infinite;
   }
@@ -608,7 +694,7 @@ import Icon from './Icon.astro'
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 32px;
+    height: 36px;
     margin-inline: 6px;
     padding-inline: 8px;
     border-radius: 6px;
@@ -636,7 +722,7 @@ import Icon from './Icon.astro'
     }
     35%,
     100% {
-      width: 7ch;
+      width: 3.3em;
     }
   }
   @keyframes blink {
@@ -657,27 +743,41 @@ import Icon from './Icon.astro'
     place-items: center;
     width: 24px;
     height: 24px;
-    margin-left: -6px;
-    border: 2px solid var(--background);
+    margin-left: -4px;
     border-radius: 50%;
     background: var(--c);
-    color: white;
-    font-size: 11px;
+    box-shadow: 0 0 0 2px var(--card);
+    color: oklch(0.99 0 0);
+    font-size: 10px;
     font-style: normal;
     font-weight: 600;
   }
+  /* Someone else's selection: a 2 px outline in their color inside the element, their avatar on the corner. */
   .held {
-    outline: 2px solid oklch(0.62 0.19 330);
-    outline-offset: 1px;
+    outline: 2px solid var(--p-anna);
+    outline-offset: -2px;
     animation: carry 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .held-by {
+    position: absolute;
+    right: -8px;
+    top: -8px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--p-anna);
+    box-shadow: 0 0 0 1px var(--card);
+    color: oklch(0.99 0 0);
+    font-size: 7px;
+    font-weight: 600;
   }
   .ptr {
     position: absolute;
     left: 0;
     top: 0;
-    display: flex;
-    align-items: flex-start;
-    --c: oklch(0.62 0.19 330);
+    --c: var(--p-anna);
   }
   .ptr svg {
     width: 16px;
@@ -686,21 +786,43 @@ import Icon from './Icon.astro'
     stroke: var(--card);
     stroke-width: 1;
   }
-  .ptr b {
-    margin: 12px 0 0 -2px;
-    padding: 1px 6px;
-    border-radius: 4px;
+  .tag {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tag i {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
     background: var(--c);
-    color: white;
+    box-shadow: 0 0 0 1px var(--card);
+    color: oklch(0.99 0 0);
+    font-size: 8px;
+    font-style: normal;
+    font-weight: 600;
+  }
+  .tag b {
+    padding: 2px 4px;
+    border-radius: 3.6px;
+    background: var(--c);
+    color: oklch(0.99 0 0);
     font-size: 11px;
     font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
   }
   .anna {
     transform: translate(196px, 100px);
     animation: anna 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
   .max {
-    --c: oklch(0.62 0.16 160);
+    --c: var(--p-max);
     transform: translate(70px, 160px);
     animation: max 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }

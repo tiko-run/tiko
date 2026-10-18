@@ -1,8 +1,29 @@
 ---
-// Prototype feature block: a frame on the page's canvas with a large live drawing. The status
-// flip and the arrow play once when the frame scrolls into view.
-import { DOCS } from '../../data/site'
+// Prototype feature block: tasks from many trackers flow through tiko onto one board. The
+// markup is the finished board; the loop plays only when the frame is in view and motion is on.
+import { DOCS, TRACKERS } from '../../data/site'
+import Brand from '../Brand.astro'
 import Icon from '../Icon.astro'
+import Logo from '../Logo.astro'
+
+const tile = (t: number) => ({ x: 42 + 52 * (t % 3), y: 78 + 52 * Math.floor(t / 3) })
+const pick = (id: string) => TRACKERS.findIndex((t) => t.id === id)
+
+const cards = [
+  { src: 'jira', k: 'APP-112', title: 'Retry payments', type: 'story', s: 'progress', flip: true },
+  { src: 'github', k: 'web#214', title: 'Docs dark theme', type: 'task', s: 'review' },
+  { src: 'linear', k: 'MOB-31', title: 'Crash on login', type: 'bug', s: 'todo' },
+  { src: 'gitlab', k: 'ops!7', title: 'Rotate the certificates', type: 'task', s: 'progress' },
+  { src: 'notion', k: 'Q4', title: 'Hire a product designer', type: 'story', s: 'todo' },
+  { src: 'todoist', k: '#me', title: 'Book the offsite venue', type: 'task', s: 'done' },
+].map((card, i) => ({ ...card, from: tile(pick(card.src)), y: 48 + 46 * i }))
+
+const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
+const wire = (t: number) => {
+  const { x, y } = tile(t)
+  return `M${x + 22} ${y} C ${x + 70} ${y}, 170 168, 206 168`
+}
 ---
 
 <section class="frame-sec" id="live-cards">
@@ -14,40 +35,90 @@ import Icon from '../Icon.astro'
     <div class="frame">
       <span class="frame-title">Live cards</span>
       <div class="copy">
-        <h2 class="h2">Jira and GitHub issues as live cards on a whiteboard</h2>
+        <h2 class="h2">Tasks from all your trackers as live cards on one whiteboard</h2>
         <p class="lead">
-          Add tasks by key, link or query. Each card shows the status from your tracker and
-          refreshes on its own, so the board is never a stale screenshot of last week.
+          Jira and GitHub connect today, with Linear, GitLab, Notion and more on the way. Each card
+          shows the status from its own tracker and refreshes on its own, so the board is never a
+          stale screenshot of last week.
         </p>
         <ul class="points">
-          <li><Icon name="check" size={16} /><span>Paste <code>APP-112</code>, a link or a JQL query</span></li>
+          <li><Icon name="check" size={16} /><span>Paste a key, a link or a query</span></li>
           <li><Icon name="check" size={16} /><span>Status, assignee and type, refreshed every 30 seconds</span></li>
-          <li><Icon name="check" size={16} /><span>Your tracker stays the source of truth</span></li>
+          <li><Icon name="check" size={16} /><span>Mix trackers on one board, each card keeps its source</span></li>
         </ul>
         <a class="more" href={`${DOCS}/adding-tasks/`}>Adding tasks <Icon name="arrow-right" /></a>
       </div>
 
-      <div class="visual dots" aria-hidden="true">
-        <span class="chip"><i></i>Synced just now</span>
-        <div class="cards">
-          <span class="fc"><span class="ty story"></span><b>APP-112</b><span class="t">Retry failed payments</span><span class="lz progress">In progress</span></span>
-          <span class="fc flip">
-            <span class="ty task"></span><b>APP-118</b><span class="t">Move billing cron to a queue</span>
-            <span class="swap"><span class="lz progress">In review</span><span class="lz done">Done</span></span>
-          </span>
-          <span class="fc"><span class="ty task"></span><b>APP-121</b><span class="t">Release notes for 2.4</span><span class="lz">To do</span></span>
-          <span class="fc"><span class="ty bug"></span><b>APP-127</b><span class="t">Flaky login test</span><span class="lz">To do</span></span>
+      <div class="stage" aria-hidden="true">
+        <div class="visual" data-flow>
+          <svg class="wires" viewBox="0 0 620 380">
+            {TRACKERS.map((_, t) => <path d={wire(t)} />)}
+            <path class="out" d="M268 168 H 290" />
+            <path class="out head" d="M284 162 L291 168 L284 174" />
+          </svg>
+
+          <span class="label">Your trackers</span>
+          {
+            TRACKERS.map((t, i) => (
+              <span class:list={['tile', { soon: !t.live }]} style={`--x:${tile(i).x - 22};--y:${tile(i).y - 22}`} title={t.name}>
+                <Logo id={t.id} size={22} />
+              </span>
+            ))
+          }
+          <span class="legend"><i class="on"></i>Works today<i></i>On the way</span>
+
+          <span class="hub"><Brand mark="emblem" height={30} /></span>
+
+          <div class="board dots">
+            <span class="sync"><i></i>Synced just now</span>
+          </div>
+
+          {
+            cards.map((c, i) => (
+              <>
+                <i class="dot" style={`--i:${i};--sx:${c.from.x};--sy:${c.from.y};--ey:${c.y + 18}`} />
+                <span class="card" data-status={c.s} style={`--i:${i};--y:${c.y}`}>
+                  <Logo id={c.src} size={14} />
+                  <span class="ty"><Icon name={TYPE_ICON[c.type as keyof typeof TYPE_ICON]} size={10} /></span>
+                  <b>{c.k}</b>
+                  <span class="t">{c.title}</span>
+                  {c.flip ? (
+                    <span class="swap"><span class="lz progress a">In progress</span><span class="lz done b">Done</span></span>
+                  ) : (
+                    <span class="lz">{STATUS[c.s as keyof typeof STATUS]}</span>
+                  )}
+                </span>
+              </>
+            ))
+          }
         </div>
-        <i class="st">Moved to Done in Jira. Nobody touched the board.</i>
-        <svg class="arrow" viewBox="0 0 100 120" aria-hidden="true">
-          <path d="M70 116 C 78 80, 60 30, 14 8" />
-          <path class="head" d="M26 2 L13 8 L22 19" />
-        </svg>
-        <span class="ptr"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Anna</b></span>
       </div>
     </div>
   </div>
 </section>
+
+<script>
+  // Plays the flow while the frame is in view, then starts over after a pause.
+  const flow = document.querySelector<HTMLElement>('[data-flow]')
+  if (flow && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let seen = false
+    let timer = 0
+    const play = () => {
+      flow.classList.remove('play')
+      void flow.offsetWidth
+      flow.classList.add('play')
+      timer = window.setTimeout(() => (seen ? play() : flow.classList.remove('play')), 14000)
+    }
+    new IntersectionObserver(([entry]) => {
+      seen = entry.isIntersecting
+      if (seen && !flow.classList.contains('play')) play()
+      if (!seen) {
+        clearTimeout(timer)
+        flow.classList.remove('play')
+      }
+    }, { threshold: 0.4 }).observe(flow)
+  }
+</script>
 
 <style>
   .frame-sec {
@@ -68,7 +139,7 @@ import Icon from '../Icon.astro'
   .frame {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr 1.15fr;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: clamp(2rem, 5vw, 4rem);
     align-items: center;
     padding: clamp(1.5rem, 4vw, 3.5rem);
@@ -94,173 +165,332 @@ import Icon from '../Icon.astro'
   }
   .points li {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
   }
   .points :global(svg) {
+    flex: none;
+    margin-top: 0.3em;
     color: var(--sync-ok);
   }
 
+  /* One unit is a pixel of a 620×380 drawing, scaled to the column. */
+  .stage {
+    container-type: inline-size;
+  }
   .visual {
+    --u: calc(100cqw / 620);
     position: relative;
-    min-height: 360px;
-    overflow: hidden;
+    aspect-ratio: 620 / 380;
+    font-size: calc(12 * var(--u));
+    line-height: 1.3;
+  }
+  .wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+    opacity: 0.45;
+  }
+  .wires .out {
+    stroke-dasharray: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 1;
+  }
+  .label {
+    position: absolute;
+    left: calc(20 * var(--u));
+    top: calc(22 * var(--u));
+    font-size: calc(13 * var(--u));
+    font-weight: 600;
+  }
+  .tile {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    display: grid;
+    place-items: center;
+    width: calc(44 * var(--u));
+    height: calc(44 * var(--u));
     border: 1px solid var(--border);
-    border-radius: 12px;
-    background-color: var(--background);
+    border-radius: calc(10 * var(--u));
+    background: var(--card);
     box-shadow: var(--shadow);
   }
-  .chip {
+  .tile :global(svg) {
+    width: calc(22 * var(--u));
+    height: calc(22 * var(--u));
+  }
+  .tile.soon {
+    border-style: dashed;
+    box-shadow: none;
+  }
+  .tile.soon :global(svg) {
+    opacity: 0.75;
+  }
+  .legend {
     position: absolute;
-    right: 18px;
-    top: 16px;
+    left: calc(20 * var(--u));
+    top: calc(278 * var(--u));
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.8125rem;
+    gap: calc(6 * var(--u));
+    font-size: calc(11 * var(--u));
     color: var(--muted-foreground);
   }
-  .chip i {
-    width: 9px;
-    height: 9px;
+  .legend i {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+    border: 1px dashed var(--muted-foreground);
+    border-radius: calc(3 * var(--u));
+  }
+  .legend i:not(:first-child) {
+    margin-left: calc(8 * var(--u));
+  }
+  .legend i.on {
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .hub {
+    position: absolute;
+    left: calc(206 * var(--u));
+    top: calc(138 * var(--u));
+    display: grid;
+    place-items: center;
+    width: calc(60 * var(--u));
+    height: calc(60 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(14 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .hub :global(svg) {
+    width: auto;
+    height: calc(30 * var(--u));
+  }
+  .board {
+    position: absolute;
+    left: calc(296 * var(--u));
+    top: calc(14 * var(--u));
+    width: calc(316 * var(--u));
+    height: calc(352 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(12 * var(--u));
+    background-color: var(--background);
+    background-size: calc(16 * var(--u)) calc(16 * var(--u));
+    box-shadow: var(--shadow);
+  }
+  .sync {
+    position: absolute;
+    right: calc(10 * var(--u));
+    top: calc(8 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(5 * var(--u));
+    font-size: calc(10 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .sync i {
+    width: calc(7 * var(--u));
+    height: calc(7 * var(--u));
     border-radius: 50%;
     background: var(--sync-ok);
   }
-  .cards {
+
+  .card {
     position: absolute;
-    left: 7%;
-    top: 64px;
-    display: grid;
-    gap: 10px;
-    width: 72%;
-  }
-  .fc {
+    left: calc(306 * var(--u));
+    top: calc(var(--y) * var(--u));
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
+    gap: calc(5 * var(--u));
+    width: calc(296 * var(--u));
+    height: calc(36 * var(--u));
+    padding-inline: calc(8 * var(--u));
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: calc(4.8 * var(--u));
     background: var(--card);
-    font-size: 0.875rem;
     white-space: nowrap;
   }
-  .fc b {
+  .card > :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .card b {
+    flex: none;
     font-family: var(--mono);
-    font-size: 0.8125rem;
+    font-size: calc(11 * var(--u));
     font-weight: 400;
     color: var(--primary);
   }
-  .fc {
-    min-width: 0;
-  }
-  .fc .t {
+  .card .t {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .fc b,
-  .lz,
-  .swap {
-    flex: none;
-  }
+  /* The type icon is a muted outline, as on the board's cards. */
   .ty {
+    display: grid;
     flex: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    background: var(--type-task);
+    color: var(--muted-foreground);
   }
-  .ty.story {
-    background: var(--type-story);
-  }
-  .ty.bug {
-    background: var(--type-bug);
+  .ty :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
   }
   .lz {
+    flex: none;
     margin-left: auto;
-    padding: 1px 6px;
-    border-radius: 3px;
+    padding: 0 calc(5 * var(--u));
+    border-radius: calc(3 * var(--u));
     background: var(--todo);
     color: var(--todo-fg);
-    font-size: 0.6875rem;
+    font-size: calc(9.5 * var(--u));
     font-weight: 600;
+    line-height: 1.6;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
+  [data-status='progress'] .lz,
+  [data-status='review'] .lz,
   .lz.progress {
     background: var(--progress);
     color: var(--progress-fg);
   }
+  [data-status='done'] .lz,
   .lz.done {
     background: var(--done);
     color: var(--done-fg);
   }
+  [data-status='done'] b {
+    text-decoration: line-through;
+  }
+  [data-status='done'] .t {
+    color: var(--muted-foreground);
+  }
   .swap {
     display: grid;
+    flex: none;
     margin-left: auto;
   }
   .swap .lz {
     grid-area: 1 / 1;
     justify-self: end;
   }
-  .swap .done {
+  .swap .a {
     opacity: 0;
   }
 
-  .st {
+  .dot {
     position: absolute;
-    right: 6%;
-    bottom: 28px;
-    width: 34%;
-    padding: 12px;
-    border-radius: 3px;
-    background: oklch(0.94 0.05 350);
-    color: var(--sticky-foreground);
-    font-size: 0.875rem;
-    font-style: normal;
-    line-height: 1.35;
-    rotate: 1.5deg;
-    box-shadow: 0 1px 3px oklch(0.2 0.02 260 / 0.12);
-  }
-  .arrow {
-    position: absolute;
-    left: 74%;
-    top: 150px;
-    width: 14%;
-    height: 112px;
-    fill: none;
-    stroke: var(--foreground);
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.55;
-  }
-  .ptr {
-    position: absolute;
-    left: 46%;
-    top: 262px;
-    display: flex;
-    align-items: flex-start;
-    gap: 2px;
-  }
-  .ptr svg {
-    width: 16px;
-    height: 16px;
-    fill: oklch(0.55 0.19 330);
-    stroke: var(--card);
-  }
-  .ptr b {
-    margin-top: 12px;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: oklch(0.55 0.19 330);
-    color: white;
-    font-size: 0.6875rem;
-    font-weight: 500;
+    left: 0;
+    top: 0;
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    margin: calc(-4 * var(--u)) 0 0 calc(-4 * var(--u));
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 20%, transparent);
+    opacity: 0;
   }
 
-  /* Scroll-driven, once per pass: the card flips, the arrow draws, the note lands. */
+  /* The loop: each task leaves its tracker, passes through tiko and lands as a card. */
+  .play .dot {
+    animation: fly 1.1s cubic-bezier(0.5, 0, 0.3, 1) both;
+    animation-delay: calc(var(--i) * 1.4s + 0.4s);
+  }
+  .play .card {
+    animation: land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i) * 1.4s + 1.4s);
+  }
+  .play .hub {
+    animation: gulp 1.4s ease-out 0.9s 6;
+  }
+  .play .swap .a {
+    animation: hide 0.3s 10.5s both;
+  }
+  .play .swap .b {
+    animation: show 0.3s 10.5s both;
+  }
+  .play .card:has(.swap) {
+    animation:
+      land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.4s both,
+      ring 0.9s ease-out 10.5s;
+  }
+  @keyframes fly {
+    0% {
+      opacity: 0;
+      translate: calc(var(--sx) * var(--u)) calc(var(--sy) * var(--u));
+    }
+    12% {
+      opacity: 1;
+    }
+    50% {
+      translate: calc(236 * var(--u)) calc(168 * var(--u));
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: calc(306 * var(--u)) calc(var(--ey) * var(--u));
+    }
+  }
+  @keyframes land {
+    from {
+      opacity: 0;
+      translate: calc(-14 * var(--u)) 0;
+      scale: 0.96;
+    }
+  }
+  @keyframes gulp {
+    0%,
+    40% {
+      box-shadow: var(--shadow);
+    }
+    55% {
+      box-shadow:
+        var(--shadow),
+        0 0 0 calc(5 * var(--u)) color-mix(in oklch, var(--primary) 25%, transparent);
+    }
+    100% {
+      box-shadow:
+        var(--shadow),
+        0 0 0 calc(12 * var(--u)) transparent;
+    }
+  }
+  @keyframes hide {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes show {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ring {
+    from {
+      box-shadow: 0 0 0 calc(2 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 calc(10 * var(--u)) transparent;
+    }
+  }
+
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
       .link-in path {
@@ -271,120 +501,20 @@ import Icon from '../Icon.astro'
         animation-timeline: view();
         animation-range: entry 30% cover 45%;
       }
-      .visual {
-        view-timeline: --live block;
-      }
-      .swap .progress {
-        animation-name: hide;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 38% cover 42%;
-      }
-      .swap .done {
-        animation-name: show;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 38% cover 42%;
-      }
-      .flip {
-        animation-name: ring;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 38% cover 52%;
-      }
-      .arrow path {
-        stroke-dasharray: 160;
-        animation-name: draw;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 40% cover 55%;
-      }
-      .st {
-        animation-name: land;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 30% cover 42%;
-      }
-      .ptr {
-        animation-name: walk;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: --live;
-        animation-range: cover 20% cover 60%;
-      }
     }
   }
   @keyframes draw {
     from {
-      stroke-dashoffset: 160;
+      stroke-dashoffset: 130;
     }
     to {
       stroke-dashoffset: 0;
     }
   }
-  @keyframes hide {
-    to {
-      opacity: 0;
-    }
-  }
-  @keyframes show {
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes ring {
-    0% {
-      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 45%, transparent);
-    }
-    100% {
-      box-shadow: 0 0 0 10px transparent;
-    }
-  }
-  @keyframes land {
-    from {
-      opacity: 0;
-      translate: 0 18px;
-      rotate: -3deg;
-    }
-  }
-  @keyframes walk {
-    from {
-      translate: 120px 160px;
-    }
-  }
 
   @media (max-width: 860px) {
     .frame {
-      grid-template-columns: 1fr;
-    }
-    .visual {
-      min-height: 360px;
-    }
-    .st {
-      bottom: 16px;
-      font-size: 0.8125rem;
-    }
-    .cards {
-      left: 5%;
-      width: 90%;
-    }
-    .fc {
-      font-size: 0.75rem;
-    }
-    .fc b {
-      font-size: 0.6875rem;
-    }
-    .st {
-      width: 50%;
-    }
-    .arrow,
-    .ptr {
-      display: none;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>
