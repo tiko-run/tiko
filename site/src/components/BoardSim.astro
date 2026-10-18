@@ -1,7 +1,6 @@
 ---
 // The hero board: a drawing of the canvas in DOM and CSS, not the real one. The markup is the
 // finished scene, so it reads without scripts or motion; board.ts rewinds it and plays it.
-import Brand from './Brand.astro'
 import Icon from './Icon.astro'
 
 const cards = [
@@ -16,8 +15,9 @@ const waiting = [
   { key: 'WEB-9', type: 'story', status: 'review' },
 ]
 const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
-const TYPE_ICON = { story: 'bookmark', task: 'check', bug: 'bug' }
-const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm-clock']
+// The app's own type icons for demo tasks: muted lucide outlines, as in TaskBits.
+const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
+const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm-clock', 'shapes']
 ---
 
 <div class="stage">
@@ -33,27 +33,45 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     </svg>
 
     <div class="n bar topbar">
-      <span class="tb-menu"><Brand mark="emblem" height={18} /><Icon name="chevron-down" size={12} /></span>
-      <span class="tb-name">Release 2.4 <Icon name="chevron-down" size={12} /></span>
-      <span class="tb-share">Share</span>
+      <span class="tb-btn"><Icon name="menu" size={18} /></span>
+      <span class="tb-name">Release 2.4 <Icon name="chevron-down" size={14} /></span>
+      <span class="tb-share"><Icon name="share-2" size={14} />Share</span>
+      <span class="faces"><i style="--c:var(--p-anna)">AL</i><i style="--c:var(--p-max)">MK</i></span>
     </div>
 
     <div class="n capsule">
-      <span class="cap-icon"><Icon name="target" size={14} /></span>
-      <span class="cap-time">24:10</span>
-      <span class="cap-dots"><i class="on"></i><i class="on"></i><i></i><i></i></span>
-      <span class="cap-play"><Icon name="pause" size={12} /></span>
+      <div class="dial">
+        <span class="cap-icon"><Icon name="target" size={18} /></span>
+        <span class="cap-mid">
+          <span class="cap-time">24:10</span>
+          <span class="cap-dots"><i class="on"></i><i class="on"></i><i></i><i></i></span>
+        </span>
+        <span class="cap-play"><Icon name="pause" size={14} /></span>
+      </div>
+      <div class="deck">
+        <span class="eq"><i></i><i></i><i></i></span>
+        <span class="track">Rain on a tin roof <span>· Ambient</span></span>
+        <Icon name="pause" size={13} />
+        <Icon name="skip-forward" size={13} />
+        <Icon name="sliders-horizontal" size={14} />
+      </div>
     </div>
 
-    <div class="n sync" data-sync><i></i><span data-sync-text>Synced just now</span></div>
+    <div class="n corner">
+      <span class="bar timers"><Icon name="alarm-clock" size={16} />1</span>
+      <span class="bar sync" data-sync>
+        <span class="sync-state"><i></i><span data-sync-text>Synced just now</span></span>
+        <span class="sync-refresh"><Icon name="refresh-cw" size={14} />Refresh all</span>
+      </span>
+    </div>
 
     <div class="n frame"><span class="frame-title">Sprint 24</span></div>
 
     {
       cards.map((card) => (
         <div class={`n card ${card.id}`} data-card={card.id} data-status={card.status} data-drag>
-          <span class={`type type-${card.type}`}>
-            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={10} />
+          <span class="type">
+            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={14} />
           </span>
           <span class="key">{card.key}</span>
           <span class="title">{card.title}</span>
@@ -68,8 +86,8 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     {
       waiting.map((card, i) => (
         <div class={`n card mini w${i + 1}`} data-status={card.status} data-drag>
-          <span class={`type type-${card.type}`}>
-            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={10} />
+          <span class="type">
+            <Icon name={TYPE_ICON[card.type as keyof typeof TYPE_ICON]} size={14} />
           </span>
           <span class="key">{card.key}</span>
           <span class="lozenge">{STATUS[card.status as keyof typeof STATUS]}</span>
@@ -80,63 +98,64 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     <div class="n sticky" data-sticky data-drag>Ship on Thursday.<br />Code freeze Wed 18:00.</div>
 
     <div class="n timer" data-timer data-state="fired" data-drag>
-      <span class="timer-bell"><Icon name="bell" size={14} /></span>
+      <span class="timer-bell"><Icon name="bell-ring" size={14} /></span>
       <span class="timer-clock"><Icon name="alarm-clock" size={14} /></span>
       <span class="timer-left" data-timer-left>3s</span>
     </div>
 
     <div class="n note" data-note>
-      <span class="note-cube"><Icon name="bell" size={12} /></span>
+      <span class="note-cube"><Icon name="bell-ring" size={14} /></span>
       <span class="note-text">
         <b>Ping QA about the cron</b>
         <small>On APP-118 · Went off at 15:30</small>
       </span>
-      <span class="note-actions"><i>Done</i><i>+10 min</i></span>
+      <span class="note-actions"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
     </div>
 
     <div class="n gantt">
-      <div class="g-head"><Icon name="chart-gantt" size={14} /> Release 2.4</div>
+      <div class="g-head"><Icon name="chart-gantt" size={16} /> Release 2.4</div>
       <div class="g-scale">
-        <span class="g-corner"></span>
+        <span class="g-range">Oct 5 – Nov 1, 2026</span>
         <span class="g-month">October 2026</span>
-        <span class="g-corner"></span>
-        <span class="g-weeks"><i>5</i><i>12</i><i>19</i><i>26</i></span>
+        <span class="g-weeks"><i>5–11</i><i>12–18</i><i>19–25</i><i>26–1</i></span>
       </div>
       <div class="g-rows">
         <span class="g-today"></span>
+        <span class="g-mline" data-gantt-row></span>
         <svg class="g-dep" data-gantt-row viewBox="0 0 388 96" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M222 48 H236 V80 H246" />
+          <path d="M222 48 H232 V80 H242" />
+          <path class="g-arrow" d="M238 76.5 L244 80 L238 83.5 Z" />
         </svg>
         <div class="g-row" data-gantt-row>
-          <span class="g-label"><span class="type type-story"><Icon name="bookmark" size={10} /></span><b>APP-112</b><span class="g-t">Retry payments</span></span>
-          <span class="g-track"><i class="g-bar b1" data-bar="c1" data-status="progress"></i></span>
+          <span class="g-label"><Icon class="grip" name="grip-vertical" size={14} /><Icon name="bookmark" size={14} /><b>APP-112</b><span class="g-t">Retry payments</span></span>
+          <span class="g-track"><i class="g-bar b1" data-bar="c1" data-status="progress"><Icon name="bookmark" size={14} /><span class="g-bl">APP-112 Retry payments</span></i></span>
         </div>
         <div class="g-row" data-gantt-row>
-          <span class="g-label"><span class="type type-task"><Icon name="check" size={10} /></span><b>APP-118</b><span class="g-t">Billing cron</span></span>
-          <span class="g-track"><i class="g-bar b2" data-bar="c2" data-status="done"></i></span>
+          <span class="g-label"><Icon class="grip" name="grip-vertical" size={14} /><Icon name="square-check" size={14} /><b>APP-118</b><span class="g-t">Billing cron</span></span>
+          <span class="g-track"><i class="g-bar b2" data-bar="c2" data-status="done"><Icon name="square-check" size={14} /><span class="g-bl">APP-118 Billing cron</span></i></span>
         </div>
         <div class="g-row" data-gantt-row>
-          <span class="g-label"><span class="type type-task"><Icon name="check" size={10} /></span><b>APP-121</b><span class="g-t">Release notes</span></span>
-          <span class="g-track"><i class="g-bar b3" data-bar="c3" data-status="todo"></i></span>
+          <span class="g-label"><Icon class="grip" name="grip-vertical" size={14} /><Icon name="square-check" size={14} /><b>APP-121</b><span class="g-t">Release notes</span></span>
+          <span class="g-track"><i class="g-bar b3" data-bar="c3" data-status="todo"><Icon name="square-check" size={14} /><span class="g-bl">APP-121 Release notes</span></i></span>
         </div>
       </div>
-      <div class="g-foot"><span class="g-stone" data-gantt-row><i></i>2.4 out</span></div>
+      <div class="g-foot"><span class="g-add"><Icon name="plus" size={14} />Add</span><span class="g-stone" data-gantt-row><i></i>2.4 out</span></div>
     </div>
 
     <div class="n popover out" data-popover>
+      <span class="pop-hint">Issue keys, links or JQL</span>
       <span class="pop-input"><span data-typed></span><i class="caret"></i></span>
-      <span class="pop-hint">Keys, links or a query</span>
     </div>
 
     <div class="n bar toolbar">
-      {tools.map((tool, i) => <span class:list={{ active: i === 0 }} data-tool={tool}><Icon name={tool} size={16} /></span>)}
-      <span data-tool="card"><Icon name="square-kanban" size={16} /></span>
-      <span><Icon name="layout-grid" size={16} /></span>
+      {tools.map((tool, i) => <span class:list={{ active: i === 0 }} data-tool={tool}><Icon name={tool} size={18} /></span>)}
+      <span data-tool="card"><Icon name="ticket-plus" size={18} /></span>
+      <span><Icon name="layout-template" size={18} /></span>
     </div>
 
     <div class="n cursor out" data-cursor>
       <svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z" /></svg>
-      <span>Anna</span>
+      <span class="cur-tag"><i>AL</i><b>Anna</b></span>
     </div>
   </div>
 
@@ -213,108 +232,261 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     opacity: 0.7;
   }
 
-  /* Floating bars share one surface. */
+  /* Sizes below follow the app's components in board units: radius-md 4.8, radius-lg 6, shadow-md. */
+  .board {
+    --r-md: calc(4.8 * var(--u));
+    --r-lg: calc(6 * var(--u));
+    --shadow-md: 0 calc(4 * var(--u)) calc(6 * var(--u)) calc(-1 * var(--u)) oklch(0 0 0 / 0.1),
+      0 calc(2 * var(--u)) calc(4 * var(--u)) calc(-2 * var(--u)) oklch(0 0 0 / 0.1);
+    --p-anna: oklch(0.58 0.17 340);
+    --p-max: oklch(0.58 0.17 165);
+    --tint: 60%;
+  }
+  :global(:root[data-theme='dark']) .board {
+    --tint: 20%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .board {
+      --tint: 20%;
+    }
+  }
+
+  /* Floating bars share one surface: card, border, radius-lg, 4 px padding, shadow-md. */
   .bar {
     display: flex;
     align-items: center;
+    padding: calc(4 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(8 * var(--u));
+    border-radius: var(--r-lg);
     background: var(--card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
+    white-space: nowrap;
+  }
+  .bar :global(svg) {
+    width: calc(var(--i, 16) * var(--u));
+    height: calc(var(--i, 16) * var(--u));
+    stroke-width: 1.75;
   }
   .topbar {
     --x: 16;
     --y: 16;
-    height: calc(36 * var(--u));
-    padding-inline: calc(4 * var(--u));
-    gap: calc(2 * var(--u));
-    font-weight: 500;
+    gap: calc(4 * var(--u));
+    font-size: calc(14 * var(--u));
   }
   .topbar > span {
     display: flex;
     align-items: center;
-    gap: calc(4 * var(--u));
-    height: calc(28 * var(--u));
-    padding-inline: calc(8 * var(--u));
-    border-radius: calc(6 * var(--u));
+    gap: calc(6 * var(--u));
+    height: calc(32 * var(--u));
+    padding-inline: calc(10 * var(--u));
+    border-radius: var(--r-md);
   }
-  .topbar svg {
-    height: calc(12 * var(--u));
-    width: auto;
+  .topbar .tb-btn {
+    --i: 18;
+    justify-content: center;
+    width: calc(32 * var(--u));
+    padding: 0;
+  }
+  .tb-name :global(svg) {
+    --i: 14;
     color: var(--muted-foreground);
   }
-  .tb-menu svg:first-child {
-    height: calc(18 * var(--u));
+  .tb-share :global(svg) {
+    --i: 14;
   }
-  .tb-share {
-    color: var(--muted-foreground);
+  .topbar .faces {
+    gap: 0;
+    padding-inline: calc(4 * var(--u)) calc(6 * var(--u));
+  }
+  .faces i {
+    display: grid;
+    place-items: center;
+    width: calc(24 * var(--u));
+    height: calc(24 * var(--u));
+    margin-left: calc(-4 * var(--u));
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 calc(2 * var(--u)) var(--card);
+    color: oklch(0.99 0 0);
+    font-size: calc(10 * var(--u));
+    font-style: normal;
+    font-weight: 600;
+  }
+  .faces i:first-child {
+    margin-left: 0;
   }
 
+  /* The focus capsule: the dial on the timer's tint over the music deck. */
   .capsule {
     --x: 428;
-    --y: 14;
-    display: flex;
-    align-items: center;
-    gap: calc(10 * var(--u));
+    --y: 16;
     width: calc(264 * var(--u));
-    height: calc(46 * var(--u));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: calc(26 * var(--u)) calc(26 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow-md);
+  }
+  .dial {
+    display: grid;
+    grid-template-columns: calc(36 * var(--u)) 1fr calc(36 * var(--u));
+    gap: calc(6 * var(--u));
+    align-items: center;
+    height: calc(56 * var(--u));
     padding-inline: calc(10 * var(--u));
-    border-radius: calc(23 * var(--u));
+    border-bottom: 1px solid color-mix(in oklch, var(--focus-ink) 18%, transparent);
     background: linear-gradient(100deg, var(--focus-fill), var(--focus-fill-2), var(--focus-fill));
     color: var(--focus-ink);
-    box-shadow: var(--shadow);
-  }
-  .capsule svg {
-    width: calc(14 * var(--u));
-    height: auto;
   }
   .cap-icon,
   .cap-play {
     display: grid;
     place-items: center;
-    width: calc(28 * var(--u));
-    height: calc(28 * var(--u));
     border-radius: 50%;
-    background: color-mix(in oklch, var(--focus-ink) 10%, transparent);
+  }
+  .cap-icon {
+    width: calc(32 * var(--u));
+    height: calc(32 * var(--u));
+    background: color-mix(in oklch, var(--focus-ink) 8%, transparent);
+  }
+  .cap-icon :global(svg) {
+    width: calc(18 * var(--u));
+    height: calc(18 * var(--u));
   }
   .cap-play {
-    margin-left: auto;
+    justify-self: end;
+    width: calc(34 * var(--u));
+    height: calc(34 * var(--u));
     background: var(--focus-ink);
     color: var(--focus-fill);
   }
-  .cap-play svg {
-    width: calc(12 * var(--u));
+  .cap-play :global(svg) {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    fill: currentColor;
+    stroke-width: 0;
+  }
+  .cap-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(3 * var(--u));
   }
   .cap-time {
     font-family: var(--mono);
-    font-size: calc(22 * var(--u));
+    font-size: calc(28 * var(--u));
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
+    line-height: 1;
   }
   .cap-dots {
     display: flex;
     gap: calc(4 * var(--u));
   }
   .cap-dots i {
-    width: calc(5 * var(--u));
-    height: calc(5 * var(--u));
+    width: calc(6 * var(--u));
+    height: calc(6 * var(--u));
+    border: calc(1.25 * var(--u)) solid color-mix(in oklch, var(--focus-ink) 60%, transparent);
     border-radius: 50%;
-    background: color-mix(in oklch, var(--focus-ink) 25%, transparent);
   }
   .cap-dots i.on {
+    border-color: var(--focus-ink);
     background: var(--focus-ink);
   }
-
-  .sync {
-    --x: 968;
-    --y: 24;
+  .deck {
     display: flex;
     align-items: center;
-    gap: calc(6 * var(--u));
-    font-size: calc(12 * var(--u));
+    gap: calc(2 * var(--u));
+    height: calc(36 * var(--u));
+    padding: 0 calc(6 * var(--u)) 0 calc(14 * var(--u));
     color: var(--muted-foreground);
-    white-space: nowrap;
+  }
+  .deck > :global(svg) {
+    box-sizing: content-box;
+    width: calc(13 * var(--u));
+    height: calc(13 * var(--u));
+    padding: calc(5 * var(--u));
+  }
+  .deck > :global(svg):first-of-type {
+    fill: currentColor;
+    stroke-width: 0;
+  }
+  .eq {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(2 * var(--u));
+    width: calc(13 * var(--u));
+    height: calc(11 * var(--u));
+    color: var(--foreground);
+  }
+  .eq i {
+    flex: 1;
+    height: 60%;
+    border-radius: 1px;
+    background: currentColor;
+    animation: boardsim-eq 0.9s ease-in-out infinite alternate;
+  }
+  .eq i:nth-child(2) {
+    height: 100%;
+    animation-delay: -0.3s;
+  }
+  .eq i:nth-child(3) {
+    height: 40%;
+    animation-delay: -0.6s;
+  }
+  @keyframes boardsim-eq {
+    to {
+      transform: scaleY(0.35);
+      transform-origin: bottom;
+    }
+  }
+  .track {
+    flex: 1;
+    min-width: 0;
+    margin-left: calc(6 * var(--u));
+    overflow: hidden;
+    color: var(--foreground);
+    font-size: calc(12 * var(--u));
+    text-overflow: ellipsis;
+  }
+  .track span {
+    color: var(--muted-foreground);
+  }
+
+  /* Top right: the timer list button, then the sync indicator with Refresh all. */
+  .corner {
+    left: auto;
+    right: calc(16 * var(--u));
+    top: calc(16 * var(--u));
+    display: flex;
+    gap: calc(8 * var(--u));
+    font-size: calc(13 * var(--u));
+  }
+  .timers {
+    gap: calc(6 * var(--u));
+    height: calc(42 * var(--u));
+    padding-inline: calc(12 * var(--u));
+    font-variant-numeric: tabular-nums;
+  }
+  .sync {
+    height: calc(42 * var(--u));
+    gap: calc(4 * var(--u));
+  }
+  .sync-state,
+  .sync-refresh {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    height: calc(32 * var(--u));
+    padding-inline: calc(10 * var(--u));
+  }
+  .sync-state {
+    color: var(--muted-foreground);
+  }
+  .sync-refresh {
+    --i: 14;
+    gap: calc(6 * var(--u));
   }
   .sync i {
     width: calc(10 * var(--u));
@@ -323,9 +495,9 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     background: var(--sync-ok);
   }
   .sync.pulse i {
-    animation: sync-pulse 0.9s ease-out;
+    animation: boardsim-sync-pulse 0.9s ease-out;
   }
-  @keyframes sync-pulse {
+  @keyframes boardsim-sync-pulse {
     from {
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--sync-ok) 60%, transparent);
     }
@@ -334,85 +506,79 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     }
   }
 
+  /* Frames: a plain one on muted at 40%, a tinted one in a sticky color at the frame tint. */
   .frame {
     --x: 40;
-    --y: 104;
+    --y: 132;
     width: calc(450 * var(--u));
-    height: calc(200 * var(--u));
+    height: calc(184 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(8 * var(--u));
-    background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), transparent);
+    border-radius: var(--r-md);
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
   }
   .frame2 {
-    --y: 362;
-    height: calc(68 * var(--u));
-    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+    --y: 368;
+    height: calc(62 * var(--u));
+    background: color-mix(in oklab, var(--sticky-green) var(--tint), transparent);
   }
   .card.mini {
-    --y: 382;
+    --y: 386;
+    padding-block: calc(1 * var(--u));
   }
   .card.w1 {
     --x: 56;
   }
   .card.w2 {
-    --x: 197;
+    --x: 190;
   }
   .card.w3 {
-    --x: 329;
+    --x: 330;
   }
   .frame-title {
     position: absolute;
-    left: calc(2 * var(--u));
+    left: 0;
     bottom: calc(100% + 4 * var(--u));
-    font-size: calc(15 * var(--u));
-    font-weight: 600;
+    font-size: calc(13 * var(--u));
+    font-weight: 500;
+    color: var(--muted-foreground);
+    white-space: nowrap;
   }
 
+  /* Task card: one inline line, type icon, key, title, status, as TaskCardNode draws it. */
   .card {
     --x: 60;
     display: flex;
     align-items: center;
     gap: calc(6 * var(--u));
-    padding: calc(5 * var(--u)) calc(8 * var(--u));
+    padding: calc(4 * var(--u)) calc(8 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(6 * var(--u));
+    border-radius: var(--r-md);
     background: var(--card);
+    color: var(--foreground);
+    line-height: calc(20 * var(--u));
     white-space: nowrap;
   }
   .c1 {
-    --y: 124;
+    --y: 150;
   }
   .c2 {
-    --y: 164;
+    --y: 190;
   }
   .c3 {
-    --y: 204;
+    --y: 230;
   }
   .c4 {
-    --y: 244;
+    --y: 270;
   }
   .type {
     display: grid;
     place-items: center;
     flex: none;
+    color: var(--muted-foreground);
+  }
+  .type :global(svg) {
     width: calc(14 * var(--u));
     height: calc(14 * var(--u));
-    border-radius: calc(3 * var(--u));
-    color: white;
-  }
-  .type svg {
-    width: calc(10 * var(--u));
-    height: auto;
-    stroke-width: 3;
-  }
-  .type-story {
-    background: var(--type-story);
-  }
-  .type-task {
-    background: var(--type-task);
-  }
-  .type-bug {
-    background: var(--type-bug);
   }
   .key {
     font-family: var(--mono);
@@ -421,12 +587,13 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     color: var(--primary);
   }
   .lozenge {
-    padding: calc(1 * var(--u)) calc(5 * var(--u));
+    padding-inline: calc(4 * var(--u));
     border-radius: calc(3 * var(--u));
     background: var(--todo);
     color: var(--todo-fg);
     font-size: calc(11 * var(--u));
     font-weight: 600;
+    line-height: calc(16 * var(--u));
     letter-spacing: 0.04em;
     text-transform: uppercase;
     transition:
@@ -443,16 +610,15 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     color: var(--done-fg);
   }
   [data-status='done'] .key {
-    color: var(--muted-foreground);
     text-decoration: line-through;
   }
   [data-status='done'] .title {
     color: var(--muted-foreground);
   }
   .card.flash {
-    animation: flash 0.9s ease-out;
+    animation: boardsim-flash 0.9s ease-out;
   }
-  @keyframes flash {
+  @keyframes boardsim-flash {
     from {
       box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
     }
@@ -461,57 +627,61 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     }
   }
 
+  /* Sticky note: flat, radius-md, 12 px padding, 14 px text at 1.35. */
   .sticky {
     --x: 520;
-    --y: 100;
+    --y: 132;
     width: calc(156 * var(--u));
-    height: calc(112 * var(--u));
+    height: calc(96 * var(--u));
     padding: calc(12 * var(--u));
-    border-radius: calc(3 * var(--u));
+    border-radius: var(--r-md);
     background: var(--sticky-yellow);
     color: var(--sticky-foreground);
     font-size: calc(14 * var(--u));
-    box-shadow: 0 calc(1 * var(--u)) calc(3 * var(--u)) oklch(0.2 0.02 260 / 0.12);
+    line-height: 1.35;
   }
 
+  /* Timer cube: 40 px, radius-lg, 14 px icon over 11 px mono time. */
   .timer {
-    --x: 700;
-    --y: 104;
-    display: grid;
-    place-items: center;
-    align-content: center;
+    --x: 696;
+    --y: 132;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(2 * var(--u));
     width: calc(40 * var(--u));
     height: calc(40 * var(--u));
-    border-radius: calc(8 * var(--u));
+    border-radius: var(--r-lg);
     background: var(--timer);
     color: var(--timer-foreground);
     font-family: var(--mono);
     font-size: calc(11 * var(--u));
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) oklch(0.3 0.07 60 / 0.25);
     transition:
       background-color 0.25s,
       color 0.25s,
       opacity 0.35s,
       transform 0.35s;
   }
-  .timer svg {
+  .timer :global(svg) {
     width: calc(14 * var(--u));
-    height: auto;
+    height: calc(14 * var(--u));
+    stroke-width: 2;
   }
   .timer[data-state='fired'] {
     background: var(--timer-fired);
     color: var(--timer-fired-foreground);
-    animation: ring 1.6s ease-out infinite;
+    animation: boardsim-ring 1.6s ease-out infinite;
   }
   .timer[data-state='fired'] :is(.timer-clock, .timer-left),
   .timer:not([data-state='fired']) .timer-bell {
     display: none;
   }
-  .timer[data-state='fired'] svg {
-    width: calc(18 * var(--u));
-  }
-  @keyframes ring {
+  @keyframes boardsim-ring {
     from {
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--timer-fired) 55%, transparent);
     }
@@ -520,18 +690,19 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     }
   }
 
+  /* A timer that went off: the note under the top right corner, as TimerNotes draws it. */
   .note {
     --x: 816;
-    --y: 60;
+    --y: 70;
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: calc(8 * var(--u)) calc(10 * var(--u));
+    gap: calc(6 * var(--u)) calc(8 * var(--u));
     width: calc(288 * var(--u));
-    padding: calc(10 * var(--u)) calc(12 * var(--u));
+    padding: calc(8 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(8 * var(--u));
+    border-radius: var(--r-lg);
     background: var(--card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
   }
   .note.out {
     transform: translateY(calc(-8 * var(--u)));
@@ -541,44 +712,52 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     place-items: center;
     width: calc(24 * var(--u));
     height: calc(24 * var(--u));
-    border-radius: calc(6 * var(--u));
+    border-radius: var(--r-md);
     background: var(--timer-fired);
     color: var(--timer-fired-foreground);
   }
-  .note-cube svg {
-    width: calc(12 * var(--u));
-    height: auto;
+  .note-cube :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    stroke-width: 2;
   }
   .note-text b {
     display: block;
     font-weight: 500;
   }
   .note-text small {
+    display: block;
     font-size: calc(12 * var(--u));
     color: var(--muted-foreground);
   }
   .note-actions {
     grid-column: 2;
     display: flex;
-    gap: calc(6 * var(--u));
+    gap: calc(4 * var(--u));
   }
   .note-actions i {
-    padding: calc(3 * var(--u)) calc(8 * var(--u));
-    border: 1px solid var(--border);
-    border-radius: calc(6 * var(--u));
+    height: calc(24 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border-radius: var(--r-md);
     font-size: calc(12 * var(--u));
     font-style: normal;
     font-weight: 500;
+    line-height: calc(24 * var(--u));
+  }
+  .note-actions i.primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 
+  /* Gantt module: 36 px header, 24 px scale rows, 32 px task rows, 20 px bars with their label. */
   .gantt {
     --x: 516;
-    --y: 236;
+    --y: 252;
     width: calc(564 * var(--u));
-    border: 1px solid var(--border);
-    border-radius: calc(8 * var(--u));
-    background: var(--card);
     overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--card);
   }
   .g-head {
     display: flex;
@@ -587,37 +766,45 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     height: calc(36 * var(--u));
     padding-inline: calc(12 * var(--u));
     border-bottom: 1px solid var(--border);
-    font-weight: 600;
+    font-weight: 500;
   }
-  .g-head svg {
-    width: calc(14 * var(--u));
-    height: auto;
+  .g-head :global(svg) {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
     color: var(--muted-foreground);
   }
   .g-scale {
     display: grid;
     grid-template-columns: calc(176 * var(--u)) 1fr;
+    grid-template-rows: calc(24 * var(--u)) calc(24 * var(--u));
     border-bottom: 1px solid var(--border);
     font-size: calc(12 * var(--u));
-    color: var(--muted-foreground);
   }
-  .g-scale > * {
-    height: calc(24 * var(--u));
-    line-height: calc(24 * var(--u));
-  }
-  .g-corner {
+  .g-range {
+    grid-row: span 2;
+    display: flex;
+    align-items: center;
+    padding-inline: calc(12 * var(--u));
     border-right: 1px solid var(--border);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 500;
+    white-space: nowrap;
   }
   .g-month {
-    padding-left: calc(8 * var(--u));
+    display: grid;
+    place-items: center;
     border-bottom: 1px solid var(--border);
+    font-weight: 500;
   }
   .g-weeks {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    color: var(--muted-foreground);
   }
   .g-weeks i {
-    padding-left: calc(8 * var(--u));
+    display: grid;
+    place-items: center;
     border-left: 1px solid var(--border);
     font-style: normal;
   }
@@ -631,22 +818,34 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     display: grid;
     grid-template-columns: calc(176 * var(--u)) 1fr;
     height: calc(32 * var(--u));
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
     transition: opacity 0.4s;
   }
   .g-label {
     display: flex;
     align-items: center;
-    gap: calc(6 * var(--u));
-    padding-left: calc(12 * var(--u));
+    gap: calc(4 * var(--u));
+    padding-left: calc(4 * var(--u));
     border-right: 1px solid var(--border);
     overflow: hidden;
-    font-size: calc(12 * var(--u));
     white-space: nowrap;
   }
+  .g-label :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .g-label :global(.grip) {
+    margin-right: calc(10 * var(--u));
+    color: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+  }
   .g-label b {
-    font-family: var(--mono);
-    font-weight: 400;
-    color: var(--primary);
+    flex: none;
+    font-weight: 500;
+  }
+  .g-t {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .g-track {
     position: relative;
@@ -655,36 +854,59 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     position: absolute;
     top: calc(6 * var(--u));
     left: calc(var(--bx) * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
     width: calc(var(--bw) * var(--u));
     height: calc(20 * var(--u));
+    padding-inline: calc(6 * var(--u));
+    overflow: hidden;
     border-radius: calc(4 * var(--u));
     background: var(--todo);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+    color: var(--todo-fg);
+    font-size: calc(12 * var(--u));
+    font-style: normal;
+    font-weight: 500;
+    line-height: calc(20 * var(--u));
+    white-space: nowrap;
     clip-path: inset(0 0 0 0 round calc(4 * var(--u)));
     transition:
       clip-path 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
-      background-color 0.3s;
+      background-color 0.3s,
+      color 0.3s;
+  }
+  .g-bar :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    opacity: 0.8;
+  }
+  .g-bl {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .g-bar[data-status='progress'],
   .g-bar[data-status='review'] {
     background: var(--progress);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+    color: var(--progress-fg);
   }
   .g-bar[data-status='done'] {
     background: var(--done);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+    color: var(--done-fg);
+    text-decoration: line-through;
   }
   .b1 {
     --bx: 14;
-    --bw: 150;
+    --bw: 168;
   }
   .b2 {
     --bx: 92;
-    --bw: 130;
+    --bw: 136;
   }
   .b3 {
     --bx: 246;
-    --bw: 118;
+    --bw: 136;
   }
   .g-bar.out {
     clip-path: inset(0 100% 0 0 round calc(4 * var(--u)));
@@ -697,39 +919,64 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     width: 1px;
     background: var(--primary);
   }
+  .g-mline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc((176 + 322) * var(--u));
+    border-left: 1px dashed color-mix(in oklch, var(--foreground) 40%, transparent);
+  }
   .g-dep {
     position: absolute;
     left: calc(176 * var(--u));
     top: 0;
-    width: calc(100% - 154 * var(--u));
+    width: calc(100% - 176 * var(--u));
     height: 100%;
     fill: none;
     stroke: color-mix(in oklch, var(--foreground) 55%, transparent);
     stroke-width: 1.25;
-    vector-effect: non-scaling-stroke;
     transition: opacity 0.4s;
   }
   .g-dep path {
     vector-effect: non-scaling-stroke;
   }
+  .g-dep .g-arrow {
+    fill: color-mix(in oklch, var(--foreground) 55%, transparent);
+    stroke: none;
+  }
   .g-foot {
     position: relative;
-    height: calc(28 * var(--u));
-    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: calc(176 * var(--u)) 1fr;
+    height: calc(32 * var(--u));
   }
-  .g-stone {
-    position: absolute;
-    left: calc((176 + 318) * var(--u));
-    top: calc(8 * var(--u));
+  .g-add {
     display: flex;
     align-items: center;
     gap: calc(6 * var(--u));
+    padding-left: calc(10 * var(--u));
+    border-right: 1px solid var(--border);
+    color: var(--foreground);
+  }
+  .g-add :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .g-stone {
+    position: absolute;
+    left: calc((176 + 317) * var(--u));
+    top: calc(10 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
     font-size: calc(11 * var(--u));
+    line-height: 1;
     transition: opacity 0.4s;
   }
   .g-stone i {
-    width: calc(8 * var(--u));
-    height: calc(8 * var(--u));
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+    border-radius: 1px;
     background: var(--foreground);
     transform: rotate(45deg);
   }
@@ -737,45 +984,42 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     opacity: 0;
   }
 
+  /* Toolbar: bottom center, ghost icon buttons with 18 px icons. */
   .toolbar {
-    --x: 406;
-    --y: 546;
+    --x: 403;
+    --y: 542;
     gap: calc(2 * var(--u));
-    height: calc(40 * var(--u));
-    padding-inline: calc(4 * var(--u));
-    border-radius: calc(10 * var(--u));
   }
   .toolbar span {
     display: grid;
     place-items: center;
-    width: calc(34 * var(--u));
+    width: calc(32 * var(--u));
     height: calc(32 * var(--u));
-    border-radius: calc(6 * var(--u));
-    color: var(--muted-foreground);
+    border-radius: var(--r-md);
+    color: var(--foreground);
     transition:
       background-color 0.2s,
       color 0.2s;
   }
-  .toolbar svg {
-    width: calc(17 * var(--u));
-    height: auto;
+  .toolbar :global(svg) {
+    --i: 18;
   }
   .toolbar .active {
     background: var(--accent);
-    color: var(--primary);
   }
 
+  /* The task card tool's popover above the toolbar. */
   .popover {
-    --x: 400;
-    --y: 468;
+    --x: 464;
+    --y: 452;
     display: grid;
     gap: calc(6 * var(--u));
-    width: calc(320 * var(--u));
-    padding: calc(10 * var(--u));
+    width: calc(384 * var(--u));
+    padding: calc(8 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(10 * var(--u));
+    border-radius: var(--r-md);
     background: var(--card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-md);
     z-index: 4;
   }
   .popover.out {
@@ -784,38 +1028,36 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
   .pop-input {
     display: flex;
     align-items: center;
-    height: calc(30 * var(--u));
-    padding-inline: calc(8 * var(--u));
+    height: calc(32 * var(--u));
+    padding-inline: calc(10 * var(--u));
     border: 1px solid var(--primary);
-    border-radius: calc(6 * var(--u));
-    font-family: var(--mono);
-    font-size: calc(12 * var(--u));
+    border-radius: var(--r-md);
+    font-size: calc(14 * var(--u));
     white-space: pre;
-    box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 18%, transparent);
+    box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 30%, transparent);
   }
   .caret {
     width: 1px;
-    height: calc(15 * var(--u));
+    height: calc(16 * var(--u));
     margin-left: 1px;
     background: var(--foreground);
-    animation: blink 1s steps(2, start) infinite;
+    animation: boardsim-blink 1s steps(2, start) infinite;
   }
-  @keyframes blink {
+  @keyframes boardsim-blink {
     to {
       visibility: hidden;
     }
   }
   .pop-hint {
-    font-size: calc(12 * var(--u));
+    font-size: calc(13 * var(--u));
     color: var(--muted-foreground);
   }
 
+  /* Someone else's cursor: a 16 px arrow in their color, an 18 px avatar and the name tag. */
   .cursor {
     --x: 800;
     --y: 420;
     z-index: 6;
-    display: flex;
-    align-items: flex-start;
     pointer-events: none;
     transition:
       left 0.9s cubic-bezier(0.4, 0, 0.2, 1),
@@ -825,21 +1067,43 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
   .cursor.out {
     transform: none;
   }
-  .cursor svg {
+  .cursor :global(svg) {
     width: calc(16 * var(--u));
-    height: auto;
-    fill: oklch(0.62 0.19 330);
+    height: calc(16 * var(--u));
+    fill: var(--p-anna);
     stroke: var(--card);
     stroke-width: 1;
   }
-  .cursor span {
-    margin: calc(12 * var(--u)) 0 0 calc(-2 * var(--u));
-    padding: calc(1 * var(--u)) calc(6 * var(--u));
-    border-radius: calc(4 * var(--u));
-    background: oklch(0.62 0.19 330);
-    color: white;
+  .cur-tag {
+    position: absolute;
+    left: calc(10 * var(--u));
+    top: calc(10 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+  }
+  .cur-tag i {
+    display: grid;
+    place-items: center;
+    width: calc(18 * var(--u));
+    height: calc(18 * var(--u));
+    border-radius: 50%;
+    background: var(--p-anna);
+    box-shadow: 0 0 0 1px var(--card);
+    color: oklch(0.99 0 0);
+    font-size: calc(8 * var(--u));
+    font-style: normal;
+    font-weight: 600;
+  }
+  .cur-tag b {
+    padding: calc(2 * var(--u)) calc(4 * var(--u));
+    border-radius: calc(3.6 * var(--u));
+    background: var(--p-anna);
+    color: oklch(0.99 0 0);
     font-size: calc(11 * var(--u));
     font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .controls {
@@ -884,16 +1148,20 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     .note,
     .wires,
     .cursor,
-    .topbar .tb-share {
+    .topbar .tb-share,
+    .topbar .faces,
+    .timers,
+    .sync-refresh,
+    .g-label :global(.grip) {
       display: none;
     }
     .topbar {
       --x: 12;
       --y: 12;
     }
-    .sync {
-      --x: 268;
-      --y: 22;
+    .corner {
+      right: calc(12 * var(--u));
+      top: calc(12 * var(--u));
     }
     .frame {
       --x: 12;
@@ -926,8 +1194,15 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
       width: calc(376 * var(--u));
     }
     .g-scale,
-    .g-row {
+    .g-row,
+    .g-foot {
       grid-template-columns: calc(96 * var(--u)) 1fr;
+    }
+    .g-range {
+      font-size: 0;
+    }
+    .g-mline {
+      left: calc((96 + 200) * var(--u));
     }
     .g-label {
       padding-left: calc(8 * var(--u));
@@ -958,8 +1233,8 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
       --bw: 80;
     }
     .toolbar {
-      --x: 46;
-      --y: 536;
+      --x: 44;
+      --y: 534;
     }
     .controls {
       position: static;
@@ -967,8 +1242,8 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
       text-align: right;
     }
     .popover {
-      --x: 40;
-      --y: 458;
+      --x: 8;
+      --y: 446;
     }
   }
 </style>

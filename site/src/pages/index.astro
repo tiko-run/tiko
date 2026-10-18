@@ -1,11 +1,12 @@
 ---
 import Cta from '../components/Cta.astro'
 import Faq from '../components/Faq.astro'
-import Features from '../components/Features.astro'
 import Footer from '../components/Footer.astro'
 import Header from '../components/Header.astro'
-import Hero from '../components/Hero.astro'
 import OpenSource from '../components/OpenSource.astro'
+import FeatureFrames from '../components/FeatureFrames.astro'
+import Hero from '../components/Hero.astro'
+import LiveCards from '../components/LiveCards.astro'
 import Scenarios from '../components/Scenarios.astro'
 import SelfHost from '../components/SelfHost.astro'
 import Trackers from '../components/Trackers.astro'
@@ -14,10 +15,11 @@ import Base from '../layouts/Base.astro'
 
 <Base>
   <Header />
-  <main id="main">
+  <main id="main" class="dots canvas">
     <Hero />
+    <LiveCards />
     <Trackers />
-    <Features />
+    <FeatureFrames />
     <Scenarios />
     <SelfHost />
     <OpenSource />
@@ -26,6 +28,12 @@ import Base from '../layouts/Base.astro'
   </main>
   <Footer />
 </Base>
+
+<style>
+  .canvas {
+    background-attachment: local;
+  }
+</style>
 
 <script>
   import '../scripts/page'

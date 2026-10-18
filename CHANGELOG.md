@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
+- tiko.run is now one canvas you scroll through: the board in the first screen pulls back to show the rest of the canvas, each feature has its own frame with a drawing of the real board, ten board layouts sit in a carousel you can drag, and a map shows what stays on your server.
+- Selecting several lines of text shows one even highlight instead of darker bands where the lines meet.
 - The site, the README and About now say "No ads, no analytics trackers" and "Your tracker stays the source of truth" instead of "No tracking" and "never edits it"; the site links to the list of usage counts tiko sends.
 - Write to tiko at hi@tiko.run, report a vulnerability to security@tiko.run and a Code of Conduct issue to conduct@tiko.run.
 - The Gantt's task column and field columns now sit on a light gray panel, so it is clear where the timeline starts.

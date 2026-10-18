@@ -196,6 +196,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Opaque, so the highlights of two wrapped lines do not overlap into a darker band. */
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 25%, var(--background));
+  }
   html {
     @apply font-sans;
   }

@@ -1,0 +1,108 @@
+---
+// One feature as a frame on the page's canvas: copy on one side, a large drawing on the other,
+// joined to the frame above by a short arrow that draws itself on scroll.
+import Connector from './Connector.astro'
+import Icon from './Icon.astro'
+
+interface Props {
+  id: string
+  label: string
+  heading: string
+  lead: string
+  points: string[]
+  more: { href: string; text: string }
+  tone?: 'blue' | 'green' | 'yellow' | 'pink' | 'violet' | 'orange'
+  flip?: boolean
+}
+const { id, label, heading, lead, points, more, tone = 'blue', flip = false } = Astro.props
+---
+
+<section class="frame-sec" id={id}>
+  <div class="wrap">
+    <Connector />
+    <div class:list={['frame', { flip }]} style={`--tone: var(--sticky-${tone})`}>
+      <span class="frame-title">{label}</span>
+      <div class="copy">
+        <h2 class="h2" set:html={heading} />
+        <p class="lead" set:html={lead} />
+        <ul class="points">
+          {points.map((point) => <li><Icon name="check" size={16} /><span set:html={point} /></li>)}
+        </ul>
+        <a class="more" href={more.href}>{more.text} <Icon name="arrow-right" /></a>
+      </div>
+      <div class="stage">
+        <slot />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .frame-sec {
+    padding-block: 0 clamp(4rem, 9vw, 7rem);
+  }
+  .frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    padding: clamp(1.5rem, 4vw, 3.5rem);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--tone) var(--frame-mix), var(--background));
+  }
+  .frame.flip {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+  .flip .copy {
+    order: 2;
+  }
+  .frame-title {
+    position: absolute;
+    left: 4px;
+    bottom: calc(100% + 8px);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  /* The frame tint lifts the background a little; the link keeps 4.5:1 in both themes. */
+  .frame .more {
+    color: color-mix(in oklch, var(--primary) 82%, var(--foreground));
+  }
+  .points {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1.5rem;
+  }
+  .points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .points :global(svg) {
+    flex: none;
+    margin-top: 0.3em;
+    color: var(--sync-ok);
+  }
+  .copy :global(kbd) {
+    padding: 0.05em 0.3em;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card);
+    font-size: 0.85em;
+  }
+  .stage {
+    container-type: inline-size;
+  }
+
+
+  @media (max-width: 860px) {
+    .frame,
+    .frame.flip {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .flip .copy {
+      order: 0;
+    }
+  }
+</style>

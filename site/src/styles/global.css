@@ -19,6 +19,9 @@
   --done: oklch(0.93 0.06 150);
   --done-fg: oklch(0.42 0.11 150);
   --sticky-yellow: oklch(0.94 0.05 95);
+  --sticky-orange: oklch(0.94 0.05 60);
+  --sticky-pink: oklch(0.94 0.05 0);
+  --sticky-violet: oklch(0.94 0.05 300);
   --sticky-blue: oklch(0.94 0.05 240);
   --sticky-green: oklch(0.94 0.05 150);
   --sticky-foreground: oklch(0.24 0.01 260);
@@ -35,6 +38,7 @@
   --type-task: oklch(0.6 0.15 250);
   --type-bug: oklch(0.6 0.2 27);
   --frame-mix: 28%;
+  --frame-tint: 60%;
   --shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.06), 0 8px 24px oklch(0.2 0.02 260 / 0.08);
 
   --font: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
@@ -64,6 +68,7 @@
     --focus-fill-2: oklch(0.38 0.05 95);
     --focus-ink: oklch(0.9 0.1 150);
     --frame-mix: 9%;
+    --frame-tint: 20%;
     --shadow: 0 1px 2px oklch(0 0 0 / 0.2), 0 8px 24px oklch(0 0 0 / 0.25);
   }
 }
@@ -86,6 +91,7 @@
   --focus-fill-2: oklch(0.38 0.05 95);
   --focus-ink: oklch(0.9 0.1 150);
   --frame-mix: 9%;
+  --frame-tint: 20%;
   --shadow: 0 1px 2px oklch(0 0 0 / 0.2), 0 8px 24px oklch(0 0 0 / 0.25);
 }
 
@@ -149,8 +155,18 @@ kbd {
   outline-offset: 2px;
   border-radius: 4px;
 }
+/* Opaque, so the highlights of two wrapped lines do not overlap into a darker band. */
 ::selection {
-  background: color-mix(in oklch, var(--primary) 25%, transparent);
+  background: color-mix(in oklch, var(--primary) 25%, var(--background));
+}
+
+/* The product name stands out in running text. */
+.tiko {
+  font-weight: 600;
+  color: var(--foreground);
+}
+:is(h1, h2, h3) .tiko {
+  font-weight: 700;
 }
 
 .wrap {

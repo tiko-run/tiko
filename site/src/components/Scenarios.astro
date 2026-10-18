@@ -1,24 +1,31 @@
 ---
-// Ways to lay a board out, drawn as small boards in the look of the real one. Not customer
-// stories: every key, name and note here is made up.
+// Ways to lay a board out, drawn as small boards in the look of the real one, in a carousel.
+// Not customer stories: every key, name and note here is made up.
+import Icon from './Icon.astro'
+
+type Tone = 'blue' | 'green' | 'yellow' | 'pink' | 'violet' | 'orange'
+type Status = 'todo' | 'progress' | 'review' | 'done'
 type Item =
-  | { t: 'frame'; at: number[]; title: string; tone?: 'blue' | 'green' }
-  | { t: 'card'; at: number[]; k: string; s: 'todo' | 'progress' | 'review' | 'done'; type?: 'story' | 'task' | 'bug' }
-  | { t: 'note'; at: number[]; text: string; tone: 'yellow' | 'blue' | 'green' }
-  | { t: 'timer'; at: number[]; left: string }
+  | { t: 'frame'; at: number[]; title: string; tone?: Tone }
+  | { t: 'card'; at: number[]; k: string; s: Status; type?: 'story' | 'task' | 'bug' }
+  | { t: 'note'; at: number[]; text: string; tone: Tone }
+  | { t: 'timer'; at: number[]; left: string; fired?: boolean }
   | { t: 'gantt'; at: number[]; title: string; bars: [number, number, 'todo' | 'progress' | 'done'][] }
   | { t: 'focus'; at: number[]; time: string }
+  | { t: 'arrow'; d: string }
 
 const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
 
-const scenarios: { title: string; text: string; items: Item[] }[] = [
+const scenarios: { tag: string; title: string; text: string; items: Item[] }[] = [
   {
+    tag: 'Engineering',
     title: 'Sprint planning',
-    text: 'Pull the backlog in with one query, drag cards into frames by goal and leave notes on what is still unclear. During the sprint the board shows where each task really is.',
+    text: 'Pull the backlog in with one query, drag cards into frames by goal and leave notes on what is still unclear.',
     items: [
       { t: 'frame', at: [10, 30, 120, 208], title: 'Backlog' },
       { t: 'frame', at: [140, 30, 120, 208], title: 'Sprint 24' },
-      { t: 'frame', at: [270, 30, 120, 96], title: 'Blocked', tone: 'green' },
+      { t: 'frame', at: [270, 30, 120, 96], title: 'Blocked', tone: 'pink' },
       { t: 'card', at: [18, 40], k: 'APP-131', s: 'todo', type: 'story' },
       { t: 'card', at: [18, 66], k: 'APP-134', s: 'todo' },
       { t: 'card', at: [18, 92], k: 'APP-140', s: 'todo', type: 'bug' },
@@ -32,8 +39,28 @@ const scenarios: { title: string; text: string; items: Item[] }[] = [
     ],
   },
   {
+    tag: 'Engineering',
+    title: 'Kanban across repos',
+    text: 'Three columns, cards from every repository and tracker. A card moves to Done on its own when the issue closes.',
+    items: [
+      { t: 'frame', at: [10, 30, 122, 210], title: 'To do' },
+      { t: 'frame', at: [140, 30, 122, 210], title: 'In progress', tone: 'yellow' },
+      { t: 'frame', at: [270, 30, 122, 210], title: 'Done', tone: 'green' },
+      { t: 'card', at: [18, 40], k: 'web#231', s: 'todo' },
+      { t: 'card', at: [18, 66], k: 'api#88', s: 'todo', type: 'bug' },
+      { t: 'card', at: [18, 92], k: 'APP-150', s: 'todo', type: 'story' },
+      { t: 'card', at: [148, 40], k: 'web#219', s: 'progress' },
+      { t: 'card', at: [148, 66], k: 'APP-112', s: 'review', type: 'story' },
+      { t: 'card', at: [278, 40], k: 'api#80', s: 'done' },
+      { t: 'card', at: [278, 66], k: 'web#204', s: 'done', type: 'bug' },
+      { t: 'card', at: [278, 92], k: 'APP-109', s: 'done' },
+      { t: 'note', at: [148, 150, 104, 74], text: 'WIP limit: 3 per person', tone: 'orange' },
+    ],
+  },
+  {
+    tag: 'Engineering',
     title: 'A release across teams',
-    text: 'Put the tasks of several projects, from Jira and GitHub, on one board. Plan them on a Gantt with milestones and see which bar slips when a status does not move.',
+    text: 'Put the tasks of several projects on one board. Plan them on a Gantt with milestones and see which bar slips.',
     items: [
       { t: 'frame', at: [10, 30, 124, 92], title: 'Web' },
       { t: 'card', at: [18, 40], k: 'WEB-9', s: 'done', type: 'story' },
@@ -48,8 +75,105 @@ const scenarios: { title: string; text: string; items: Item[] }[] = [
     ],
   },
   {
+    tag: 'On-call',
+    title: 'Incident room',
+    text: 'One board per incident: the failing issues, who owns what, a timeline of notes and a timer for the next update.',
+    items: [
+      { t: 'frame', at: [10, 30, 186, 120], title: 'INC-42 · Checkout errors', tone: 'pink' },
+      { t: 'card', at: [18, 42], k: 'PAY-301', s: 'progress', type: 'bug' },
+      { t: 'card', at: [18, 68], k: 'PAY-302', s: 'review', type: 'bug' },
+      { t: 'card', at: [18, 94], k: 'OPS-77', s: 'todo' },
+      { t: 'timer', at: [150, 42], left: '15m' },
+      { t: 'frame', at: [210, 30, 180, 210], title: 'Timeline', tone: 'yellow' },
+      { t: 'note', at: [218, 40, 164, 44], text: '14:02 Alerts fired', tone: 'yellow' },
+      { t: 'note', at: [218, 92, 164, 44], text: '14:09 Rollback started', tone: 'yellow' },
+      { t: 'note', at: [218, 144, 164, 44], text: '14:20 Status page updated', tone: 'yellow' },
+      { t: 'note', at: [18, 166, 176, 70], text: 'Owner: Anna. Comms: Max. Next update at 14:35.', tone: 'violet' },
+    ],
+  },
+  {
+    tag: 'Team',
+    title: 'Retrospective',
+    text: 'Notes for what went well and what to change, then turn the actions into real tasks right on the board.',
+    items: [
+      { t: 'frame', at: [10, 30, 122, 210], title: 'Went well', tone: 'green' },
+      { t: 'frame', at: [140, 30, 122, 210], title: 'To improve', tone: 'pink' },
+      { t: 'frame', at: [270, 30, 122, 210], title: 'Actions', tone: 'violet' },
+      { t: 'note', at: [18, 40, 106, 58], text: 'Release went out on time', tone: 'green' },
+      { t: 'note', at: [18, 106, 106, 58], text: 'Pairing on the hard bug', tone: 'green' },
+      { t: 'note', at: [148, 40, 106, 58], text: 'Too many review rounds', tone: 'pink' },
+      { t: 'note', at: [148, 106, 106, 58], text: 'Flaky tests block merges', tone: 'pink' },
+      { t: 'card', at: [278, 40], k: 'APP-160', s: 'todo' },
+      { t: 'card', at: [278, 66], k: 'APP-161', s: 'todo', type: 'bug' },
+      { t: 'arrow', d: 'M254 135 C 266 135, 266 76, 278 76' },
+    ],
+  },
+  {
+    tag: 'Product',
+    title: 'Quarter roadmap',
+    text: 'Epics on a timeline with milestones, grouped by team. Each bar keeps the live status of its epic.',
+    items: [
+      { t: 'gantt', at: [10, 14, 380, 178], title: 'Q4 roadmap', bars: [[2, 30, 'done'], [18, 40, 'progress'], [36, 34, 'progress'], [56, 30, 'todo'], [70, 26, 'todo']] },
+      { t: 'note', at: [10, 202, 120, 38], text: 'Beta on Nov 20', tone: 'blue' },
+      { t: 'note', at: [140, 202, 120, 38], text: 'Hiring: 2 engineers', tone: 'orange' },
+    ],
+  },
+  {
+    tag: 'Engineering',
+    title: 'Bug triage',
+    text: 'Pull new bugs in with a query and sort them by impact. The board shows which ones already have an owner.',
+    items: [
+      { t: 'frame', at: [10, 30, 122, 210], title: 'New', tone: 'blue' },
+      { t: 'frame', at: [140, 30, 122, 210], title: 'This week', tone: 'pink' },
+      { t: 'frame', at: [270, 30, 122, 210], title: 'Later', tone: 'green' },
+      { t: 'card', at: [18, 40], k: 'APP-171', s: 'todo', type: 'bug' },
+      { t: 'card', at: [18, 66], k: 'APP-172', s: 'todo', type: 'bug' },
+      { t: 'card', at: [18, 92], k: 'web#240', s: 'todo', type: 'bug' },
+      { t: 'card', at: [148, 40], k: 'APP-168', s: 'progress', type: 'bug' },
+      { t: 'card', at: [148, 66], k: 'APP-169', s: 'review', type: 'bug' },
+      { t: 'card', at: [278, 40], k: 'APP-150', s: 'todo', type: 'bug' },
+      { t: 'note', at: [18, 168, 106, 60], text: 'Repro first, then size', tone: 'yellow' },
+    ],
+  },
+  {
+    tag: 'Architecture',
+    title: 'Dependency map',
+    text: 'Cards from three teams joined with arrows, so everyone sees what waits on what before the planning call.',
+    items: [
+      { t: 'frame', at: [10, 30, 116, 96], title: 'Mobile', tone: 'violet' },
+      { t: 'frame', at: [142, 30, 116, 96], title: 'API', tone: 'green' },
+      { t: 'frame', at: [274, 30, 116, 96], title: 'Data', tone: 'orange' },
+      { t: 'card', at: [18, 42], k: 'MOB-31', s: 'todo' },
+      { t: 'card', at: [18, 82], k: 'MOB-33', s: 'todo', type: 'story' },
+      { t: 'card', at: [150, 42], k: 'api#212', s: 'progress' },
+      { t: 'card', at: [150, 82], k: 'api#230', s: 'review' },
+      { t: 'card', at: [282, 42], k: 'DATA-8', s: 'done' },
+      { t: 'arrow', d: 'M282 52 C 268 52, 262 52, 236 52' },
+      { t: 'arrow', d: 'M150 52 C 130 52, 124 52, 104 52' },
+      { t: 'arrow', d: 'M150 92 C 130 92, 124 92, 104 92' },
+      { t: 'note', at: [142, 150, 116, 80], text: 'api#212 blocks the mobile release', tone: 'yellow' },
+    ],
+  },
+  {
+    tag: 'Team',
+    title: 'Onboarding a new engineer',
+    text: 'Two weeks of starter tasks with notes from the team. The new person sees their progress as cards turn green.',
+    items: [
+      { t: 'frame', at: [10, 30, 186, 210], title: 'Week 1' },
+      { t: 'frame', at: [206, 30, 186, 210], title: 'Week 2', tone: 'green' },
+      { t: 'card', at: [18, 40], k: 'ONB-1', s: 'done' },
+      { t: 'card', at: [18, 66], k: 'ONB-2', s: 'done' },
+      { t: 'card', at: [18, 92], k: 'ONB-3', s: 'progress', type: 'story' },
+      { t: 'card', at: [214, 40], k: 'ONB-4', s: 'todo' },
+      { t: 'card', at: [214, 66], k: 'ONB-5', s: 'todo', type: 'story' },
+      { t: 'note', at: [18, 140, 110, 84], text: 'Ask Max for access to staging', tone: 'yellow' },
+      { t: 'note', at: [214, 110, 110, 70], text: 'First review buddy: Anna', tone: 'pink' },
+    ],
+  },
+  {
+    tag: 'Personal',
     title: 'Your own week',
-    text: 'Keep the tasks you own and the ones you wait on in two frames. Set a timer on a review you asked for and use the focus timer for the deep work.',
+    text: 'Keep the tasks you own and the ones you wait on in two frames. A timer pings you when a review comes back.',
     items: [
       { t: 'focus', at: [130, 8], time: '24:10' },
       { t: 'frame', at: [10, 58, 184, 104], title: 'Mine' },
@@ -71,23 +195,33 @@ const place = ([x, y, w, h]: number[]) =>
 
 <section class="section alt" id="scenarios">
   <div class="wrap">
-    <h2 class="h2 reveal">One canvas, many ways to lay work out</h2>
-    <p class="lead reveal">
-      A board has no fixed shape. Three layouts to start from.
-    </p>
-    <div class="grid">
+    <div class="head">
+      <div>
+        <h2 class="h2 reveal">One canvas, many ways to lay work out</h2>
+        <p class="lead reveal">A board has no fixed shape. Ten layouts to start from, for sprints, releases, incidents and your own week.</p>
+      </div>
+      <div class="nav" data-nav hidden>
+        <button type="button" class="btn btn-outline btn-sm" data-dir="-1" aria-label="Previous layouts"><Icon name="arrow-left" /></button>
+        <button type="button" class="btn btn-outline btn-sm" data-dir="1" aria-label="Next layouts"><Icon name="arrow-right" /></button>
+      </div>
+    </div>
+    <div class="track" data-track tabindex="0" aria-label="Board layouts">
       {
-        scenarios.map(({ title, text, items }, i) => (
-          <article class="reveal" style={`--d:${i * 0.08}s`}>
+        scenarios.map(({ tag, title, text, items }) => (
+          <article>
             <div class="thumb" aria-hidden="true">
               <div class="mini dots">
+                <svg class="arrows" viewBox="0 0 400 250">
+                  {items.map((item) => item.t === 'arrow' && <path d={item.d} />)}
+                </svg>
                 {items.map((item) => {
+                  if (item.t === 'arrow') return null
                   if (item.t === 'frame')
-                    return <div class={`n frame ${item.tone ?? 'blue'}`} style={place(item.at)}><b>{item.title}</b></div>
+                    return <div class={`n frame ${item.tone ?? 'plain'}`} style={place(item.at)}><b>{item.title}</b></div>
                   if (item.t === 'card')
                     return (
                       <div class="n card" data-status={item.s} style={place(item.at)}>
-                        <i class={`ty ${item.type ?? 'task'}`} />
+                        <span class="ty"><Icon name={TYPE_ICON[item.type ?? 'task']} size={10} /></span>
                         <span class="k">{item.k}</span>
                         <span class="lz">{STATUS[item.s]}</span>
                       </div>
@@ -111,6 +245,7 @@ const place = ([x, y, w, h]: number[]) =>
                 })}
               </div>
             </div>
+            <span class="tag">{tag}</span>
             <h3>{title}</h3>
             <p>{text}</p>
           </article>
@@ -120,27 +255,141 @@ const place = ([x, y, w, h]: number[]) =>
   </div>
 </section>
 
+<script>
+  // Arrow buttons page the carousel by its visible width; without scripts it still scrolls.
+  const track = document.querySelector<HTMLElement>('[data-track]')
+  const nav = document.querySelector<HTMLElement>('[data-nav]')
+  if (track && nav) {
+    nav.hidden = false
+    const [back, next] = nav.querySelectorAll<HTMLButtonElement>('button')
+    const update = () => {
+      back.disabled = track.scrollLeft < 4
+      next.disabled = track.scrollLeft + track.clientWidth > track.scrollWidth - 4
+    }
+    for (const button of [back, next])
+      button.addEventListener('click', () =>
+        track.scrollBy({ left: Number(button.dataset.dir) * track.clientWidth * 0.9, behavior: 'smooth' }),
+      )
+    track.addEventListener('scroll', update, { passive: true })
+    update()
+
+    // Grab and pan with a mouse, like the canvas; touch already scrolls natively. On release
+    // the row eases to the nearest board.
+    track.addEventListener('pointerdown', (down) => {
+      if (down.pointerType !== 'mouse' || down.button !== 0) return
+      const startLeft = track.scrollLeft
+      let moved = false
+      const move = (event: PointerEvent) => {
+        const dx = event.clientX - down.clientX
+        if (!moved && Math.abs(dx) < 4) return
+        if (!moved) {
+          moved = true
+          track.setPointerCapture(down.pointerId)
+          track.classList.add('grabbing')
+        }
+        track.scrollLeft = startLeft - dx
+      }
+      const up = () => {
+        track.removeEventListener('pointermove', move)
+        track.removeEventListener('pointerup', up)
+        track.removeEventListener('pointercancel', up)
+        if (!moved) return
+        const boards = [...track.children] as HTMLElement[]
+        const near = boards.reduce((a, b) =>
+          Math.abs(b.offsetLeft - track.offsetLeft - track.scrollLeft) <
+          Math.abs(a.offsetLeft - track.offsetLeft - track.scrollLeft)
+            ? b
+            : a,
+        )
+        track.scrollTo({ left: near.offsetLeft - track.offsetLeft, behavior: 'smooth' })
+        // Snapping comes back once the row has settled, so it does not jump mid-glide.
+        setTimeout(() => track.classList.remove('grabbing'), 500)
+        // A drag is not a click on whatever sits under the pointer.
+        track.addEventListener('click', (e) => e.preventDefault(), { capture: true, once: true })
+      }
+      track.addEventListener('pointermove', move)
+      track.addEventListener('pointerup', up)
+      track.addEventListener('pointercancel', up)
+    })
+
+  }
+</script>
+
 <style>
   .alt {
     border-block: 1px solid var(--border);
     background: var(--card);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem 1.5rem;
-    margin-top: clamp(2rem, 5vw, 3.5rem);
+  .head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem;
   }
-  @media (max-width: 860px) {
-    .grid {
-      grid-template-columns: 1fr;
-      max-width: 34rem;
+  .nav {
+    display: flex;
+    flex: none;
+    gap: 0.5rem;
+  }
+  .nav[hidden] {
+    display: none;
+  }
+  .nav .btn {
+    width: 2.25rem;
+    padding: 0;
+  }
+  .nav .btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  /* A row that scrolls and snaps; three boards in view on a wide screen. */
+  .track {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 3rem) / 3);
+    gap: 1.5rem;
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    padding-bottom: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  .track:focus-visible {
+    outline-offset: 6px;
+  }
+  @media (pointer: fine) {
+    .track {
+      cursor: grab;
+    }
+  }
+  /* While dragged the row follows the pointer freely; it snaps again on release. */
+  .track.grabbing {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    user-select: none;
+  }
+  .track article {
+    scroll-snap-align: start;
+  }
+  @media (max-width: 960px) {
+    .track {
+      grid-auto-columns: calc((100% - 1.5rem) / 2);
+    }
+  }
+  @media (max-width: 640px) {
+    .track {
+      grid-auto-columns: 86%;
+    }
+    .nav {
+      display: none;
     }
   }
   /* Like the hero board: one unit is a pixel of a 400×250 board, scaled to the thumbnail. */
   .thumb {
     container-type: inline-size;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
   .mini {
     --u: calc(100cqw / 400);
@@ -158,6 +407,18 @@ const place = ([x, y, w, h]: number[]) =>
   article:hover .mini {
     border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
   }
+  .arrows {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    opacity: 0.55;
+  }
   .n {
     position: absolute;
     left: calc(var(--x) * var(--u));
@@ -165,21 +426,41 @@ const place = ([x, y, w, h]: number[]) =>
     width: calc(var(--w) * var(--u));
     height: calc(var(--h) * var(--u));
   }
+  /* Frames and notes as on the board: a plain frame on --muted, a filled one tinted. */
   .frame {
     border: 1px solid var(--border);
-    border-radius: calc(6 * var(--u));
-    background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), transparent);
+    border-radius: calc(3.4 * var(--u));
+    background: color-mix(in oklab, var(--tone) var(--frame-tint), var(--background));
   }
-  .frame.green {
-    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+  .frame.plain {
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
   }
   .frame b {
     position: absolute;
-    left: calc(2 * var(--u));
+    left: 0;
     bottom: calc(100% + 3 * var(--u));
-    font-size: calc(10 * var(--u));
-    font-weight: 600;
+    font-size: calc(9.5 * var(--u));
+    font-weight: 500;
+    color: var(--muted-foreground);
     white-space: nowrap;
+  }
+  .green {
+    --tone: var(--sticky-green);
+  }
+  .yellow {
+    --tone: var(--sticky-yellow);
+  }
+  .pink {
+    --tone: var(--sticky-pink);
+  }
+  .violet {
+    --tone: var(--sticky-violet);
+  }
+  .orange {
+    --tone: var(--sticky-orange);
+  }
+  .blue {
+    --tone: var(--sticky-blue);
   }
   .card {
     display: flex;
@@ -187,9 +468,9 @@ const place = ([x, y, w, h]: number[]) =>
     gap: calc(4 * var(--u));
     width: auto;
     height: auto;
-    padding: calc(3 * var(--u)) calc(5 * var(--u));
+    padding: calc(3 * var(--u)) calc(6 * var(--u));
     border: 1px solid var(--border);
-    border-radius: calc(4 * var(--u));
+    border-radius: calc(3.4 * var(--u));
     background: var(--card);
     white-space: nowrap;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -197,17 +478,14 @@ const place = ([x, y, w, h]: number[]) =>
   article:hover .card:nth-of-type(odd) {
     transform: translateX(calc(3 * var(--u)));
   }
+  /* The type icon is a muted outline, as on demo cards. */
   .ty {
-    width: calc(9 * var(--u));
-    height: calc(9 * var(--u));
-    border-radius: calc(2 * var(--u));
-    background: var(--type-task);
+    display: grid;
+    color: var(--muted-foreground);
   }
-  .ty.story {
-    background: var(--type-story);
-  }
-  .ty.bug {
-    background: var(--type-bug);
+  .ty :global(svg) {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
   }
   .k {
     font-family: var(--mono);
@@ -234,33 +512,25 @@ const place = ([x, y, w, h]: number[]) =>
     color: var(--done-fg);
   }
   [data-status='done'] .k {
-    color: var(--muted-foreground);
     text-decoration: line-through;
   }
   .note {
-    padding: calc(7 * var(--u));
-    border-radius: calc(2 * var(--u));
+    padding: calc(8 * var(--u));
+    border-radius: calc(3.4 * var(--u));
+    background: var(--tone);
     color: var(--sticky-foreground);
     font-size: calc(9.5 * var(--u));
-    box-shadow: 0 calc(1 * var(--u)) calc(2 * var(--u)) oklch(0.2 0.02 260 / 0.12);
-  }
-  .yellow {
-    background: var(--sticky-yellow);
-  }
-  .note.blue {
-    background: var(--sticky-blue);
-  }
-  .note.green {
-    background: var(--sticky-green);
+    line-height: 1.35;
   }
   .timer {
     display: grid;
     place-items: center;
     width: calc(26 * var(--u));
     height: calc(26 * var(--u));
-    border-radius: calc(5 * var(--u));
+    border-radius: calc(4.2 * var(--u));
     background: var(--timer);
     color: var(--timer-foreground);
+    box-shadow: 0 1px 2px oklch(0.3 0.07 60 / 0.25);
     font-family: var(--mono);
     font-size: calc(8 * var(--u));
     font-weight: 600;
@@ -340,6 +610,17 @@ const place = ([x, y, w, h]: number[]) =>
     background: var(--foreground);
     transform: rotate(45deg);
   }
+  .tag {
+    display: inline-block;
+    margin-bottom: 0.375rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    background: var(--muted);
+    color: color-mix(in oklch, var(--muted-foreground) 70%, var(--foreground));
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.6;
+  }
   h3 {
     font-size: 1.0625rem;
     font-weight: 600;
@@ -349,5 +630,10 @@ const place = ([x, y, w, h]: number[]) =>
     margin-top: 0.5rem;
     font-size: 0.9375rem;
     color: var(--muted-foreground);
+  }
+  @media (max-width: 640px) {
+    .head {
+      display: block;
+    }
   }
 </style>

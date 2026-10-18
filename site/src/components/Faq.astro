@@ -1,5 +1,5 @@
 ---
-import { FAQ } from '../data/site'
+import { brand, FAQ } from '../data/site'
 import Icon from './Icon.astro'
 ---
 
@@ -13,10 +13,10 @@ import Icon from './Icon.astro'
         FAQ.map(({ q, a }, i) => (
           <details open={i === 0}>
             <summary>
-              <h3>{q}</h3>
+              <h3 set:html={brand(q)} />
               <Icon name="chevron-down" size={16} />
             </summary>
-            <p>{a}</p>
+            <p set:html={brand(a)} />
           </details>
         ))
       }

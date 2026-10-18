@@ -1,0 +1,489 @@
+---
+// The first feature frame: tasks from many trackers flow through tiko onto one board. The
+// markup is the finished board; the loop plays only when the frame is in view and motion is on.
+import { DOCS, TRACKERS } from '../data/site'
+import Brand from './Brand.astro'
+import Connector from './Connector.astro'
+import Icon from './Icon.astro'
+import Logo from './Logo.astro'
+
+// Trackers sit on two arcs around tiko, each with a straight ray to it, so no two rays cross:
+// the outer ring's rays pass between the tiles of the inner ring.
+const FLOW = TRACKERS.filter((t) => t.id !== 'confluence')
+const HUB = { x: 250, y: 190 }
+const RINGS = [
+  { r: 104, angles: [105, 135, 165, 195, 225, 255] },
+  { r: 190, angles: [120, 150, 180, 210, 240] },
+]
+const SPOTS = RINGS.flatMap(({ r, angles }) =>
+  angles.map((a) => ({
+    x: Math.round(HUB.x + r * Math.cos((a * Math.PI) / 180)),
+    y: Math.round(HUB.y - r * Math.sin((a * Math.PI) / 180)),
+  })),
+)
+const tile = (t: number) => SPOTS[t]
+const pick = (id: string) => FLOW.findIndex((t) => t.id === id)
+
+const cards = [
+  { src: 'jira', k: 'APP-112', title: 'Retry payments', type: 'story', s: 'progress', flip: true },
+  { src: 'github', k: 'web#214', title: 'Docs dark theme', type: 'task', s: 'review' },
+  { src: 'linear', k: 'MOB-31', title: 'Crash on login', type: 'bug', s: 'todo' },
+  { src: 'gitlab', k: 'ops!7', title: 'Rotate the certificates', type: 'task', s: 'progress' },
+  { src: 'notion', k: 'Q4', title: 'Hire a product designer', type: 'story', s: 'todo' },
+  { src: 'todoist', k: '#me', title: 'Book the offsite venue', type: 'task', s: 'done' },
+].map((card, i) => ({ ...card, from: tile(pick(card.src)), y: 48 + 46 * i }))
+// The ray a card's signal runs along lights up while it passes.
+const signal = (t: number) => cards.findIndex((c) => c.src === FLOW[t].id)
+
+const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
+const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
+---
+
+<section class="frame-sec" id="features">
+  <div class="wrap">
+    <Connector />
+    <div class="frame">
+      <span class="frame-title">Live cards</span>
+      <div class="copy">
+        <h2 class="h2">Tasks from all your trackers as live cards on one whiteboard</h2>
+        <p class="lead">
+          Connect the trackers your teams already use and put their tasks side by side. Each card
+          shows the status from its own tracker and refreshes on its own, so the board is never a
+          stale screenshot of last week.
+        </p>
+        <ul class="points">
+          <li><Icon name="check" size={16} /><span>Paste a key, a link or a query</span></li>
+          <li><Icon name="check" size={16} /><span>Status, assignee and type, refreshed every 30 seconds</span></li>
+          <li><Icon name="check" size={16} /><span>Mix trackers on one board, each card keeps its source</span></li>
+        </ul>
+        <a class="more" href={`${DOCS}/adding-tasks/`}>Adding tasks <Icon name="arrow-right" /></a>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <div class="visual" data-flow>
+          <svg class="wires" viewBox="0 0 620 380">
+            {
+              FLOW.map((_, t) =>
+                signal(t) < 0 ? <path class="ray" d={ray(t)} /> : <path class="ray lit" style={`--i:${signal(t)}`} d={ray(t)} />,
+              )
+            }
+            <path class="out" d="M282 190 H 292" />
+            <path class="out head" d="M286 184 L293 190 L286 196" />
+          </svg>
+
+          {
+            FLOW.map((t, i) => (
+              <span class:list={['tile', { soon: !t.live }]} style={`--x:${tile(i).x - 19};--y:${tile(i).y - 19}`} title={t.name}>
+                <Logo id={t.id} size={20} />
+              </span>
+            ))
+          }
+
+          <span class="hub"><Brand mark="emblem" height={30} /></span>
+
+          <div class="board dots">
+            <span class="sync"><i></i>Synced just now</span>
+          </div>
+
+          {
+            cards.map((c, i) => (
+              <>
+                <i class="dot" style={`--i:${i};--sx:${c.from.x};--sy:${c.from.y}`} />
+                <span class="card" data-status={c.s} style={`--i:${i};--y:${c.y}`}>
+                  <Logo id={c.src} size={14} />
+                  <span class="ty"><Icon name={TYPE_ICON[c.type as keyof typeof TYPE_ICON]} size={10} /></span>
+                  <b>{c.k}</b>
+                  <span class="t">{c.title}</span>
+                  {c.flip ? (
+                    <span class="swap"><span class="lz progress a">In progress</span><span class="lz done b">Done</span></span>
+                  ) : (
+                    <span class="lz">{STATUS[c.s as keyof typeof STATUS]}</span>
+                  )}
+                </span>
+              </>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Plays the flow while the frame is in view, then starts over after a pause.
+  const flow = document.querySelector<HTMLElement>('[data-flow]')
+  if (flow && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let seen = false
+    let timer = 0
+    const play = () => {
+      flow.classList.remove('play')
+      void flow.offsetWidth
+      flow.classList.add('play')
+      timer = window.setTimeout(() => (seen ? play() : flow.classList.remove('play')), 14000)
+    }
+    new IntersectionObserver(([entry]) => {
+      seen = entry.isIntersecting
+      if (seen && !flow.classList.contains('play')) play()
+      if (!seen) {
+        clearTimeout(timer)
+        flow.classList.remove('play')
+      }
+    }, { threshold: 0.4 }).observe(flow)
+  }
+</script>
+
+<style>
+  .frame-sec {
+    padding-block: 0 clamp(4rem, 9vw, 7rem);
+  }
+  .frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    padding: clamp(1.5rem, 4vw, 3.5rem);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--sticky-blue) var(--frame-mix), var(--background));
+  }
+  .frame-title {
+    position: absolute;
+    left: 4px;
+    bottom: calc(100% + 8px);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  /* The frame tint lifts the background a little; the link keeps 4.5:1 in both themes. */
+  .frame .more {
+    color: color-mix(in oklch, var(--primary) 82%, var(--foreground));
+  }
+  .points {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1.5rem;
+  }
+  .points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .points :global(svg) {
+    flex: none;
+    margin-top: 0.3em;
+    color: var(--sync-ok);
+  }
+
+  /* One unit is a pixel of a 620×380 drawing, scaled to the column. */
+  .stage {
+    container-type: inline-size;
+  }
+  .visual {
+    --u: calc(100cqw / 620);
+    position: relative;
+    aspect-ratio: 620 / 380;
+    font-size: calc(12 * var(--u));
+    line-height: 1.3;
+  }
+  .wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+    opacity: 0.45;
+  }
+  .wires .out {
+    stroke-dasharray: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 1;
+  }
+  .tile {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    display: grid;
+    place-items: center;
+    width: calc(38 * var(--u));
+    height: calc(38 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(9 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .tile :global(svg) {
+    width: calc(20 * var(--u));
+    height: calc(20 * var(--u));
+  }
+  .tile.soon {
+    border-style: dashed;
+    box-shadow: none;
+  }
+  .tile.soon :global(svg) {
+    opacity: 0.75;
+  }
+  .hub {
+    position: absolute;
+    left: calc(220 * var(--u));
+    top: calc(160 * var(--u));
+    display: grid;
+    place-items: center;
+    width: calc(60 * var(--u));
+    height: calc(60 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(14 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .hub :global(svg) {
+    width: auto;
+    height: calc(30 * var(--u));
+  }
+  .board {
+    position: absolute;
+    left: calc(296 * var(--u));
+    top: calc(14 * var(--u));
+    width: calc(316 * var(--u));
+    height: calc(352 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(12 * var(--u));
+    background-color: var(--background);
+    background-size: calc(16 * var(--u)) calc(16 * var(--u));
+    box-shadow: var(--shadow);
+  }
+  .sync {
+    position: absolute;
+    right: calc(10 * var(--u));
+    top: calc(8 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(5 * var(--u));
+    font-size: calc(10 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .sync i {
+    width: calc(7 * var(--u));
+    height: calc(7 * var(--u));
+    border-radius: 50%;
+    background: var(--sync-ok);
+  }
+
+  .card {
+    position: absolute;
+    left: calc(306 * var(--u));
+    top: calc(var(--y) * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(5 * var(--u));
+    width: calc(296 * var(--u));
+    height: calc(36 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(4.8 * var(--u));
+    background: var(--card);
+    white-space: nowrap;
+  }
+  .card > :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .card b {
+    flex: none;
+    font-family: var(--mono);
+    font-size: calc(11 * var(--u));
+    font-weight: 400;
+    color: var(--primary);
+  }
+  .card .t {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* The type icon is a muted outline, as on the board's cards. */
+  .ty {
+    display: grid;
+    flex: none;
+    color: var(--muted-foreground);
+  }
+  .ty :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .lz {
+    flex: none;
+    margin-left: auto;
+    padding: 0 calc(5 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: calc(9.5 * var(--u));
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  [data-status='progress'] .lz,
+  [data-status='review'] .lz,
+  .lz.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  [data-status='done'] .lz,
+  .lz.done {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+  [data-status='done'] b {
+    text-decoration: line-through;
+  }
+  [data-status='done'] .t {
+    color: var(--muted-foreground);
+  }
+  .swap {
+    display: grid;
+    flex: none;
+    margin-left: auto;
+  }
+  .swap .lz {
+    grid-area: 1 / 1;
+    justify-self: end;
+  }
+  .swap .a {
+    opacity: 0;
+  }
+
+  .dot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    margin: calc(-4 * var(--u)) 0 0 calc(-4 * var(--u));
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 20%, transparent);
+    opacity: 0;
+  }
+
+  /* The loop: each task leaves its tracker, passes through tiko and lands as a card. */
+  .play .dot {
+    animation: livecards-fly 1.1s linear both;
+    animation-delay: calc(var(--i) * 1.4s + 0.4s);
+  }
+  .play .ray.lit {
+    animation: livecards-lit 1.4s ease-out both;
+    animation-delay: calc(var(--i) * 1.4s + 0.3s);
+  }
+  .play .card {
+    animation: livecards-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i) * 1.4s + 1.4s);
+  }
+  .play .hub {
+    animation: livecards-gulp 1.4s ease-out 0.6s 6;
+  }
+  .play .swap .a {
+    animation: livecards-hide 0.3s 10.5s both;
+  }
+  .play .swap .b {
+    animation: livecards-show 0.3s 10.5s both;
+  }
+  .play .card:has(.swap) {
+    animation:
+      livecards-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.4s both,
+      livecards-ring 0.9s ease-out 10.5s;
+  }
+  /* Straight along its ray into tiko, then along the arrow to the board. */
+  @keyframes livecards-fly {
+    0% {
+      opacity: 0;
+      translate: calc(var(--sx) * var(--u)) calc(var(--sy) * var(--u));
+    }
+    10% {
+      opacity: 1;
+    }
+    65% {
+      translate: calc(250 * var(--u)) calc(190 * var(--u));
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: calc(294 * var(--u)) calc(190 * var(--u));
+    }
+  }
+  @keyframes livecards-lit {
+    0%,
+    100% {
+      stroke: var(--muted-foreground);
+    }
+    20%,
+    60% {
+      stroke: var(--primary);
+      stroke-dasharray: none;
+      stroke-width: 1.6;
+      opacity: 1;
+    }
+  }
+  @keyframes livecards-land {
+    from {
+      opacity: 0;
+      translate: calc(-14 * var(--u)) 0;
+      scale: 0.96;
+    }
+  }
+  @keyframes livecards-gulp {
+    0%,
+    40% {
+      box-shadow: var(--shadow);
+    }
+    55% {
+      box-shadow:
+        var(--shadow),
+        0 0 0 calc(5 * var(--u)) color-mix(in oklch, var(--primary) 25%, transparent);
+    }
+    100% {
+      box-shadow:
+        var(--shadow),
+        0 0 0 calc(12 * var(--u)) transparent;
+    }
+  }
+  @keyframes livecards-hide {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes livecards-show {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes livecards-ring {
+    from {
+      box-shadow: 0 0 0 calc(2 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 calc(10 * var(--u)) transparent;
+    }
+  }
+
+
+  @media (max-width: 860px) {
+    .frame {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
