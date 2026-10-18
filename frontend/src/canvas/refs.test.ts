@@ -48,6 +48,15 @@ describe('pastedRefs', () => {
     expect(pastedRefs('APP-1 - APP-2')).toEqual({ refs: ['APP-1', 'APP-2'], more: false })
   })
 
+  it('takes a link from a Jira board with the selected issue', () => {
+    const link =
+      'https://example.atlassian.net/jira/software/projects/APP/boards/1?selectedIssue=APP-7'
+    expect(pastedRefs(link)).toEqual({ refs: [link], more: false })
+    expect(
+      pastedRefs('https://example.atlassian.net/jira/software/projects/APP/boards/1'),
+    ).toBeNull()
+  })
+
   it('says when a range runs past the limit', () => {
     expect(pastedRefs('APP-1..51')?.more).toBe(true)
     expect(pastedRefs('APP-1..50')?.more).toBe(false)

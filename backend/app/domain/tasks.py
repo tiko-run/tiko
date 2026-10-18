@@ -1,7 +1,7 @@
 import re
 from datetime import UTC, datetime
 from typing import Literal, NoReturn
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel
 
@@ -94,16 +94,18 @@ def now_iso() -> str:
 
 
 def parse_ref(ref: str, base_host: str) -> str:
-    """Returns the issue key from a bare key or a `.../browse/KEY` URL on the configured host."""
+    """Returns the issue key from a bare key, a `.../browse/KEY` URL or a board URL with
+    `selectedIssue=KEY`, on the configured host."""
     text = ref.strip()
     if text.startswith(("http://", "https://")):
         url = urlparse(text)
         match = _BROWSE_RE.search(url.path)
-        if not match:
+        selected = parse_qs(url.query).get("selectedIssue")
+        if not match and not selected:
             raise InvalidRef("link is not a Jira issue URL")
         if url.hostname != base_host:
             raise HostMismatch(f"link host {url.hostname} does not match {base_host}")
-        text = match.group(1)
+        text = match.group(1) if match else selected[0]
     key = text.upper()
     if not KEY_RE.match(key):
         raise InvalidRef("expected an issue key like ABC-123 or an issue link")

@@ -80,3 +80,25 @@ test('saves and removes my GitHub token on any instance', async () => {
     ),
   )
 })
+
+test('on Jira Cloud asks for my e-mail next to the API token', async () => {
+  const fetchMock = show({ ...jira, base_url: 'https://example.atlassian.net', kind: 'cloud' })
+  const save = await screen.findByRole('button', { name: 'Save token' })
+  fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'api-token' } })
+  expect(save).toBeDisabled()
+  expect(screen.getByRole('link', { name: 'Create an API token' })).toHaveAttribute(
+    'href',
+    'https://id.atlassian.com/manage-profile/security/api-tokens',
+  )
+  fireEvent.change(screen.getByLabelText('Atlassian account e-mail'), {
+    target: { value: ' ann.lee@example.com ' },
+  })
+  fireEvent.click(save)
+  expect(await screen.findByText(/Your token is stored/)).toBeInTheDocument()
+  const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
+  expect(JSON.parse(String(put?.[1]?.body))).toEqual({
+    token: 'api-token',
+    source: 'jira',
+    email: 'ann.lee@example.com',
+  })
+})

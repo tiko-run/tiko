@@ -584,6 +584,8 @@ def test_my_github_token(team, private):
         "base_url": None,
         "token_state": "none",
         "github_token_state": "set",
+        "kind": None,
+        "email": None,
     }
     assert T_ANN not in ann.get("/api/me/tracker").text + ann.get("/api/settings").text
     assert ann.delete("/api/me/tracker").status_code == 204

@@ -17,6 +17,7 @@ import { SectionHeader } from '@/settings/sections/Section'
 import { didOnboarding } from '@/onboarding/done'
 
 const GITHUB_GUIDE = 'https://docs.tiko.run/github-issues/#your-own-token'
+const ATLASSIAN_TOKENS = 'https://id.atlassian.com/manage-profile/security/api-tokens'
 
 const GITHUB_HINT = {
   none: 'No token yet. Public issues and pull requests work without one.',
@@ -119,10 +120,12 @@ function GitHubTokenForm({ tracker }: { tracker: Tracker }) {
 }
 
 function TokenForm({ tracker }: { tracker: Tracker }) {
+  const cloud = tracker.kind === 'cloud'
   const [token, setToken] = useState('')
+  const [email, setEmail] = useState(tracker.email ?? '')
   const changed = useTokenChanged()
   const save = useMutation({
-    mutationFn: () => saveTrackerToken(token.trim()),
+    mutationFn: () => saveTrackerToken(token.trim(), 'jira', cloud ? email.trim() : undefined),
     onSuccess: (next) => {
       setToken('')
       changed(next)
@@ -138,7 +141,11 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
     onError: toastError,
   })
   const test = useMutation({
-    mutationFn: () => testJira(token.trim() ? { token: token.trim() } : {}),
+    mutationFn: () =>
+      testJira({
+        ...(token.trim() && { token: token.trim() }),
+        ...(cloud && email.trim() && { email: email.trim() }),
+      }),
   })
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -151,8 +158,21 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
         <Input id="tracker-url" value={tracker.base_url ?? ''} readOnly disabled />
         <p className="text-muted-foreground text-[13px]">Set by an admin for everyone.</p>
       </div>
+      {cloud && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="tracker-email">Atlassian account e-mail</Label>
+          <Input
+            id="tracker-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            spellCheck={false}
+          />
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="tracker-token">Personal access token</Label>
+        <Label htmlFor="tracker-token">{cloud ? 'API token' : 'Personal access token'}</Label>
         <Input
           id="tracker-token"
           type="password"
@@ -162,12 +182,30 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
         />
         <p className="text-muted-foreground text-[13px]">
           {HINT[tracker.token_state]} It stays on the server and is never shown again.
+          {cloud && (
+            <>
+              {' '}
+              <a
+                href={ATLASSIAN_TOKENS}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline-offset-2 hover:underline"
+              >
+                Create an API token
+              </a>{' '}
+              without scopes.
+            </>
+          )}
         </p>
       </div>
       {save.isError && <p className="text-destructive text-[13px]">{save.error.message}</p>}
       {test.isError && <p className="text-destructive text-[13px]">{test.error.message}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={save.isPending || !token.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={save.isPending || !token.trim() || (cloud && !email.trim())}
+        >
           Save token
         </Button>
         <Button

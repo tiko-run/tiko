@@ -86,6 +86,8 @@ class JiraDcProvider:
     source_id = SOURCE_ID
     source_name = "Jira Data Center"
     source_note = None
+    # Keys read in one request of a poll.
+    poll_chunk = SEARCH_CHUNK
 
     def __init__(self, credentials: Callable[[], JiraCredentials], client: httpx.Client) -> None:
         self._credentials = credentials
@@ -96,12 +98,12 @@ class JiraDcProvider:
     def base_host(self) -> str:
         return urlparse(self._credentials().base_url).hostname or ""
 
+    def _authorization(self, creds: JiraCredentials) -> str:
+        return f"Bearer {creds.token.get_secret_value()}"
+
     def _request(self, method: str, path: str, **kwargs) -> tuple[str, httpx.Response]:
         creds = self._credentials()
-        headers = {
-            "Authorization": f"Bearer {creds.token.get_secret_value()}",
-            "Accept": "application/json",
-        }
+        headers = {"Authorization": self._authorization(creds), "Accept": "application/json"}
         try:
             response = self._client.request(
                 method, f"{creds.base_url}{path}", headers=headers, **kwargs
@@ -115,7 +117,10 @@ class JiraDcProvider:
                 f"Jira returned {response.status_code}. Check your token in Settings."
             )
         if response.status_code == 429:
-            retry_after = response.headers.get("retry-after", "")
+            # Jira Cloud may send only the beta header while its new limits are rolled out.
+            retry_after = response.headers.get("retry-after") or response.headers.get(
+                "beta-retry-after", ""
+            )
             seconds = int(retry_after) if retry_after.isdigit() else DEFAULT_RETRY_AFTER_S
             raise JiraRateLimited("Jira is rate limiting requests", seconds)
         if response.status_code >= 500:
@@ -140,7 +145,7 @@ class JiraDcProvider:
             raise JiraUnavailable(f"Jira returned {response.status_code}")
         return _task(base_url, _json(response))
 
-    def _search(self, keys: list[str]) -> tuple[str, list[dict]]:
+    def _fetch(self, keys: list[str]) -> tuple[str, list[dict]]:
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search",
@@ -159,7 +164,7 @@ class JiraDcProvider:
             bad = set(_KEY_IN_ERROR.findall(messages))
             rest = [key for key in keys if key not in bad]
             if bad and rest and len(rest) < len(keys):
-                return self._search(rest)
+                return self._fetch(rest)
             if bad and not rest:
                 return base_url, []
         if response.status_code != 200:
@@ -229,8 +234,8 @@ class JiraDcProvider:
     def poll(self, keys: list[str]) -> list[Task]:
         found: dict[str, Task] = {}
         base_url = self._credentials().base_url
-        for start in range(0, len(keys), SEARCH_CHUNK):
-            base_url, issues = self._search(keys[start : start + SEARCH_CHUNK])
+        for start in range(0, len(keys), self.poll_chunk):
+            base_url, issues = self._fetch(keys[start : start + self.poll_chunk])
             for issue in issues:
                 task = _task(base_url, issue)
                 found[task.key] = task

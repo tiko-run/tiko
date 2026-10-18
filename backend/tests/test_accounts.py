@@ -295,7 +295,11 @@ def test_upgrade_from_v2026_10_9_opens_as_admin(tmp_path, monkeypatch, capsys):
     assert names == ["Roadmap", "Sprint"]
     body = client.get("/api/settings").json()
     assert body["provider"] == "jira"
-    assert body["jira"] == {"base_url": "https://jira.example.com", "token_state": "set"}
+    assert body["jira"] == {
+        "base_url": "https://jira.example.com",
+        "token_state": "set",
+        "kind": "dc",
+    }
 
     # Once the admin exists, the variable no longer opens anything and the log says why.
     capsys.readouterr()

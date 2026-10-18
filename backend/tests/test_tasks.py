@@ -14,6 +14,10 @@ HOST = "jira.example.com"
         ("A_B2-7", "A_B2-7"),
         ("https://jira.example.com/browse/DEV-12", "DEV-12"),
         ("https://jira.example.com/jira/browse/dev-9/", "DEV-9"),
+        (
+            "https://jira.example.com/jira/software/projects/DEV/boards/1?selectedIssue=DEV-4",
+            "DEV-4",
+        ),
     ],
 )
 def test_parse_ref_accepts_keys_and_links(ref, key):

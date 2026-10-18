@@ -20,6 +20,7 @@ export const REF_RE = new RegExp(`^(${JIRA_KEY}|${GITHUB_KEY}|https?://\\S+)$`)
 // Only a key or a link to a task page counts on paste, so other links stay text.
 const TASK_REF_RE = new RegExp(
   `^(${JIRA_KEY}|${GITHUB_KEY}|https?://\\S+/browse/${JIRA_KEY}/?` +
+    `|https?://\\S+[?&]selectedIssue=${JIRA_KEY}(&\\S*)?` +
     `|https?://(www\\.)?github\\.com/${GITHUB_REPO}/(issues|pull)/[1-9]\\d*([/?#]\\S*)?)$`,
 )
 

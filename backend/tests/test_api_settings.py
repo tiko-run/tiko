@@ -14,7 +14,7 @@ def test_defaults(client):
         "provider": "demo",
         "refresh_interval_s": 30,
         "secret_key_configured": False,
-        "jira": {"base_url": None, "token_state": "none"},
+        "jira": {"base_url": None, "token_state": "none", "kind": None},
         "public_links": True,
         "locked": [],
     }
@@ -28,7 +28,11 @@ def test_saving_token_needs_secret_key(client):
 
 def test_connect_and_resolve_real_card(jira_client):
     body = connect(jira_client)
-    assert body["jira"] == {"base_url": "https://jira.example.com", "token_state": "set"}
+    assert body["jira"] == {
+        "base_url": "https://jira.example.com",
+        "token_state": "set",
+        "kind": "dc",
+    }
     task = jira_client.post("/api/tasks/resolve", json={"ref": "dev-1"}).json()["task"]
     assert task["url"] == "https://jira.example.com/browse/DEV-1"
     link = jira_client.post(

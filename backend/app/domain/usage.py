@@ -18,7 +18,7 @@ PING_JITTER_S = 3600
 ACTIVE_DAYS = 7
 
 Bucket = Literal["0", "1", "2-5", "6-20", "21-100", "100+"]
-Tracker = Literal["demo", "jira_dc", "github"]
+Tracker = Literal["demo", "jira_dc", "jira_cloud", "github"]
 Deploy = Literal["installer", "compose", "railway", "render", "source", "demo"]
 HostOs = Literal["linux", "darwin", "windows", "other"]
 
@@ -141,7 +141,15 @@ class Privacy:
 
     def ping(self) -> Ping:
         since = datetime.now(UTC) - timedelta(days=ACTIVE_DAYS)
-        trackers = sorted({_TRACKERS[s] for s in self._counts.sources() if s in _TRACKERS})
+        # Cards of both kinds of Jira are stored as `jira`; the instance's kind tells them apart.
+        cloud = self._repo.get_all().get("jira_kind") == "cloud"
+        trackers = sorted(
+            {
+                "jira_cloud" if s == "jira" and cloud else _TRACKERS[s]
+                for s in self._counts.sources()
+                if s in _TRACKERS
+            }
+        )
         return Ping(
             instance_id=self.instance_id(),
             version=self._version,

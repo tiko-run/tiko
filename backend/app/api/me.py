@@ -8,7 +8,7 @@ from app.api import deps
 from app.api.auth import me
 from app.api.deps import AccountsDep, CurrentPerson, NotDemoVisitor
 from app.domain.onboarding import Onboarding, OnboardingChange
-from app.domain.settings import SettingsService, TokenState
+from app.domain.settings import JiraKind, SettingsService, TokenState
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -63,6 +63,9 @@ class TrackerView(BaseModel):
     provider: str
     base_url: str | None
     token_state: TokenState
+    kind: JiraKind | None = None
+    # The person's own Jira Cloud e-mail, never anyone else's.
+    email: str | None = None
     # GitHub is read on every instance, whatever its own tracker is.
     github_token_state: TokenState
 
@@ -73,6 +76,7 @@ TokenSource = Literal["jira", "github"]
 class TokenIn(BaseModel):
     token: SecretStr
     source: TokenSource = "jira"
+    email: str | None = Field(default=None, max_length=320)
 
 
 def _tracker(person_id: str, settings: SettingsService) -> TrackerView:
@@ -81,6 +85,8 @@ def _tracker(person_id: str, settings: SettingsService) -> TrackerView:
         base_url=settings.base_url(),
         token_state=settings.token_state(person_id),
         github_token_state=settings.github_token_state(person_id),
+        kind=settings.jira_kind(),
+        email=settings.email(person_id),
     )
 
 
@@ -103,7 +109,7 @@ def set_tracker_token(
         request.app.state.github_readers.login(body.token.get_secret_value().strip())
         settings.set_github_token(person.id, body.token)
     else:
-        settings.set_token(person.id, body.token)
+        settings.set_token(person.id, body.token, body.email)
     return _tracker(person.id, settings)
 
 

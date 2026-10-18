@@ -69,7 +69,7 @@ check(status == 204, "revoke invite")
 status, _ = call("GET", f"{API}/api/invites/{token}")
 check(status == 410, "revoked invite is gone")
 
-TRACKER_FIELDS = {"provider", "base_url", "token_state", "github_token_state"}
+TRACKER_FIELDS = {"provider", "base_url", "token_state", "github_token_state", "kind", "email"}
 # The scenario runs on demo tasks; a connected Jira is switched back afterwards.
 status, settings = call("GET", f"{API}/api/settings")
 check(status == 200, "read settings")
@@ -349,7 +349,7 @@ finally:
 
 status, body = call("GET", f"{API}/api/settings")
 check(
-    status == 200 and set(body["jira"]) == {"base_url", "token_state"},
+    status == 200 and set(body["jira"]) == {"base_url", "token_state", "kind"},
     "settings hide token",
 )
 check(isinstance(body["secret_key_configured"], bool), "secret key state reported")
