@@ -232,6 +232,8 @@ class SettingsService:
         )
         if changes_locked:
             raise ValidationFailed("This is set by the server in the environment.")
+        if change.jira is not None:
+            self._require_https_for_cloud(change.jira.base_url)
         values: dict[str, str | None] = {}
         if change.provider is not None:
             values["provider"] = change.provider
@@ -290,6 +292,11 @@ class SettingsService:
         self._on_token_change(user_id, "github")
         self._on_change()
 
+    def _require_https_for_cloud(self, url: str) -> None:
+        # Basic auth carries the e-mail and token in every request, readable on plain HTTP.
+        if urlparse(url).scheme != "https" and self.jira_kind(url) == "cloud":
+            raise ValidationFailed("base_url: Jira Cloud needs an https:// address")
+
     def _cloud_email(self, user_id: str, url: str, email: str | None) -> str | None:
         """The e-mail to sign in to Jira Cloud with: the one given, else the stored one."""
         if self.jira_kind(url) != "cloud":
@@ -335,9 +342,7 @@ class SettingsService:
         kind = self.jira_kind(url) or "dc"
         if kind == "dc":
             return JiraCredentials(base_url=url, token=secret)
-        # Basic auth carries the e-mail and token in every request, readable on plain HTTP.
-        if urlparse(url).scheme != "https":
-            raise ValidationFailed("base_url: Jira Cloud needs an https:// address")
+        self._require_https_for_cloud(url)
         cloud_email = (email or "").strip() or stored_email
         if not cloud_email and plain is not None:
             raise ValidationFailed("email: enter the e-mail of your Atlassian account")
