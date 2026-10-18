@@ -31,6 +31,7 @@ export const SHORTCUTS = {
   undo: { keys: 'mod+z', label: 'Undo', group: 'Edit' },
   redo: { keys: 'mod+shift+z, ctrl+y', label: 'Redo', group: 'Edit' },
   copy: { keys: 'mod+c', label: 'Copy', group: 'Edit' },
+  cut: { keys: 'mod+x', label: 'Cut', group: 'Edit' },
   paste: { keys: 'mod+v', label: 'Paste at the cursor', group: 'Edit' },
   duplicate: { keys: 'mod+d', label: 'Duplicate', group: 'Edit' },
   selectAll: { keys: 'mod+a', label: 'Select all', group: 'Edit' },
@@ -42,6 +43,7 @@ export const SHORTCUTS = {
     label: 'Add to selection',
     group: 'Edit',
   },
+  back: { keys: 'b', label: 'Back to where you were', group: 'Canvas' },
   pan: { keys: 'space', display: 'Space + drag', label: 'Pan', group: 'Canvas' },
   freeDrag: {
     keys: 'alt',

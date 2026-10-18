@@ -7,7 +7,7 @@ description: Timers that go off at a time or on a status change, and a focus tim
 
 A timer is a small countdown cube next to the thing you are waiting for. Pick the timer tool (`R`) and click a card, sticky note, text or module, or right-click one and choose "Add timer". It attaches beside the element, moves with it and goes away with it. A timer on an empty spot stays on its own.
 
-Click the cube to note what you are waiting for and set when it goes off: `15m`, `1h 30m`, `tomorrow 10:00`, `fri 9:00`, `25.10.2026 15:00`. Clock timers can repeat every day, on weekdays or every week.
+Click the cube to note what you are waiting for and set when it goes off: `15m`, `1h 30m`, `tomorrow 10:00`, `fri 9:00`, `25.10.2026 15:00`. Suggestions finish what you start: `3` offers 3 minutes, 3 hours or 3 days, `tu` offers Tuesday at a few hours, `15:` offers 15:00 and 15:30. Each shows when it goes off; click one, or press Tab to take the first and keep typing. Clock timers can repeat every day, on weekdays or every week.
 
 On a Jira card, pick "When the status changes": the timer goes off as soon as the board sees the task leave its current status.
 

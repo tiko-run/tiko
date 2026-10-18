@@ -1,7 +1,7 @@
 import { useReactFlow, type Viewport } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Task } from '@/api/tasks'
-import { flyTo, reducedMotion } from '@/canvas/fly'
+import { flyTo, reducedMotion, rememberView } from '@/canvas/fly'
 import type { AppNode } from '@/canvas/types'
 import { useShortcut } from '@/lib/shortcuts'
 import { useCommandList, type Command } from './commands'
@@ -87,14 +87,20 @@ export function BoardSearch({ boardId, nodes, tasks, onJump, onSelect }: Props) 
     setTimeout(command.run, 0)
   }
 
-  const choose = (entry: Entry) => {
+  // A jump keeps the view the palette opened over, so "Back" returns there, not to a preview.
+  const leave = () => {
+    if (opened.current) rememberView(opened.current)
     finish()
+  }
+
+  const choose = (entry: Entry) => {
+    leave()
     pushRecent(boardId, entry.id)
     onJump(entry.target)
   }
 
   const selectAll = (ids: string[]) => {
-    finish()
+    leave()
     onSelect(ids)
     void flow.fitView({
       nodes: ids.map((id) => ({ id })),

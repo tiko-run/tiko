@@ -4,6 +4,7 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  ControlButton,
   Controls,
   MarkerType,
   ReactFlow,
@@ -15,6 +16,7 @@ import {
   type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { ArrowLeft } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { canEdit, getBoard, type Board } from '@/api/boards'
 import type { Task } from '@/api/tasks'
@@ -88,7 +90,16 @@ import type { ModuleHost } from '@/modules/types'
 import { dialogOverBoard, useShortcut } from '@/lib/shortcuts'
 import { askNotify, primeAudio } from '@/focus/alerts'
 import { BESIDE, dropTimers, holdsTimers, TIMER_SIZE } from '@/timers/attach'
-import { flyTo, useFlashingId } from '@/canvas/fly'
+import { toolCursor } from '@/canvas/cursors'
+import {
+  flyTo,
+  forgetViews,
+  reducedMotion,
+  rememberView,
+  takeView,
+  useCanGoBack,
+  useFlashingId,
+} from '@/canvas/fly'
 import { BoardSearch } from '@/search/BoardSearch'
 import { useSearchHits } from '@/search/palette'
 import { BoardTimers } from '@/timers/BoardTimers'
@@ -228,6 +239,14 @@ export function BoardCanvas({
 
   useShortcut('cancel', () => setTool('select'), { preventDefault: false })
 
+  const canGoBack = useCanGoBack()
+  useEffect(() => forgetViews, [])
+  const goBack = () => {
+    const view = takeView()
+    if (view) void flow.setViewport(view, { duration: reducedMotion() ? 0 : 400 })
+  }
+  useShortcut('back', goBack, { enabled: canGoBack && !expandedId })
+
   const flashId = useFlashingId()
   const hits = useSearchHits()
   const { drags } = live
@@ -364,15 +383,21 @@ export function BoardCanvas({
 
   // Native clipboard events rather than shortcuts: only they can read and write the
   // system clipboard. Both step aside for text fields, dialogs and selected page text.
-  const clipboard = useRef<Record<'copy' | 'paste', (event: ClipboardEvent) => void>>(null)
+  const clipboard = useRef<Record<'copy' | 'cut' | 'paste', (event: ClipboardEvent) => void>>(null)
   useEffect(() => {
+    const copy = (event: ClipboardEvent) => {
+      if (isEditable(event.target) || !window.getSelection()?.isCollapsed) return false
+      const snippet = copySelection(getNodes(), getEdges(), tasks)
+      if (!snippet) return false
+      event.preventDefault()
+      event.clipboardData?.setData(CLIPBOARD_MARKER, setClipboard(snippet))
+      return true
+    }
     clipboard.current = {
-      copy: (event) => {
-        if (isEditable(event.target) || !window.getSelection()?.isCollapsed) return
-        const snippet = copySelection(getNodes(), getEdges(), tasks)
-        if (!snippet) return
-        event.preventDefault()
-        event.clipboardData?.setData(CLIPBOARD_MARKER, setClipboard(snippet))
+      copy,
+      cut: (event) => {
+        if (readOnly || expandedId) return
+        if (copy(event)) deleteSelection()
       },
       paste: (event) => {
         if (readOnly || isEditable(event.target) || !event.clipboardData) return
@@ -405,11 +430,14 @@ export function BoardCanvas({
   })
   useEffect(() => {
     const copy = (event: ClipboardEvent) => clipboard.current?.copy(event)
+    const cut = (event: ClipboardEvent) => clipboard.current?.cut(event)
     const paste = (event: ClipboardEvent) => clipboard.current?.paste(event)
     document.addEventListener('copy', copy)
+    document.addEventListener('cut', cut)
     document.addEventListener('paste', paste)
     return () => {
       document.removeEventListener('copy', copy)
+      document.removeEventListener('cut', cut)
       document.removeEventListener('paste', paste)
     }
   }, [])
@@ -453,7 +481,13 @@ export function BoardCanvas({
       ),
     [setNodes],
   )
-  const openTimer = useCallback((id: string) => flyTo(flow, id), [flow])
+  const openTimer = useCallback(
+    (id: string) => {
+      rememberView(flow.getViewport())
+      flyTo(flow, id)
+    },
+    [flow],
+  )
 
   const placeAt = (kind: PlaceTool, screen: XYPosition) => {
     if (kind === 'timer') return addTimer({ screen })
@@ -791,17 +825,27 @@ export function BoardCanvas({
         nodesDraggable={!placing && !readOnly}
         nodesConnectable={!readOnly}
         edgesReconnectable={!readOnly}
+        style={placing ? { cursor: toolCursor(tool) } : undefined}
         className={[
           connecting && 'connecting',
           hits && 'searching',
-          placing && 'cursor-crosshair',
           tool === 'hand' && 'cursor-grab',
         ]
           .filter(Boolean)
           .join(' ')}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} color="var(--grid)" />
-        <Controls showInteractive={false} position="bottom-right" />
+        <Controls showInteractive={false} position="bottom-right">
+          {canGoBack && (
+            <ControlButton
+              onClick={goBack}
+              title="Back to where you were (B)"
+              aria-label="Back to where you were"
+            >
+              <ArrowLeft />
+            </ControlButton>
+          )}
+        </Controls>
         <Guides guides={guides.guides} />
         <PresenceLayer />
       </ReactFlow>

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatDue, formatLeft, formatLeftLong, parseWhen } from './time'
+import {
+  formatDue,
+  formatLeft,
+  formatLeftLong,
+  parseWhen,
+  suggestionNote,
+  suggestWhen,
+} from './time'
 
 // Wednesday, 7 Oct 2026, 11:00 local time.
 const NOW = new Date(2026, 9, 7, 11, 0).getTime()
@@ -72,5 +79,57 @@ describe('formatting', () => {
   it('shows the moment in English with a 24-hour clock', () => {
     expect(formatDue(local(10, 25, 15, 30))).toBe('Sun, 25.10.2026, 15:30')
     expect(formatDue(local(10, 8, 9, 5))).toBe('Thu, 08.10.2026, 09:05')
+  })
+})
+
+describe('suggestWhen', () => {
+  const inputs = (text: string) => suggestWhen(text, NOW).map((s) => s.input)
+
+  it('offers units for a bare number', () => {
+    expect(inputs('3')).toEqual(['3m', '3h', '3d'])
+    expect(inputs('9')).toEqual(['9m', '9h', '9d', '9:00'])
+  })
+
+  it('offers the next part of a duration', () => {
+    expect(inputs('1h 3')).toEqual(['1h 3m', '1h 3d'])
+    expect(inputs('in 2d5')).toEqual(['2d 5m', '2d 5h'])
+  })
+
+  it('finishes a day name', () => {
+    expect(inputs('t')).toEqual(['today 14:00', 'tomorrow 10:00', 'tue 10:00', 'thu 10:00'])
+    expect(inputs('tues')).toEqual(['tue 10:00', 'tue 14:00', 'tue 18:00'])
+  })
+
+  it('leaves out times that have passed', () => {
+    // At 11:00 today 10:00 is gone, so only the later hours are offered.
+    expect(inputs('today')).toEqual(['today 14:00', 'today 18:00'])
+  })
+
+  it('finishes a clock after a day', () => {
+    expect(inputs('fri 15')).toEqual(['fri 15:00', 'fri 15:30'])
+    expect(inputs('15:')).toEqual(['15:00', '15:30'])
+    expect(inputs('15:4')).toEqual(['15:40', '15:45'])
+  })
+
+  it('finishes a date', () => {
+    expect(inputs('25.')).toEqual(['25.10', '25.11'])
+  })
+
+  it('gives each suggestion its moment', () => {
+    expect(suggestWhen('3', NOW)[0].at).toBe(NOW + 3 * 60_000)
+    expect(suggestWhen('tues', NOW)[1].at).toBe(local(10, 13, 14))
+  })
+
+  it('notes only what the suggestion does not say', () => {
+    const note = (input: string) => suggestionNote(suggestWhen(input, NOW)[0], NOW)
+    expect(note('3')).toBe('11:03')
+    expect(note('tues')).toBe('13.10')
+    expect(note('15:')).toBe('')
+  })
+
+  it('offers nothing for what it cannot finish', () => {
+    expect(inputs('')).toEqual([])
+    expect(inputs('xyz')).toEqual([])
+    expect(inputs('99:')).toEqual([])
   })
 })

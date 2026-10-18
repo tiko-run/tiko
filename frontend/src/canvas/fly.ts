@@ -1,4 +1,4 @@
-import type { InternalNode, SetCenter } from '@xyflow/react'
+import type { InternalNode, SetCenter, Viewport } from '@xyflow/react'
 import { useSyncExternalStore } from 'react'
 
 const FLASH_MS = 1200
@@ -78,4 +78,47 @@ export function flyTo(
     flashing = null
     emit()
   }, FLASH_MS)
+}
+
+// Views the board jumped away from, newest last, so "Back" can return to them.
+const VIEW_HISTORY = 20
+let views: Viewport[] = []
+const viewListeners = new Set<() => void>()
+
+function emitViews() {
+  for (const listener of viewListeners) listener()
+}
+
+/** Remembers where the board was before a jump. */
+export function rememberView(view: Viewport) {
+  views = [...views.slice(1 - VIEW_HISTORY), view]
+  emitViews()
+}
+
+/** The last view before a jump, taken off the list. */
+export function takeView() {
+  const view = views.at(-1)
+  if (view) {
+    views = views.slice(0, -1)
+    emitViews()
+  }
+  return view
+}
+
+/** Each board starts with no way back: views of another board mean nothing here. */
+export function forgetViews() {
+  views = []
+  emitViews()
+}
+
+/** True while there is a view to go back to. */
+export function useCanGoBack() {
+  return useSyncExternalStore(
+    (listener) => {
+      viewListeners.add(listener)
+      return () => viewListeners.delete(listener)
+    },
+    () => views.length > 0,
+    () => false,
+  )
 }

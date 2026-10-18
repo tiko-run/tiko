@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { sourceName } from '@/sources/registry'
 import { SourceMark } from '@/sources/SourceMark'
+import { taskLinkProps } from '@/lib/task-links'
 
 type Props = {
   task: Task
@@ -93,7 +94,7 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
           {collapsed ? 'Expand card' : 'Collapse card'}
         </Button>
         <Button variant="outline" size="sm" asChild>
-          <a href={task.url} target="_blank" rel="noreferrer">
+          <a href={task.url} {...taskLinkProps()}>
             <SourceMark source={task.source} />
             Open in {sourceName(task.source)}
             <ExternalLink strokeWidth={1.75} />

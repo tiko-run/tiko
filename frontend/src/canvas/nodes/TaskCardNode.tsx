@@ -10,6 +10,7 @@ import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { openSettings } from '@/settings/store'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
+import { taskLinkProps } from '@/lib/task-links'
 
 // Long titles are cut so the status lozenge after them always stays visible.
 const SUMMARY_LIMIT = 120
@@ -79,8 +80,7 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
           ) : (
             <a
               href={task?.url}
-              target="_blank"
-              rel="noreferrer"
+              {...taskLinkProps()}
               className={cn(
                 'text-primary font-mono text-xs tabular-nums hover:underline',
                 !hidden && 'mr-1.5',
