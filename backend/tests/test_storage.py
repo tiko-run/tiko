@@ -6,6 +6,7 @@ import threading
 
 import pytest
 
+from app.adapters.storage import sqlite
 from app.adapters.storage.sqlite import Database, SqliteBoardRepo, SqliteSnapshotRepo
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain.boards import BoardDoc
@@ -152,6 +153,21 @@ def test_upgrade_rebuilds_a_live_state_it_cannot_read(tmp_path):
 
     record, ydoc = SqliteBoardRepo(Database(path)).load(board_id)
     assert (record.doc.nodes[0].type, ydoc) == ("task_card", None)
+
+
+def test_the_copy_is_taken_before_the_first_step_of_the_upgrade(tmp_path, monkeypatch):
+    path = str(tmp_path / "app.db")
+    Database(path)
+    top = sqlite.MIGRATIONS[-1][0]
+    script = tmp_path / "drop.sql"
+    script.write_text("DROP TABLE boards;")
+    steps = [*sqlite.MIGRATIONS, (top + 1, script), (top + 2, lambda conn: None)]
+    monkeypatch.setattr(sqlite, "MIGRATIONS", steps)
+    Database(path)
+    [copy] = (tmp_path / "backups").glob(f"before-v{top + 2}-*.db")
+    kept = sqlite3.connect(copy)
+    assert kept.execute("PRAGMA user_version").fetchone()[0] == top
+    assert kept.execute("SELECT count(*) FROM boards").fetchone()[0] == 0
 
 
 def test_a_new_database_is_not_copied(tmp_path):

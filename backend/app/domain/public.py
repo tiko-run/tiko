@@ -12,7 +12,7 @@ from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
 from app.domain.live import room_key
 from app.domain.planning import BoardPlanning, Planning
 from app.domain.ports import Attempts, BoardRepo, LiveBoards, TaskProvider
-from app.domain.tasks import Task, now_iso, split_ref, task_ref
+from app.domain.tasks import GITHUB, Task, github_url, now_iso, split_ref, task_ref
 
 # Guests of one link share this budget, so one link going viral cannot starve the instance.
 # The API sits behind proxies and cannot tell guests apart by address.
@@ -117,6 +117,8 @@ def guest_tasks(
             ref = task_ref(source, key)
             if ref not in tasks:
                 link = f"{url}{key}" if url and provider is None else ""
+                if source == GITHUB:
+                    link = github_url(key)
                 tasks[ref] = Task(
                     source=source, key=key, state="private", url=link, fetched_at=now_iso()
                 )

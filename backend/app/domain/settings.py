@@ -93,7 +93,7 @@ class SettingsService:
         on_token: Callable[[str], None] = lambda _: None,
         on_change: Callable[[], None] = lambda: None,
         on_public_off: Callable[[], None] = lambda: None,
-        on_github_token: Callable[[str], None] = lambda _: None,
+        on_token_change: Callable[[str, str], None] = lambda _user, _source: None,
         env: dict[LockedField, str] | None = None,
     ) -> None:
         self._env = env or {}
@@ -107,7 +107,7 @@ class SettingsService:
         # Guests already on a board must go when public links are switched off.
         self._on_public_off = on_public_off
         # What the old token read must not outlive it in the person's task cache.
-        self._on_github_token = on_github_token
+        self._on_token_change = on_token_change
 
     def _token(
         self, user_id: str, base_url: str | None, kind: str = "jira"
@@ -195,12 +195,14 @@ class SettingsService:
         if url is None:
             raise JiraNotConfigured("An admin sets the Jira URL in Settings first.")
         self._credentials.set(user_id, "jira", self._box.encrypt(plain), url)
+        self._on_token_change(user_id, "jira")
         self._on_token(plain)
         self._on_change()
         return self.token_state(user_id)
 
     def remove_token(self, user_id: str) -> None:
         self._credentials.delete(user_id, "jira")
+        self._on_token_change(user_id, "jira")
         self._on_change()
 
     def github_token_state(self, user_id: str) -> TokenState:
@@ -215,14 +217,14 @@ class SettingsService:
         if plain is None:
             raise ValidationFailed("token: enter your personal access token")
         self._credentials.set(user_id, "github", self._box.encrypt(plain), GITHUB_API_URL)
-        self._on_github_token(user_id)
+        self._on_token_change(user_id, "github")
         self._on_token(plain)
         self._on_change()
         return self.github_token_state(user_id)
 
     def remove_github_token(self, user_id: str) -> None:
         self._credentials.delete(user_id, "github")
-        self._on_github_token(user_id)
+        self._on_token_change(user_id, "github")
         self._on_change()
 
     def jira_credentials(

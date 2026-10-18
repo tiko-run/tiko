@@ -83,6 +83,12 @@ def github_key(ref: str) -> str | None:
     return text if GITHUB_KEY_RE.match(text) else None
 
 
+def github_url(key: str) -> str:
+    """The issue page of a key; GitHub sends a pull request's number on to the pull request."""
+    repo, _, number = key.rpartition("#")
+    return f"https://github.com/{repo}/issues/{number}"
+
+
 def now_iso() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 

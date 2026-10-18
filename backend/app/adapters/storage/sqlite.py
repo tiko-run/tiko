@@ -107,9 +107,13 @@ class Database:
 
     def _migrate(self) -> None:
         current = self._conn.execute("PRAGMA user_version").fetchone()[0]
-        for number, step in MIGRATIONS:
-            if number <= current:
-                continue
+        pending = [(number, step) for number, step in MIGRATIONS if number > current]
+        rewrites = [number for number, step in pending if not isinstance(step, Path)]
+        # A database made just now has nothing to lose. The copy comes before the first step,
+        # so the previous version can start from it.
+        if current and rewrites:
+            self._copy_aside(rewrites[0])
+        for number, step in pending:
             if isinstance(step, Path):
                 # executescript commits any open transaction, so the script carries its own.
                 with self._lock:
@@ -117,9 +121,6 @@ class Database:
                         f"BEGIN;\n{step.read_text()}\nPRAGMA user_version = {number};\nCOMMIT;"
                     )
                 continue
-            # A database made just now has nothing to lose.
-            if current:
-                self._copy_aside(number)
             with self.transaction() as conn:
                 step(conn)
                 conn.execute(f"PRAGMA user_version = {number}")

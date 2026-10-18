@@ -180,7 +180,7 @@ export default function App() {
           onSelect={setBoardId}
         />
       )}
-      {focusVisible && <FocusCapsule />}
+      {signedIn && focusVisible && <FocusCapsule />}
       {signedIn && (
         <div className="absolute bottom-4 left-4 z-10 flex items-end gap-2">
           <AboutButton admin={admin} />

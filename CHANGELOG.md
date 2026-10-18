@@ -32,6 +32,13 @@ All notable changes to this project are documented here. The format follows [Kee
 - The welcome tour no longer opens with a focus outline around its close button.
 - A second click on a Gantt stage closes its menu again, instead of reopening it when the Gantt is selected.
 - On the Gantt's Weeks scale, month lines now fall on week lines: a week belongs to the month most of its days are in.
+- A closed GitHub issue with a status label such as `shipped` shows that label as its status instead of "Closed".
+- On a public board a GitHub card that cannot be read right now still links to its issue.
+- Copy next to a public or invite link no longer does nothing when tiko is opened over plain HTTP by an IP address: when the browser refuses to copy, the link is selected and a message asks to copy it by hand.
+- The database copy made before an upgrade now starts the previous version again: it is taken before the first step of the upgrade, not halfway through.
+- Replacing or removing your Jira token clears what the old token read: cards show only their keys until the new token reads them.
+- A GitHub task on a Gantt bar shows the same short key as the task column.
+- The focus timer no longer flashes at the top of the page while it loads or on the sign-in screen.
 
 ## [2026.10.22] - 2026-10-17
 

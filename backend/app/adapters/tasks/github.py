@@ -18,10 +18,17 @@ from app.domain.errors import (
     TrackerUnreachable,
     ValidationFailed,
 )
-from app.domain.tasks import GITHUB, StatusCategory, Task, TaskLabel, TaskRow, now_iso
+from app.domain.tasks import (
+    GITHUB,
+    StatusCategory,
+    Task,
+    TaskLabel,
+    TaskRow,
+    github_url,
+    now_iso,
+)
 
 API_URL = "https://api.github.com"
-WEB_URL = "https://github.com"
 PAGE = 100
 LIMIT_WITHOUT_TOKEN = 60
 LIMIT_WITH_TOKEN = 5000
@@ -70,12 +77,17 @@ def _status(issue: dict) -> tuple[str, StatusCategory]:
         if closed:
             return "Closed", "done"
         return ("Draft" if issue.get("draft") else "Open"), "indeterminate"
-    if closed:
-        return _CLOSED_AS.get(issue.get("state_reason") or "", "Closed"), "done"
+    reason = _CLOSED_AS.get(issue.get("state_reason") or "")
+    if closed and reason:
+        return reason, "done"
     for label in issue.get("labels") or []:
         name = label.get("name") if isinstance(label, dict) else label
-        if isinstance(name, str) and (category := _LABEL_STATUS.get(name.strip().lower())):
+        category = _LABEL_STATUS.get(name.strip().lower()) if isinstance(name, str) else None
+        # A closed issue keeps only a done label: one left at "planned" is stale.
+        if category and (not closed or category == "done"):
             return name.strip(), category
+    if closed:
+        return "Closed", "done"
     return "Open", "new"
 
 
@@ -382,7 +394,7 @@ class GitHubReader:
                 source=GITHUB,
                 key=key,
                 state=self._refused_state if repo.unreadable else "not_found",
-                url=f"{WEB_URL}/{name}/issues/{number}",
+                url=github_url(key),
                 fetched_at=now_iso(),
             )
         # A card keeps the key it was added with, whatever case or name GitHub answers with.

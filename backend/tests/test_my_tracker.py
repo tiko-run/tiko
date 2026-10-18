@@ -75,6 +75,21 @@ def test_each_person_sees_what_their_own_token_allows(team):
         assert response.json()["tasks"]["jira:DEV-2"]["summary"] == ""
 
 
+def test_a_changed_jira_token_takes_what_the_old_one_read_out_of_the_cache(team):
+    people, _ = team
+    ann = people["ann"]
+    board_id = shared_board(ann)
+    ann.post(f"/api/boards/{board_id}/refresh")
+    assert HIDDEN in ann.get(f"/api/boards/{board_id}").text
+    # Before any refresh with the new token: the board opens without the old title.
+    assert ann.put("/api/me/tracker", json={"token": T_BOB}).is_success
+    assert HIDDEN not in ann.get(f"/api/boards/{board_id}").text
+    assert ann.put("/api/me/tracker", json={"token": T_ANN}).is_success
+    ann.post(f"/api/boards/{board_id}/refresh")
+    assert ann.delete("/api/me/tracker").status_code == 204
+    assert HIDDEN not in ann.get(f"/api/boards/{board_id}").text
+
+
 def test_no_route_hands_out_another_persons_task_data(team):
     people, _ = team
     board_id = shared_board(people["ann"])

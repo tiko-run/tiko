@@ -304,7 +304,7 @@ def create_app(
         on_token=register_secret,
         on_change=tracker_changed,
         on_public_off=app.state.live.end_public,
-        on_github_token=lambda user_id: app.state.snapshots.scoped(user_id).forget("github"),
+        on_token_change=lambda user_id, source: app.state.snapshots.scoped(user_id).forget(source),
         env=_tracker_env(settings),
     )
     app.state.settings = service
