@@ -1,8 +1,8 @@
 ---
 // Five features as frames on the page's canvas, each with a large drawing in the look of the
 // real components. The markup is the finished scene; a short loop plays only while in view.
-import { DOCS } from '../../data/site'
-import Icon from '../Icon.astro'
+import { DOCS } from '../data/site'
+import Icon from './Icon.astro'
 import FeatureFrame from './FeatureFrame.astro'
 
 const gantt = [
@@ -55,7 +55,7 @@ const stages = [
   id="gantt"
   label="Timeline"
   tone="blue"
-  heading="A Gantt chart for Jira and GitHub issues"
+  heading="A Gantt chart for the tasks in your tracker"
   lead="Drop cards onto a timeline and get bars that keep their live status, with milestones and dependency lines. Planning mode adds stages, people and their workload."
   points={['Bars follow the status in your tracker', 'Milestones and dependencies between bars', 'Stages and people with Planning on']}
   more={{ href: `${DOCS}/gantt/`, text: 'Gantt' }}
@@ -119,28 +119,29 @@ const stages = [
   more={{ href: `${DOCS}/focus-and-timers/`, text: 'Timers and focus' }}
 >
   <div class="d dots" data-loop role="img" aria-label="Two timers on task cards: one went off on time, one when its task moved to Done, each with a note offering Done, +10 min and +1 hour.">
-    <span class="n bar tlist" style="--x:418;--y:20"><Icon name="alarm-clock" size={16} />1<i class="pill">2</i></span>
-    <span class="n cube a" style="--x:40;--y:70">
+    <span class="n bar tlist" style="--x:300;--y:16"><Icon name="alarm-clock" size={16} />1<i class="pill">2</i></span>
+    <span class="n bar tsync" style="--x:374;--y:16"><i></i>Synced just now</span>
+    <span class="n cube a" style="--x:24;--y:262">
       <span class="run"><Icon name="alarm-clock" size={14} />3s</span>
       <span class="fired"><Icon name="bell-ring" size={14} /></span>
     </span>
-    <span class="n fc" style="--x:90;--y:76"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Move billing cron to a queue<span class="lz progress">In review</span></span>
-    <span class="n cube b" style="--x:40;--y:140">
+    <span class="n fc" style="--x:74;--y:268"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Move billing cron to a queue<span class="lz progress">In review</span></span>
+    <span class="n cube b" style="--x:24;--y:330">
       <span class="run"><Icon name="hourglass" size={14} />Done</span>
       <span class="fired"><Icon name="bell-ring" size={14} /></span>
     </span>
-    <span class="n fc status" style="--x:90;--y:146">
+    <span class="n fc status" style="--x:74;--y:336">
       <span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-121</span>Release notes for 2.4
       <span class="swap"><span class="lz progress was">In progress</span><span class="lz done now">Done</span></span>
     </span>
-    <div class="n note one" style="--x:40;--y:218">
+    <div class="n note one" style="--x:262;--y:66">
       <span class="note-cube"><Icon name="bell-ring" size={14} /></span>
       <span><b>Ping QA about the cron</b><small>On APP-118 · Went off at 15:30</small></span>
       <span class="note-act"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
     </div>
-    <div class="n note two" style="--x:40;--y:306">
+    <div class="n note two" style="--x:262;--y:150">
       <span class="note-cube"><Icon name="bell-ring" size={14} /></span>
-      <span><b>Release notes are done, tell sales</b><small>On APP-121 · Went off when it moved to Done</small></span>
+      <span><b>Tell sales the notes are out</b><small>On APP-121 · Went off on Done</small></span>
       <span class="note-act"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
     </div>
   </div>
@@ -468,12 +469,12 @@ const stages = [
     stroke: none;
   }
   .play .drag {
-    animation: drag 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: featureframes-drag 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
   .play .guide {
-    animation: guide 7s infinite;
+    animation: featureframes-guide 7s infinite;
   }
-  @keyframes drag {
+  @keyframes featureframes-drag {
     0%,
     8% {
       translate: calc(34 * var(--u)) calc(44 * var(--u));
@@ -486,7 +487,7 @@ const stages = [
       translate: calc(34 * var(--u)) calc(44 * var(--u));
     }
   }
-  @keyframes guide {
+  @keyframes featureframes-guide {
     0%,
     30% {
       opacity: 0;
@@ -725,7 +726,7 @@ const stages = [
   }
   .play .g-bar,
   .play .g-stage {
-    animation: grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite both;
+    animation: featureframes-grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite both;
     animation-delay: calc(var(--i) * 0.2s);
   }
   .g-row:nth-of-type(4) .g-stage:nth-child(2) {
@@ -736,10 +737,10 @@ const stages = [
   }
   .play .g-bar.flip {
     animation:
-      grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s infinite both,
-      live 8s infinite;
+      featureframes-grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s infinite both,
+      featureframes-live 8s infinite;
   }
-  @keyframes grow {
+  @keyframes featureframes-grow {
     0%,
     4% {
       transform: scaleX(0);
@@ -756,7 +757,7 @@ const stages = [
     }
   }
   /* The tracker moves the task to Done: the bar turns green and strikes through. */
-  @keyframes live {
+  @keyframes featureframes-live {
     0%,
     45% {
       background: var(--progress);
@@ -838,11 +839,24 @@ const stages = [
   .status .k {
     text-decoration: line-through;
   }
+  /* As in the app: the timer list and sync sit in the top right, notes slide in under them. */
+  .tsync {
+    gap: calc(6 * var(--u));
+    padding-inline: calc(10 * var(--u));
+    color: var(--muted-foreground);
+    font-size: calc(12 * var(--u));
+  }
+  .tsync i {
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    border-radius: 50%;
+    background: var(--sync-ok);
+  }
   .note {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: calc(6 * var(--u)) calc(8 * var(--u));
-    width: calc(400 * var(--u));
+    width: calc(280 * var(--u));
     padding: calc(8 * var(--u));
     border: 1px solid var(--border);
     border-radius: calc(6 * var(--u));
@@ -891,33 +905,33 @@ const stages = [
     color: var(--primary-foreground);
   }
   .play .cube.a {
-    animation: fire 9s infinite;
+    animation: featureframes-fire 9s infinite;
   }
   .play .cube.a .run {
-    animation: idle 9s infinite;
+    animation: featureframes-idle 9s infinite;
   }
   .play .cube.a .fired,
   .play .note.one {
-    animation: shown 9s infinite;
+    animation: featureframes-shown 9s infinite;
   }
   .play .cube.b {
-    animation: fire 9s 2.4s infinite backwards;
+    animation: featureframes-fire 9s 2.4s infinite backwards;
   }
   .play .cube.b .run {
-    animation: idle 9s 2.4s infinite backwards;
+    animation: featureframes-idle 9s 2.4s infinite backwards;
   }
   .play .cube.b .fired,
   .play .note.two,
   .play .swap .now {
-    animation: shown 9s 2.4s infinite backwards;
+    animation: featureframes-shown 9s 2.4s infinite backwards;
   }
   .play .swap .was {
-    animation: idle 9s 2.4s infinite backwards;
+    animation: featureframes-idle 9s 2.4s infinite backwards;
   }
   .play .status .k {
-    animation: strike 9s 2.4s infinite backwards;
+    animation: featureframes-strike 9s 2.4s infinite backwards;
   }
-  @keyframes strike {
+  @keyframes featureframes-strike {
     0%,
     30% {
       text-decoration-color: transparent;
@@ -927,7 +941,7 @@ const stages = [
       text-decoration-color: currentColor;
     }
   }
-  @keyframes fire {
+  @keyframes featureframes-fire {
     0%,
     30% {
       background: var(--timer);
@@ -947,7 +961,7 @@ const stages = [
       box-shadow: 0 0 0 calc(12 * var(--u)) transparent;
     }
   }
-  @keyframes idle {
+  @keyframes featureframes-idle {
     0%,
     30% {
       opacity: 1;
@@ -957,7 +971,7 @@ const stages = [
       opacity: 0;
     }
   }
-  @keyframes shown {
+  @keyframes featureframes-shown {
     0%,
     30% {
       opacity: 0;
@@ -1095,21 +1109,21 @@ const stages = [
     text-align: center;
   }
   .play .typing {
-    animation: typing 8s steps(7) infinite;
+    animation: featureframes-typing 8s steps(7) infinite;
   }
   .play .caret {
-    animation: blink 1s steps(2, start) infinite;
+    animation: featureframes-blink 1s steps(2, start) infinite;
   }
   .play .pal-row {
-    animation: rows 8s infinite;
+    animation: featureframes-rows 8s infinite;
   }
   .play .board-layer .miss::after {
-    animation: fade 8s infinite;
+    animation: featureframes-fade 8s infinite;
   }
   .play .board-layer .hit {
-    animation: ring 8s infinite;
+    animation: featureframes-ring 8s infinite;
   }
-  @keyframes typing {
+  @keyframes featureframes-typing {
     0%,
     6% {
       width: 0;
@@ -1119,12 +1133,12 @@ const stages = [
       width: 3.4em;
     }
   }
-  @keyframes blink {
+  @keyframes featureframes-blink {
     to {
       visibility: hidden;
     }
   }
-  @keyframes rows {
+  @keyframes featureframes-rows {
     0%,
     28% {
       opacity: 0;
@@ -1134,7 +1148,7 @@ const stages = [
       opacity: 1;
     }
   }
-  @keyframes fade {
+  @keyframes featureframes-fade {
     0%,
     30% {
       opacity: 0;
@@ -1147,7 +1161,7 @@ const stages = [
       opacity: 0;
     }
   }
-  @keyframes ring {
+  @keyframes featureframes-ring {
     0%,
     30% {
       outline-color: transparent;
@@ -1307,15 +1321,15 @@ const stages = [
     top: calc(var(--y) * var(--u));
   }
   .play .carry {
-    animation: carry 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: featureframes-carry 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
   .play .roam {
-    animation: roam 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: featureframes-roam 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
   .play .wander {
-    animation: wander 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: featureframes-wander 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
-  @keyframes carry {
+  @keyframes featureframes-carry {
     0%,
     15% {
       translate: calc(60 * var(--u)) calc(110 * var(--u));
@@ -1328,7 +1342,7 @@ const stages = [
       translate: calc(60 * var(--u)) calc(110 * var(--u));
     }
   }
-  @keyframes roam {
+  @keyframes featureframes-roam {
     0% {
       translate: 0 0;
     }
@@ -1342,7 +1356,7 @@ const stages = [
       translate: 0 0;
     }
   }
-  @keyframes wander {
+  @keyframes featureframes-wander {
     0%,
     100% {
       translate: 0 0;

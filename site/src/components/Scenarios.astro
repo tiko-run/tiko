@@ -273,18 +273,14 @@ const place = ([x, y, w, h]: number[]) =>
     track.addEventListener('scroll', update, { passive: true })
     update()
 
-    // Grab and pan with a mouse, like the canvas; touch already scrolls natively. The row
-    // keeps a little momentum after the release, then snaps.
+    // Grab and pan with a mouse, like the canvas; touch already scrolls natively. On release
+    // the row eases to the nearest board.
     track.addEventListener('pointerdown', (down) => {
       if (down.pointerType !== 'mouse' || down.button !== 0) return
-      const startX = down.clientX
       const startLeft = track.scrollLeft
-      let lastX = startX
-      let lastT = down.timeStamp
-      let speed = 0
       let moved = false
       const move = (event: PointerEvent) => {
-        const dx = event.clientX - startX
+        const dx = event.clientX - down.clientX
         if (!moved && Math.abs(dx) < 4) return
         if (!moved) {
           moved = true
@@ -292,18 +288,22 @@ const place = ([x, y, w, h]: number[]) =>
           track.classList.add('grabbing')
         }
         track.scrollLeft = startLeft - dx
-        const dt = event.timeStamp - lastT
-        if (dt > 0) speed = (event.clientX - lastX) / dt
-        lastX = event.clientX
-        lastT = event.timeStamp
       }
       const up = () => {
         track.removeEventListener('pointermove', move)
         track.removeEventListener('pointerup', up)
         track.removeEventListener('pointercancel', up)
         if (!moved) return
-        track.classList.remove('grabbing')
-        track.scrollBy({ left: -speed * 260, behavior: 'smooth' })
+        const boards = [...track.children] as HTMLElement[]
+        const near = boards.reduce((a, b) =>
+          Math.abs(b.offsetLeft - track.offsetLeft - track.scrollLeft) <
+          Math.abs(a.offsetLeft - track.offsetLeft - track.scrollLeft)
+            ? b
+            : a,
+        )
+        track.scrollTo({ left: near.offsetLeft - track.offsetLeft, behavior: 'smooth' })
+        // Snapping comes back once the row has settled, so it does not jump mid-glide.
+        setTimeout(() => track.classList.remove('grabbing'), 500)
         // A drag is not a click on whatever sits under the pointer.
         track.addEventListener('click', (e) => e.preventDefault(), { capture: true, once: true })
       }
@@ -311,6 +311,7 @@ const place = ([x, y, w, h]: number[]) =>
       track.addEventListener('pointerup', up)
       track.addEventListener('pointercancel', up)
     })
+
   }
 </script>
 

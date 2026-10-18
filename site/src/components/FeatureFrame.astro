@@ -1,7 +1,8 @@
 ---
 // One feature as a frame on the page's canvas: copy on one side, a large drawing on the other,
 // joined to the frame above by a short arrow that draws itself on scroll.
-import Icon from '../Icon.astro'
+import Connector from './Connector.astro'
+import Icon from './Icon.astro'
 
 interface Props {
   id: string
@@ -18,10 +19,7 @@ const { id, label, heading, lead, points, more, tone = 'blue', flip = false } = 
 
 <section class="frame-sec" id={id}>
   <div class="wrap">
-    <svg class="link-in" viewBox="0 0 40 120" aria-hidden="true">
-      <path d="M20 0 C 20 40, 20 80, 20 112" />
-      <path class="head" d="M13 104 L20 114 L27 104" />
-    </svg>
+    <Connector />
     <div class:list={['frame', { flip }]} style={`--tone: var(--sticky-${tone})`}>
       <span class="frame-title">{label}</span>
       <div class="copy">
@@ -42,18 +40,6 @@ const { id, label, heading, lead, points, more, tone = 'blue', flip = false } = 
 <style>
   .frame-sec {
     padding-block: 0 clamp(4rem, 9vw, 7rem);
-  }
-  .link-in {
-    display: block;
-    width: 40px;
-    height: 120px;
-    margin: 0 auto 1rem;
-    fill: none;
-    stroke: var(--muted-foreground);
-    stroke-width: 1.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.7;
   }
   .frame {
     position: relative;
@@ -109,26 +95,6 @@ const { id, label, heading, lead, points, more, tone = 'blue', flip = false } = 
     container-type: inline-size;
   }
 
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .link-in path {
-        stroke-dasharray: 130;
-        animation-name: draw;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: view();
-        animation-range: entry 30% cover 45%;
-      }
-    }
-  }
-  @keyframes draw {
-    from {
-      stroke-dashoffset: 130;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
 
   @media (max-width: 860px) {
     .frame,

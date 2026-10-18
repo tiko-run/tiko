@@ -9,7 +9,7 @@ export const WAITLIST_URL = import.meta.env.PUBLIC_WAITLIST_URL || 'https://t.ti
 // Cloudflare's always-pass test key in `astro dev`; the real one only works on tiko.run.
 export const TURNSTILE_SITEKEY = import.meta.env.DEV ? '1x00000000000000000000AA' : '0x4AAAAAAFZdeZlrplRW-RBM'
 
-export const TITLE = 'tiko: open-source canvas with live Jira and GitHub task cards'
+export const TITLE = 'tiko: open-source canvas with live task cards from your tracker'
 export const DESCRIPTION =
   'A self-hosted infinite canvas where the tasks from your tracker live as cards. Lay them out the way you think, and their statuses update on their own.'
 

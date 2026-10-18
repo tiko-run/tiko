@@ -425,7 +425,7 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     height: 60%;
     border-radius: 1px;
     background: currentColor;
-    animation: eq 0.9s ease-in-out infinite alternate;
+    animation: boardsim-eq 0.9s ease-in-out infinite alternate;
   }
   .eq i:nth-child(2) {
     height: 100%;
@@ -435,7 +435,7 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     height: 40%;
     animation-delay: -0.6s;
   }
-  @keyframes eq {
+  @keyframes boardsim-eq {
     to {
       transform: scaleY(0.35);
       transform-origin: bottom;
@@ -495,9 +495,9 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     background: var(--sync-ok);
   }
   .sync.pulse i {
-    animation: sync-pulse 0.9s ease-out;
+    animation: boardsim-sync-pulse 0.9s ease-out;
   }
-  @keyframes sync-pulse {
+  @keyframes boardsim-sync-pulse {
     from {
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--sync-ok) 60%, transparent);
     }
@@ -616,9 +616,9 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     color: var(--muted-foreground);
   }
   .card.flash {
-    animation: flash 0.9s ease-out;
+    animation: boardsim-flash 0.9s ease-out;
   }
-  @keyframes flash {
+  @keyframes boardsim-flash {
     from {
       box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
     }
@@ -675,13 +675,13 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
   .timer[data-state='fired'] {
     background: var(--timer-fired);
     color: var(--timer-fired-foreground);
-    animation: ring 1.6s ease-out infinite;
+    animation: boardsim-ring 1.6s ease-out infinite;
   }
   .timer[data-state='fired'] :is(.timer-clock, .timer-left),
   .timer:not([data-state='fired']) .timer-bell {
     display: none;
   }
-  @keyframes ring {
+  @keyframes boardsim-ring {
     from {
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--timer-fired) 55%, transparent);
     }
@@ -1041,9 +1041,9 @@ const tools = ['mouse-pointer-2', 'hand', 'frame', 'sticky-note', 'type', 'alarm
     height: calc(16 * var(--u));
     margin-left: 1px;
     background: var(--foreground);
-    animation: blink 1s steps(2, start) infinite;
+    animation: boardsim-blink 1s steps(2, start) infinite;
   }
-  @keyframes blink {
+  @keyframes boardsim-blink {
     to {
       visibility: hidden;
     }

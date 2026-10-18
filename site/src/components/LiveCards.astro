@@ -1,10 +1,11 @@
 ---
-// Prototype feature block: tasks from many trackers flow through tiko onto one board. The
+// The first feature frame: tasks from many trackers flow through tiko onto one board. The
 // markup is the finished board; the loop plays only when the frame is in view and motion is on.
-import { DOCS, TRACKERS } from '../../data/site'
-import Brand from '../Brand.astro'
-import Icon from '../Icon.astro'
-import Logo from '../Logo.astro'
+import { DOCS, TRACKERS } from '../data/site'
+import Brand from './Brand.astro'
+import Connector from './Connector.astro'
+import Icon from './Icon.astro'
+import Logo from './Logo.astro'
 
 // Trackers sit on two arcs around tiko, each with a straight ray to it, so no two rays cross:
 // the outer ring's rays pass between the tiles of the inner ring.
@@ -39,18 +40,15 @@ const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
 const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
 ---
 
-<section class="frame-sec" id="live-cards">
+<section class="frame-sec" id="features">
   <div class="wrap">
-    <svg class="link-in" viewBox="0 0 40 120" aria-hidden="true">
-      <path d="M20 0 C 20 40, 20 80, 20 112" />
-      <path class="head" d="M13 104 L20 114 L27 104" />
-    </svg>
+    <Connector />
     <div class="frame">
       <span class="frame-title">Live cards</span>
       <div class="copy">
         <h2 class="h2">Tasks from all your trackers as live cards on one whiteboard</h2>
         <p class="lead">
-          Jira and GitHub connect today, with Linear, GitLab, Notion and more on the way. Each card
+          Connect the trackers your teams already use and put their tasks side by side. Each card
           shows the status from its own tracker and refreshes on its own, so the board is never a
           stale screenshot of last week.
         </p>
@@ -74,7 +72,6 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
             <path class="out head" d="M286 184 L293 190 L286 196" />
           </svg>
 
-          <span class="label">Your trackers</span>
           {
             FLOW.map((t, i) => (
               <span class:list={['tile', { soon: !t.live }]} style={`--x:${tile(i).x - 19};--y:${tile(i).y - 19}`} title={t.name}>
@@ -139,18 +136,6 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
 <style>
   .frame-sec {
     padding-block: 0 clamp(4rem, 9vw, 7rem);
-  }
-  .link-in {
-    display: block;
-    width: 40px;
-    height: 120px;
-    margin: 0 auto 1rem;
-    fill: none;
-    stroke: var(--muted-foreground);
-    stroke-width: 1.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    opacity: 0.7;
   }
   .frame {
     position: relative;
@@ -218,13 +203,6 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
     stroke-linecap: round;
     stroke-linejoin: round;
     opacity: 1;
-  }
-  .label {
-    position: absolute;
-    left: calc(20 * var(--u));
-    top: calc(22 * var(--u));
-    font-size: calc(13 * var(--u));
-    font-weight: 600;
   }
   .tile {
     position: absolute;
@@ -396,33 +374,33 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
 
   /* The loop: each task leaves its tracker, passes through tiko and lands as a card. */
   .play .dot {
-    animation: fly 1.1s linear both;
+    animation: livecards-fly 1.1s linear both;
     animation-delay: calc(var(--i) * 1.4s + 0.4s);
   }
   .play .ray.lit {
-    animation: lit 1.4s ease-out both;
+    animation: livecards-lit 1.4s ease-out both;
     animation-delay: calc(var(--i) * 1.4s + 0.3s);
   }
   .play .card {
-    animation: land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: livecards-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
     animation-delay: calc(var(--i) * 1.4s + 1.4s);
   }
   .play .hub {
-    animation: gulp 1.4s ease-out 0.6s 6;
+    animation: livecards-gulp 1.4s ease-out 0.6s 6;
   }
   .play .swap .a {
-    animation: hide 0.3s 10.5s both;
+    animation: livecards-hide 0.3s 10.5s both;
   }
   .play .swap .b {
-    animation: show 0.3s 10.5s both;
+    animation: livecards-show 0.3s 10.5s both;
   }
   .play .card:has(.swap) {
     animation:
-      land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.4s both,
-      ring 0.9s ease-out 10.5s;
+      livecards-land 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.4s both,
+      livecards-ring 0.9s ease-out 10.5s;
   }
   /* Straight along its ray into tiko, then along the arrow to the board. */
-  @keyframes fly {
+  @keyframes livecards-fly {
     0% {
       opacity: 0;
       translate: calc(var(--sx) * var(--u)) calc(var(--sy) * var(--u));
@@ -441,7 +419,7 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
       translate: calc(294 * var(--u)) calc(190 * var(--u));
     }
   }
-  @keyframes lit {
+  @keyframes livecards-lit {
     0%,
     100% {
       stroke: var(--muted-foreground);
@@ -454,14 +432,14 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
       opacity: 1;
     }
   }
-  @keyframes land {
+  @keyframes livecards-land {
     from {
       opacity: 0;
       translate: calc(-14 * var(--u)) 0;
       scale: 0.96;
     }
   }
-  @keyframes gulp {
+  @keyframes livecards-gulp {
     0%,
     40% {
       box-shadow: var(--shadow);
@@ -477,7 +455,7 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
         0 0 0 calc(12 * var(--u)) transparent;
     }
   }
-  @keyframes hide {
+  @keyframes livecards-hide {
     from {
       opacity: 1;
     }
@@ -485,7 +463,7 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
       opacity: 0;
     }
   }
-  @keyframes show {
+  @keyframes livecards-show {
     from {
       opacity: 0;
     }
@@ -493,7 +471,7 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
       opacity: 1;
     }
   }
-  @keyframes ring {
+  @keyframes livecards-ring {
     from {
       box-shadow: 0 0 0 calc(2 * var(--u)) color-mix(in oklch, var(--primary) 45%, transparent);
     }
@@ -502,26 +480,6 @@ const ray = (t: number) => `M${tile(t).x} ${tile(t).y} L ${HUB.x} ${HUB.y}`
     }
   }
 
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .link-in path {
-        stroke-dasharray: 130;
-        animation-name: draw;
-        animation-timing-function: linear;
-        animation-fill-mode: both;
-        animation-timeline: view();
-        animation-range: entry 30% cover 45%;
-      }
-    }
-  }
-  @keyframes draw {
-    from {
-      stroke-dashoffset: 130;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
 
   @media (max-width: 860px) {
     .frame {
