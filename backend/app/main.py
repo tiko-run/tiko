@@ -45,7 +45,9 @@ from app.adapters.storage.sqlite import (
 from app.adapters.storage.update_backups import SqliteUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
+from app.adapters.tasks.jira_cloud import JiraCloudProvider
 from app.adapters.tasks.jira_dc import JiraDcProvider
+from app.adapters.tasks.jira_kind import find_kind
 from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
@@ -61,7 +63,12 @@ from app.domain.ports import ReleaseFeed, StatsSender, Updater
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
-from app.domain.settings import LockedField, SettingsService, normalize_base_url
+from app.domain.settings import (
+    JiraCredentials,
+    LockedField,
+    SettingsService,
+    normalize_base_url,
+)
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.domain.usage import Deploy, HostOs, Privacy
@@ -296,6 +303,7 @@ def create_app(
 
     if workers:
         workers.heard("tracker_changed", app.state.refresher.reset)
+    client = _jira_client(settings, jira_transport)
     service = SettingsService(
         SqliteSettingsRepo(db),
         credentials,
@@ -306,6 +314,7 @@ def create_app(
         on_public_off=app.state.live.end_public,
         on_token_change=lambda user_id, source: app.state.snapshots.scoped(user_id).forget(source),
         env=_tracker_env(settings),
+        find_kind=lambda url: find_kind(client, url),
     )
     app.state.settings = service
     app.state.planning = Planning(
@@ -321,10 +330,14 @@ def create_app(
         app.state.boards, service.public_links, app.state.live, attempts=attempts
     )
     app.state.demo = DemoTaskProvider(SqliteDemoStatusRepo(db) if settings.tiko_demo else None)
-    client = _jira_client(settings, jira_transport)
+
+    def jira(creds: JiraCredentials) -> JiraDcProvider:
+        kind = JiraCloudProvider if creds.kind == "cloud" else JiraDcProvider
+        return kind(lambda: creds, client)
+
     # Built per request from the signed-in person's own token.
-    app.state.jira = lambda creds: JiraDcProvider(lambda: creds, client)
-    app.state.check_jira = lambda creds: JiraDcProvider(lambda: creds, client).check()
+    app.state.jira = jira
+    app.state.check_jira = lambda creds: jira(creds).check()
     github_token = settings.github_token.get_secret_value().strip() if settings.github_token else ""
     if github_token:
         register_secret(github_token)

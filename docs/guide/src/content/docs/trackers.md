@@ -11,7 +11,7 @@ tiko reads tasks from your tracker and never changes them. Each person connects 
 | Jira Data Center and Server 8.14+ | Available, see [Connect Jira Data Center](../jira-data-center/) |
 | GitHub Issues and pull requests, public repositories | Available, see [GitHub Issues](../github-issues/) |
 | GitHub private repositories | Available with [your own token](../github-issues/#your-own-token) |
-| Jira Cloud | Planned |
+| Jira Cloud | Available, see [Connect Jira Cloud](../jira-cloud/). JQL search comes next |
 | Linear | Planned |
 | Plane | Planned |
 | Todoist | Planned |

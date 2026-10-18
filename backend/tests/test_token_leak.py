@@ -58,7 +58,10 @@ def test_stored_token_never_goes_to_another_host(jira_client, fake_jira):
     assert refused.json()["error"]["code"] == "jira_not_configured"
     assert jira_client.post("/api/settings/jira/test", json={}).status_code == 400
 
-    assert all(r.url.host == "jira.example.com" for r in fake_jira.requests)
+    # The new address is only asked which Jira it is, anonymously.
+    elsewhere = [r for r in fake_jira.requests if r.url.host != "jira.example.com"]
+    assert all(r.url.path == "/rest/api/2/serverInfo" for r in elsewhere)
+    assert all("authorization" not in r.headers for r in elsewhere)
 
 
 def test_same_host_other_path_keeps_token(jira_client):

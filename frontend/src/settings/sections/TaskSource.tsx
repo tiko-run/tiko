@@ -63,7 +63,7 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
           </div>
           <div className="flex items-center gap-2">
             <RadioGroupItem value="jira" id="provider-jira" />
-            <Label htmlFor="provider-jira">Jira Data Center</Label>
+            <Label htmlFor="provider-jira">Jira Cloud, Data Center or Server</Label>
           </div>
         </RadioGroup>
         {providerLocked && <ServerNote name="TIKO_TRACKER" />}
@@ -88,7 +88,7 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-2 font-medium">Jira Data Center</legend>
+        <legend className="mb-2 font-medium">Jira</legend>
         {!settings.secret_key_configured && (
           <Alert>
             <AlertDescription>
@@ -110,6 +110,12 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
             disabled={urlLocked}
           />
           {urlLocked && <ServerNote name="JIRA_BASE_URL" />}
+          {settings.jira.kind && baseUrl.trim() === settings.jira.base_url && (
+            <p className="text-muted-foreground text-[13px]">
+              {settings.jira.kind === 'cloud' ? 'Jira Cloud' : 'Jira Data Center or Server'}, as the
+              site reports.
+            </p>
+          )}
         </div>
         <p className="text-muted-foreground text-[13px]">
           Each person connects their own token in{' '}

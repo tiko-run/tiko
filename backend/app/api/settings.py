@@ -23,6 +23,8 @@ Settings = Annotated[SettingsService, Depends(deps.settings)]
 class TestIn(BaseModel):
     base_url: str | None = Field(default=None, max_length=500)
     token: SecretStr | None = None
+    # Jira Cloud only: the e-mail of the Atlassian account the token belongs to.
+    email: str | None = Field(default=None, max_length=320)
 
 
 class TestOut(BaseModel):
@@ -51,6 +53,6 @@ def test_jira(body: TestIn, person: CurrentPerson, settings: Settings, request: 
     # Only an admin picks the address the server calls; anyone else tests the one that is set.
     if body.base_url is not None and person.role != "admin":
         raise Forbidden("Only an admin can do this.")
-    creds = settings.jira_credentials(person.id, body.base_url, body.token)
+    creds = settings.jira_credentials(person.id, body.base_url, body.token, body.email)
     check: Callable[[JiraCredentials], str] = request.app.state.check_jira
     return TestOut(ok=True, user=check(creds))
