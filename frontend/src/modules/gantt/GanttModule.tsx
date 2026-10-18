@@ -88,6 +88,7 @@ import { cn } from '@/lib/utils'
 import { didOnboarding } from '@/onboarding/done'
 import { usePlanning } from '@/planning/context'
 import { openSettings } from '@/settings/store'
+import { shortKey } from '@/sources/registry'
 
 type Props = ModuleViewProps<GanttContent>
 
@@ -423,7 +424,9 @@ export function GanttModule({
                   span={barSpan(row)}
                   summary={hasChildren}
                   axis={axis}
-                  label={row.key ? `${row.key} ${taskOf(row)?.summary ?? ''}` : row.title}
+                  label={
+                    row.key ? `${keyOf(row, taskOf(row))} ${taskOf(row)?.summary ?? ''}` : row.title
+                  }
                   task={taskOf(row)}
                   onSpan={(next) =>
                     hasChildren
@@ -552,8 +555,13 @@ function ExtendButton({
 
 function stagesLabel(row: Row, task: Task | undefined) {
   return task?.state === 'ok'
-    ? `${row.key} ${task.summary} · ${task.status_name}`
-    : row.key || row.title
+    ? `${keyOf(row, task)} ${task.summary} · ${task.status_name}`
+    : keyOf(row, task) || row.title
+}
+
+/** The key as the label column shows it: a GitHub task without its owner. */
+function keyOf(row: Row, task: Task | undefined) {
+  return row.key ? shortKey(task?.source ?? row.source, row.key) : ''
 }
 
 function formatRange(start: string, end: string) {

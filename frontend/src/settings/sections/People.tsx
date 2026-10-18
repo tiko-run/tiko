@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Copy, Ellipsis, UserPlus } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Me } from '@/api/auth'
 import {
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { copyLink } from '@/lib/copy'
 import { toastError } from '@/lib/toast'
 import { Group, SectionHeader } from '@/settings/sections/Section'
 import { formatDue } from '@/timers/time'
@@ -38,9 +39,9 @@ function LinkBox({ link, onDone }: { link: Link; onDone: () => void }) {
     link.invite.kind === 'invite'
       ? `Invite link for a new ${link.invite.role}.`
       : `Password reset link for ${link.invite.username}.`
+  const field = useRef<HTMLInputElement>(null)
   const copy = async () => {
-    await navigator.clipboard.writeText(full)
-    setCopied(true)
+    if (await copyLink(full, field.current)) setCopied(true)
   }
   return (
     <div className="bg-accent/60 flex flex-col gap-2 rounded-md border p-3">
@@ -50,6 +51,7 @@ function LinkBox({ link, onDone }: { link: Link; onDone: () => void }) {
       </p>
       <div className="flex gap-2">
         <Input
+          ref={field}
           readOnly
           value={full}
           aria-label="Link"

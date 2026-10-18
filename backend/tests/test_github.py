@@ -109,6 +109,13 @@ PULL = {"pull_request": {"merged_at": None}}
         ({"labels": [{"name": "shipped"}]}, "shipped", "done", "Issue"),
         ({"state": "closed", "state_reason": "completed"}, "Closed", "done", "Issue"),
         ({"state": "closed", "labels": [{"name": "planned"}]}, "Closed", "done", "Issue"),
+        ({"state": "closed", "labels": [{"name": "shipped"}]}, "shipped", "done", "Issue"),
+        (
+            {"state": "closed", "state_reason": "not_planned", "labels": [{"name": "done"}]},
+            "Not planned",
+            "done",
+            "Issue",
+        ),
         ({"state": "closed", "state_reason": "not_planned"}, "Not planned", "done", "Issue"),
         ({"state": "closed", "state_reason": "duplicate"}, "Duplicate", "done", "Issue"),
         (PULL, "Open", "indeterminate", "Pull request"),
@@ -427,7 +434,8 @@ def test_a_guest_is_told_when_github_fails(app_client, fake):
     assert states["demo"]["state"] == "ok"
     assert states["github"]["error"]["code"] == "tracker_rate_limited"
     assert states["github"]["error"]["retry_after"] > 0
-    assert body["tasks"][f"github:{REPO}#1"]["state"] == "private"
+    hidden = body["tasks"][f"github:{REPO}#1"]
+    assert (hidden["state"], hidden["url"]) == ("private", f"https://github.com/{REPO}/issues/1")
 
 
 def test_labels_and_the_author_ride_with_the_task():

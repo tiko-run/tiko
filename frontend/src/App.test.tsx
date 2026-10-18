@@ -146,3 +146,13 @@ test.each([
   ).toBeInTheDocument()
   expect(screen.queryByText('Security update available') !== null).toBe(shown)
 })
+
+test('shows no focus timer until the session is known', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise<Response>(() => undefined)),
+  )
+  renderApp()
+  await act(async () => undefined)
+  expect(screen.queryByLabelText('Focus timer')).not.toBeInTheDocument()
+})

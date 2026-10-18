@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, Copy, Globe, Users } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { getAuthStatus } from '@/api/auth'
 import {
@@ -36,6 +36,7 @@ import {
 import { getSettings } from '@/api/settings'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { copyLink } from '@/lib/copy'
 import { toastError } from '@/lib/toast'
 
 const LABEL = { owner: 'Owner', editor: 'Can edit', viewer: 'Can view' } as const
@@ -247,11 +248,11 @@ function PublicLink({
     onError: toastError,
   })
   const url = token ? publicUrl(token) : ''
-  const copy = () => {
-    void navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), COPIED_MS)
-    }, toastError)
+  const field = useRef<HTMLInputElement>(null)
+  const copy = async () => {
+    if (!(await copyLink(url, field.current))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), COPIED_MS)
   }
   return (
     <section className="flex flex-col gap-2 border-t pt-3" aria-label="Public link">
@@ -282,13 +283,14 @@ function PublicLink({
       {manage && token && (
         <div className="flex items-center gap-2">
           <Input
+            ref={field}
             readOnly
             value={url}
             aria-label="Public link address"
             className="font-mono text-[12px]"
             onFocus={(event) => event.target.select()}
           />
-          <Button variant="outline" size="sm" onClick={copy}>
+          <Button variant="outline" size="sm" onClick={() => void copy()}>
             {copied ? <Check strokeWidth={1.75} /> : <Copy strokeWidth={1.75} />}
             {copied ? 'Copied' : 'Copy'}
           </Button>
