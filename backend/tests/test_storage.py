@@ -3,6 +3,7 @@ import sqlite3
 import subprocess
 import sys
 import threading
+from datetime import datetime
 
 import pytest
 
@@ -161,8 +162,21 @@ def test_the_copy_is_taken_before_the_first_step_of_the_upgrade(tmp_path, monkey
     top = sqlite.MIGRATIONS[-1][0]
     script = tmp_path / "drop.sql"
     script.write_text("DROP TABLE boards;")
-    steps = [*sqlite.MIGRATIONS, (top + 1, script), (top + 2, lambda conn: None)]
+    tries = []
+
+    def rewrite(conn):
+        tries.append(1)
+        if len(tries) == 1:
+            raise RuntimeError("the first start fails")
+
+    steps = [*sqlite.MIGRATIONS, (top + 1, script), (top + 2, rewrite)]
     monkeypatch.setattr(sqlite, "MIGRATIONS", steps)
+    # A retry within the same second must not write over the first copy.
+    monkeypatch.setattr(
+        sqlite, "datetime", type("Frozen", (), {"now": lambda: datetime(2026, 1, 1)})
+    )
+    with pytest.raises(RuntimeError):
+        Database(path)
     Database(path)
     [copy] = (tmp_path / "backups").glob(f"before-v{top + 2}-*.db")
     kept = sqlite3.connect(copy)

@@ -131,6 +131,9 @@ class Database:
         target = Path(self._path).parent / "backups"
         target.mkdir(parents=True, exist_ok=True)
         target /= f"before-v{number}-{datetime.now():%Y%m%d-%H%M%S}.db"
+        # A failed start retried within the second keeps the first copy, the one to go back to.
+        if target.exists():
+            return
         with closing(sqlite3.connect(target)) as copy:
             self._conn.backup(copy)
         log.info("database copied to %s before migration %s", target, number)
