@@ -79,7 +79,7 @@ import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ShapeGhost } from '@/canvas/ShapeGhost'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
-import { resolveAll } from '@/canvas/refs'
+import { MAX_REFS, resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
 import { barNodes, withStyle, type Kind, type Style } from '@/canvas/selection-props'
 import { ExpandModuleContext } from '@/modules/expanded'
@@ -384,6 +384,7 @@ export function BoardCanvas({
   // Native clipboard events rather than shortcuts: only they can read and write the
   // system clipboard. Both step aside for text fields, dialogs and selected page text.
   const clipboard = useRef<Record<'copy' | 'cut' | 'paste', (event: ClipboardEvent) => void>>(null)
+  const cutting = useRef(false)
   useEffect(() => {
     const copy = (event: ClipboardEvent) => {
       if (isEditable(event.target) || !window.getSelection()?.isCollapsed) return false
@@ -397,7 +398,15 @@ export function BoardCanvas({
       copy,
       cut: (event) => {
         if (readOnly || expandedId) return
-        if (copy(event)) deleteSelection()
+        if (!copy(event)) return
+        // The copy holds a frame's children too, so they leave with it instead of staying behind.
+        cutting.current = true
+        void deleteElements({
+          nodes: getNodes().filter((n) => n.selected),
+          edges: getEdges().filter((e) => e.selected),
+        }).finally(() => {
+          cutting.current = false
+        })
       },
       paste: (event) => {
         if (readOnly || isEditable(event.target) || !event.clipboardData) return
@@ -411,6 +420,10 @@ export function BoardCanvas({
           const origin = snippetOrigin(snippet)
           insert(snippet, { x: target.x - origin.x, y: target.y - origin.y })
         } else if (paste.kind === 'refs') {
+          if (paste.more)
+            toast(`Adding the first ${MAX_REFS} tasks`, {
+              description: `Paste the rest separately: up to ${MAX_REFS} at a time.`,
+            })
           void resolveAll(paste.refs).then(({ tasks: found, failed }) => {
             if (found.length > 0) {
               addCards(found, screen)
@@ -737,7 +750,7 @@ export function BoardCanvas({
   // An anchor goes with the last arrow that ends at it.
   const onBeforeDelete: OnBeforeDelete<AppNode, AppEdge> = useCallback(
     async ({ nodes: doomed, edges: doomedEdges }) => {
-      const split = splitDeletion(doomed, doomedEdges)
+      const split = cutting.current ? null : splitDeletion(doomed, doomedEdges)
       if (split) {
         setNodes((current) => releaseChildren(current, new Set(split.nodes.map((n) => n.id))))
       }

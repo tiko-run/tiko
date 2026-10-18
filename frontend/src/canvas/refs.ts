@@ -36,9 +36,8 @@ export function hasRange(input: string) {
 }
 
 function expandRanges(input: string) {
-  return input.replace(RANGE_RE, (whole, prefix: string, from: string, to: string) => {
+  return input.replace(RANGE_RE, (_whole, prefix: string, from: string, to: string) => {
     const [low, high] = [Number(from), Number(to)].sort((a, b) => a - b)
-    if (low === high) return whole
     // One past the limit is enough for the form to refuse; a typo of a million keys is not built.
     const count = Math.min(high - low + 1, MAX_REFS + 1)
     return Array.from({ length: count }, (_, i) => `${prefix}${low + i}`).join(' ')
@@ -55,11 +54,11 @@ export function splitRefs(input: string) {
   ]
 }
 
-/** The task refs in pasted text when it holds nothing else, at most `MAX_REFS`. */
-export function pastedRefs(text: string): string[] | null {
+/** The task refs in pasted text when it holds nothing else: the first `MAX_REFS`, and whether more were left out. */
+export function pastedRefs(text: string): { refs: string[]; more: boolean } | null {
   const refs = splitRefs(text)
   if (refs.length === 0 || !refs.every((ref) => TASK_REF_RE.test(ref))) return null
-  return refs.slice(0, MAX_REFS)
+  return { refs: refs.slice(0, MAX_REFS), more: refs.length > MAX_REFS }
 }
 
 export async function resolveAll(refs: string[]): Promise<Resolved> {

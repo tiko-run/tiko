@@ -113,6 +113,16 @@ describe('suggestWhen', () => {
 
   it('finishes a date', () => {
     expect(inputs('25.')).toEqual(['25.10', '25.11'])
+    // 25.1 itself is a whole date, so it is not offered back.
+    expect(inputs('25.1')).toEqual(['25.10', '25.11', '25.12'])
+    expect(inputs('25.10 15:')).toEqual(['25.10 15:00', '25.10 15:30'])
+  })
+
+  it('skips months that lack the day or where it has passed', () => {
+    // 31 January, 11:00: 31.1 is gone and February has no 31st, so March comes next.
+    const lateJan = new Date(2026, 0, 31, 11).getTime()
+    expect(suggestWhen('31.', lateJan).map((s) => s.input)).toEqual(['31.3', '31.5'])
+    expect(inputs('5.')).toEqual(['5.11', '5.12'])
   })
 
   it('gives each suggestion its moment', () => {

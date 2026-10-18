@@ -182,17 +182,25 @@ function splitDay(text: string, now: number): [string | undefined, string] {
   return [short(head), space < 0 ? '' : text.slice(space + 1)]
 }
 
-const short = (day: string) => (day === 'today' || day === 'tomorrow' ? day : day.slice(0, 3))
+// Only a weekday is shortened: "25.10" and "2026-10-25" stay whole.
+const short = (day: string) => (WEEKDAYS.includes(day.slice(0, 3)) ? day.slice(0, 3) : day)
 
-// "25." → the 25th of this month and the next; "25.1" → October, November and December.
+// "25." → the next two months that have a 25th still ahead; "25.1" → October, November, December, January.
 function dates(text: string, now: number) {
   const partial = /^(\d{1,2})\.(\d{0,2})$/.exec(text)
   if (!partial) return []
-  const month = new Date(now).getMonth() + 1
-  const months = partial[2]
-    ? Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => String(m).startsWith(partial[2]))
-    : [month, (month % 12) + 1]
-  return months.map((m) => `${partial[1]}.${m}`)
+  const start = new Date(now)
+  const ahead = Array.from({ length: 12 }, (_, i) => {
+    const month = new Date(start.getFullYear(), start.getMonth() + i, 1)
+    const input = `${partial[1]}.${month.getMonth() + 1}`
+    const when = parseWhen(input, now)
+    // A day that has passed this month reads as next year; the same day next month comes first.
+    const inMonth = when && 'at' in when && new Date(when.at).getFullYear() === month.getFullYear()
+    return inMonth ? input : []
+  }).flat()
+  return partial[2]
+    ? ahead.filter((input) => input.split('.')[1].startsWith(partial[2]))
+    : ahead.slice(0, 2)
 }
 
 /** Time left in one short unit, for the cube: 45s, 28m, 3h, 2d. */

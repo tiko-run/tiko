@@ -24,7 +24,9 @@ export function writePasteAs(value: PasteAs) {
 }
 
 export type Paste =
-  { kind: 'elements' } | { kind: 'refs'; refs: string[] } | { kind: 'text'; text: string }
+  | { kind: 'elements' }
+  | { kind: 'refs'; refs: string[]; more: boolean }
+  | { kind: 'text'; text: string }
 
 type Clipboard = Pick<DataTransfer, 'getData'>
 
@@ -38,7 +40,7 @@ export function classifyPaste(data: Clipboard, copyId: string | null): Paste | n
   const text = data.getData('text/plain')
   if (!text.trim()) return null
   const refs = pastedRefs(text)
-  if (refs) return { kind: 'refs', refs }
+  if (refs) return { kind: 'refs', ...refs }
   return { kind: 'text', text: text.slice(0, TEXT_LIMIT) }
 }
 

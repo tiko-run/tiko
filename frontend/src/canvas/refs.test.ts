@@ -10,6 +10,7 @@ describe('splitRefs', () => {
     expect(splitRefs('APP-1 - APP-4')).toEqual(['APP-1', 'APP-2', 'APP-3', 'APP-4'])
     expect(splitRefs('APP-1..3')).toEqual(['APP-1', 'APP-2', 'APP-3'])
     expect(splitRefs('APP-8 – APP-9, X-1')).toEqual(['APP-8', 'APP-9', 'X-1'])
+    expect(splitRefs('APP-1..1')).toEqual(['APP-1'])
   })
 
   it('expands a backwards range in order', () => {
@@ -44,6 +45,11 @@ describe('hasRange', () => {
 
 describe('pastedRefs', () => {
   it('turns a pasted range into keys', () => {
-    expect(pastedRefs('APP-1 - APP-2')).toEqual(['APP-1', 'APP-2'])
+    expect(pastedRefs('APP-1 - APP-2')).toEqual({ refs: ['APP-1', 'APP-2'], more: false })
+  })
+
+  it('says when a range runs past the limit', () => {
+    expect(pastedRefs('APP-1..51')?.more).toBe(true)
+    expect(pastedRefs('APP-1..50')?.more).toBe(false)
   })
 })
