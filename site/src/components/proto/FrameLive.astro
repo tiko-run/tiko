@@ -1,0 +1,390 @@
+---
+// Prototype feature block: a frame on the page's canvas with a large live drawing. The status
+// flip and the arrow play once when the frame scrolls into view.
+import { DOCS } from '../../data/site'
+import Icon from '../Icon.astro'
+---
+
+<section class="frame-sec" id="live-cards">
+  <div class="wrap">
+    <svg class="link-in" viewBox="0 0 40 120" aria-hidden="true">
+      <path d="M20 0 C 20 40, 20 80, 20 112" />
+      <path class="head" d="M13 104 L20 114 L27 104" />
+    </svg>
+    <div class="frame">
+      <span class="frame-title">Live cards</span>
+      <div class="copy">
+        <h2 class="h2">Jira and GitHub issues as live cards on a whiteboard</h2>
+        <p class="lead">
+          Add tasks by key, link or query. Each card shows the status from your tracker and
+          refreshes on its own, so the board is never a stale screenshot of last week.
+        </p>
+        <ul class="points">
+          <li><Icon name="check" size={16} /><span>Paste <code>APP-112</code>, a link or a JQL query</span></li>
+          <li><Icon name="check" size={16} /><span>Status, assignee and type, refreshed every 30 seconds</span></li>
+          <li><Icon name="check" size={16} /><span>Your tracker stays the source of truth</span></li>
+        </ul>
+        <a class="more" href={`${DOCS}/adding-tasks/`}>Adding tasks <Icon name="arrow-right" /></a>
+      </div>
+
+      <div class="visual dots" aria-hidden="true">
+        <span class="chip"><i></i>Synced just now</span>
+        <div class="cards">
+          <span class="fc"><span class="ty story"></span><b>APP-112</b><span class="t">Retry failed payments</span><span class="lz progress">In progress</span></span>
+          <span class="fc flip">
+            <span class="ty task"></span><b>APP-118</b><span class="t">Move billing cron to a queue</span>
+            <span class="swap"><span class="lz progress">In review</span><span class="lz done">Done</span></span>
+          </span>
+          <span class="fc"><span class="ty task"></span><b>APP-121</b><span class="t">Release notes for 2.4</span><span class="lz">To do</span></span>
+          <span class="fc"><span class="ty bug"></span><b>APP-127</b><span class="t">Flaky login test</span><span class="lz">To do</span></span>
+        </div>
+        <i class="st">Moved to Done in Jira. Nobody touched the board.</i>
+        <svg class="arrow" viewBox="0 0 100 120" aria-hidden="true">
+          <path d="M70 116 C 78 80, 60 30, 14 8" />
+          <path class="head" d="M26 2 L13 8 L22 19" />
+        </svg>
+        <span class="ptr"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Anna</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .frame-sec {
+    padding-block: 0 clamp(4rem, 9vw, 7rem);
+  }
+  .link-in {
+    display: block;
+    width: 40px;
+    height: 120px;
+    margin: 0 auto 1rem;
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.7;
+  }
+  .frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    padding: clamp(1.5rem, 4vw, 3.5rem);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklch, var(--sticky-blue) var(--frame-mix), var(--background));
+  }
+  .frame-title {
+    position: absolute;
+    left: 4px;
+    bottom: calc(100% + 8px);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  /* The frame tint lifts the background a little; the link keeps 4.5:1 in both themes. */
+  .frame .more {
+    color: color-mix(in oklch, var(--primary) 82%, var(--foreground));
+  }
+  .points {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1.5rem;
+  }
+  .points li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .points :global(svg) {
+    color: var(--sync-ok);
+  }
+
+  .visual {
+    position: relative;
+    min-height: 360px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--background);
+    box-shadow: var(--shadow);
+  }
+  .chip {
+    position: absolute;
+    right: 18px;
+    top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+  .chip i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--sync-ok);
+  }
+  .cards {
+    position: absolute;
+    left: 7%;
+    top: 64px;
+    display: grid;
+    gap: 10px;
+    width: 72%;
+  }
+  .fc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  .fc b {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--primary);
+  }
+  .fc {
+    min-width: 0;
+  }
+  .fc .t {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fc b,
+  .lz,
+  .swap {
+    flex: none;
+  }
+  .ty {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--type-task);
+  }
+  .ty.story {
+    background: var(--type-story);
+  }
+  .ty.bug {
+    background: var(--type-bug);
+  }
+  .lz {
+    margin-left: auto;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .lz.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  .lz.done {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+  .swap {
+    display: grid;
+    margin-left: auto;
+  }
+  .swap .lz {
+    grid-area: 1 / 1;
+    justify-self: end;
+  }
+  .swap .done {
+    opacity: 0;
+  }
+
+  .st {
+    position: absolute;
+    right: 6%;
+    bottom: 28px;
+    width: 34%;
+    padding: 12px;
+    border-radius: 3px;
+    background: oklch(0.94 0.05 350);
+    color: var(--sticky-foreground);
+    font-size: 0.875rem;
+    font-style: normal;
+    line-height: 1.35;
+    rotate: 1.5deg;
+    box-shadow: 0 1px 3px oklch(0.2 0.02 260 / 0.12);
+  }
+  .arrow {
+    position: absolute;
+    left: 74%;
+    top: 150px;
+    width: 14%;
+    height: 112px;
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.55;
+  }
+  .ptr {
+    position: absolute;
+    left: 46%;
+    top: 262px;
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .ptr svg {
+    width: 16px;
+    height: 16px;
+    fill: oklch(0.55 0.19 330);
+    stroke: var(--card);
+  }
+  .ptr b {
+    margin-top: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: oklch(0.55 0.19 330);
+    color: white;
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+
+  /* Scroll-driven, once per pass: the card flips, the arrow draws, the note lands. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .link-in path {
+        stroke-dasharray: 130;
+        animation-name: draw;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 30% cover 45%;
+      }
+      .visual {
+        view-timeline: --live block;
+      }
+      .swap .progress {
+        animation-name: hide;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 38% cover 42%;
+      }
+      .swap .done {
+        animation-name: show;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 38% cover 42%;
+      }
+      .flip {
+        animation-name: ring;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 38% cover 52%;
+      }
+      .arrow path {
+        stroke-dasharray: 160;
+        animation-name: draw;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 40% cover 55%;
+      }
+      .st {
+        animation-name: land;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 30% cover 42%;
+      }
+      .ptr {
+        animation-name: walk;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --live;
+        animation-range: cover 20% cover 60%;
+      }
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 160;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes hide {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes show {
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ring {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 45%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 10px transparent;
+    }
+  }
+  @keyframes land {
+    from {
+      opacity: 0;
+      translate: 0 18px;
+      rotate: -3deg;
+    }
+  }
+  @keyframes walk {
+    from {
+      translate: 120px 160px;
+    }
+  }
+
+  @media (max-width: 860px) {
+    .frame {
+      grid-template-columns: 1fr;
+    }
+    .visual {
+      min-height: 360px;
+    }
+    .st {
+      bottom: 16px;
+      font-size: 0.8125rem;
+    }
+    .cards {
+      left: 5%;
+      width: 90%;
+    }
+    .fc {
+      font-size: 0.75rem;
+    }
+    .fc b {
+      font-size: 0.6875rem;
+    }
+    .st {
+      width: 50%;
+    }
+    .arrow,
+    .ptr {
+      display: none;
+    }
+  }
+</style>

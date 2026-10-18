@@ -1,0 +1,43 @@
+---
+// Prototype of the landing page as one canvas. Not linked, not indexed.
+import Cta from '../components/Cta.astro'
+import Faq from '../components/Faq.astro'
+import Features from '../components/Features.astro'
+import Footer from '../components/Footer.astro'
+import Header from '../components/Header.astro'
+import OpenSource from '../components/OpenSource.astro'
+import FrameLive from '../components/proto/FrameLive.astro'
+import HeroCanvas from '../components/proto/HeroCanvas.astro'
+import Scenarios from '../components/Scenarios.astro'
+import SelfHost from '../components/SelfHost.astro'
+import Trackers from '../components/Trackers.astro'
+import Base from '../layouts/Base.astro'
+---
+
+<Base index={false}>
+  <Header />
+  <main id="main" class="dots canvas">
+    <HeroCanvas />
+    <FrameLive />
+    <Trackers />
+    <Features />
+    <Scenarios />
+    <SelfHost />
+    <OpenSource />
+    <Faq />
+    <Cta />
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .canvas {
+    background-attachment: local;
+  }
+</style>
+
+<script>
+  import '../scripts/page'
+  import '../scripts/install'
+  import '../scripts/waitlist'
+</script>

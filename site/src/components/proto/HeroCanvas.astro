@@ -1,0 +1,523 @@
+---
+// Prototype hero: the headline is made of canvas objects, and the board pins while the camera
+// pulls back to show it is one frame on a larger canvas. Without scroll timelines it is the
+// plain hero.
+import { DEMO } from '../../data/site'
+import BoardSim from '../BoardSim.astro'
+import Icon from '../Icon.astro'
+import Install from '../Install.astro'
+import Waitlist from '../Waitlist.astro'
+
+const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the source of truth', 'No ads, no analytics trackers']
+---
+
+<section class="hero">
+  <div class="wrap copy">
+    <Waitlist source="hero" />
+    <h1>
+      A <span class="w-select">whiteboard<i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i></span>
+      where your <span class="w-card" data-word><span class="w-type"><Icon name="check" size={12} /></span>tasks</span>
+      stay <span class="w-live">live<i></i></span>
+    </h1>
+    <p class="sub">
+      tiko puts the tasks from Jira and GitHub on an infinite canvas as cards. Arrange them the
+      way you think. Their statuses update on their own.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href={DEMO}>Try the demo <Icon name="arrow-right" /></a>
+      <Install />
+    </div>
+    <ul class="facts">
+      {facts.map((fact) => <li><Icon name="check" size={14} />{fact}</li>)}
+    </ul>
+  </div>
+
+  <div class="track">
+    <div class="pin">
+      <div class="wrap">
+        <div class="world">
+          <BoardSim />
+
+          <div class="sat s-ideas" aria-hidden="true">
+            <span class="sat-title">Ideas</span>
+            <i class="st pink">Split the billing cron</i>
+            <i class="st violet">Ask QA before Friday</i>
+            <i class="st green">Demo to sales</i>
+          </div>
+
+          <div class="sat s-plan" aria-hidden="true">
+            <span class="sat-title">Q4 plan</span>
+            <div class="gm">
+              <i class="progress" style="--l:4%;--w:42%"></i>
+              <i class="done" style="--l:22%;--w:30%"></i>
+              <i style="--l:50%;--w:40%"></i>
+              <i class="progress" style="--l:68%;--w:28%"></i>
+            </div>
+          </div>
+
+          <div class="sat s-gh" aria-hidden="true">
+            <span class="sat-title">Open source</span>
+            <span class="fc"><span class="ty story"></span><b>WEB-14</b>Dark theme for docs<span class="lz progress">In review</span></span>
+            <span class="fc"><span class="ty bug"></span><b>WEB-19</b>Broken link in README<span class="lz done">Done</span></span>
+          </div>
+
+          <i class="sat st yellow s-note" aria-hidden="true">One board per release. Archive after.</i>
+          <span class="sat s-timer" aria-hidden="true"><Icon name="alarm-clock" size={18} /></span>
+
+          <span class="sat ptr s-max" aria-hidden="true">
+            <svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><b>Max</b>
+          </span>
+
+          <svg class="sat wire" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M10 20 C 90 20, 110 180, 190 180" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // The task word in the headline drags like a card and springs back.
+  const word = document.querySelector<HTMLElement>('[data-word]')
+  word?.addEventListener('pointerdown', (down) => {
+    word.setPointerCapture(down.pointerId)
+    word.classList.add('held')
+    const move = (e: PointerEvent) =>
+      word.style.setProperty('translate', `${e.clientX - down.clientX}px ${e.clientY - down.clientY}px`)
+    const up = () => {
+      word.classList.remove('held')
+      word.style.removeProperty('translate')
+      word.removeEventListener('pointermove', move)
+      word.removeEventListener('pointerup', up)
+    }
+    word.addEventListener('pointermove', move)
+    word.addEventListener('pointerup', up)
+  })
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    padding-top: clamp(2rem, 4.5vw, 3.5rem);
+    overflow-x: clip;
+  }
+  /* The page grid fades out behind the headline, so the text sits on a calm field. */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 46rem;
+    background: radial-gradient(ellipse 60% 60% at 50% 30%, var(--background) 45%, transparent 100%);
+    pointer-events: none;
+  }
+  .copy {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    margin-bottom: clamp(2rem, 4vw, 2.75rem);
+    text-align: center;
+  }
+  h1 {
+    max-width: 18ch;
+    font-size: clamp(2.25rem, 5.6vw, 3.75rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  /* "whiteboard" is selected, as on the canvas. */
+  .w-select {
+    position: relative;
+    margin-inline: 0.06em 0.14em;
+    padding-inline: 0.08em;
+    outline: 2px solid var(--primary);
+    outline-offset: 0.04em;
+    border-radius: 2px;
+  }
+  .h {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--primary);
+    border-radius: 2px;
+    background: var(--card);
+  }
+  .tl {
+    left: -6px;
+    top: -6px;
+  }
+  .tr {
+    right: -6px;
+    top: -6px;
+  }
+  .bl {
+    left: -6px;
+    bottom: -6px;
+  }
+  .br {
+    right: -6px;
+    bottom: -6px;
+  }
+
+  /* "tasks" is a task card you can pick up. */
+  .w-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18em;
+    padding: 0 0.22em 0.04em 0.14em;
+    border: 1px solid var(--border);
+    border-radius: 0.14em;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    cursor: grab;
+    touch-action: none;
+    rotate: -2deg;
+    transition:
+      translate 0.5s cubic-bezier(0.3, 1.6, 0.4, 1),
+      rotate 0.2s;
+  }
+  .w-card.held {
+    rotate: 2deg;
+    cursor: grabbing;
+    transition: rotate 0.2s;
+  }
+  .w-type {
+    display: grid;
+    place-items: center;
+    width: 0.42em;
+    height: 0.42em;
+    border-radius: 0.07em;
+    background: var(--type-task);
+    color: white;
+  }
+  .w-type :global(svg) {
+    width: 0.3em;
+    height: 0.3em;
+    stroke-width: 3.5;
+  }
+
+  /* "live" carries the sync dot. */
+  .w-live {
+    position: relative;
+  }
+  .w-live i {
+    position: absolute;
+    right: -0.24em;
+    top: 0.2em;
+    width: 0.17em;
+    height: 0.17em;
+    border-radius: 50%;
+    background: var(--sync-ok);
+    animation: live 1.8s ease-out infinite;
+  }
+  @keyframes live {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--sync-ok) 55%, transparent);
+    }
+    70%,
+    to {
+      box-shadow: 0 0 0 0.22em transparent;
+    }
+  }
+
+  .sub {
+    max-width: 44rem;
+    margin-top: 1.25rem;
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    color: var(--muted-foreground);
+    text-wrap: balance;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.375rem 1.25rem;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  .facts li {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .facts :global(svg) {
+    color: var(--sync-ok);
+  }
+
+  .track {
+    padding-bottom: clamp(3rem, 6vw, 5rem);
+  }
+  .world {
+    position: relative;
+  }
+
+  /* What lies around the board: hidden until the camera pulls back. */
+  .sat {
+    position: absolute;
+    display: none;
+  }
+  .sat-title {
+    position: absolute;
+    left: 2px;
+    bottom: calc(100% + 6px);
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .st {
+    display: block;
+    padding: 14px;
+    border-radius: 3px;
+    color: var(--sticky-foreground);
+    font-size: 19px;
+    font-style: normal;
+    line-height: 1.3;
+    box-shadow: 0 1px 3px oklch(0.2 0.02 260 / 0.12);
+  }
+  .pink {
+    background: oklch(0.94 0.05 350);
+  }
+  .violet {
+    background: oklch(0.94 0.05 300);
+  }
+  .green {
+    background: var(--sticky-green);
+  }
+  .yellow {
+    background: var(--sticky-yellow);
+  }
+  .s-ideas {
+    left: -52%;
+    top: 4%;
+    width: 44%;
+    height: 78%;
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklch, oklch(0.94 0.05 350) var(--frame-mix), transparent);
+  }
+  .s-ideas .st {
+    position: absolute;
+    width: 40%;
+    aspect-ratio: 1.4;
+  }
+  .s-ideas .st:nth-of-type(1) {
+    left: 6%;
+    top: 8%;
+    rotate: -2deg;
+  }
+  .s-ideas .st:nth-of-type(2) {
+    left: 54%;
+    top: 14%;
+    rotate: 1.5deg;
+  }
+  .s-ideas .st:nth-of-type(3) {
+    left: 30%;
+    top: 58%;
+    rotate: -1deg;
+  }
+
+  .s-plan {
+    right: -52%;
+    top: 10%;
+    width: 44%;
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .gm {
+    display: grid;
+    gap: 14px;
+  }
+  .gm i {
+    display: block;
+    height: 28px;
+    margin-left: var(--l);
+    width: var(--w);
+    border-radius: 5px;
+    background: var(--todo);
+  }
+  .gm i.progress {
+    background: var(--progress);
+  }
+  .gm i.done {
+    background: var(--done);
+  }
+
+  .s-gh {
+    right: -46%;
+    top: 74%;
+    display: none;
+    width: 40%;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--sticky-green) var(--frame-mix), transparent);
+  }
+  .fc {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-block: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    font-size: 19px;
+    white-space: nowrap;
+  }
+  .fc b {
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--primary);
+  }
+  .ty {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: var(--type-task);
+  }
+  .ty.story {
+    background: var(--type-story);
+  }
+  .ty.bug {
+    background: var(--type-bug);
+  }
+  .lz {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .lz.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  .lz.done {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+
+  .s-note {
+    left: -30%;
+    top: 84%;
+    width: 22%;
+    aspect-ratio: 1.3;
+    rotate: 2deg;
+  }
+  .s-timer {
+    left: -6%;
+    top: 92%;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: var(--timer);
+    color: var(--timer-foreground);
+  }
+  .s-timer :global(svg) {
+    width: 26px;
+    height: 26px;
+  }
+  .ptr {
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .ptr svg {
+    width: 28px;
+    height: 28px;
+    fill: oklch(0.62 0.16 160);
+    stroke: var(--card);
+  }
+  .ptr b {
+    margin-top: 20px;
+    padding: 2px 10px;
+    border-radius: 6px;
+    background: oklch(0.62 0.16 160);
+    color: white;
+    font-size: 17px;
+    font-weight: 500;
+  }
+  .s-max {
+    right: -14%;
+    top: 46%;
+  }
+  .wire {
+    left: 100%;
+    top: 40%;
+    width: 8%;
+    height: 40%;
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 2.5;
+    stroke-dasharray: 8 6;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.6;
+  }
+
+  /* The camera pulls back while the board is pinned. Wide screens with scroll timelines only. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) and (min-width: 960px) {
+      .track {
+        height: 210vh;
+        padding-bottom: 0;
+        view-timeline: --zoom block;
+      }
+      .pin {
+        position: sticky;
+        top: 4.5rem;
+      }
+      .world {
+        transform-origin: 50% 0;
+        animation-name: pull-back;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --zoom;
+        animation-range: contain 0% contain 70%;
+      }
+      .sat {
+        display: block;
+        opacity: 0;
+        animation-name: appear;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --zoom;
+        animation-range: contain 20% contain 65%;
+      }
+      .s-timer,
+      .ptr {
+        display: flex;
+      }
+      .s-gh {
+        display: block;
+      }
+    }
+  }
+  @keyframes pull-back {
+    to {
+      transform: scale(0.5) translateY(36%);
+    }
+  }
+  @keyframes appear {
+    to {
+      opacity: 1;
+    }
+  }
+</style>
