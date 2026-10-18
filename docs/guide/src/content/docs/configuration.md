@@ -34,7 +34,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_DEPLOY` | How tiko runs, reported in the usage stats; the installer sets `installer`, Railway and Render are found on their own | unset (`compose`) |
 | `TIKO_HOST_OS` | The system tiko was installed on, reported in the usage stats: `linux`, `darwin`, `windows` or `other`. The installer sets it, since inside a container tiko sees only Linux | unset |
 | `TIKO_PORT` | Port on your machine that Docker Compose gives the web UI | `3000` |
-| `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`. The release compose file does not publish the API | `8000` |
+| `TIKO_API_PORT` | Port on your machine for the API when you run from source with `docker compose up`, open to this machine only. The release compose file does not publish the API | `8000` |
 
 To trust a corporate CA, put the bundle in `./data` (for example `data/corp-ca.pem`) and set `JIRA_CA_BUNDLE=data/corp-ca.pem`.
 

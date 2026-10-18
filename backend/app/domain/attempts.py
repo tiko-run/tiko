@@ -2,6 +2,33 @@ import threading
 from collections import deque
 
 _KEEP_WINDOWS = 1024
+# How many of a person's newest browsers stay known; the table does not grow with sign-ins.
+BROWSERS_PER_PERSON = 10
+
+
+class MemoryBrowsers:
+    """The `KnownBrowsers` port in the memory of one process: for tests and a single process."""
+
+    def __init__(self) -> None:
+        self._browsers: dict[str, tuple[str, float]] = {}
+        self._lock = threading.Lock()
+
+    def add(self, token_hash: str, user_id: str, at: float, since: float) -> None:
+        with self._lock:
+            self._browsers = {k: v for k, v in self._browsers.items() if v[1] > since}
+            self._browsers[token_hash] = (user_id, at)
+            theirs = sorted((v[1], k) for k, v in self._browsers.items() if v[0] == user_id)
+            for _, old in theirs[:-BROWSERS_PER_PERSON]:
+                del self._browsers[old]
+
+    def owner(self, token_hash: str, since: float) -> str | None:
+        with self._lock:
+            found = self._browsers.get(token_hash)
+        return found[0] if found and found[1] > since else None
+
+    def forget(self, user_id: str) -> None:
+        with self._lock:
+            self._browsers = {k: v for k, v in self._browsers.items() if v[0] != user_id}
 
 
 class MemoryAttempts:

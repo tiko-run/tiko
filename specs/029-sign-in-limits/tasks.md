@@ -11,10 +11,10 @@
 
 ## Slice 2: the known browser (US1)
 
-- [ ] T010 Migration `023_known_browsers.sql`, the repository and its port
-- [ ] T011 Limits by address, username and instance; the known browser in `Accounts.sign_in`
-- [ ] T012 `tiko_device` in `api/auth.py`; rows deleted on a password change and when a person is disabled
-- [ ] T013 Tests for every scenario of US1; CHANGELOG line
+- [x] T010 Migration `023_known_browsers.sql`, the repository and its port
+- [x] T011 Limits by address, username and instance; the known browser in `Accounts.sign_in`
+- [x] T012 `tiko_device` in `api/auth.py`; rows deleted on a password change and when a person is disabled
+- [x] T013 Tests for every scenario of US1; CHANGELOG line
 
 ## Slice 3: release and the demo (US2)
 

@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import ipaddress
 import math
 import re
 import secrets
@@ -10,7 +11,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.domain.attempts import MemoryAttempts
+from app.domain.attempts import MemoryAttempts, MemoryBrowsers
 from app.domain.errors import (
     AccountDisabled,
     InvalidCredentials,
@@ -21,8 +22,8 @@ from app.domain.errors import (
     WeakPassword,
 )
 from app.domain.onboarding import Onboarding, OnboardingChange, apply
-from app.domain.ports import Attempts, UserRepo
-from app.domain.sessions import Sessions, iso
+from app.domain.ports import Attempts, KnownBrowsers, UserRepo
+from app.domain.sessions import Sessions, iso, token_hash
 
 Role = Literal["admin", "member"]
 
@@ -34,9 +35,27 @@ _SCRYPT = {"n": 2**14, "r": 8, "p": 1}
 
 PER_USERNAME_FAILURES = 10
 PER_USERNAME_WINDOW_S = 15 * 60.0
-# Backstop against guessing across many usernames.
+PER_ADDRESS_FAILURES = 10
+PER_ADDRESS_WINDOW_S = 15 * 60.0
+# Backstop against guessing across many usernames and addresses.
 INSTANCE_FAILURES = 30
 INSTANCE_WINDOW_S = 60.0
+# A browser someone signed in from: the limits of others do not hold them up.
+BROWSER_TTL_S = 365 * 24 * 3600.0
+PER_BROWSER_FAILURES = 10
+PER_BROWSER_WINDOW_S = 15 * 60.0
+
+
+def address_key(address: str) -> str:
+    """What an address limit counts: an IPv4 address, or the /64 an IPv6 address is in,
+    since one connection has all of its /64 to pick from."""
+    try:
+        ip = ipaddress.ip_address(address.strip())
+    except ValueError:
+        return address
+    if ip.version == 6:
+        return str(ipaddress.ip_network((ip, 64), strict=False))
+    return str(ip)
 
 
 class Person(BaseModel):
@@ -137,16 +156,27 @@ class Limiter:
 
 class Accounts:
     def __init__(
-        self, users: UserRepo, sessions: Sessions, attempts: Attempts | None = None
+        self,
+        users: UserRepo,
+        sessions: Sessions,
+        attempts: Attempts | None = None,
+        browsers: KnownBrowsers | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
+        self._browsers = browsers or MemoryBrowsers()
         attempts = attempts or MemoryAttempts()
         self._per_username = Limiter(
             "sign-in", PER_USERNAME_FAILURES, PER_USERNAME_WINDOW_S, attempts=attempts
         )
+        self._per_address = Limiter(
+            "sign-in-address", PER_ADDRESS_FAILURES, PER_ADDRESS_WINDOW_S, attempts=attempts
+        )
         self._instance = Limiter(
             "sign-in-instance", INSTANCE_FAILURES, INSTANCE_WINDOW_S, attempts=attempts
+        )
+        self._per_browser = Limiter(
+            "sign-in-browser", PER_BROWSER_FAILURES, PER_BROWSER_WINDOW_S, attempts=attempts
         )
 
     def create(self, username: str, name: str, password: str, role: Role) -> Person:
@@ -156,22 +186,58 @@ class Accounts:
         self._users.add(person, hash_password(password))
         return person
 
-    def sign_in(self, username: str, password: str, now: float) -> str:
+    def _known(self, browser: str | None, user_id: str | None, now: float) -> str | None:
+        """The browser's key when it signed in as this person before and is not over its own
+        limit; such a browser is not held up by the limits that others fill."""
+        if not browser or not user_id:
+            return None
+        key = token_hash(browser)
+        if self._browsers.owner(key, now - BROWSER_TTL_S) != user_id:
+            return None
+        try:
+            self._per_browser.check(key, now)
+        except TooManyAttempts:
+            return None
+        return key
+
+    def sign_in(
+        self,
+        username: str,
+        password: str,
+        now: float,
+        address: str = "",
+        browser: str | None = None,
+    ) -> tuple[str, str | None]:
+        """The session, and a token for a browser that was not known for this person yet."""
         key = username.strip().lower()
-        self._instance.check("", now)
-        self._per_username.check(key, now)
         found = self._users.find(key)
+        known = self._known(browser, found[0].id if found else None, now)
+        place = address_key(address) if address else ""
+        if not known:
+            self._instance.check("", now)
+            if place:
+                self._per_address.check(place, now)
+            self._per_username.check(key, now)
         # An unknown username costs a full hash too, so timing does not tell which exist.
         valid = verify_password(password, found[1] if found else _dummy_hash())
         if not found or not valid:
-            self._instance.fail("", now)
-            self._per_username.fail(key, now)
+            if known:
+                self._per_browser.fail(known, now)
+            else:
+                self._instance.fail("", now)
+                if place:
+                    self._per_address.fail(place, now)
+                self._per_username.fail(key, now)
             raise InvalidCredentials("Wrong username or password.")
         person = found[0]
         if person.disabled:
             raise AccountDisabled("This account is disabled. Ask your admin.")
         self._users.touch_sign_in(person.id)
-        return self._sessions.start(person.id, now)
+        new_browser = None
+        if not known:
+            new_browser = secrets.token_urlsafe(32)
+            self._browsers.add(token_hash(new_browser), person.id, now, now - BROWSER_TTL_S)
+        return self._sessions.start(person.id, now), new_browser
 
     def came_back(self, user_id: str) -> None:
         """Counts as a sign-in: the person proved who they are by a link instead of a password."""
@@ -220,6 +286,7 @@ class Accounts:
             self._users.set_disabled(user_id, disabled)
             if disabled:
                 self._sessions.end_all(user_id)
+                self._browsers.forget(user_id)
         self._sessions.forget(user_id)
         return next(record for record in self._users.list() if record.id == user_id)
 
@@ -227,6 +294,7 @@ class Accounts:
         """Sets a password without the current one, as a reset link does; ends every session."""
         self._users.set_password(user_id, hash_password(check_password(password)))
         self._sessions.end_all(user_id)
+        self._browsers.forget(user_id)
 
     def change_password(self, person: Person, current: str, new: str, keep_token: str) -> None:
         found = self._users.find(person.username.lower())
@@ -234,3 +302,4 @@ class Accounts:
             raise InvalidCredentials("The current password is wrong.")
         self._users.set_password(person.id, hash_password(check_password(new)))
         self._sessions.end_all(person.id, keep_token=keep_token)
+        self._browsers.forget(person.id)
