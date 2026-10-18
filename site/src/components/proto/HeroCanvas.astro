@@ -102,24 +102,6 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
   if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const items = [...box.children] as HTMLElement[]
     let at = 0
-    const fit = () => (box.style.width = `${items[at].offsetWidth}px`)
-    // The subtitle keeps the height of its longest version, so the board below never jumps.
-    const sub = box.closest<HTMLElement>('.sub')!
-    const reserve = () => {
-      sub.style.minHeight = ''
-      let tallest = 0
-      for (const item of items) {
-        box.style.transition = 'none'
-        box.style.width = `${item.scrollWidth}px`
-        tallest = Math.max(tallest, sub.offsetHeight)
-      }
-      box.style.removeProperty('transition')
-      sub.style.minHeight = `${tallest}px`
-      fit()
-    }
-    reserve()
-    document.fonts?.ready.then(reserve)
-    addEventListener('resize', reserve)
     setInterval(() => {
       if (document.hidden) return
       const current = items[at]
@@ -128,7 +110,6 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
       current.classList.replace('on', 'off')
       at = (at + 1) % items.length
       items[at].classList.add('on')
-      fit()
     }, 2200)
   }
 
@@ -276,7 +257,8 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
     }
   }
 
-  /* The tracker name rolls through the list; the box eases to each name's width. */
+  /* The tracker name rolls through the list. All names share one grid cell, so the slot is
+     as wide as the longest one and the text around it never moves. */
   .rot {
     display: inline-block;
     margin-inline: 0.1em;
@@ -289,17 +271,14 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
     }
   }
   .rot-box {
-    position: relative;
-    display: inline-flex;
+    display: inline-grid;
+    justify-items: center;
     height: 1.55em;
     overflow: hidden;
     vertical-align: bottom;
-    transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .ri {
-    position: absolute;
-    left: 0;
-    top: 0;
+    grid-area: 1 / 1;
     display: inline-flex;
     align-items: center;
     gap: 0.3em;
@@ -315,7 +294,6 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
       opacity 0.3s;
   }
   .ri.on {
-    position: relative;
     opacity: 1;
     translate: 0 0;
   }
