@@ -1,0 +1,1354 @@
+---
+// Five features as frames on the page's canvas, each with a large drawing in the look of the
+// real components. The markup is the finished scene; a short loop plays only while in view.
+import { DOCS } from '../../data/site'
+import Icon from '../Icon.astro'
+import FeatureFrame from './FeatureFrame.astro'
+
+const gantt = [
+  { k: 'APP-112', t: 'Retry payments', icon: 'bookmark', s: 'progress', l: 2, w: 40 },
+  { k: 'APP-118', t: 'Billing cron', icon: 'square-check', s: 'done', l: 20, w: 34, flip: true },
+  { k: 'APP-121', t: 'Release notes', icon: 'square-check', s: 'todo', l: 60, w: 30 },
+  { k: '', t: 'Mobile release', icon: '', s: 'stages', l: 0, w: 0 },
+  { k: 'web#214', t: 'Docs dark theme', icon: 'bookmark', s: 'progress', l: 30, w: 38 },
+]
+const stages = [
+  { name: 'Build · Anna', h: 250, l: 8, w: 30 },
+  { name: 'Test · Max', h: 150, l: 38, w: 22 },
+  { name: 'Ship', h: 25, l: 60, w: 14 },
+]
+---
+
+<FeatureFrame
+  id="arrange"
+  label="Board"
+  tone="yellow"
+  flip
+  heading="Arrange tasks on an infinite whiteboard"
+  lead="Group cards in frames, leave sticky notes next to them and draw arrows between what depends on what. Smart guides snap everything into line."
+  points={['Frames, sticky notes, text and shapes', 'Arrows that stay attached to the cards they join', 'Smart guides and snapping while you drag']}
+  more={{ href: `${DOCS}/adding-tasks/#around-the-cards`, text: 'The board' }}
+>
+  <div class="d dots" data-loop role="img" aria-label="A board: a frame with sticky notes, one being dragged into line with a smart guide, and arrows to two task cards.">
+    <div class="n fr green" style="--x:24;--y:56;--w:262;--h:300"><b>Launch plan</b></div>
+    <i class="n st yellow" style="--x:40;--y:84;--w:106;--h:100">Split the billing cron</i>
+    <i class="n st violet" style="--x:40;--y:220;--w:106;--h:100">Demo to sales on Thursday</i>
+    <span class="guide" style="--y:84"></span>
+    <div class="n drag" style="--x:162;--y:84">
+      <i class="st pink" style="--w:106;--h:100">Ask QA before Friday</i>
+      <span class="sel"><i></i><i></i><i></i><i></i></span>
+      <span class="ptr me" style="--x:98;--y:70"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg></span>
+    </div>
+    <span class="n text" style="--x:306;--y:46">Open questions</span>
+    <span class="n fc" style="--x:306;--y:96"><span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-112</span>Payments<span class="lz progress">In progress</span></span>
+    <span class="n fc" style="--x:306;--y:240"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-121</span>Notes<span class="lz">To do</span></span>
+    <svg class="wires" viewBox="0 0 560 400">
+      <path d="M146 270 C 220 270, 240 254, 296 254" />
+      <path class="head" d="M290 249 L300 254 L290 259 Z" />
+      <path d="M268 134 C 284 134, 284 110, 296 110" />
+      <path class="head" d="M290 105 L300 110 L290 115 Z" />
+    </svg>
+  </div>
+</FeatureFrame>
+
+<FeatureFrame
+  id="gantt"
+  label="Timeline"
+  tone="blue"
+  heading="A Gantt chart for Jira and GitHub issues"
+  lead="Drop cards onto a timeline and get bars that keep their live status, with milestones and dependency lines. Planning mode adds stages, people and their workload."
+  points={['Bars follow the status in your tracker', 'Milestones and dependencies between bars', 'Stages and people with Planning on']}
+  more={{ href: `${DOCS}/gantt/`, text: 'Gantt' }}
+>
+  <div class="d dots" data-loop role="img" aria-label="A Gantt module: five rows with live status bars, a dependency line, planning stages with people and a release milestone.">
+    <div class="gantt">
+      <div class="g-head"><Icon name="chart-gantt" size={16} /><b>Release 2.4</b><span class="g-mode">Planning</span></div>
+      <div class="g-scale">
+        <span class="g-range">Oct 5 – Nov 1, 2026</span>
+        <span class="g-month">October 2026</span>
+        <span class="g-weeks"><i>5–11</i><i>12–18</i><i>19–25</i><i>26–1</i></span>
+      </div>
+      <div class="g-body">
+        <span class="g-today"></span>
+        <span class="g-stone-line"></span>
+        {
+          gantt.map((row, i) => (
+            <div class="g-row" style={`--i:${i}`}>
+              <span class="g-label">
+                <Icon name="grip-vertical" size={12} class="grip" />
+                {row.icon && <Icon name={row.icon} size={14} />}
+                {row.k && <b>{row.k}</b>}
+                <span class="g-t">{row.t}</span>
+              </span>
+              <span class="g-track">
+                {row.s === 'stages' ? (
+                  stages.map((st) => (
+                    <i class="g-stage" style={`--h:${st.h};left:${st.l}%;width:${st.w}%`}>{st.name}</i>
+                  ))
+                ) : (
+                  <i class:list={['g-bar', row.s, { flip: row.flip }]} style={`left:${row.l}%;width:${row.w}%`}>
+                    <Icon name={row.icon} size={14} />
+                    <span>{row.k} {row.t}</span>
+                  </i>
+                )}
+              </span>
+            </div>
+          ))
+        }
+        <svg class="g-dep" viewBox="0 0 350 220" preserveAspectRatio="none">
+          <path d="M193 66 H 203 V 110 H 210" />
+          <path class="head" d="M205 106 L211 110 L205 114 Z" />
+        </svg>
+      </div>
+      <div class="g-foot">
+        <span class="g-add"><Icon name="plus" size={14} />Add</span>
+        <span class="g-stone"><i></i>2.4 out</span>
+      </div>
+    </div>
+  </div>
+</FeatureFrame>
+
+<FeatureFrame
+  id="timers"
+  label="Timers"
+  tone="orange"
+  flip
+  heading="Timers on task cards"
+  lead="Put a timer next to a card and stop checking it. It goes off after a set time or when the task leaves its status, and its note says what to do next."
+  points={['Goes off on time or on a status change', 'Done, +10 min or +1 hour right from the note', 'Every timer of the board in one list']}
+  more={{ href: `${DOCS}/focus-and-timers/`, text: 'Timers and focus' }}
+>
+  <div class="d dots" data-loop role="img" aria-label="Two timers on task cards: one went off on time, one when its task moved to Done, each with a note offering Done, +10 min and +1 hour.">
+    <span class="n bar tlist" style="--x:418;--y:20"><Icon name="alarm-clock" size={16} />1<i class="pill">2</i></span>
+    <span class="n cube a" style="--x:40;--y:70">
+      <span class="run"><Icon name="alarm-clock" size={14} />3s</span>
+      <span class="fired"><Icon name="bell-ring" size={14} /></span>
+    </span>
+    <span class="n fc" style="--x:90;--y:76"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Move billing cron to a queue<span class="lz progress">In review</span></span>
+    <span class="n cube b" style="--x:40;--y:140">
+      <span class="run"><Icon name="hourglass" size={14} />Done</span>
+      <span class="fired"><Icon name="bell-ring" size={14} /></span>
+    </span>
+    <span class="n fc status" style="--x:90;--y:146">
+      <span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-121</span>Release notes for 2.4
+      <span class="swap"><span class="lz progress was">In progress</span><span class="lz done now">Done</span></span>
+    </span>
+    <div class="n note one" style="--x:40;--y:218">
+      <span class="note-cube"><Icon name="bell-ring" size={14} /></span>
+      <span><b>Ping QA about the cron</b><small>On APP-118 · Went off at 15:30</small></span>
+      <span class="note-act"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
+    </div>
+    <div class="n note two" style="--x:40;--y:306">
+      <span class="note-cube"><Icon name="bell-ring" size={14} /></span>
+      <span><b>Release notes are done, tell sales</b><small>On APP-121 · Went off when it moved to Done</small></span>
+      <span class="note-act"><i class="primary">Done</i><i>+10 min</i><i>+1 hour</i></span>
+    </div>
+  </div>
+</FeatureFrame>
+
+<FeatureFrame
+  id="search"
+  label="Search"
+  tone="violet"
+  heading="Search the whole board with ⌘K"
+  lead="One palette finds cards, notes and frames by key, title or text, filters by status or person, and runs commands. Matches light up on the board."
+  points={['Filters like <code>status:</code> and <code>@person</code>', 'Matches ring on the board, the rest fades', 'Commands and a shortcut for every tool']}
+  more={{ href: `${DOCS}/search/`, text: 'Search' }}
+>
+  <div class="d dots" data-loop role="img" aria-label="The search palette over a board: a status filter and the query billing, three results, and the matching cards and note ringed on the board.">
+    <div class="board-layer">
+      <div class="n fr blue" style="--x:24;--y:244;--w:250;--h:136"><b>Sprint 24</b></div>
+      <span class="n fc hit" style="--x:36;--y:256"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span>Billing cron<span class="lz progress">In review</span></span>
+      <span class="n fc miss" style="--x:36;--y:296"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-121</span>Release notes<span class="lz">To do</span></span>
+      <span class="n fc miss" style="--x:36;--y:336"><span class="ty"><Icon name="bug" size={14} /></span><span class="k">APP-127</span>Flaky test<span class="lz">To do</span></span>
+      <i class="n st yellow hit" style="--x:296;--y:244;--w:112;--h:80">Ask finance about billing</i>
+      <i class="n st pink miss" style="--x:424;--y:244;--w:112;--h:80">Plan the offsite</i>
+      <span class="n fc hit" style="--x:296;--y:340"><span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-131</span>New billing page</span>
+    </div>
+    <div class="pal">
+      <div class="pal-in">
+        <Icon name="search" size={16} />
+        <span class="chip"><span>status: </span>In review</span>
+        <span class="typing">billing</span><i class="caret"></i>
+      </div>
+      <div class="pal-row on"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-118</span><span><mark>Billing</mark> cron</span><small>In Review · Anna Lee</small></div>
+      <div class="pal-row"><span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-131</span><span>New <mark>billing</mark> page</span><small>To do · Max Kim</small></div>
+      <div class="pal-row"><span class="ty"><Icon name="sticky-note" size={14} /></span><span>Ask finance about <mark>billing</mark></span><small>in Ideas</small></div>
+      <div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> Move</span><span><kbd>↵</kbd> Open</span><span class="end">Select all 3 <kbd>⌘</kbd><kbd>↵</kbd></span></div>
+    </div>
+  </div>
+</FeatureFrame>
+
+<FeatureFrame
+  id="together"
+  label="Together"
+  tone="pink"
+  flip
+  heading="A whiteboard your team edits together"
+  lead="Share a board by link, as viewers or editors. Everyone sees each other's cursors, selections and changes as they happen."
+  points={['Viewers, editors or a public read-only link', "Live cursors and selections in each person's color", 'Each person sees what their tracker access allows']}
+  more={{ href: `${DOCS}/working-together/`, text: 'Working together' }}
+>
+  <div class="d dots" data-loop role="img" aria-label="A shared board: three people in the top bar, the share dialog, Anna dragging a card, Kim with a sticky note selected, live cursors.">
+    <div class="n bar top" style="--x:20;--y:20">
+      <Icon name="menu" size={16} /><b>Release 2.4</b><Icon name="chevron-down" size={12} />
+      <span class="share"><Icon name="share-2" size={14} />Share</span>
+      <span class="faces"><i style="--c:var(--p-anna)">AL</i><i style="--c:var(--p-max)">MK</i><i style="--c:var(--p-kim)">KS</i><em>+2</em></span>
+    </div>
+    <div class="n dialog" style="--x:300;--y:76">
+      <b>Share Release 2.4</b>
+      <span class="who"><i style="--c:var(--p-anna)">AL</i><span>Anna Lee<small>anna</small></span><em>Can edit</em></span>
+      <span class="who"><i style="--c:var(--p-max)">MK</i><span>Max Kim<small>max</small></span><em>Can view</em></span>
+      <span class="public"><span class="globe"><Icon name="globe" size={14} /></span><span>Anyone with the link can view</span><i class="switch"></i></span>
+    </div>
+    <div class="n carry" style="--x:36;--y:120">
+      <span class="fc held"><span class="ty"><Icon name="bookmark" size={14} /></span><span class="k">APP-112</span>Retry payments<span class="lz progress">In progress</span><span class="by" style="--c:var(--p-anna)">AL</span></span>
+      <span class="ptr" style="--x:150;--y:22;--c:var(--p-anna)"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><span class="tag"><i>AL</i><b>Anna</b></span></span>
+    </div>
+    <span class="n fc" style="--x:36;--y:180"><span class="ty"><Icon name="square-check" size={14} /></span><span class="k">APP-121</span>Release notes<span class="lz">To do</span></span>
+    <div class="n st yellow kim" style="--x:40;--y:248;--w:132;--h:96">Demo on Friday, record it<span class="by" style="--c:var(--p-kim)">KS</span></div>
+    <span class="n ptr wander" style="--x:200;--y:300;--c:var(--p-kim)"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><span class="tag"><i>KS</i><b>Kim</b></span></span>
+    <span class="n ptr roam" style="--x:236;--y:214;--c:var(--p-max)"><svg viewBox="0 0 16 16"><path d="M2 1.5 13.5 7 8.4 8.6 6.6 13.8Z"></path></svg><span class="tag"><i>MK</i><b>Max</b></span></span>
+  </div>
+</FeatureFrame>
+
+<script>
+  // Each drawing loops only while it is in view; the markup is its finished scene.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const seen = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) entry.target.classList.toggle('play', entry.isIntersecting)
+      },
+      { threshold: 0.35 },
+    )
+    for (const el of document.querySelectorAll('[data-loop]')) seen.observe(el)
+  }
+</script>
+
+<style>
+  /* One unit is a pixel of a 560×400 drawing, scaled to the column. */
+  .d {
+    --u: calc(100cqw / 560);
+    --p-anna: oklch(0.58 0.17 340);
+    --p-max: oklch(0.5 0.15 165);
+    --p-kim: oklch(0.52 0.17 255);
+    --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.1);
+    position: relative;
+    aspect-ratio: 560 / 400;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background-color: var(--background);
+    background-size: calc(16 * var(--u)) calc(16 * var(--u));
+    box-shadow: var(--shadow);
+    font-size: calc(13 * var(--u));
+    line-height: 1.35;
+  }
+  .n {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+  }
+  [style*='--w'] {
+    width: calc(var(--w) * var(--u));
+    height: calc(var(--h) * var(--u));
+  }
+
+  /* Pieces of the board, as the app draws them. */
+  .fc {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    padding: calc(4 * var(--u)) calc(8 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(4.8 * var(--u));
+    background: var(--card);
+    line-height: calc(20 * var(--u));
+    white-space: nowrap;
+  }
+  .ty {
+    display: grid;
+    flex: none;
+    color: var(--muted-foreground);
+  }
+  .ty :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .k {
+    font-family: var(--mono);
+    font-size: calc(12 * var(--u));
+    color: var(--primary);
+  }
+  .lz {
+    padding-inline: calc(4 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: calc(11 * var(--u));
+    font-weight: 600;
+    line-height: calc(16 * var(--u));
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .lz.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  .lz.done {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+  .st {
+    display: block;
+    padding: calc(12 * var(--u));
+    border-radius: calc(4.8 * var(--u));
+    color: var(--sticky-foreground);
+    font-size: calc(14 * var(--u));
+    font-style: normal;
+    line-height: 1.35;
+  }
+  .yellow {
+    --tone: var(--sticky-yellow);
+  }
+  .pink {
+    --tone: var(--sticky-pink);
+  }
+  .violet {
+    --tone: var(--sticky-violet);
+  }
+  .green {
+    --tone: var(--sticky-green);
+  }
+  .blue {
+    --tone: var(--sticky-blue);
+  }
+  .st {
+    background: var(--tone);
+  }
+  .fr {
+    border: 1px solid var(--border);
+    border-radius: calc(4.8 * var(--u));
+    background: color-mix(in oklab, var(--tone) var(--frame-tint), var(--background));
+  }
+  .fr b {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 4 * var(--u));
+    font-size: calc(13 * var(--u));
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    height: calc(40 * var(--u));
+    padding: calc(4 * var(--u)) calc(10 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow-md);
+    white-space: nowrap;
+  }
+  .bar :global(svg) {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+  }
+  .ptr {
+    --c: var(--foreground);
+  }
+  .ptr svg {
+    display: block;
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    fill: var(--c);
+    stroke: var(--card);
+    stroke-width: 1;
+  }
+  .ptr.me {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+  }
+  .tag {
+    position: absolute;
+    left: calc(10 * var(--u));
+    top: calc(10 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+  }
+  .tag i,
+  .faces i,
+  .who i,
+  .by {
+    display: grid;
+    place-items: center;
+    width: calc(18 * var(--u));
+    height: calc(18 * var(--u));
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 1px var(--card);
+    color: oklch(0.99 0 0);
+    font-size: calc(8 * var(--u));
+    font-style: normal;
+    font-weight: 600;
+  }
+  .tag b {
+    padding: calc(2 * var(--u)) calc(4 * var(--u));
+    border-radius: calc(3.6 * var(--u));
+    background: var(--c);
+    color: oklch(0.99 0 0);
+    font-size: calc(11 * var(--u));
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* Arrange: a note is dragged into line with its neighbour and the guide shows. */
+  .text {
+    font-size: calc(20 * var(--u));
+    font-weight: 600;
+  }
+  .drag .st {
+    position: relative;
+  }
+  .sel {
+    position: absolute;
+    inset: 0;
+    border: calc(1.5 * var(--u)) solid var(--primary);
+    border-radius: calc(4.8 * var(--u));
+  }
+  .sel i {
+    position: absolute;
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    border: calc(1.5 * var(--u)) solid var(--primary);
+    border-radius: calc(2 * var(--u));
+    background: var(--card);
+  }
+  .sel i:nth-child(1) {
+    left: calc(-5 * var(--u));
+    top: calc(-5 * var(--u));
+  }
+  .sel i:nth-child(2) {
+    right: calc(-5 * var(--u));
+    top: calc(-5 * var(--u));
+  }
+  .sel i:nth-child(3) {
+    left: calc(-5 * var(--u));
+    bottom: calc(-5 * var(--u));
+  }
+  .sel i:nth-child(4) {
+    right: calc(-5 * var(--u));
+    bottom: calc(-5 * var(--u));
+  }
+  .guide {
+    position: absolute;
+    left: calc(30 * var(--u));
+    width: calc(250 * var(--u));
+    top: calc(var(--y) * var(--u));
+    border-top: 1px solid var(--primary);
+    opacity: 0;
+  }
+  .wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    opacity: 0.55;
+  }
+  .wires .head {
+    fill: var(--foreground);
+    stroke: none;
+  }
+  .play .drag {
+    animation: drag 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .play .guide {
+    animation: guide 7s infinite;
+  }
+  @keyframes drag {
+    0%,
+    8% {
+      translate: calc(34 * var(--u)) calc(44 * var(--u));
+    }
+    36%,
+    88% {
+      translate: 0 0;
+    }
+    100% {
+      translate: calc(34 * var(--u)) calc(44 * var(--u));
+    }
+  }
+  @keyframes guide {
+    0%,
+    30% {
+      opacity: 0;
+    }
+    36%,
+    60% {
+      opacity: 1;
+    }
+    68%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Plan: a Gantt module with live bars, stages, a dependency and a milestone. */
+  .gantt {
+    position: absolute;
+    inset: calc(20 * var(--u));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow-md);
+    --label: calc(150 * var(--u));
+  }
+  .g-head {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    height: calc(36 * var(--u));
+    padding-inline: calc(12 * var(--u));
+    border-bottom: 1px solid var(--border);
+  }
+  .g-head :global(svg) {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .g-head b {
+    font-weight: 600;
+  }
+  .g-mode {
+    margin-left: auto;
+    padding: 0 calc(8 * var(--u));
+    border-radius: 999px;
+    background: var(--accent);
+    font-size: calc(11 * var(--u));
+    font-weight: 500;
+    line-height: calc(20 * var(--u));
+  }
+  .g-scale {
+    display: grid;
+    grid-template-columns: var(--label) 1fr;
+    grid-template-rows: calc(24 * var(--u)) calc(24 * var(--u));
+    border-bottom: 1px solid var(--border);
+    font-size: calc(11 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .g-range {
+    grid-row: span 2;
+    display: grid;
+    align-items: center;
+    padding-left: calc(12 * var(--u));
+    border-right: 1px solid var(--border);
+    background: var(--muted);
+    color: color-mix(in oklab, var(--muted-foreground) 70%, var(--foreground));
+  }
+  .g-month {
+    display: grid;
+    place-items: center;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+    color: var(--foreground);
+  }
+  .g-weeks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .g-weeks i {
+    display: grid;
+    place-items: center;
+    border-right: 1px solid var(--border);
+    font-style: normal;
+  }
+  .g-body {
+    position: relative;
+  }
+  .g-row {
+    display: grid;
+    grid-template-columns: var(--label) 1fr;
+    height: calc(44 * var(--u));
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  }
+  .g-label {
+    display: flex;
+    align-items: center;
+    gap: calc(5 * var(--u));
+    min-width: 0;
+    padding-inline: calc(6 * var(--u));
+    border-right: 1px solid var(--border);
+    font-size: calc(12 * var(--u));
+    white-space: nowrap;
+  }
+  .g-label :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .g-label :global(.grip) {
+    width: calc(12 * var(--u));
+    opacity: 0.6;
+  }
+  .g-label b {
+    font-weight: 500;
+  }
+  .g-t {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .g-track {
+    position: relative;
+  }
+  .g-bar,
+  .g-stage {
+    position: absolute;
+    top: calc(12 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    height: calc(20 * var(--u));
+    padding-inline: calc(6 * var(--u));
+    overflow: hidden;
+    border-radius: calc(4 * var(--u));
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: calc(12 * var(--u));
+    font-style: normal;
+    font-weight: 500;
+    line-height: calc(20 * var(--u));
+    white-space: nowrap;
+    transform-origin: left;
+  }
+  .g-bar :global(svg) {
+    flex: none;
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    opacity: 0.8;
+  }
+  .g-bar span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .g-bar.progress {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  .g-bar.done {
+    background: var(--done);
+    color: var(--done-fg);
+    text-decoration: line-through;
+  }
+  /* Stages: the type's hue at sticky lightness, its name and people inside. */
+  .g-stage {
+    background: oklch(0.93 0.05 var(--h));
+    color: oklch(0.38 0.09 var(--h));
+    font-size: calc(11 * var(--u));
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px oklch(0.85 0.06 var(--h));
+  }
+  .g-today {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--label) + (100% - var(--label)) * 0.52);
+    width: 1px;
+    background: var(--primary);
+  }
+  .g-stone-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--label) + (100% - var(--label)) * 0.84);
+    border-left: 1px dashed color-mix(in oklch, var(--foreground) 40%, transparent);
+  }
+  .g-dep {
+    position: absolute;
+    left: var(--label);
+    top: 0;
+    width: calc(100% - var(--label));
+    height: calc(220 * var(--u));
+    fill: none;
+    stroke: color-mix(in oklch, var(--foreground) 55%, transparent);
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+  }
+  .g-dep .head {
+    fill: color-mix(in oklch, var(--foreground) 55%, transparent);
+    stroke: none;
+  }
+  .g-foot {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--label) 1fr;
+    height: calc(32 * var(--u));
+    font-size: calc(12 * var(--u));
+  }
+  .g-add {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    padding-left: calc(12 * var(--u));
+    border-right: 1px solid var(--border);
+  }
+  .g-add :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .g-stone {
+    position: absolute;
+    left: calc(var(--label) + (100% - var(--label)) * 0.84 - 5 * var(--u));
+    top: calc(11 * var(--u));
+    display: flex;
+    align-items: center;
+    gap: calc(5 * var(--u));
+    font-size: calc(11 * var(--u));
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .g-stone i {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+    border-radius: 1px;
+    background: var(--foreground);
+    transform: rotate(45deg);
+  }
+  .play .g-bar,
+  .play .g-stage {
+    animation: grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite both;
+    animation-delay: calc(var(--i) * 0.2s);
+  }
+  .g-row:nth-of-type(4) .g-stage:nth-child(2) {
+    animation-delay: 1s;
+  }
+  .g-row:nth-of-type(4) .g-stage:nth-child(3) {
+    animation-delay: 1.2s;
+  }
+  .play .g-bar.flip {
+    animation:
+      grow 8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s infinite both,
+      live 8s infinite;
+  }
+  @keyframes grow {
+    0%,
+    4% {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+    16%,
+    92% {
+      transform: none;
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 0;
+    }
+  }
+  /* The tracker moves the task to Done: the bar turns green and strikes through. */
+  @keyframes live {
+    0%,
+    45% {
+      background: var(--progress);
+      color: var(--progress-fg);
+      text-decoration-color: transparent;
+      box-shadow: 0 0 0 0 transparent;
+    }
+    48% {
+      box-shadow: 0 0 0 calc(3 * var(--u)) color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+    50%,
+    100% {
+      background: var(--done);
+      color: var(--done-fg);
+      text-decoration-color: currentColor;
+    }
+    60%,
+    100% {
+      box-shadow: 0 0 0 calc(10 * var(--u)) transparent;
+    }
+  }
+
+  /* Timers: one goes off on time, one when its task reaches Done; their notes appear. */
+  .tlist {
+    font-family: var(--mono);
+    font-size: calc(13 * var(--u));
+  }
+  .pill {
+    display: grid;
+    place-items: center;
+    min-width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    padding-inline: calc(4 * var(--u));
+    border-radius: 999px;
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+    font-size: calc(10 * var(--u));
+    font-style: normal;
+    font-weight: 600;
+  }
+  .cube {
+    display: grid;
+    width: calc(40 * var(--u));
+    height: calc(40 * var(--u));
+    border-radius: calc(6 * var(--u));
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+    font-family: var(--mono);
+    font-size: calc(10 * var(--u));
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 1px 2px oklch(0.3 0.07 60 / 0.25);
+  }
+  .cube > span {
+    grid-area: 1 / 1;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: calc(2 * var(--u));
+  }
+  .cube :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    stroke-width: 2;
+  }
+  .cube .run {
+    opacity: 0;
+  }
+  .swap {
+    display: grid;
+  }
+  .swap .lz {
+    grid-area: 1 / 1;
+    justify-self: start;
+  }
+  .swap .was {
+    opacity: 0;
+  }
+  .status .k {
+    text-decoration: line-through;
+  }
+  .note {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: calc(6 * var(--u)) calc(8 * var(--u));
+    width: calc(400 * var(--u));
+    padding: calc(8 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow-md);
+  }
+  .note-cube {
+    display: grid;
+    place-items: center;
+    width: calc(24 * var(--u));
+    height: calc(24 * var(--u));
+    border-radius: calc(4.8 * var(--u));
+    background: var(--timer-fired);
+    color: var(--timer-fired-foreground);
+  }
+  .note-cube :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+    stroke-width: 2;
+  }
+  .note b {
+    display: block;
+    font-weight: 500;
+  }
+  .note small {
+    display: block;
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .note-act {
+    grid-column: 2;
+    display: flex;
+    gap: calc(4 * var(--u));
+  }
+  .note-act i {
+    height: calc(24 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border-radius: calc(4.8 * var(--u));
+    font-size: calc(12 * var(--u));
+    font-style: normal;
+    font-weight: 500;
+    line-height: calc(24 * var(--u));
+  }
+  .note-act .primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .play .cube.a {
+    animation: fire 9s infinite;
+  }
+  .play .cube.a .run {
+    animation: idle 9s infinite;
+  }
+  .play .cube.a .fired,
+  .play .note.one {
+    animation: shown 9s infinite;
+  }
+  .play .cube.b {
+    animation: fire 9s 2.4s infinite backwards;
+  }
+  .play .cube.b .run {
+    animation: idle 9s 2.4s infinite backwards;
+  }
+  .play .cube.b .fired,
+  .play .note.two,
+  .play .swap .now {
+    animation: shown 9s 2.4s infinite backwards;
+  }
+  .play .swap .was {
+    animation: idle 9s 2.4s infinite backwards;
+  }
+  .play .status .k {
+    animation: strike 9s 2.4s infinite backwards;
+  }
+  @keyframes strike {
+    0%,
+    30% {
+      text-decoration-color: transparent;
+    }
+    33%,
+    100% {
+      text-decoration-color: currentColor;
+    }
+  }
+  @keyframes fire {
+    0%,
+    30% {
+      background: var(--timer);
+      color: var(--timer-foreground);
+      box-shadow: 0 0 0 0 transparent;
+    }
+    32% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--timer-fired) 55%, transparent);
+    }
+    33%,
+    100% {
+      background: var(--timer-fired);
+      color: var(--timer-fired-foreground);
+    }
+    44%,
+    100% {
+      box-shadow: 0 0 0 calc(12 * var(--u)) transparent;
+    }
+  }
+  @keyframes idle {
+    0%,
+    30% {
+      opacity: 1;
+    }
+    33%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes shown {
+    0%,
+    30% {
+      opacity: 0;
+      translate: 0 calc(-6 * var(--u));
+    }
+    34%,
+    94% {
+      opacity: 1;
+      translate: 0 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Search: the palette over the board; matches ring, the rest fades. */
+  /* The rest of the board fades under a veil, so the text keeps its own colors. */
+  .board-layer .miss::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: color-mix(in oklab, var(--background) 65%, transparent);
+  }
+  .board-layer .hit {
+    outline: calc(2 * var(--u)) solid var(--primary);
+    outline-offset: calc(1 * var(--u));
+  }
+  .pal {
+    position: absolute;
+    left: calc(60 * var(--u));
+    right: calc(60 * var(--u));
+    top: calc(20 * var(--u));
+    padding-bottom: calc(4 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    box-shadow:
+      0 20px 25px -5px oklch(0 0 0 / 0.1),
+      0 8px 10px -6px oklch(0 0 0 / 0.1);
+  }
+  .pal-in {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    height: calc(44 * var(--u));
+    margin-bottom: calc(4 * var(--u));
+    padding-inline: calc(14 * var(--u));
+    border-bottom: 1px solid var(--border);
+    font-size: calc(15 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .pal-in > :global(svg) {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+  }
+  .chip {
+    padding-inline: calc(6 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--accent);
+    color: var(--foreground);
+    font-size: calc(13 * var(--u));
+    line-height: calc(24 * var(--u));
+    white-space: nowrap;
+  }
+  .chip span {
+    color: var(--muted-foreground);
+  }
+  .typing {
+    display: inline-block;
+    width: 3.4em;
+    overflow: hidden;
+    color: var(--foreground);
+    white-space: nowrap;
+  }
+  .caret {
+    width: 1px;
+    height: calc(16 * var(--u));
+    margin-left: calc(-6 * var(--u));
+    background: var(--foreground);
+  }
+  .pal-row {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+    height: calc(34 * var(--u));
+    margin-inline: calc(4 * var(--u));
+    padding-inline: calc(8 * var(--u));
+    border-radius: calc(6 * var(--u));
+    white-space: nowrap;
+  }
+  .pal-row.on {
+    background: var(--accent);
+  }
+  /* On the picked row muted text and keys step up, to keep 4.5:1 on the accent. */
+  .pal-row.on small,
+  .chip span {
+    color: color-mix(in oklab, var(--muted-foreground) 65%, var(--foreground));
+  }
+  .pal-row.on .k {
+    color: color-mix(in oklab, var(--primary) 80%, var(--foreground));
+  }
+  .pal-row small {
+    margin-left: auto;
+    font-size: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+  mark {
+    background: color-mix(in oklch, var(--primary) 15%, transparent);
+    color: inherit;
+  }
+  .pal-foot {
+    display: flex;
+    gap: calc(12 * var(--u));
+    margin-top: calc(4 * var(--u));
+    padding: calc(6 * var(--u)) calc(12 * var(--u)) calc(2 * var(--u));
+    border-top: 1px solid var(--border);
+    font-size: calc(11 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .pal-foot .end {
+    margin-left: auto;
+  }
+  kbd {
+    display: inline-block;
+    min-width: calc(16 * var(--u));
+    margin-right: calc(2 * var(--u));
+    padding-inline: calc(3 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(3 * var(--u));
+    background: var(--background);
+    font-family: var(--font);
+    font-size: calc(10 * var(--u));
+    line-height: calc(16 * var(--u));
+    text-align: center;
+  }
+  .play .typing {
+    animation: typing 8s steps(7) infinite;
+  }
+  .play .caret {
+    animation: blink 1s steps(2, start) infinite;
+  }
+  .play .pal-row {
+    animation: rows 8s infinite;
+  }
+  .play .board-layer .miss::after {
+    animation: fade 8s infinite;
+  }
+  .play .board-layer .hit {
+    animation: ring 8s infinite;
+  }
+  @keyframes typing {
+    0%,
+    6% {
+      width: 0;
+    }
+    30%,
+    100% {
+      width: 3.4em;
+    }
+  }
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  @keyframes rows {
+    0%,
+    28% {
+      opacity: 0;
+    }
+    34%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes fade {
+    0%,
+    30% {
+      opacity: 0;
+    }
+    36%,
+    94% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes ring {
+    0%,
+    30% {
+      outline-color: transparent;
+    }
+    36%,
+    94% {
+      outline-color: var(--primary);
+    }
+    100% {
+      outline-color: transparent;
+    }
+  }
+
+  /* Together: the top bar with faces, the share dialog, people at work on the board. */
+  .top b {
+    font-weight: 500;
+  }
+  .top > :global(svg:nth-of-type(2)) {
+    width: calc(12 * var(--u));
+    color: var(--muted-foreground);
+  }
+  .share {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    margin-left: calc(8 * var(--u));
+  }
+  .share :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .faces {
+    display: flex;
+    margin-left: calc(8 * var(--u));
+  }
+  .faces i {
+    width: calc(24 * var(--u));
+    height: calc(24 * var(--u));
+    margin-left: calc(-4 * var(--u));
+    box-shadow: 0 0 0 calc(2 * var(--u)) var(--card);
+    font-size: calc(10 * var(--u));
+  }
+  .faces em {
+    display: grid;
+    place-items: center;
+    height: calc(24 * var(--u));
+    margin-left: calc(4 * var(--u));
+    padding-inline: calc(6 * var(--u));
+    border-radius: 999px;
+    background: var(--muted);
+    font-size: calc(11 * var(--u));
+    font-style: normal;
+    font-weight: 500;
+  }
+  .dialog {
+    display: grid;
+    gap: calc(8 * var(--u));
+    width: calc(236 * var(--u));
+    padding: calc(12 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(8 * var(--u));
+    background: var(--card);
+    box-shadow:
+      0 20px 25px -5px oklch(0 0 0 / 0.1),
+      0 8px 10px -6px oklch(0 0 0 / 0.1);
+  }
+  .dialog > b {
+    font-weight: 600;
+  }
+  .who,
+  .public {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--u));
+  }
+  .who i {
+    width: calc(28 * var(--u));
+    height: calc(28 * var(--u));
+    font-size: calc(10 * var(--u));
+  }
+  .who span {
+    display: grid;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .who small {
+    font-size: calc(11 * var(--u));
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+  .who em {
+    margin-left: auto;
+    font-size: calc(12 * var(--u));
+    font-style: normal;
+    color: var(--muted-foreground);
+  }
+  .public {
+    padding-top: calc(8 * var(--u));
+    border-top: 1px solid var(--border);
+    font-size: calc(12 * var(--u));
+  }
+  .globe {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: calc(28 * var(--u));
+    height: calc(28 * var(--u));
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .globe :global(svg) {
+    width: calc(14 * var(--u));
+    height: calc(14 * var(--u));
+  }
+  .switch {
+    position: relative;
+    flex: none;
+    width: calc(28 * var(--u));
+    height: calc(16 * var(--u));
+    margin-left: auto;
+    border-radius: 999px;
+    background: var(--primary);
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    right: calc(2 * var(--u));
+    top: calc(2 * var(--u));
+    width: calc(12 * var(--u));
+    height: calc(12 * var(--u));
+    border-radius: 50%;
+    background: var(--primary-foreground);
+  }
+  .carry .fc {
+    position: relative;
+  }
+  /* Someone else's selection: 2 px in their color inside the element, their avatar on the corner. */
+  .held,
+  .kim {
+    outline: calc(2 * var(--u)) solid var(--c, var(--p-anna));
+    outline-offset: calc(-2 * var(--u));
+  }
+  .kim {
+    --c: var(--p-kim);
+  }
+  .by {
+    position: absolute;
+    right: calc(-8 * var(--u));
+    top: calc(-8 * var(--u));
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    font-size: calc(7 * var(--u));
+  }
+  .carry .ptr {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+  }
+  .play .carry {
+    animation: carry 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .play .roam {
+    animation: roam 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .play .wander {
+    animation: wander 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes carry {
+    0%,
+    15% {
+      translate: calc(60 * var(--u)) calc(110 * var(--u));
+    }
+    45%,
+    85% {
+      translate: 0 0;
+    }
+    100% {
+      translate: calc(60 * var(--u)) calc(110 * var(--u));
+    }
+  }
+  @keyframes roam {
+    0% {
+      translate: 0 0;
+    }
+    30% {
+      translate: calc(-120 * var(--u)) calc(160 * var(--u));
+    }
+    60% {
+      translate: calc(20 * var(--u)) calc(180 * var(--u));
+    }
+    100% {
+      translate: 0 0;
+    }
+  }
+  @keyframes wander {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: calc(-40 * var(--u)) calc(-10 * var(--u));
+    }
+  }
+</style>

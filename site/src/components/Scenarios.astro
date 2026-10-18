@@ -429,10 +429,10 @@ const place = ([x, y, w, h]: number[]) =>
   .frame {
     border: 1px solid var(--border);
     border-radius: calc(3.4 * var(--u));
-    background: color-mix(in oklch, var(--tone) var(--frame-tint), var(--background));
+    background: color-mix(in oklab, var(--tone) var(--frame-tint), var(--background));
   }
   .frame.plain {
-    background: color-mix(in oklch, var(--muted) 40%, transparent);
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
   }
   .frame b {
     position: absolute;
