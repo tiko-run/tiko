@@ -116,18 +116,24 @@ const facts = ['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the s
   // The task word in the headline drags like a card and springs back.
   const word = document.querySelector<HTMLElement>('[data-word]')
   word?.addEventListener('pointerdown', (down) => {
+    if (!down.isPrimary || down.button !== 0) return
     word.setPointerCapture(down.pointerId)
     word.classList.add('held')
     const move = (e: PointerEvent) =>
       word.style.setProperty('translate', `${e.clientX - down.clientX}px ${e.clientY - down.clientY}px`)
+    // A cancelled or lost pointer ends the drag the same way a release does.
     const up = () => {
       word.classList.remove('held')
       word.style.removeProperty('translate')
       word.removeEventListener('pointermove', move)
       word.removeEventListener('pointerup', up)
+      word.removeEventListener('pointercancel', up)
+      word.removeEventListener('lostpointercapture', up)
     }
     word.addEventListener('pointermove', move)
     word.addEventListener('pointerup', up)
+    word.addEventListener('pointercancel', up)
+    word.addEventListener('lostpointercapture', up)
   })
 </script>
 
