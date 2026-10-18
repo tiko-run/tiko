@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - Run tiko behind Railway or Cloudflare and still count each visitor on their own: `TIKO_TRUSTED_PROXIES` and `TIKO_CLIENT_IP_HEADER` tell the web container which proxy to believe about the visitor's address, which sign-in and demo limits use. Values per platform are in [The client's address](https://docs.tiko.run/configuration/#the-clients-address).
 - Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
+- Set a timer without spelling the time out: type `3` and pick 3 minutes, 3 hours or 3 days; type `tu` and pick Tuesday at 10:00, 14:00 or 18:00. Each suggestion shows when it goes off, and Tab takes the first one.
+- Add a run of tasks at once: `APP-1 - APP-20` (or `APP-1..20`) in the Task card tool or pasted on the board adds every task from the first to the last, up to 50.
+- Jump back to where you were: after search or the timer list moves the board, press B or the arrow under the zoom buttons.
+- Cut with ⌘X (Ctrl+X): the selection goes to the clipboard and off the board, in one undo step.
+- Each creation tool has its own pointer, a crosshair with the tool's icon, so you can see which one is picked.
+- Choose where task links open: Settings → Preferences → Open task links in, a new tab or this one.
 - Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news: that message asks you to confirm it, and you can unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
 
 ### Changed

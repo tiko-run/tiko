@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { readPasteAs, writePasteAs, type PasteAs } from '@/canvas/paste'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { readOpenIn, writeOpenIn, type OpenIn } from '@/lib/task-links'
 import { useTheme, type Theme } from '@/lib/theme'
 import { Group, SectionHeader } from '@/settings/sections/Section'
 
@@ -18,6 +19,7 @@ function Choice({ value, id, label }: { value: string; id: string; label: string
 export function Preferences() {
   const { theme, setTheme } = useTheme()
   const [pasteAs, setPasteAs] = useState<PasteAs>(readPasteAs)
+  const [openIn, setOpenIn] = useState<OpenIn>(readOpenIn)
   return (
     <div className="flex flex-col gap-5">
       <SectionHeader
@@ -44,6 +46,22 @@ export function Preferences() {
         </RadioGroup>
         <p className="text-muted-foreground text-[13px]">
           Task keys and links always become cards.
+        </p>
+      </Group>
+      <Group title="Open task links in">
+        <RadioGroup
+          value={openIn}
+          onValueChange={(next) => {
+            setOpenIn(next as OpenIn)
+            writeOpenIn(next as OpenIn)
+          }}
+        >
+          <Choice value="new" id="links-new" label="A new tab" />
+          <Choice value="same" id="links-same" label="This tab" />
+        </RadioGroup>
+        <p className="text-muted-foreground text-[13px]">
+          Links on cards, in the mini-card and in the Gantt. Cmd or Ctrl + click still opens a new
+          tab.
         </p>
       </Group>
     </div>

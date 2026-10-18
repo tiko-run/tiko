@@ -14,7 +14,15 @@ import {
 import { useState, type FormEvent } from 'react'
 import { searchTasks, type Task } from '@/api/tasks'
 import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
-import { errorMessage, MAX_REFS, REF_RE, resolveAll, splitRefs, type Resolved } from '@/canvas/refs'
+import {
+  errorMessage,
+  hasRange,
+  MAX_REFS,
+  REF_RE,
+  resolveAll,
+  splitRefs,
+  type Resolved,
+} from '@/canvas/refs'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -79,7 +87,8 @@ export function AddCardForm({
   })
   const jql = isJql(input)
   const count = useJqlCount(input, jql && !resolve.isPending)
-  const tooMany = !jql && splitRefs(input).length > MAX_REFS
+  const keys = jql ? 0 : splitRefs(input).length
+  const tooMany = keys > MAX_REFS
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -126,7 +135,9 @@ export function AddCardForm({
           )}
         >
           {!jql
-            ? 'Keys, links or GitHub tasks like owner/repo#12, separated by commas. Or a JQL query.'
+            ? hasRange(input)
+              ? `${keys} ${keys === 1 ? 'card' : 'cards'} from the range.`
+              : 'Keys, links or GitHub tasks like owner/repo#12, separated by commas, or a range like DEMO-1 - DEMO-5. Or a JQL query.'
             : count.isError
               ? errorMessage(count.error)
               : count.data !== undefined

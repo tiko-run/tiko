@@ -11,7 +11,8 @@ export type Resolved = {
   total?: number
 }
 
-const JIRA_KEY = '[A-Za-z][A-Za-z0-9_]+-\\d+'
+const JIRA_PROJECT = '[A-Za-z][A-Za-z0-9_]+'
+const JIRA_KEY = `${JIRA_PROJECT}-\\d+`
 const GITHUB_REPO = '[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+'
 const GITHUB_KEY = `${GITHUB_REPO}#[1-9]\\d*`
 
@@ -22,15 +23,42 @@ const TASK_REF_RE = new RegExp(
     `|https?://(www\\.)?github\\.com/${GITHUB_REPO}/(issues|pull)/[1-9]\\d*([/?#]\\S*)?)$`,
 )
 
-export function splitRefs(input: string) {
-  return [...new Set(input.split(/[\s,;]+/).filter(Boolean))]
+// "APP-1 - APP-20", "APP-1..20", "owner/repo#3 – #9": every key from the first to the last.
+const RANGE_RE = new RegExp(
+  `(?<![\\w/.#-])(${JIRA_PROJECT}-|${GITHUB_REPO}#)(\\d+)\\s*(?:-|–|—|\\.\\.)\\s*(?:\\1|#)?(\\d+)(?![\\w#/-])`,
+  'gi',
+)
+
+/** True when the input holds a range of keys. */
+export function hasRange(input: string) {
+  RANGE_RE.lastIndex = 0
+  return RANGE_RE.test(input)
 }
 
-/** The task refs in pasted text when it holds nothing else, at most `MAX_REFS`. */
-export function pastedRefs(text: string): string[] | null {
+function expandRanges(input: string) {
+  return input.replace(RANGE_RE, (_whole, prefix: string, from: string, to: string) => {
+    const [low, high] = [Number(from), Number(to)].sort((a, b) => a - b)
+    // One past the limit is enough for the form to refuse; a typo of a million keys is not built.
+    const count = Math.min(high - low + 1, MAX_REFS + 1)
+    return Array.from({ length: count }, (_, i) => `${prefix}${low + i}`).join(' ')
+  })
+}
+
+export function splitRefs(input: string) {
+  return [
+    ...new Set(
+      expandRanges(input)
+        .split(/[\s,;]+/)
+        .filter(Boolean),
+    ),
+  ]
+}
+
+/** The task refs in pasted text when it holds nothing else: the first `MAX_REFS`, and whether more were left out. */
+export function pastedRefs(text: string): { refs: string[]; more: boolean } | null {
   const refs = splitRefs(text)
   if (refs.length === 0 || !refs.every((ref) => TASK_REF_RE.test(ref))) return null
-  return refs.slice(0, MAX_REFS)
+  return { refs: refs.slice(0, MAX_REFS), more: refs.length > MAX_REFS }
 }
 
 export async function resolveAll(refs: string[]): Promise<Resolved> {

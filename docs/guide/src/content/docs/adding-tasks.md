@@ -12,18 +12,18 @@ Pick the card tool (`C`) and type into its field:
 - **A key**, like `DEV-12`.
 - **A link** to the task in your tracker.
 - **A GitHub issue or pull request**, by its link or as `owner/repo#12`. It works on every tiko, whatever tracker is connected: see [GitHub Issues](../github-issues/).
-- **Several keys or links** at once.
+- **Several keys or links** at once, or a **range** like `DEV-1 - DEV-20` (or `DEV-1..20`) for every task in between, up to 50.
 - **A query**, like JQL in Jira: `project = DEV AND status = "In Progress"`. The field suggests fields and values as you type.
 
 New cards land in a neat grid.
 
 ## Paste
 
-Press `⌘V` (`Ctrl+V`) on the board. Links copied from your tracker tabs or from GitHub become cards; any other text becomes a sticky note, placed at the cursor.
+Press `⌘V` (`Ctrl+V`) on the board. Links copied from your tracker tabs or from GitHub, keys and ranges of keys become cards; any other text becomes a sticky note, placed at the cursor.
 
 ## Card details
 
-Click a card for assignee, priority, last update and a link to the task. Collapse cards to one line when the board gets busy.
+Click a card for assignee, priority, last update and a link to the task. Links open in a new tab; Settings → Preferences can open them in this one. Collapse cards to one line when the board gets busy.
 
 ## Around the cards
 
@@ -31,6 +31,8 @@ Click a card for assignee, priority, last update and a link to the task. Collaps
 - **Sticky notes** (`N`) hold up to 2000 characters, and the text shrinks to fit the note.
 - **Shapes** (`S`): rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one, then drag to set its size or click to place it. A shape holds a short text and takes a fill color.
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
+- **Pointers:** each creation tool shows its icon next to the crosshair, so you see which one is picked.
+- **Back:** after search or the timer list moves the board, press `B` or the arrow under the zoom buttons to return.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.
 
 Select one element or many, and a bar appears next to it: above the selection, or below it when there is no room. It shows what every selected element has in common: pick a fill and all of them take it, with one Undo to bring them back. Rest the pointer on a color to see it on the board before you pick. The bar also fades elements with an opacity slider, gives shapes a thicker or dashed outline, and sets text size and bold, each only where every selected element can take it. A selection of several kinds starts with "N objects": open it and choose a kind to keep only those selected. The bar also collapses cards, adds a timer, duplicates and deletes.

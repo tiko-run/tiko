@@ -25,7 +25,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `T` | Text |
 | `S` | Shapes |
 | `R` | Timer |
-| `C` | Jira card |
+| `C` | Task card |
 | `M` | Modules |
 | `Esc` | Back to Select |
 
@@ -36,6 +36,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `⌘Z` | Undo |
 | `⌘⇧Z`, `Ctrl+Y` | Redo |
 | `⌘C` | Copy |
+| `⌘X` | Cut |
 | `⌘V` | Paste at the cursor |
 | `⌘D` | Duplicate |
 | `⌘A` | Select all |
@@ -48,3 +49,4 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 |---|---|
 | `Space` + drag | Pan |
 | `Alt` + drag | Move without snapping |
+| `B` | Back to where you were |

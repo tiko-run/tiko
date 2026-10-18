@@ -14,7 +14,7 @@ describe('pastedRefs', () => {
   it('takes keys and task links split by lines, spaces and commas', () => {
     const text =
       'https://jira.example.com/browse/DEMO-1\nDEMO-2, https://jira.example.com/browse/DEMO-3/'
-    expect(pastedRefs(text)).toEqual([
+    expect(pastedRefs(text)?.refs).toEqual([
       'https://jira.example.com/browse/DEMO-1',
       'DEMO-2',
       'https://jira.example.com/browse/DEMO-3/',
@@ -28,7 +28,7 @@ describe('pastedRefs', () => {
       'https://github.com/octo-org/widgets/issues/12#issuecomment-1',
       'octo-org/widgets#3',
     ]
-    expect(pastedRefs(refs.join('\n'))).toEqual(refs)
+    expect(pastedRefs(refs.join('\n'))?.refs).toEqual(refs)
     expect(pastedRefs('https://github.com/octo-org/widgets')).toBeNull()
     expect(pastedRefs('https://github.com/octo-org/widgets/discussions/5')).toBeNull()
   })
@@ -40,7 +40,8 @@ describe('pastedRefs', () => {
 
   it('keeps at most 50 refs', () => {
     const keys = Array.from({ length: 60 }, (_, i) => `DEMO-${i + 1}`).join(' ')
-    expect(pastedRefs(keys)).toHaveLength(50)
+    expect(pastedRefs(keys)?.refs).toHaveLength(50)
+    expect(pastedRefs(keys)?.more).toBe(true)
   })
 })
 
@@ -60,6 +61,7 @@ describe('classifyPaste', () => {
     expect(classifyPaste(clip({ 'text/plain': 'DEMO-1 DEMO-2' }), null)).toEqual({
       kind: 'refs',
       refs: ['DEMO-1', 'DEMO-2'],
+      more: false,
     })
   })
 

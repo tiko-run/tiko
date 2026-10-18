@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { sourceName } from '@/sources/registry'
 import { SourceMark } from '@/sources/SourceMark'
+import { useTaskLinkProps } from '@/lib/task-links'
 
 type Props = {
   task: Task
@@ -42,6 +43,7 @@ function LabelChip({ name, color }: { name: string; color: string }) {
 
 /** Mini-card: who has the task, when it last moved, what its tracker adds, and a way there. */
 export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
+  const linkProps = useTaskLinkProps()
   const done = task.status_category === 'done'
   const updated = relativeTime(task.updated)
   const rows: [string, string | null][] = [
@@ -93,7 +95,7 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
           {collapsed ? 'Expand card' : 'Collapse card'}
         </Button>
         <Button variant="outline" size="sm" asChild>
-          <a href={task.url} target="_blank" rel="noreferrer">
+          <a href={task.url} {...linkProps}>
             <SourceMark source={task.source} />
             Open in {sourceName(task.source)}
             <ExternalLink strokeWidth={1.75} />

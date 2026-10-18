@@ -17,6 +17,7 @@ import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
+import { useTaskLinkProps } from '@/lib/task-links'
 
 // A press that moves further than this starts a row drag.
 const DRAG_SLOP = 4
@@ -217,16 +218,10 @@ function RowAction({
   href?: string
 }) {
   const className = 'text-muted-foreground hover:text-foreground rounded-sm p-0.5'
+  const linkProps = useTaskLinkProps()
   if (href) {
     return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={label}
-        title={label}
-        className={className}
-      >
+      <a href={href} {...linkProps} aria-label={label} title={label} className={className}>
         <Icon className="size-3.5" />
       </a>
     )

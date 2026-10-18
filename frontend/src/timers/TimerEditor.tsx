@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,7 +8,15 @@ import type { TimerData } from '@/canvas/types'
 import { notifyPermission } from '@/focus/alerts'
 import { cn } from '@/lib/utils'
 import { useNow } from './clock'
-import { formatDue, formatLeftLong, parseWhen, PRESETS, WHEN_HINT } from './time'
+import {
+  formatDue,
+  formatLeftLong,
+  parseWhen,
+  PRESETS,
+  suggestionNote,
+  suggestWhen,
+  WHEN_HINT,
+} from './time'
 import {
   DEFAULT_MS,
   describeWatch,
@@ -78,6 +86,9 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
   const state = timerState(data, now)
   const at = goesOffAt(data)
   const typed = parseWhen(input, now)
+  const suggestions = suggestWhen(input, now)
+  // Half-typed input that can still become a time is not an error yet.
+  const unfinished = typed !== null && 'error' in typed && suggestions.length > 0
   const blocked = ['denied', 'unsupported'].includes(notifyPermission())
 
   const apply = (text: string) => {
@@ -89,6 +100,11 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     apply(input)
+  }
+  const complete = (event: KeyboardEvent) => {
+    if (event.key !== 'Tab' || event.shiftKey || suggestions.length === 0) return
+    event.preventDefault()
+    setInput(suggestions[0].input)
   }
 
   const watch = data.watch
@@ -102,7 +118,9 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
         : `Goes off ${describeWatch(watch)}.`
     : typed
       ? 'error' in typed
-        ? typed.error
+        ? unfinished
+          ? 'Keep typing or pick a suggestion. Tab takes the first one.'
+          : typed.error
         : `Goes off ${formatDue(typed.at)} · in ${formatLeftLong(typed.at - now)}. Press Enter to set.`
       : at === null
         ? 'Waiting.'
@@ -147,23 +165,45 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
             id={id}
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            onKeyDown={complete}
             placeholder={WHEN_HINT}
             autoComplete="off"
             spellCheck={false}
           />
-          <div className="flex flex-wrap gap-1">
-            {PRESETS.map((preset) => (
-              <Button
-                key={preset.label}
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => apply(preset.input)}
-              >
-                {preset.label}
-              </Button>
-            ))}
-          </div>
+          {suggestions.length > 0 ? (
+            <div role="group" aria-label="Suggestions" className="flex flex-wrap gap-1">
+              {suggestions.map((suggestion) => (
+                <Button
+                  key={suggestion.input}
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => apply(suggestion.input)}
+                >
+                  {suggestion.input}
+                  {suggestionNote(suggestion, now) && (
+                    <span className="text-muted-foreground font-normal">
+                      {suggestionNote(suggestion, now)}
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1">
+              {PRESETS.map((preset) => (
+                <Button
+                  key={preset.label}
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => apply(preset.input)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+          )}
           <Segmented
             label="Repeat"
             options={REPEATS}
@@ -176,7 +216,7 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
         role="status"
         className={cn(
           'text-[13px]',
-          typed && 'error' in typed ? 'text-destructive' : 'text-muted-foreground',
+          typed && 'error' in typed && !unfinished ? 'text-destructive' : 'text-muted-foreground',
         )}
       >
         {line}
