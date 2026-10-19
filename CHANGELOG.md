@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Share says plainly who gets a board: "Everyone in tiko" is now "Everyone with an account", "Anyone with the link can view" is now "Public link", and each line says who gets in. The guide compares the three ways to share in [Working together](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
 - Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
 - tiko.run is now one canvas you scroll through: the board in the first screen pulls back to show the rest of the canvas, each feature has its own frame with a drawing of the real board, ten board layouts sit in a carousel you can drag, and a map shows what stays on your server.

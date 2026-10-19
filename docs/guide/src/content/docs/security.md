@@ -26,7 +26,7 @@ Every page and API route except `/health` and `/ready` asks you to sign in with 
 
 ## Sharing boards
 
-- A board belongs to the person who made it. "Share" in the top bar lists who has access; the owner adds people as "Can edit" or "Can view", removes them, makes someone else the owner, or opens the board to "Everyone in tiko".
+- A board belongs to the person who made it. "Share" in the top bar lists who has access; the owner adds people as "Can edit" or "Can view", removes them, makes someone else the owner, or gives a role to "Everyone with an account". The three ways side by side are in [Working together](../working-together/#three-ways-to-share-a-board).
 - Editors change the board and its name. Viewers see it with a "View only" badge: no toolbar, nothing moves or changes, and the server refuses their saves. Only the owner deletes a board or changes who has access.
 - A board you cannot open is not in your list, and its link answers as if it did not exist.
 - Admins act as owner on every board, so a board is never stranded when its owner is disabled. Boards nobody shared with them are under "All boards" in the board menu.
