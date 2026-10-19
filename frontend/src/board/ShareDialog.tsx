@@ -265,7 +265,7 @@ function PublicLink({
           <span className="text-muted-foreground text-[12px]">
             {allowed === false
               ? 'An admin switched public links off on this tiko.'
-              : 'Anyone with the link can view, no sign-in. Tasks show only their key.'}
+              : 'Anyone with the link can view, no sign-in. Tracker tasks show only their key.'}
           </span>
         </div>
         {manage ? (
