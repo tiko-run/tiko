@@ -32,6 +32,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The **+** at the ends of a Gantt's timeline adds one step of its scale instead of a whole quarter: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 - The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still only counts, nothing about any one person, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.
 - Share says plainly who gets a board: "Everyone in tiko" is now "Everyone with an account", "Anyone with the link can view" is now "Public link", and each line says who gets in. The guide compares the three ways to share in [Working together](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
+- About knows when a release cannot be installed with one click: if any release you missed needs the installer, About shows the installer command for your system instead of **Update now**, and nothing is stopped. See [When a release needs the installer](https://docs.tiko.run/updates/#when-a-release-needs-the-installer).
 
 ### Fixed
 

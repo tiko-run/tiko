@@ -25,7 +25,7 @@ Several pull requests on one slice; SQLite stays the default.
 
 ## Phase 2: Slice `feat/installer-mark`
 
-- [ ] T010 About reads `Requires: installer` in release bodies and shows the installer command when any release between the current one and the target carries it. Tests with a fake release feed
+- [x] T010 About reads `Requires: installer` in release bodies and shows the installer command when any release between the current one and the target carries it. Tests with a fake release feed
 - [ ] T011 `CHANGELOG.md`; the guide's update page; release before Phase 3
 
 ## Phase 3: Slice `feat/pg-switch` (US1)

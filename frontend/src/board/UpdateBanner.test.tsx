@@ -10,7 +10,12 @@ afterEach(() => {
 })
 
 function renderWith(level: string | null) {
-  const latest = { version: '2026.11.1', url: 'https://example.test/v2026.11.1', level: 'feature' }
+  const latest = {
+    version: '2026.11.1',
+    url: 'https://example.test/v2026.11.1',
+    level: 'feature',
+    installer: false,
+  }
   const body = {
     version: '2026.10.6',
     update_check: true,

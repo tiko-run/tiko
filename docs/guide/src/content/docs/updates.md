@@ -37,6 +37,22 @@ After a good update tiko removes images older than the previous release. The dis
 
 The first `docker compose up -d` you run by hand after a one-click update recreates `api` and `web` once more, so tiko is down for about 10 seconds. Compose recognizes its containers by a hash of the whole service config, and the updater cannot compute that hash for the new version. Data is not affected, and the next `up` leaves the containers alone. Restarts of the host or of Docker do not trigger it.
 
+### When a release needs the installer
+
+Some releases change more than the `api` and `web` containers, for example by adding a container next to them. **Update now** cannot install those, so their notes carry the line `Requires: installer`. When any release you missed has it, About shows the installer command instead of the button, and nothing is stopped. Run it again on the server, with `--dir` (`-Dir` on Windows) if tiko lives in another folder:
+
+```bash
+curl -fsSL https://tiko.run/install.sh | sh
+```
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://tiko.run/install.ps1 | iex
+```
+
+The installer keeps your `.env`, your answers and your data, and updates to the latest release. After that, **Update now** works again for the releases that follow.
+
 ## What the updater is
 
 A container cannot replace itself, so something outside the tiko containers has to stop them and start the new ones. That is the `updater`: a small service that runs next to tiko. It is one Python file with no dependencies, [`updater/updater.py`](https://github.com/tiko-run/tiko/blob/main/updater/updater.py), published as the image `ghcr.io/tiko-run/tiko-updater` with every release. Nextcloud All-in-One and Coolify update themselves the same way.

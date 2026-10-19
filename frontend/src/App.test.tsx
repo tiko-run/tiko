@@ -117,7 +117,12 @@ test.each([
   ['member', false],
 ])('security banner for %s: %s', async (role, shown) => {
   localStorage.clear()
-  const release = { version: '2026.11.1', url: 'https://example.test/r', level: 'security' }
+  const release = {
+    version: '2026.11.1',
+    url: 'https://example.test/r',
+    level: 'security',
+    installer: false,
+  }
   mockFetch(
     200,
     { boards: [], all: [] },

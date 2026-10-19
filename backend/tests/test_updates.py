@@ -12,6 +12,7 @@ from app.domain.updates import (
     UpdateService,
     is_newer,
     level_of,
+    needs_installer,
 )
 from app.main import create_app
 from app.version import VERSION
@@ -107,6 +108,11 @@ def test_github_feed_reads_releases_with_levels_and_etag():
                     "body": "\n**Security release.**\n\n### Fixed\n- a hole",
                 },
                 {"tag_name": "v2026.11.1", "html_url": "https://github.com/o/r/1", "body": None},
+                {
+                    "tag_name": "v2026.11.0",
+                    "html_url": "https://github.com/o/r/0",
+                    "body": "Requires: installer\n\n### Changed\n- a new container",
+                },
                 {"tag_name": "v2026.12.0", "html_url": "https://x", "prerelease": True},
             ],
         )
@@ -115,10 +121,17 @@ def test_github_feed_reads_releases_with_levels_and_etag():
     expected = [
         Release(version="2026.11.2", url="https://github.com/o/r/2", level="security"),
         Release(version="2026.11.1", url="https://github.com/o/r/1"),
+        Release(version="2026.11.0", url="https://github.com/o/r/0", installer=True),
     ]
     assert feed.releases() == expected
     assert feed.releases() == expected
     assert seen == [None, '"abc"']
+
+
+def test_installer_mark_is_a_line_of_its_own():
+    assert needs_installer("**Breaking changes.**\n\n  Requires: installer  \n- more")
+    assert not needs_installer("- this release requires: installer for some people")
+    assert not needs_installer("")
 
 
 def test_github_feed_errors_become_unavailable():
