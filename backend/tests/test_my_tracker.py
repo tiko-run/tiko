@@ -142,6 +142,7 @@ def test_only_admins_change_the_instance_settings(team):
     assert people["ann"].get("/api/settings").json()["provider"] == "jira"
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_moves_the_instance_token_to_the_admin(tmp_path):
     path = str(tmp_path / "app.db")
     db = Database(path)

@@ -2,6 +2,9 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime
 
+import pytest
+
+from app.adapters.storage import sqlite
 from app.adapters.storage.sqlite import (
     Database,
     SqliteBoardRepo,
@@ -49,16 +52,17 @@ def test_welcome_dates_follow_the_day_it_is_made():
     assert timer.data.dueAt > NOW
 
 
-def person(db: Database, username: str = "admin", role: str = "admin") -> Person:
+def person(store, username: str = "admin", role: str = "admin") -> Person:
+    mod, db = store
     created = Person(id=username, username=username, name=username.title(), role=role)
-    SqliteUserRepo(db).add(created, "hash")
+    mod.UserRepo(db).add(created, "hash")
     return created
 
 
-def test_first_read_creates_the_welcome_board_once_per_person():
-    db = Database(":memory:")
-    repo = SqliteBoardRepo(db)
-    admin, ann = person(db), person(db, "ann", "member")
+def test_first_read_creates_the_welcome_board_once_per_person(store):
+    mod, db = store
+    repo = mod.BoardRepo(db)
+    admin, ann = person(store), person(store, "ann", "member")
     [board], _ = list_boards(admin, repo, NOW)
     assert (board.name, board.my_role, board.owner.id) == (WELCOME_NAME, "owner", "admin")
     assert [b.id for b in list_boards(admin, repo, NOW)[0]] == [board.id]
@@ -66,21 +70,22 @@ def test_first_read_creates_the_welcome_board_once_per_person():
     assert own.id != board.id and own.owner.id == "ann"
 
 
-def test_deleting_every_board_does_not_bring_it_back():
-    db = Database(":memory:")
-    repo, admin = SqliteBoardRepo(db), person(db)
+def test_deleting_every_board_does_not_bring_it_back(store):
+    mod, db = store
+    repo, admin = mod.BoardRepo(db), person(store)
     [board], _ = list_boards(admin, repo, NOW)
     repo.delete(board.id)
     assert list_boards(admin, repo, NOW) == ([], [])
 
 
-def test_someone_who_made_a_board_is_never_welcomed():
-    db = Database(":memory:")
-    repo, admin = SqliteBoardRepo(db), person(db)
+def test_someone_who_made_a_board_is_never_welcomed(store):
+    mod, db = store
+    repo, admin = mod.BoardRepo(db), person(store)
     repo.delete(repo.create("Q4", BoardDoc(), admin.id))
     assert repo.create_welcome(admin.id, WELCOME_NAME, BoardDoc()) is None
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_gives_old_boards_to_the_admin_without_a_second_welcome(tmp_path):
     path = str(tmp_path / "app.db")
     # A database from before the welcome board: schema version 2 with one board.
@@ -95,7 +100,7 @@ def test_upgrade_gives_old_boards_to_the_admin_without_a_second_welcome(tmp_path
     old.close()
     db = Database(path)
     users, repo = SqliteUserRepo(db), SqliteBoardRepo(db)
-    admin = person(db)
+    admin = person((sqlite, db))
     adopt_orphans(users, SqliteMemberRepo(db), SqliteCredentialRepo(db))
     [board], _ = list_boards(admin, repo, NOW)
     assert (board.id, board.owner.id) == ("b", "admin")
@@ -103,9 +108,9 @@ def test_upgrade_gives_old_boards_to_the_admin_without_a_second_welcome(tmp_path
     assert list_boards(admin, repo, NOW) == ([], [])
 
 
-def test_concurrent_first_reads_create_one_board():
-    db = Database(":memory:")
-    repo, admin = SqliteBoardRepo(db), person(db)
+def test_concurrent_first_reads_create_one_board(store):
+    mod, db = store
+    repo, admin = mod.BoardRepo(db), person(store)
     with ThreadPoolExecutor(8) as pool:
         list(pool.map(lambda _: list_boards(admin, repo, NOW), range(8)))
     assert len(repo.listing(admin.id)) == 1

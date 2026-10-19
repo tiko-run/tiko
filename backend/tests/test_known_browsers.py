@@ -1,12 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters.storage.sqlite import (
-    Database,
-    SqliteKnownBrowsers,
-    SqliteSessionRepo,
-    SqliteUserRepo,
-)
 from app.config import Settings
 from app.domain.accounts import (
     BROWSER_TTL_S,
@@ -27,10 +21,10 @@ LONG = "long-enough-password"
 
 
 @pytest.fixture
-def accounts() -> Accounts:
-    db = Database(":memory:")
+def accounts(store) -> Accounts:
+    mod, db = store
     accounts = Accounts(
-        SqliteUserRepo(db), Sessions(SqliteSessionRepo(db)), browsers=SqliteKnownBrowsers(db)
+        mod.UserRepo(db), Sessions(mod.SessionRepo(db)), browsers=mod.KnownBrowsers(db)
     )
     accounts.create("alice", "Alice", LONG, "member")
     accounts.create("bob", "Bob", LONG, "member")

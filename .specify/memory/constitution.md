@@ -28,8 +28,9 @@ Every task has a checkable done criterion (test, curl, screenshot). Unit tests c
 
 ## Constraints
 
-- Default storage is SQLite; heavier infrastructure needs a recorded reason in `docs/decisions.md`.
-- Deferred by default: auth, roles, multi-tenancy, payments, admin panels, i18n — unless the hypothesis cannot be tested without them.
+- Default storage is Postgres (spec 032); heavier infrastructure needs a recorded reason in `docs/decisions.md`.
+- Workspaces are isolated by row-level security in the database; roles live inside a workspace (spec 032).
+- Deferred by default: payments, admin panels, i18n — unless the hypothesis cannot be tested without them.
 - Every third-party library, model and dataset is disclosed in `THIRD_PARTY.md`.
 - Secrets never enter git; configuration comes from environment variables with safe defaults.
 - Usage stats carry no personal data, are on by default, documented field by field in the guide and off with one setting; error reports are off by default. Nothing personal leaves an instance (spec 025).
@@ -45,4 +46,4 @@ Every task has a checkable done criterion (test, curl, screenshot). Unit tests c
 
 This constitution guides all specs, plans and reviews. Amendments are recorded in `docs/decisions.md` with a reason; methodology changes go upstream to launchpad.
 
-**Version**: 1.0.0 | **Profile**: oss
+**Version**: 1.1.0 | **Profile**: oss

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters import password_file
 from app.adapters.secrets.fernet import FernetSecretBox
-from app.adapters.storage.sqlite import MIGRATIONS, Database, SqliteSessionRepo, SqliteUserRepo
+from app.adapters.storage.sqlite import MIGRATIONS
 from app.config import Settings
 from app.domain.accounts import (
     PER_USERNAME_FAILURES,
@@ -27,25 +27,27 @@ from app.domain.errors import (
 )
 from app.domain.sessions import CACHE_S, SESSION_TTL_S, Sessions
 from app.main import create_app
-from tests.conftest import PASSWORD, signed_in
+from tests.conftest import PASSWORD, run_sql_on, signed_in
 
 NOW = 1_800_000_000.0
 LONG = "long-enough-password"
 
 
 @pytest.fixture
-def db() -> Database:
-    return Database(":memory:")
+def db(store):
+    return store[1]
 
 
 @pytest.fixture
-def sessions(db) -> Sessions:
-    return Sessions(SqliteSessionRepo(db))
+def sessions(store) -> Sessions:
+    mod, db = store
+    return Sessions(mod.SessionRepo(db))
 
 
 @pytest.fixture
-def accounts(db, sessions) -> Accounts:
-    accounts = Accounts(SqliteUserRepo(db), sessions)
+def accounts(store, sessions) -> Accounts:
+    mod, db = store
+    accounts = Accounts(mod.UserRepo(db), sessions)
     accounts.create("alice", "Alice", LONG, "member")
     return accounts
 
@@ -78,8 +80,7 @@ def test_ending_a_session_takes_effect_at_once(accounts, sessions):
 def test_disabled_person_drops_out_after_the_cache(db, accounts, sessions):
     token, _ = accounts.sign_in("alice", LONG, NOW)
     assert sessions.resolve(token, NOW)
-    with db.transaction() as conn:
-        conn.execute("UPDATE users SET disabled_at = 'now'")
+    run_sql_on(db, "UPDATE users SET disabled_at = '2026-01-01T00:00:00+00:00'")
     assert sessions.resolve(token, NOW + CACHE_S) is None
     with pytest.raises(AccountDisabled):
         accounts.sign_in("alice", LONG, NOW)
@@ -286,6 +287,7 @@ def _v2026_10_9_database(path: str, secret_key: str) -> None:
     conn.close()
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_from_v2026_10_9_opens_as_admin(tmp_path, monkeypatch, capsys):
     db = str(tmp_path / "app.db")
     _v2026_10_9_database(db, "test-secret-key")

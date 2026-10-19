@@ -22,27 +22,8 @@ from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
+from app.adapters.storage import postgres, sqlite
 from app.adapters.storage.lock import FileLock
-from app.adapters.storage.sqlite import (
-    Database,
-    SqliteAttempts,
-    SqliteBoardRepo,
-    SqliteCredentialRepo,
-    SqliteDemoStatusRepo,
-    SqliteInviteRepo,
-    SqliteKnownBrowsers,
-    SqliteMemberRepo,
-    SqlitePlanningFieldRepo,
-    SqlitePlanningPeopleRepo,
-    SqlitePlanningStageRepo,
-    SqlitePlanningTypeRepo,
-    SqlitePlanningViewRepo,
-    SqliteSessionRepo,
-    SqliteSettingsRepo,
-    SqliteSnapshotRepo,
-    SqliteUsageCounts,
-    SqliteUserRepo,
-)
 from app.adapters.storage.update_backups import SqliteUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
@@ -53,6 +34,7 @@ from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
+from app.api.workspace import WorkspaceScope
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
 from app.domain import demo, planning_sample, usage
 from app.domain.accounts import Accounts
@@ -247,20 +229,23 @@ def create_app(
         await rooms.shutdown()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
-    db = Database(settings.db_path)
-    users = SqliteUserRepo(db)
-    member_repo = SqliteMemberRepo(db)
-    app.state.boards = SqliteBoardRepo(db)
-    rooms = LiveRooms(app.state.boards, member_repo)
+    if settings.database_url:
+        storage, db = postgres, postgres.shared(settings.database_url)
+    else:
+        storage, db = sqlite, sqlite.Database(settings.db_path)
+    users = storage.UserRepo(db)
+    member_repo = storage.MemberRepo(db)
+    app.state.boards = storage.BoardRepo(db)
+    rooms = LiveRooms(app.state.boards, member_repo, storage.Workspaces(db))
     workers = (
         Workers(rooms, settings.tiko_worker, settings.tiko_workers, settings.tiko_workers_dir)
         if settings.tiko_workers > 1 and settings.tiko_workers_dir
         else None
     )
     app.state.live = workers or rooms
-    attempts = SqliteAttempts(db)
+    attempts = storage.Attempts(db)
     app.state.sessions = Sessions(
-        SqliteSessionRepo(db),
+        storage.SessionRepo(db),
         app.state.live,
         touch_demo=partial(demo.touch, users) if settings.tiko_demo else None,
     )
@@ -269,7 +254,7 @@ def create_app(
         workers.heard("end_session", app.state.sessions.uncache)
         workers.heard("end_person", app.state.sessions.uncache_person)
         workers.heard("recheck_person", app.state.sessions.uncache_person)
-    app.state.accounts = Accounts(users, app.state.sessions, attempts, SqliteKnownBrowsers(db))
+    app.state.accounts = Accounts(users, app.state.sessions, attempts, storage.KnownBrowsers(db))
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
         demo.DemoVisitors(
@@ -284,12 +269,12 @@ def create_app(
         else None
     )
     app.state.board_limit = settings.tiko_board_limit
-    app.state.invites = Invites(SqliteInviteRepo(db), app.state.accounts, app.state.sessions)
+    app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))
     env_password = settings.tiko_password and settings.tiko_password.get_secret_value()
     if not created and env_password:
         log.info("TIKO_PASSWORD is not used once people exist; each signs in with their own")
-    credentials = SqliteCredentialRepo(db)
+    credentials = storage.CredentialRepo(db)
     adopt_orphans(users, member_repo, credentials)
     app.state.members = Members(member_repo, users, app.state.live)
     # Added before the request context, so it runs inside it and 401s are logged and counted.
@@ -300,11 +285,14 @@ def create_app(
     )
     if metrics_token:
         register_secret(metrics_token)
+    if storage is postgres:
+        # Inside the gate, so the person is known.
+        app.add_middleware(WorkspaceScope, lookup=storage.Workspaces(db))
     app.add_middleware(PasswordGate, sessions=app.state.sessions, metrics_token=metrics_token)
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
 
-    app.state.snapshots = SqliteSnapshotRepo(db)
+    app.state.snapshots = storage.SnapshotRepo(db)
     box = FernetSecretBox(key) if key else NullSecretBox()
     app.state.refresher = RefreshService()
 
@@ -317,7 +305,7 @@ def create_app(
         workers.heard("tracker_changed", app.state.refresher.reset)
     client = _jira_client(settings, jira_transport)
     service = SettingsService(
-        SqliteSettingsRepo(db),
+        storage.SettingsRepo(db),
         credentials,
         box,
         secret_key_configured=bool(key),
@@ -330,19 +318,19 @@ def create_app(
     )
     app.state.settings = service
     app.state.planning = Planning(
-        SqliteSettingsRepo(db),
-        SqlitePlanningTypeRepo(db),
-        SqlitePlanningPeopleRepo(db),
-        SqlitePlanningFieldRepo(db),
-        SqlitePlanningViewRepo(db),
-        SqlitePlanningStageRepo(db),
+        storage.SettingsRepo(db),
+        storage.PlanningTypeRepo(db),
+        storage.PlanningPeopleRepo(db),
+        storage.PlanningFieldRepo(db),
+        storage.PlanningViewRepo(db),
+        storage.PlanningStageRepo(db),
         on_change=app.state.live.planning_changed,
         sample=planning_sample.IDS if settings.tiko_demo else None,
     )
     app.state.public_links = PublicLinks(
         app.state.boards, service.public_links, app.state.live, attempts=attempts
     )
-    app.state.demo = DemoTaskProvider(SqliteDemoStatusRepo(db) if settings.tiko_demo else None)
+    app.state.demo = DemoTaskProvider(storage.DemoStatusRepo(db) if settings.tiko_demo else None)
 
     def jira(creds: JiraCredentials) -> JiraDcProvider:
         kind = JiraCloudProvider if creds.kind == "cloud" else JiraDcProvider
@@ -372,20 +360,20 @@ def create_app(
         and not settings.tiko_demo
         and Path(settings.db_path) == Path(DEFAULT_DB_PATH)
     ):
-        token = ensure_token(Path(db.path).parent / "updater-token")
+        token = ensure_token(Path(settings.db_path).parent / "updater-token")
         updater = HttpUpdater(settings.updater_url, token, httpx.Client(timeout=5.0))
     hosting = (
         "railway" if settings.railway_environment_name else "render" if settings.render else None
     )
     app.state.one_click = OneClickUpdate(
-        app.state.updates, updater, SqliteUpdateBackups(db.path), VERSION, hosting
+        app.state.updates, updater, SqliteUpdateBackups(settings.db_path), VERSION, hosting
     )
     if stats_sender is None:
         stats_sender = HttpStatsSender(settings.tiko_stats_url, httpx.Client(timeout=5.0))
     deploy = _deploy(settings, hosting)
     app.state.privacy = Privacy(
-        SqliteSettingsRepo(db),
-        SqliteUsageCounts(db),
+        storage.SettingsRepo(db),
+        storage.UsageCounts(db),
         stats_sender,
         VERSION,
         deploy,

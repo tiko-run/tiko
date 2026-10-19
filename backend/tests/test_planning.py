@@ -3,13 +3,10 @@
 import json
 from datetime import date
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters.storage.sqlite import (
-    Database,
-    SqlitePlanningPeopleRepo,
-    SqlitePlanningStageRepo,
-)
+from app.adapters.storage.sqlite import Database, SqlitePlanningStageRepo
 from app.config import Settings
 from app.domain import planning_sample as sample
 from app.domain.planning import PlanningPerson, TimeOff
@@ -241,8 +238,9 @@ def test_time_off_rules(client: TestClient, monkeypatch) -> None:
     assert client.post(path, json=week).status_code == 422
 
 
-def test_the_time_off_limit_holds_at_the_store() -> None:
-    people = SqlitePlanningPeopleRepo(Database(":memory:"))
+def test_the_time_off_limit_holds_at_the_store(store) -> None:
+    mod, db = store
+    people = mod.PlanningPeopleRepo(db)
     people.add(PlanningPerson(id="p1", name="Anna", source="manual"))
     week = {"start": "2026-10-05", "end": "2026-10-09"}
     assert people.add_off("p1", TimeOff(id="o1", **week), limit=2)
@@ -346,11 +344,11 @@ def test_no_views_on_a_demo_instance() -> None:
     assert admin.delete("/api/planning/views/v1").status_code == 403
 
 
-def test_the_view_name_holds_at_the_store() -> None:
-    from app.adapters.storage.sqlite import SqlitePlanningViewRepo
+def test_the_view_name_holds_at_the_store(store) -> None:
     from app.domain.planning import SavedView
 
-    views = SqlitePlanningViewRepo(Database(":memory:"))
+    mod, db = store
+    views = mod.PlanningViewRepo(db)
     assert views.add(SavedView(id="v1", name="Web", filters={"team": ["Web"]}), limit=5)
     assert not views.add(SavedView(id="v2", name="WEB", filters={"team": ["Web"]}), limit=5)
     assert views.add(SavedView(id="v3", name="Straße", filters={}), limit=5)
@@ -466,6 +464,7 @@ def test_workload_rules(client: TestClient) -> None:
     assert TestClient(client.app).get(path).status_code == 401
 
 
+@pytest.mark.sqlite_only
 def test_the_migration_fills_the_index_from_saved_boards() -> None:
     from pathlib import Path
 

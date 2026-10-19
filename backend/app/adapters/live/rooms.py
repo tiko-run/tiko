@@ -42,6 +42,7 @@ from app.domain.live import (
 )
 from app.domain.members import role_on
 from app.domain.ports import BoardRepo, MemberRepo
+from app.domain.workspaces import NoWorkspaces, WorkspaceLookup, in_workspace
 from app.observability import LIVE_CHECK, LIVE_NODES, LIVE_SAVE
 
 log = logging.getLogger(__name__)
@@ -93,10 +94,18 @@ class Connection(Listener):
 
 class Room:
     def __init__(
-        self, rooms: "LiveRooms", board_id: str, doc: BoardDoc, version: int, state: bytes | None
+        self,
+        rooms: "LiveRooms",
+        board_id: str,
+        doc: BoardDoc,
+        version: int,
+        state: bytes | None,
+        workspace: str | None = None,
     ) -> None:
         self._rooms = rooms
         self.board_id = board_id
+        # Saves come from timers and other processes too; each goes to the board's workspace.
+        self.workspace = workspace
         self.live = live = LiveDoc(state)
         self.last = doc
         self.version = version
@@ -306,14 +315,8 @@ class Room:
             LIVE_NODES.observe(len(doc.nodes))
             started = time.perf_counter()
             try:
-                if state_only:
-                    await anyio.to_thread.run_sync(
-                        self._rooms.boards.keep_live_state, self.board_id, state
-                    )
-                else:
-                    self.version = await anyio.to_thread.run_sync(
-                        self._rooms.boards.save_live, self.board_id, doc, state
-                    )
+                with in_workspace(self.workspace):
+                    await self._store(state_only, doc, state)
             except NotFound:
                 self.close(ACCESS_CHANGED)
             except Exception:
@@ -323,6 +326,14 @@ class Room:
                 self._plan_save()
             finally:
                 LIVE_SAVE.observe(time.perf_counter() - started)
+
+    async def _store(self, state_only: bool, doc: BoardDoc, state: bytes) -> None:
+        if state_only:
+            await anyio.to_thread.run_sync(self._rooms.boards.keep_live_state, self.board_id, state)
+        else:
+            self.version = await anyio.to_thread.run_sync(
+                self._rooms.boards.save_live, self.board_id, doc, state
+            )
 
     async def put(self, version: int, doc: BoardDoc) -> int:
         if version != self.version:
@@ -366,9 +377,12 @@ def _presence_message(states: dict[int, tuple[int, str]]) -> bytes:
 class LiveRooms:
     """Opens, finds and closes rooms; the `LiveBoards` port of the domain."""
 
-    def __init__(self, boards: BoardRepo, members: MemberRepo) -> None:
+    def __init__(
+        self, boards: BoardRepo, members: MemberRepo, workspaces: WorkspaceLookup | None = None
+    ) -> None:
         self.boards = boards
         self._members = members
+        self._workspaces = workspaces or NoWorkspaces()
         self._rooms: dict[str, Room] = {}
         self._opening: dict[str, asyncio.Future[Room | None]] = {}
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -405,11 +419,13 @@ class LiveRooms:
         future = self._opening[board_id] = self._loop.create_future()
         room = None
         try:
-            found = await anyio.to_thread.run_sync(self.boards.load, board_id)
+            workspace = await anyio.to_thread.run_sync(self._workspaces.of_board, board_id)
+            with in_workspace(workspace):
+                found = await anyio.to_thread.run_sync(self.boards.load, board_id)
             if found is not None:
                 record, state = found
                 room = self._rooms[board_id] = Room(
-                    self, board_id, record.doc, record.version, state
+                    self, board_id, record.doc, record.version, state, workspace
                 )
         finally:
             del self._opening[board_id]
@@ -461,12 +477,13 @@ class LiveRooms:
             return asyncio.run_coroutine_threadsafe(self._put(board_id, version, doc), loop).result(
                 30
             )
-        found = self.boards.load(board_id)
-        if found is None:
-            raise NotFound("board not found")
-        live = LiveDoc(found[1])
-        live.apply_json(doc)
-        return self.boards.save(board_id, version, doc, live.state())
+        with in_workspace(self._workspaces.of_board(board_id)):
+            found = self.boards.load(board_id)
+            if found is None:
+                raise NotFound("board not found")
+            live = LiveDoc(found[1])
+            live.apply_json(doc)
+            return self.boards.save(board_id, version, doc, live.state())
 
     async def _put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         room = await self._room(board_id)
@@ -523,7 +540,7 @@ class LiveRooms:
         self._each(lambda room, _: room.board_id == board_id, recheck)
 
     async def _recheck(self, room: Room, connection: Connection) -> None:
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(Exception), in_workspace(room.workspace):
             role = await anyio.to_thread.run_sync(
                 role_on, self._members, connection.person, room.board_id
             )

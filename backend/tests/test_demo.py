@@ -7,7 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from app.adapters.storage import sqlite
 from app.api.gate import COOKIE
 from app.config import Settings
 from app.domain import boards as board_service
@@ -15,7 +14,7 @@ from app.domain import demo
 from app.domain import planning_sample as sample
 from app.domain.errors import BoardLimit
 from app.main import create_app
-from tests.conftest import signed_in
+from tests.conftest import all_rows, run_sql, signed_in, storage
 from tests.jira_fake import FakeJira
 
 DAY = 24 * 3600
@@ -85,13 +84,7 @@ def slow_add(app, monkeypatch) -> None:
     monkeypatch.setattr(users, "add", slow)
 
 
-def rows(app) -> str:
-    """Everything the database holds, as text."""
-    db = app.state.boards._db
-    with db.transaction() as conn:
-        tables = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
-        found = [conn.execute(f"SELECT * FROM {t['name']}").fetchall() for t in tables]
-    return repr([tuple(row) for table in found for row in table])
+rows = all_rows
 
 
 def test_without_the_switch_nothing_is_there(client):
@@ -500,7 +493,7 @@ def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch
     assert ann.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"}).is_success
     board_id = welcome(bob)
     # The clock counts whole seconds, and nobody renames a board in the second it was made.
-    monkeypatch.setattr(sqlite, "now_iso", lambda: demo.iso(time.time() + 60))
+    monkeypatch.setattr(storage(), "now_iso", lambda: demo.iso(time.time() + 60))
     assert bob.patch(f"/api/boards/{board_id}", json={"name": "Mine"}).is_success
 
     assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 0
@@ -817,12 +810,11 @@ def test_a_reset_link_counts_as_a_sign_in_for_the_90_days(app):
     ann_id = me(ann)["id"]
     admin = signed_in(app)
     users = app.state.accounts._users
-    db = app.state.boards._db
-    with db.transaction() as conn:
-        conn.execute(
-            "UPDATE users SET last_sign_in_at = ? WHERE id = ?",
-            (demo.iso(time.time() - 89 * DAY), ann_id),
-        )
+    run_sql(
+        app,
+        "UPDATE users SET last_sign_in_at = ? WHERE id = ?",
+        (demo.iso(time.time() - 89 * DAY), ann_id),
+    )
     url = admin.post(f"/api/people/{ann_id}/reset").json()["url"]
     fresh = TestClient(app)
     accepted = fresh.post(

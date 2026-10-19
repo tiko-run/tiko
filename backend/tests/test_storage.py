@@ -13,6 +13,7 @@ from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain.boards import BoardDoc
 from app.domain.errors import VersionConflict
 from app.domain.live import LiveDoc, stored_node
+from tests.conftest import add_person
 
 _HOLD_A_WRITE = """
 import sqlite3, sys
@@ -30,9 +31,10 @@ def db():
     return Database(":memory:")
 
 
-def test_board_save_is_compare_and_set(db):
-    repo = SqliteBoardRepo(db)
-    board_id = repo.create("Q4", BoardDoc(), "owner")
+def test_board_save_is_compare_and_set(store):
+    mod, db = store
+    repo = mod.BoardRepo(db)
+    board_id = repo.create("Q4", BoardDoc(), add_person(store, "owner"))
     assert repo.save(board_id, 1, BoardDoc()) == 2
     with pytest.raises(VersionConflict):
         repo.save(board_id, 1, BoardDoc())
@@ -40,8 +42,9 @@ def test_board_save_is_compare_and_set(db):
     assert [b.name for b in repo.listing("owner")] == ["Q4"]
 
 
-def test_snapshots_upsert_by_key(db):
-    repo = SqliteSnapshotRepo(db)
+def test_snapshots_upsert_by_key(store):
+    mod, db = store
+    repo = mod.SnapshotRepo(db).scoped(add_person(store, "ann"))
     provider = DemoTaskProvider()
     repo.put_many([provider.resolve("DEMO-1")])
     repo.put_many([provider.resolve("DEMO-1"), provider.resolve("DEMO-2")])
@@ -50,22 +53,25 @@ def test_snapshots_upsert_by_key(db):
     assert repo.get_many([]) == {}
 
 
-def test_snapshots_keep_trackers_and_people_apart(db):
+def test_snapshots_keep_trackers_and_people_apart(store):
+    mod, db = store
     task = DemoTaskProvider().resolve("DEMO-1")
     other = task.model_copy(update={"source": "jira", "summary": "Another task"})
-    ann = SqliteSnapshotRepo(db).scoped("ann")
+    ann = mod.SnapshotRepo(db).scoped(add_person(store, "ann"))
     ann.put_many([task, other])
     found = ann.get_many(["demo:DEMO-1", "jira:DEMO-1"])
     assert found["demo:DEMO-1"].summary != found["jira:DEMO-1"].summary == "Another task"
-    assert SqliteSnapshotRepo(db).scoped("bob").get_many(["demo:DEMO-1"]) == {}
+    assert mod.SnapshotRepo(db).scoped(add_person(store, "bob")).get_many(["demo:DEMO-1"]) == {}
 
 
+@pytest.mark.sqlite_only
 def test_migrations_run_once(tmp_path):
     path = str(tmp_path / "app.db")
     SqliteBoardRepo(Database(path)).create("kept", BoardDoc(), "owner")
     assert [b.name for b in SqliteBoardRepo(Database(path)).listing("owner")] == ["kept"]
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_keeps_each_persons_task_cache(tmp_path):
     path = str(tmp_path / "app.db")
     Database(path)
@@ -99,6 +105,7 @@ def _legacy_card(node_id: str) -> dict:
     }
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_renames_stored_cards_and_copies_the_database_first(tmp_path):
     path = str(tmp_path / "app.db")
     repo = SqliteBoardRepo(Database(path))
@@ -139,6 +146,7 @@ def test_upgrade_renames_stored_cards_and_copies_the_database_first(tmp_path):
     assert len(list((tmp_path / "backups").glob("*.db"))) == 1
 
 
+@pytest.mark.sqlite_only
 def test_upgrade_rebuilds_a_live_state_it_cannot_read(tmp_path):
     path = str(tmp_path / "app.db")
     board_id = SqliteBoardRepo(Database(path)).create("b", BoardDoc(), "owner")
@@ -156,6 +164,7 @@ def test_upgrade_rebuilds_a_live_state_it_cannot_read(tmp_path):
     assert (record.doc.nodes[0].type, ydoc) == ("task_card", None)
 
 
+@pytest.mark.sqlite_only
 def test_the_copy_is_taken_before_the_first_step_of_the_upgrade(tmp_path, monkeypatch):
     path = str(tmp_path / "app.db")
     Database(path)
@@ -184,11 +193,13 @@ def test_the_copy_is_taken_before_the_first_step_of_the_upgrade(tmp_path, monkey
     assert kept.execute("SELECT count(*) FROM boards").fetchone()[0] == 0
 
 
+@pytest.mark.sqlite_only
 def test_a_new_database_is_not_copied(tmp_path):
     Database(str(tmp_path / "app.db"))
     assert not (tmp_path / "backups").exists()
 
 
+@pytest.mark.sqlite_only
 def test_a_read_answers_while_a_write_is_held(tmp_path):
     db = Database(str(tmp_path / "app.db"))
     repo = SqliteBoardRepo(db)
@@ -203,6 +214,7 @@ def test_a_read_answers_while_a_write_is_held(tmp_path):
     assert repo.get(board_id).name == "after"
 
 
+@pytest.mark.sqlite_only
 def test_a_read_does_not_wait_for_a_write_of_another_process(tmp_path):
     path = str(tmp_path / "app.db")
     repo = SqliteBoardRepo(Database(path))
@@ -221,12 +233,14 @@ def test_a_read_does_not_wait_for_a_write_of_another_process(tmp_path):
     assert repo.get(board_id).name == "after"
 
 
+@pytest.mark.sqlite_only
 def test_the_connection_for_reads_cannot_write(tmp_path):
     db = Database(str(tmp_path / "app.db"))
     with pytest.raises(sqlite3.OperationalError), db.read() as conn:
         conn.execute("DELETE FROM boards")
 
 
+@pytest.mark.sqlite_only
 def test_a_commit_does_not_wait_for_its_own_fsync(tmp_path):
     db = Database(str(tmp_path / "app.db"))
     with db.transaction() as conn:

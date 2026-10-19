@@ -1,22 +1,14 @@
-import sqlite3
-
 import pytest
 from fastapi.testclient import TestClient
 
 from app import reset_password
-from app.adapters.storage.sqlite import (
-    Database,
-    SqliteInviteRepo,
-    SqliteSessionRepo,
-    SqliteUserRepo,
-)
 from app.config import Settings, get_settings
 from app.domain.accounts import Accounts
 from app.domain.errors import InviteExpired
 from app.domain.invites import INVITE_TTL_S, Invites
 from app.domain.sessions import Sessions
 from app.main import create_app
-from tests.conftest import PASSWORD, signed_in
+from tests.conftest import PASSWORD, all_rows, signed_in
 
 NOW = 1_800_000_000.0
 LONG = "long-enough-password"
@@ -102,9 +94,7 @@ def test_only_the_hash_is_stored(tmp_path):
     db_path = str(tmp_path / "app.db")
     admin = signed_in(create_app(Settings(db_path=db_path)))
     token = invite(admin)
-    conn = sqlite3.connect(db_path)
-    dump = "\n".join(conn.iterdump())
-    assert token not in dump
+    assert token not in all_rows(admin.app)
 
 
 def test_revoked_invite_stops_working(app, admin):
@@ -116,13 +106,13 @@ def test_revoked_invite_stops_working(app, admin):
     assert TestClient(app).get(f"/api/invites/{token}").status_code == 410
 
 
-def test_invites_expire_after_seven_days():
-    db = Database(":memory:")
-    users = SqliteUserRepo(db)
-    sessions = Sessions(SqliteSessionRepo(db))
+def test_invites_expire_after_seven_days(store):
+    mod, db = store
+    users = mod.UserRepo(db)
+    sessions = Sessions(mod.SessionRepo(db))
     accounts = Accounts(users, sessions)
     admin = accounts.create("admin", "Admin", LONG, "admin")
-    invites = Invites(SqliteInviteRepo(db), accounts, sessions)
+    invites = Invites(mod.InviteRepo(db), accounts, sessions)
     _, token = invites.invite(admin, "member", NOW)
     assert invites.open(token, NOW + INVITE_TTL_S - 1).kind == "invite"
     with pytest.raises(InviteExpired):

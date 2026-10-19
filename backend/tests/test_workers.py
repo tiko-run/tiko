@@ -17,12 +17,11 @@ from websockets.sync.client import connect, unix_connect
 
 from app.adapters.live.workers import owner
 from app.adapters.storage.lock import FileLock
-from app.adapters.storage.sqlite import Database, SqliteAttempts
 from app.config import Settings
 from app.domain.accounts import PER_USERNAME_FAILURES
 from app.domain.attempts import MemoryAttempts
 from app.domain.live import GOING_AWAY, SESSION_ENDED
-from tests.conftest import PASSWORD
+from tests.conftest import PASSWORD, query_on
 from tests.test_live import Tab, sticky
 
 BACKEND = Path(__file__).parents[1]
@@ -216,9 +215,12 @@ def test_a_file_lock_holds_one_thread_at_a_time(tmp_path):
     assert overlaps == 0
 
 
-@pytest.fixture(params=["memory", "sqlite"])
+@pytest.fixture(params=["memory", "store"])
 def attempts(request):
-    return MemoryAttempts() if request.param == "memory" else SqliteAttempts(Database(":memory:"))
+    if request.param == "memory":
+        return MemoryAttempts()
+    mod, db = request.getfixturevalue("store")
+    return mod.Attempts(db)
 
 
 def test_failures_are_counted_in_a_sliding_window(attempts):
@@ -252,14 +254,13 @@ def test_a_window_opens_at_its_first_request(attempts):
     assert attempts.spend("s", "k", 2, 60.0, 162.0) is None
 
 
-def test_windows_of_keys_that_went_quiet_are_dropped():
-    db = Database(":memory:")
-    attempts = SqliteAttempts(db)
+def test_windows_of_keys_that_went_quiet_are_dropped(store):
+    mod, db = store
+    attempts = mod.Attempts(db)
     for n in range(100):
         attempts.spend("s", f"key-{n}", 2, 60.0, float(n))
     attempts.spend("other", "kept", 2, 60.0, 0.0)
-    with db.transaction() as conn:
-        rows = conn.execute("SELECT scope, COUNT(*) FROM attempt_windows GROUP BY scope").fetchall()
+    rows = query_on(db, "SELECT scope, COUNT(*) FROM attempt_windows GROUP BY scope")
     assert {row[0]: row[1] for row in rows} == {"s": 60, "other": 1}
 
 

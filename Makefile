@@ -30,8 +30,8 @@ dev-api:  ## run API locally with reload, without usage stats
 dev-web:  ## run UI locally with hot reload (proxies /api to :8000)
 	cd frontend && npm run dev
 
-test:  ## unit and API tests
-	cd backend && uv run pytest -q
+test:  ## unit and API tests; the backend on a throwaway Postgres (Docker), or TIKO_TEST_DATABASE_URL
+	cd backend && ../scripts/with-test-pg.sh uv run pytest -q
 	cd updater && uv run --project ../backend pytest -q
 	cd frontend && npm test
 	cd collector && node --test
@@ -57,7 +57,9 @@ smoke:  ## main scenario against a running stack (make up first)
 NPM_LICENSES := MIT;MIT-0;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;CC-BY-4.0;BlueOak-1.0.0;Unlicense;OFL-1.1;Python-2.0;MPL-2.0
 
 licenses:  ## fail on dependency licenses that block AGPL-3.0 and dual licensing
+	# psycopg is LGPL-3.0, weak copyleft that rule 9 allows; partial matching on GPL would fail it.
 	cd backend && uv run -q --with pip-licenses pip-licenses --from=mixed --partial-match \
+		--ignore-packages psycopg psycopg-binary psycopg-pool \
 		--fail-on="GPL;SSPL;Server Side Public;Business Source;BUSL;Commons Clause;Elastic License" >/dev/null
 	cd frontend && npx --yes license-checker-rseidelsohn --production --excludePrivatePackages --summary \
 		--onlyAllow="$(NPM_LICENSES)"

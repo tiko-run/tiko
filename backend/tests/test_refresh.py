@@ -1,6 +1,5 @@
 import pytest
 
-from app.adapters.storage.sqlite import Database, SqliteBoardRepo, SqliteSnapshotRepo
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain.boards import BoardDoc
 from app.domain.errors import (
@@ -11,6 +10,7 @@ from app.domain.errors import (
     NotFound,
 )
 from app.domain.refresh import RefreshService
+from tests.conftest import add_person
 
 DOC = BoardDoc.model_validate(
     {
@@ -43,12 +43,12 @@ class Flaky:
 
 
 @pytest.fixture
-def repos():
-    db = Database(":memory:")
-    boards = SqliteBoardRepo(db)
-    board_id = boards.create("b", BoardDoc(), "owner")
+def repos(store):
+    mod, db = store
+    boards = mod.BoardRepo(db)
+    board_id = boards.create("b", BoardDoc(), add_person(store, "owner"))
     boards.save(board_id, 1, DOC)
-    return board_id, boards, SqliteSnapshotRepo(db)
+    return board_id, boards, mod.SnapshotRepo(db).scoped("owner")
 
 
 class Clock:

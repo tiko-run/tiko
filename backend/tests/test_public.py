@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.domain.public import LINK_REQUESTS, PublicLinks
+from tests.conftest import run_sql
 from tests.jira_fake import TOKEN
 from tests.test_sharing import call, monkeypatch_module, new_board, world  # noqa: F401
 
@@ -307,9 +308,7 @@ def test_a_rename_reaches_the_guest_check(client):
     token = publish(client, board_id)
     anyone = guest(client)
     before = anyone.get(f"/api/public/{token}/version").json()
-    boards = client.app.state.boards
-    with boards._db.transaction() as conn:
-        conn.execute("UPDATE boards SET updated_at = '2020-01-01T00:00:00+00:00'")
+    run_sql(client.app, "UPDATE boards SET updated_at = '2020-01-01T00:00:00+00:00'")
     client.patch(f"/api/boards/{board_id}", json={"name": "Renamed"})
     after = anyone.get(f"/api/public/{token}/version").json()
     assert (
