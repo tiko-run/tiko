@@ -1,18 +1,9 @@
 import base64
 
-from app.adapters.tasks.jira_dc import FIELDS, JiraDcProvider, _json, _task
+from app.adapters.tasks.jira_dc import FIELDS, JiraDcProvider, _json, _task, query_answer
 from app.domain.errors import InvalidJql, JiraUnavailable
 from app.domain.settings import JiraCredentials
 from app.domain.tasks import MAX_SEARCH, SearchResult
-
-
-def _check(response) -> dict:
-    if response.status_code == 400:
-        messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
-        raise InvalidJql(" ".join(messages))
-    if response.status_code != 200:
-        raise JiraUnavailable(f"Jira returned {response.status_code}")
-    return _json(response)
 
 
 class JiraCloudProvider(JiraDcProvider):
@@ -44,7 +35,7 @@ class JiraCloudProvider(JiraDcProvider):
             params={"validation": "strict"},
             json={"queries": [jql]},
         )
-        for query in _check(response).get("queries") or []:
+        for query in query_answer(response).get("queries") or []:
             if isinstance(query, dict) and query.get("errors"):
                 raise InvalidJql(" ".join(query["errors"]))
         # A full page whatever the limit: when it is the last one, the count is exact.
@@ -53,7 +44,7 @@ class JiraCloudProvider(JiraDcProvider):
             "/rest/api/2/search/jql",
             json={"jql": jql, "fields": FIELDS if limit else ["id"], "maxResults": MAX_SEARCH},
         )
-        body = _check(response)
+        body = query_answer(response)
         issues = body.get("issues") if isinstance(body.get("issues"), list) else []
         tasks = [_task(base_url, issue) for issue in issues[:limit]]
         if body.get("isLast", True):
@@ -62,6 +53,6 @@ class JiraCloudProvider(JiraDcProvider):
         _, response = self._request(
             "POST", "/rest/api/2/search/approximate-count", json={"jql": jql}
         )
-        count = _check(response).get("count")
+        count = query_answer(response).get("count")
         count = count if isinstance(count, int) else 0
         return SearchResult(tasks, max(count, len(issues) + 1), estimated=True)

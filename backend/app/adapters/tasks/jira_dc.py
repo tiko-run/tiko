@@ -73,6 +73,16 @@ def _json(response: httpx.Response) -> dict:
     return body
 
 
+def query_answer(response: httpx.Response) -> dict:
+    """The body of an answer to a query; Jira's own message when it rejects the query."""
+    if response.status_code == 400:
+        messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
+        raise InvalidJql(" ".join(messages))
+    if response.status_code != 200:
+        raise JiraUnavailable(f"Jira returned {response.status_code}")
+    return _json(response)
+
+
 def _task(base_url: str, issue: dict) -> Task:
     try:
         return to_task(base_url, issue)
@@ -178,12 +188,7 @@ class JiraDcProvider:
             "/rest/api/2/search",
             json={"jql": jql, "fields": FIELDS, "maxResults": limit},
         )
-        if response.status_code == 400:
-            messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
-            raise InvalidJql(" ".join(messages))
-        if response.status_code != 200:
-            raise JiraUnavailable(f"Jira returned {response.status_code}")
-        body = _json(response)
+        body = query_answer(response)
         issues = body.get("issues")
         tasks = [_task(base_url, issue) for issue in issues] if isinstance(issues, list) else []
         total = body.get("total")
