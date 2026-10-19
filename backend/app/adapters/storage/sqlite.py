@@ -34,6 +34,7 @@ from app.domain.planning import (
     TimeOff,
 )
 from app.domain.tasks import Task, now_iso
+from app.domain.workspaces import NoWorkspaces
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
 log = logging.getLogger(__name__)
@@ -1280,3 +1281,27 @@ class SqliteMemberRepo:
                 " AND EXISTS (SELECT 1 FROM settings WHERE key = 'welcome_seeded')",
                 (owner_id,),
             )
+
+
+# The names main.py builds the app from, the same in both adapters until SQLite goes.
+BoardRepo = SqliteBoardRepo
+SnapshotRepo = SqliteSnapshotRepo
+CredentialRepo = SqliteCredentialRepo
+SettingsRepo = SqliteSettingsRepo
+PlanningTypeRepo = SqlitePlanningTypeRepo
+PlanningFieldRepo = SqlitePlanningFieldRepo
+PlanningStageRepo = SqlitePlanningStageRepo
+PlanningViewRepo = SqlitePlanningViewRepo
+PlanningPeopleRepo = SqlitePlanningPeopleRepo
+UsageCounts = SqliteUsageCounts
+UserRepo = SqliteUserRepo
+DemoStatusRepo = SqliteDemoStatusRepo
+Attempts = SqliteAttempts
+KnownBrowsers = SqliteKnownBrowsers
+SessionRepo = SqliteSessionRepo
+InviteRepo = SqliteInviteRepo
+MemberRepo = SqliteMemberRepo
+
+
+def Workspaces(db: Database) -> NoWorkspaces:  # noqa: N802 - named as the Postgres class
+    return NoWorkspaces()

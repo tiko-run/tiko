@@ -12,6 +12,8 @@
 | httpx | BSD-3-Clause | HTTP client for Jira Data Center |
 | cryptography | Apache-2.0 / BSD-3-Clause | Fernet encryption of the Jira token |
 | pycrdt | MIT | Shared document (CRDT) of a live board on the server; bundles Yrs (MIT) |
+| psycopg 3 (`psycopg[binary]`) | LGPL-3.0 | Postgres driver; the wheel bundles libpq (PostgreSQL License) |
+| psycopg_pool | LGPL-3.0 | Postgres connection pool |
 | React | MIT | UI |
 | driver.js | MIT | Product tour, loaded only when the tour runs |
 | @sentry/browser | MIT | Error reports from the page, loaded only when they are on |

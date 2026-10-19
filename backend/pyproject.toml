@@ -12,6 +12,8 @@ dependencies = [
     "cryptography>=50.0.2",
     "pycrdt>=0.14.8",
     "sentry-sdk>=2.40",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
 ]
 
 [dependency-groups]
