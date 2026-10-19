@@ -18,6 +18,7 @@ import { HEADER, type Row } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
+import { usePlanning } from '@/planning/context'
 
 type Props = {
   content: GanttContent
@@ -139,6 +140,7 @@ function ColumnPicker({
   onChange: (content: GanttContent) => void
 }) {
   const queryClient = useQueryClient()
+  const { sample } = usePlanning()
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const columns = content.columns ?? []
@@ -196,19 +198,21 @@ function ColumnPicker({
                 )
               })}
           </div>
-          <form onSubmit={create} className="flex gap-1.5">
-            <Input
-              aria-label="New field"
-              placeholder="New field, e.g. Quarter"
-              maxLength={40}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="h-8"
-            />
-            <Button type="submit" size="sm" disabled={!name.trim() || saving || full}>
-              Add
-            </Button>
-          </form>
+          {!sample && (
+            <form onSubmit={create} className="flex gap-1.5">
+              <Input
+                aria-label="New field"
+                placeholder="New field, e.g. Quarter"
+                maxLength={40}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="h-8"
+              />
+              <Button type="submit" size="sm" disabled={!name.trim() || saving || full}>
+                Add
+              </Button>
+            </form>
+          )}
           <p className="text-muted-foreground text-[12px]">
             Up to {MAX_COLUMNS} columns. Fields are shared by every board; an empty cell shows the
             parent row's value.

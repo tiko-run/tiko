@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 import { getAuthStatus, type Me } from '@/api/auth'
+import { usePlanningQuery } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -148,11 +149,19 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
   // On a narrow screen the window shows the list first, then one section with a Back button;
   // a link to another section opens it directly.
   const [listShown, setListShown] = useState(narrow && section === 'profile')
-  const groups = GROUPS.filter((group) => !group.admin || me.role === 'admin').map((group) => ({
-    ...group,
-    // A demo visitor has no name, password or tracker of their own until they sign up.
-    entries: group.entries.filter((item) => !me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)),
-  }))
+  // The demo's Planning lists are a fixed sample: nothing there to change.
+  const sample = usePlanningQuery().data?.sample ?? false
+  const groups = GROUPS.filter((group) => !group.admin || me.role === 'admin')
+    .map((group) => ({
+      ...group,
+      // A demo visitor has no name, password or tracker of their own until they sign up.
+      entries: group.entries.filter(
+        (item) =>
+          (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
+          !(sample && item.id === 'planning'),
+      ),
+    }))
+    .filter((group) => group.entries.length > 0)
   const entries = groups.flatMap((group) => group.entries)
   // A section the person cannot use, such as an admin one in a shared link, opens Profile.
   const entry = entries.find((item) => item.id === section) ?? entries[0]

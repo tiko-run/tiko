@@ -1,5 +1,6 @@
 import threading
 import time
+from datetime import UTC, datetime
 
 import httpx
 import pytest
@@ -11,6 +12,7 @@ from app.api.gate import COOKIE
 from app.config import Settings
 from app.domain import boards as board_service
 from app.domain import demo
+from app.domain import planning_sample as sample
 from app.domain.errors import BoardLimit
 from app.main import create_app
 from tests.conftest import signed_in
@@ -847,3 +849,19 @@ def test_the_directory_takes_so_many_searches_a_minute(app):
 def test_an_ordinary_instance_does_not_count_searches(client):
     for _ in range(demo.LOOKUPS + 5):
         assert client.get("/api/people/directory?q=adm").status_code == 200
+
+
+def test_a_public_demo_board_names_the_sample_people(app):
+    app.state.planning.write_sample(sample.TYPES, sample.people(datetime.now(UTC).date()))
+    ann = visitor(app)
+    board_id = welcome(ann)
+    assert sign_up(ann).status_code == 200
+    token = ann.put(f"/api/boards/{board_id}/public", json={"public": True}).json()["public_token"]
+    planning = TestClient(app).get(f"/api/public/{token}").json()["planning"]
+    assert {p["name"] for p in planning["people"]} == {"Anna", "Ben", "Chloe", "Dev"}
+    assert {t["id"] for t in planning["types"]} == {
+        sample.DISCOVERY,
+        sample.DESIGN,
+        sample.BUILD,
+        sample.REVIEW,
+    }

@@ -10,6 +10,7 @@ const OFF: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
+  sample: false,
 }
 
 const content = {

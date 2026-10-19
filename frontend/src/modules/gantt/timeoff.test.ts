@@ -43,6 +43,7 @@ const planning = (people: Person[], enabled = true): PlanningState => ({
   fields: [],
   views: [],
   daysOff: [],
+  sample: false,
 })
 const span = (start: string, end: string) => ({ start: parseDay(start), end: parseDay(end) })
 

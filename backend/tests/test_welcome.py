@@ -10,8 +10,10 @@ from app.adapters.storage.sqlite import (
     SqliteUserRepo,
 )
 from app.adapters.tasks.demo import DemoTaskProvider
+from app.domain import planning_sample as sample
 from app.domain.accounts import Person
 from app.domain.boards import BoardDoc, check_doc, list_boards, task_refs
+from app.domain.modules.gantt import GanttContent
 from app.domain.tasks import split_ref
 from app.domain.upgrade import adopt_orphans
 from app.domain.welcome import WELCOME_NAME, welcome_doc
@@ -107,3 +109,33 @@ def test_concurrent_first_reads_create_one_board():
     with ThreadPoolExecutor(8) as pool:
         list(pool.map(lambda _: list_boards(admin, repo, NOW), range(8)))
     assert len(repo.listing(admin.id)) == 1
+
+
+def test_the_demo_welcome_gantt_plans_with_the_sample():
+    doc = BoardDoc.model_validate(welcome_doc(NOW, demo=True))
+    check_doc(doc)
+    gantt = next(n for n in doc.nodes if n.type == "module").data.content
+    GanttContent.model_validate(gantt)
+    assert gantt["workingDays"] is True
+    assert gantt["columns"] == ["priority", "size", "team"]
+    stages = [s for row in gantt["rows"] for s in row.get("stages", [])]
+    assert {s["type"] for s in stages} <= {t.id for t in sample.TYPES}
+    people = {p.id: p for p in sample.people(NOW.date())}
+    assert {who for s in stages for who in s["people"]} <= people.keys()
+    for s in stages:
+        assert date.fromisoformat(s["start"]).weekday() < 5
+        assert date.fromisoformat(s["end"]).weekday() < 5
+    # One stage overlaps its person's time off, so the Gantt shows the red outline.
+    off = people[sample.CHLOE].off[0]
+    assert any(
+        sample.CHLOE in s["people"]
+        and date.fromisoformat(s["start"]) <= off.end
+        and date.fromisoformat(s["end"]) >= off.start
+        for s in stages
+    )
+
+
+def test_the_self_hosted_welcome_gantt_has_no_stages():
+    gantt = next(n for n in welcome_doc(NOW)["nodes"] if n["type"] == "module")["data"]["content"]
+    assert all("stages" not in row for row in gantt["rows"])
+    assert "columns" not in gantt and "workingDays" not in gantt

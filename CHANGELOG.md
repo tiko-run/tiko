@@ -16,9 +16,11 @@ All notable changes to this project are documented here. The format follows [Kee
 - Each creation tool has its own pointer, a crosshair with the tool's icon, so you can see which one is picked.
 - Choose where task links open: Settings → Preferences → Open task links in, a new tab or this one.
 - Hear when tiko Cloud opens: leave your e-mail on tiko.run and get one message when the hosted tiko starts, free plan first. Tick a box if you also want news: that message asks you to confirm it, and you can unsubscribe anytime. The new [Privacy](https://tiko.run/privacy/) page says what is kept and how to have it removed.
+- Try Planning mode on the public demo: the welcome Gantt opens with stages, people, Priority, Size and Team columns, working days and a clash with someone's time off. The demo's people and stage types are made-up samples everyone shares; you plan with them on your own boards, and nobody can change the list.
 
 ### Changed
 
+- The demo says where your boards live: only you see them, they are deleted after 7 days without a visit, and real work data does not belong there.
 - The card tool says what it takes in one line, with a link to [What you can add](https://docs.tiko.run/what-you-can-add/): keys, links, ranges and queries for each tracker, with examples.
 - Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.

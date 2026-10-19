@@ -19,7 +19,7 @@ Click the expand button at the right of the Gantt's header to open it over the d
 
 ## Stages
 
-With Planning on, a row is cut into stages: discovery, design, build, a pause, or whatever your team calls its phases. An admin turns it on in **Settings → Stages and people**. It is off by default, and switching it off keeps every stage: the Gantt then shows one bar per task again.
+With Planning on, a row is cut into stages: discovery, design, build, a pause, or whatever your team calls its phases. An admin turns it on in **Settings → Stages and people**. It is off by default, and switching it off keeps every stage: the Gantt then shows one bar per task again. On the [public demo](https://demo.tiko.run) Planning is always on, with made-up people and stage types you can use but not change.
 
 - Drag across free days of a row to add a stage. A click adds one week.
 - Click a stage to pick its type or delete it. A bar that has no stages yet reads "No stage" until you pick one.

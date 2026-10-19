@@ -7,7 +7,6 @@ from app.api.deps import (
     CurrentAdmin,
     CurrentPerson,
     NotDemoVisitor,
-    is_demo,
     members,
     not_on_demo,
 )
@@ -41,14 +40,12 @@ def planning(request: Request) -> Planning:
 
 
 PlanningDep = Annotated[Planning, Depends(planning)]
-# A demo instance has visitors who never met each other, so it has no shared planning lists.
+# A demo instance has visitors who never met each other: its lists are the sample, read-only.
 Writer = [NotDemoVisitor, Depends(not_on_demo)]
 
 
 @router.get("")
 def get_planning(person: CurrentPerson, service: PlanningDep, request: Request) -> PlanningView:
-    if is_demo(request):
-        return PlanningView(enabled=False)
     return service.view()
 
 

@@ -1,6 +1,9 @@
 import uuid
-from datetime import datetime, timedelta
+from collections.abc import Callable
+from datetime import date, datetime, timedelta
 from typing import Any
+
+from app.domain import planning_sample as sample
 
 WELCOME_NAME = "Welcome to tiko"
 
@@ -9,6 +12,8 @@ _STICKY = 200
 _SPRINT_X = 560
 # Wide enough columns that the timer beside a card in the second one has room.
 _CELL_W, _CELL_H = 390, 96
+# Taller than the plain Gantt: stages with names under them need the room.
+_PLANNED_H = 300
 
 _NOTES = [
     (
@@ -26,8 +31,8 @@ _NOTES = [
 # On a public demo nobody connects a tracker, and the board does not stay.
 _DEMO_NOTE = (
     "pink",
-    "This is a demo: your boards are kept for 7 days. To put your own tracker's tasks on a "
-    "board, install tiko: tiko.run",
+    "This is a demo: only you see your boards, kept 7 days after your last visit. Keep real "
+    "work data out; to use your own tracker, install tiko: tiko.run",
 )
 # Two columns of cards, filled row by row; the last one starts collapsed.
 _CARDS = ["DEMO-1", "DEMO-2", "DEMO-7", "DEMO-6", "DEMO-11", "DEMO-3"]
@@ -123,50 +128,17 @@ def welcome_doc(now: datetime, demo: bool = False) -> dict[str, Any]:
     def day(offset: int) -> str:
         return (today + timedelta(days=offset)).isoformat()
 
-    epic, crash, story = _id(), _id(), _id()
     nodes.append(
         {
             "id": _id(),
             "type": "module",
             "position": {"x": 0, "y": 560},
             "width": _SPRINT_X + _PAD + _CELL_W * 2,
-            "height": 240,
+            "height": _PLANNED_H if demo else 240,
             "data": {
                 "kind": "gantt",
                 "title": "Release plan",
-                "content": {
-                    "start": day(-7),
-                    "end": day(42),
-                    "scale": "week",
-                    "rows": [
-                        {
-                            "id": epic,
-                            "key": "DEMO-4",
-                            "source": "demo",
-                            "start": day(-3),
-                            "end": day(16),
-                        },
-                        {
-                            "id": crash,
-                            "key": "DEMO-7",
-                            "source": "demo",
-                            "start": day(-3),
-                            "end": day(4),
-                            "parent": epic,
-                        },
-                        {
-                            "id": story,
-                            "key": "DEMO-1",
-                            "source": "demo",
-                            "start": day(5),
-                            "end": day(12),
-                            "parent": epic,
-                        },
-                        {"id": _id(), "title": "Release notes", "start": day(13), "end": day(16)},
-                    ],
-                    "milestones": [{"id": _id(), "date": day(17), "title": "Release"}],
-                    "links": [{"id": _id(), "from": crash, "to": story}],
-                },
+                "content": _planned_gantt(today) if demo else _plain_gantt(day),
             },
         }
     )
@@ -188,3 +160,109 @@ def welcome_doc(now: datetime, demo: bool = False) -> dict[str, Any]:
         },
     ]
     return {"nodes": nodes, "edges": edges}
+
+
+def _plain_gantt(day: Callable[[int], str]) -> dict[str, Any]:
+    epic, crash, story = _id(), _id(), _id()
+    return {
+        "start": day(-7),
+        "end": day(42),
+        "scale": "week",
+        "rows": [
+            {"id": epic, "key": "DEMO-4", "source": "demo", "start": day(-3), "end": day(16)},
+            {
+                "id": crash,
+                "key": "DEMO-7",
+                "source": "demo",
+                "start": day(-3),
+                "end": day(4),
+                "parent": epic,
+            },
+            {
+                "id": story,
+                "key": "DEMO-1",
+                "source": "demo",
+                "start": day(5),
+                "end": day(12),
+                "parent": epic,
+            },
+            {"id": _id(), "title": "Release notes", "start": day(13), "end": day(16)},
+        ],
+        "milestones": [{"id": _id(), "date": day(17), "title": "Release"}],
+        "links": [{"id": _id(), "from": crash, "to": story}],
+    }
+
+
+def _planned_gantt(today: date) -> dict[str, Any]:
+    """The demo's Gantt in Planning mode: stages with sample people, columns, working days."""
+
+    def wd(n: int) -> str:
+        return sample.workday(today, n).isoformat()
+
+    def stage(type_id: str, start: int, end: int, *who: str) -> dict[str, Any]:
+        return {
+            "id": _id(),
+            "type": type_id,
+            "start": wd(start),
+            "end": wd(end),
+            "people": list(who),
+        }
+
+    def row(stages: list[dict[str, Any]], **fields: Any) -> dict[str, Any]:
+        return {
+            "id": _id(),
+            "start": stages[0]["start"],
+            "end": stages[-1]["end"],
+            "stages": stages,
+            **fields,
+        }
+
+    epic = _id()
+    crash = row(
+        [
+            stage(sample.DISCOVERY, -4, -1, sample.ANNA),
+            stage(sample.BUILD, 0, 4, sample.ANNA, sample.BEN),
+        ],
+        key="DEMO-7",
+        source="demo",
+        parent=epic,
+        values={"size": "S"},
+    )
+    # Chloe's Build overlaps her time off in the sample, so this stage gets the red outline.
+    story = row(
+        [
+            stage(sample.DESIGN, 5, 8, sample.CHLOE),
+            stage(sample.BUILD, 9, 14, sample.CHLOE, sample.BEN),
+        ],
+        key="DEMO-1",
+        source="demo",
+        parent=epic,
+        values={"size": "M"},
+    )
+    notes = row(
+        [stage(sample.REVIEW, 15, 17, sample.DEV)],
+        title="Release notes",
+        values={"priority": "Medium", "team": "Platform", "size": "S"},
+    )
+    return {
+        "start": wd(-5),
+        "end": wd(21),
+        "scale": "week",
+        "workingDays": True,
+        "columns": ["priority", "size", "team"],
+        "rows": [
+            {
+                "id": epic,
+                "key": "DEMO-4",
+                "source": "demo",
+                "start": crash["start"],
+                "end": story["end"],
+                "values": {"priority": "High", "team": "Web"},
+            },
+            crash,
+            story,
+            notes,
+        ],
+        "milestones": [{"id": _id(), "date": wd(18), "title": "Release"}],
+        "links": [{"id": _id(), "from": crash["id"], "to": story["id"]}],
+    }

@@ -59,7 +59,7 @@ def get_public_board(
         settings.provider(),
         settings.base_url(),
         settings.refresh_interval_s(),
-        None if deps.is_demo(request) else request.app.state.planning,
+        request.app.state.planning,
     )
 
 

@@ -5,6 +5,7 @@ import random
 import ssl
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 
@@ -53,7 +54,7 @@ from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
-from app.domain import demo, usage
+from app.domain import demo, planning_sample, usage
 from app.domain.accounts import Accounts
 from app.domain.errors import NotFound
 from app.domain.invites import Invites
@@ -184,7 +185,8 @@ def create_app(
     if key and len(key) < MIN_SECRET_KEY_LENGTH:
         log.warning("TIKO_SECRET_KEY is short; use openssl rand -base64 32")
 
-    async def clean_demo(visitors: demo.DemoVisitors) -> None:
+    async def clean_demo(visitors: demo.DemoVisitors, planning: Planning) -> None:
+        sampled = None
         while True:
             try:
                 gone = await anyio.to_thread.run_sync(visitors.cleanup, time.time())
@@ -192,13 +194,23 @@ def create_app(
                     log.info("demo cleanup: %d visitors deleted", gone)
             except Exception:
                 log.exception("demo cleanup failed")
+            # Once a day, so the sample time off moves along with today.
+            today = datetime.now(UTC).date()
+            if sampled != today:
+                try:
+                    await anyio.to_thread.run_sync(
+                        planning.write_sample, planning_sample.TYPES, planning_sample.people(today)
+                    )
+                    sampled = today
+                except Exception:
+                    log.exception("demo planning sample failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # One process cleans up for all of them.
         cleaner = (
-            asyncio.create_task(clean_demo(app.state.visitors))
+            asyncio.create_task(clean_demo(app.state.visitors, app.state.planning))
             if app.state.visitors and settings.tiko_worker == 0
             else None
         )
@@ -325,6 +337,7 @@ def create_app(
         SqlitePlanningViewRepo(db),
         SqlitePlanningStageRepo(db),
         on_change=app.state.live.planning_changed,
+        sample=planning_sample.IDS if settings.tiko_demo else None,
     )
     app.state.public_links = PublicLinks(
         app.state.boards, service.public_links, app.state.live, attempts=attempts

@@ -1,6 +1,7 @@
 """Spec 027: the Planning switch, the stage type library and the people directory."""
 
 import json
+from datetime import date
 
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,7 @@ from app.adapters.storage.sqlite import (
     SqlitePlanningStageRepo,
 )
 from app.config import Settings
+from app.domain import planning_sample as sample
 from app.domain.planning import PlanningPerson, TimeOff
 from app.main import create_app
 from tests.conftest import signed_in
@@ -35,6 +37,7 @@ def test_off_by_default(client: TestClient) -> None:
         "fields": [],
         "views": [],
         "daysOff": [],
+        "sample": False,
     }
 
 
@@ -99,11 +102,43 @@ def test_signed_out_is_refused() -> None:
     assert TestClient(app).get("/api/planning").status_code == 401
 
 
-def test_no_planning_on_a_demo_instance() -> None:
-    admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
-    assert admin.patch("/api/planning", json={"enabled": True}).status_code == 403
-    assert admin.post("/api/planning/people", json={"name": "Ivan"}).status_code == 403
+def test_a_demo_instance_reads_the_sample_and_changes_nothing() -> None:
+    app = create_app(Settings(db_path=":memory:", tiko_demo=True))
+    admin = signed_in(app)
     assert admin.get("/api/planning").json()["enabled"] is False
+    app.state.planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
+    view = admin.get("/api/planning").json()
+    assert view["enabled"] is True and view["sample"] is True
+    assert [t["id"] for t in view["types"]] == [t.id for t in sample.TYPES]
+    assert {p["name"] for p in view["people"]} == {"Anna", "Ben", "Chloe", "Dev", "Elif"}
+    assert admin.patch("/api/planning", json={"enabled": False}).status_code == 403
+    assert admin.post("/api/planning/people", json={"name": "Ivan"}).status_code == 403
+    assert admin.patch(f"/api/planning/types/{sample.BUILD}", json={"name": "X"}).status_code == 403
+    assert admin.post("/api/planning/fields", json={"name": "Quarter"}).status_code == 403
+    assert admin.put("/api/planning/days-off", json={"dates": []}).status_code == 403
+    workload = admin.get(f"/api/planning/people/{sample.ANNA}/workload")
+    assert workload.status_code == 403
+
+
+def test_the_sample_is_rewritten_with_time_off_around_today() -> None:
+    app = create_app(Settings(db_path=":memory:", tiko_demo=True))
+    admin = signed_in(app)
+    planning = app.state.planning
+    planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
+    planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 26)))
+    people = {p["id"]: p for p in admin.get("/api/planning").json()["people"]}
+    assert len(people) == 5
+    # Eleven working days after Monday Oct 26, and one range only after two writes.
+    assert people[sample.CHLOE]["off"] == [
+        {"id": "demo-chloe-off", "start": "2026-11-10", "end": "2026-11-12"}
+    ]
+
+
+def test_workday_skips_weekends() -> None:
+    saturday = date(2026, 10, 24)
+    assert sample.workday(saturday, 0) == date(2026, 10, 26)
+    assert sample.workday(saturday, -1) == date(2026, 10, 23)
+    assert sample.workday(date(2026, 10, 23), 1) == date(2026, 10, 26)
 
 
 def test_a_member_adds_renames_and_archives_a_person(client: TestClient) -> None:
@@ -458,3 +493,21 @@ def test_the_migration_fills_the_index_from_saved_boards() -> None:
     assert [(s.board_name, s.row, str(s.start)) for s in stages] == [
         ("Plan", "WEB-7", "2026-10-12")
     ]
+
+
+def test_a_demo_on_an_old_database_shows_only_the_sample(tmp_path) -> None:
+    db = str(tmp_path / "app.db")
+    team = signed_in(create_app(Settings(db_path=db)))
+    team.patch("/api/planning", json={"enabled": True})
+    team.post("/api/planning/people", json={"name": "Petra"})
+    team.post("/api/planning/fields", json={"name": "Quarter"})
+    team.post("/api/planning/views", json={"name": "Web", "filters": {"team": ["Web"]}})
+    team.put("/api/planning/days-off", json={"dates": ["2026-11-04"]})
+
+    app = create_app(Settings(db_path=db, tiko_demo=True))
+    app.state.planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
+    view = signed_in(app).get("/api/planning").json()
+    assert {t["id"] for t in view["types"]} == {t.id for t in sample.TYPES}
+    assert "Petra" not in {p["name"] for p in view["people"]}
+    assert [f["id"] for f in view["fields"]] == ["priority", "size", "team"]
+    assert view["views"] == [] and view["daysOff"] == []

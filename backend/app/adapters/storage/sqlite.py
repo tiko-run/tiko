@@ -788,6 +788,7 @@ def _delete_people(conn: sqlite3.Connection, user_ids: list[str]) -> list[str]:
         for row in owned:
             board_ids.append(row["board_id"])
             conn.execute("DELETE FROM board_members WHERE board_id = ?", (row["board_id"],))
+            conn.execute("DELETE FROM planning_stages WHERE board_id = ?", (row["board_id"],))
             conn.execute("DELETE FROM boards WHERE id = ?", (row["board_id"],))
         for table in (
             "board_members",

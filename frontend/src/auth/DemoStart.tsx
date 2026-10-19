@@ -28,7 +28,8 @@ export function DemoStart({ onStarted }: { onStarted: () => void }) {
         Try the demo
       </Button>
       <p className="text-muted-foreground text-[13px]">
-        No account needed. Your board is kept for 7 days.
+        No account needed. Only you see your board; it is deleted after 7 days without a visit. Keep
+        real work data out of the demo.
       </p>
       {start.isError && <p className="text-destructive text-sm">{message(start.error)}</p>}
       <p className="text-muted-foreground mt-2 text-[13px]">
