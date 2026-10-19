@@ -838,6 +838,8 @@ class PgUsageCounts:
 # The role is the person's in the request's workspace; %s there is the workspace id.
 _PERSON = "u.id, u.username, u.name, m.role, u.disabled_at, u.demo_expires_at"
 _PERSON_FROM = "users u LEFT JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
+# Only the workspace's members: an account elsewhere is not found here, so no admin reaches it.
+_MEMBER_FROM = "users u JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
 # A demo visitor who changed nothing: at most the welcome board, as it was made, and no task
 # status of their own. A rename leaves the version alone, so the time of the last change counts.
 _UNTOUCHED = (
@@ -953,14 +955,14 @@ class PgUserRepo(_Repo):
     def get(self, user_id: str) -> Person | None:
         with self._tx() as conn:
             row = conn.execute(
-                f"SELECT {_PERSON} FROM {_PERSON_FROM} WHERE u.id = %s", (self._ws, user_id)
+                f"SELECT {_PERSON} FROM {_MEMBER_FROM} WHERE u.id = %s", (self._ws, user_id)
             ).fetchone()
         return _person(row) if row else None
 
     def list(self) -> list[PersonRecord]:
         with self._tx() as conn:
             rows = conn.execute(
-                f"SELECT {_PERSON}, u.last_sign_in_at, u.created_at FROM {_PERSON_FROM}"
+                f"SELECT {_PERSON}, u.last_sign_in_at, u.created_at FROM {_MEMBER_FROM}"
                 " WHERE u.demo_expires_at IS NULL ORDER BY lower(u.name), lower(u.username)",
                 (self._ws,),
             ).fetchall()
@@ -976,9 +978,9 @@ class PgUserRepo(_Repo):
     def set_role(self, user_id: str, role: Role) -> None:
         with self._tx() as conn:
             conn.execute(
-                "INSERT INTO memberships (workspace_id, user_id, role) VALUES (%s, %s, %s)"
-                " ON CONFLICT (workspace_id, user_id) DO UPDATE SET role = excluded.role",
-                (self._ws, user_id, role),
+                # A role changes inside the workspace; joining one is an invite's job.
+                "UPDATE memberships SET role = %s WHERE workspace_id = %s AND user_id = %s",
+                (role, self._ws, user_id),
             )
 
     def set_disabled(self, user_id: str, disabled: bool) -> None:

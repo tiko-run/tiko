@@ -245,3 +245,18 @@ def test_the_cleanup_of_unused_accounts_stays_in_its_workspace(db, other, pg_url
     gone, _ = pg.PgUserRepo(db).delete_unused_members("2001-01-01T00:00:00+00:00")
     assert gone == [ann]
     assert pg.PgUserRepo(db, other).get(bob.id) is not None
+
+
+def test_an_admin_reaches_no_account_of_another_workspace(db, other):
+    app = create_app(Settings(db_path=":memory:"))
+    admin = signed_in(app)
+    bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="member")
+    pg.PgUserRepo(db, other).add(bob, hash_password(PASSWORD))
+    assert "bob" not in {p["username"] for p in admin.get("/api/people").json()["people"]}
+    assert admin.patch(f"/api/people/{bob.id}", json={"role": "admin"}).status_code == 404
+    assert admin.patch(f"/api/people/{bob.id}", json={"disabled": True}).status_code == 404
+    assert admin.post(f"/api/people/{bob.id}/reset").status_code == 404
+    with db.jobs() as conn:
+        rows = conn.execute("SELECT workspace_id FROM memberships WHERE user_id = %s", (bob.id,))
+        assert [r["workspace_id"] for r in rows] == [other]
+    assert pg.PgUserRepo(db, other).get(bob.id).disabled is False
