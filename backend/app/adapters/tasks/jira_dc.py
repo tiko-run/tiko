@@ -16,7 +16,7 @@ from app.domain.errors import (
 )
 from app.domain.jql import JqlField, JqlValue, JqlVocabulary
 from app.domain.settings import JiraCredentials
-from app.domain.tasks import StatusCategory, Task, now_iso
+from app.domain.tasks import SearchResult, StatusCategory, Task, now_iso
 
 FIELDS = ["summary", "status", "issuetype", "assignee", "priority", "updated"]
 SEARCH_CHUNK = 500
@@ -172,7 +172,7 @@ class JiraDcProvider:
         issues = _json(response).get("issues", [])
         return base_url, issues if isinstance(issues, list) else []
 
-    def search(self, jql: str, limit: int) -> tuple[list[Task], int]:
+    def search(self, jql: str, limit: int) -> SearchResult:
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search",
@@ -187,7 +187,7 @@ class JiraDcProvider:
         issues = body.get("issues")
         tasks = [_task(base_url, issue) for issue in issues] if isinstance(issues, list) else []
         total = body.get("total")
-        return tasks, total if isinstance(total, int) else len(tasks)
+        return SearchResult(tasks, total if isinstance(total, int) else len(tasks))
 
     def jql_vocabulary(self) -> JqlVocabulary:
         base_url = self._credentials().base_url

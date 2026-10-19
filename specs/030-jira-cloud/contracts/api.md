@@ -49,6 +49,16 @@ Body gains `email`:
 }
 ```
 
+## `POST /api/tasks/search`
+
+The answer gains `estimated`:
+
+```json
+{ "tasks": [], "total": 140, "estimated": true }
+```
+
+- `estimated`: `true` when `total` is the tracker's estimate. Jira Cloud has no exact total past one page of 100, so a larger query answers with its approximate count. `false` for Data Center and the demo tasks.
+
 ## Usage stats
 
 The `tracker` value gains `jira_cloud` next to `demo`, `jira_dc` and `github`.

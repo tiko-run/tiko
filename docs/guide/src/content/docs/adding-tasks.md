@@ -7,15 +7,7 @@ Each card shows the task's type, key, title and status from your tracker. Status
 
 ## Ways to add a card
 
-Pick the card tool (`C`) and type into its field:
-
-- **A key**, like `DEV-12`.
-- **A link** to the task in your tracker.
-- **A GitHub issue or pull request**, by its link or as `owner/repo#12`. It works on every tiko, whatever tracker is connected: see [GitHub Issues](../github-issues/).
-- **Several keys or links** at once, or a **range** like `DEV-1 - DEV-20` (or `DEV-1..20`) for every task in between, up to 50.
-- **A query**, like JQL in Jira: `project = DEV AND status = "In Progress"`. The field suggests fields and values as you type.
-
-New cards land in a neat grid.
+Pick the card tool (`C`) and type a key, a link, a range of keys or a query, like JQL in Jira. New cards land in a neat grid. What each tracker takes, with examples, is in [What you can add](../what-you-can-add/).
 
 ## Paste
 

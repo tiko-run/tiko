@@ -27,6 +27,8 @@ class SearchIn(BaseModel):
 class SearchOut(BaseModel):
     tasks: list[Task]
     total: int
+    # True when `total` is the tracker's estimate, not an exact count.
+    estimated: bool = False
 
 
 @router.post("/search")
@@ -35,8 +37,8 @@ def search(
     provider: Annotated[TaskProvider, Depends(deps.provider)],
     snapshots: Annotated[SnapshotRepo, Depends(deps.snapshots)],
 ) -> SearchOut:
-    tasks, total = search_tasks(body.jql, body.limit, provider, snapshots)
-    return SearchOut(tasks=tasks, total=total)
+    found = search_tasks(body.jql, body.limit, provider, snapshots)
+    return SearchOut(tasks=found.tasks, total=found.total, estimated=found.estimated)
 
 
 @router.post("/resolve")

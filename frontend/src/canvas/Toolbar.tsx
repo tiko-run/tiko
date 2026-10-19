@@ -60,10 +60,17 @@ export function isJql(input: string) {
   return JQL_OPERATOR.test(input) && !refs.every((ref) => REF_RE.test(ref))
 }
 
+const WHAT_YOU_CAN_ADD = 'https://docs.tiko.run/what-you-can-add/'
+
+function matchCount(total: number, estimated: boolean) {
+  const tasks = `${estimated ? 'About ' : ''}${total} ${total === 1 ? 'task matches' : 'tasks match'}`
+  return `${tasks}${total > MAX_REFS ? `, the first ${MAX_REFS} are added` : ''}.`
+}
+
 async function addFromInput(input: string): Promise<Resolved> {
   if (!isJql(input)) return resolveAll(splitRefs(input))
-  const { tasks, total } = await searchTasks(input.trim(), MAX_REFS)
-  return { tasks, failed: [], total }
+  const { tasks, total, estimated } = await searchTasks(input.trim(), MAX_REFS)
+  return { tasks, failed: [], total, estimated }
 }
 
 /** Takes keys, links or a JQL query; keys that fail stay in the field with their errors. */
@@ -103,7 +110,9 @@ export function AddCardForm({
       : found === 0
         ? ['No tasks match this query.']
         : found !== undefined && found > (resolve.data?.tasks.length ?? 0)
-          ? [`Added ${resolve.data?.tasks.length} of ${found}. Narrow the query to add the rest.`]
+          ? [
+              `Added ${resolve.data?.tasks.length} of ${resolve.data?.estimated ? 'about ' : ''}${found}. Narrow the query to add the rest.`,
+            ]
           : (resolve.data?.failed.map((f) => `${f.ref}: ${f.message}`) ?? [])
 
   return (
@@ -134,15 +143,29 @@ export function AddCardForm({
             count.isError ? 'text-destructive' : 'text-muted-foreground',
           )}
         >
-          {!jql
-            ? hasRange(input)
-              ? `${keys} ${keys === 1 ? 'card' : 'cards'} from the range.`
-              : 'Keys, links or GitHub tasks like owner/repo#12, separated by commas, or a range like DEMO-1 - DEMO-5. Or a JQL query.'
-            : count.isError
-              ? errorMessage(count.error)
-              : count.data !== undefined
-                ? `${count.data} ${count.data === 1 ? 'task matches' : 'tasks match'}${count.data > MAX_REFS ? `, the first ${MAX_REFS} are added` : ''}.`
-                : `JQL query, up to ${MAX_REFS} tasks.`}
+          {!jql ? (
+            hasRange(input) ? (
+              `${keys} ${keys === 1 ? 'card' : 'cards'} from the range.`
+            ) : (
+              <>
+                Keys, links or a query.{' '}
+                <a
+                  href={WHAT_YOU_CAN_ADD}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary underline-offset-2 hover:underline"
+                >
+                  What you can add
+                </a>
+              </>
+            )
+          ) : count.isError ? (
+            errorMessage(count.error)
+          ) : count.data !== undefined ? (
+            matchCount(count.data.total, count.data.estimated)
+          ) : (
+            `JQL query, up to ${MAX_REFS} tasks.`
+          )}
         </p>
       )}
     </form>

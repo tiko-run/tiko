@@ -17,7 +17,7 @@ if TYPE_CHECKING:
         StageType,
         TimeOff,
     )
-    from app.domain.tasks import Task
+    from app.domain.tasks import SearchResult, Task
     from app.domain.updates import Release, UpdaterStatus
 
 
@@ -43,7 +43,7 @@ class TaskProvider(Protocol):
         """Display name of the authenticated user."""
         ...
 
-    def search(self, jql: str, limit: int) -> tuple[list[Task], int]:
+    def search(self, jql: str, limit: int) -> SearchResult:
         """Up to `limit` matching tasks and the total match count; raises InvalidJql."""
         ...
 

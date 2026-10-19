@@ -11,12 +11,14 @@ tiko reads tasks from your tracker and never changes them. Each person connects 
 | Jira Data Center and Server 8.14+ | Available, see [Connect Jira Data Center](../jira-data-center/) |
 | GitHub Issues and pull requests, public repositories | Available, see [GitHub Issues](../github-issues/) |
 | GitHub private repositories | Available with [your own token](../github-issues/#your-own-token) |
-| Jira Cloud | Available, see [Connect Jira Cloud](../jira-cloud/). JQL search comes next |
+| Jira Cloud | Available, see [Connect Jira Cloud](../jira-cloud/) |
 | Linear | Planned |
 | Plane | Planned |
 | Todoist | Planned |
 | TickTick | Planned |
 | Windshift | Planned |
+
+What the card tool takes for each tracker is in [What you can add](../what-you-can-add/).
 
 The demo tasks need no keys or accounts, so a fresh install has something to show.
 

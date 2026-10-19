@@ -16,14 +16,15 @@ tiko reads Jira Cloud sites like `https://example.atlassian.net`. Each person si
 4. Each person, the admin included, creates an API token at [id.atlassian.com → Security → API tokens](https://id.atlassian.com/manage-profile/security/api-tokens). Choose **Create API token**, not the one with scopes.
 5. In tiko, they open Settings → My tracker, enter their Atlassian e-mail and the token, save, and press "Test connection". It shows their Jira name.
 
-Cards, links, ranges of keys, status timers, the Gantt and public links work as they do with [Jira Data Center](../jira-data-center/). Links copied from a Jira board, with `selectedIssue` in them, become cards too.
+Cards, links, ranges of keys, JQL queries with suggestions, status timers, the Gantt and public links work as they do with [Jira Data Center](../jira-data-center/). Links copied from a Jira board, with `selectedIssue` in them, become cards too. See [What you can add](../what-you-can-add/).
 
 ## Good to know
 
 - **Tokens expire.** Atlassian sets an expiry date on every API token, a year by default. When yours runs out, the sync indicator says Jira rejected the token: create a new one and save it in My tracker.
 - **Your token reads what you can see.** A task your account cannot open reads "Not found or no access". Teammates without a token see the key and "Connect your Jira token to see this task".
 - **A token is only sent to the site it was entered for.** Moving the instance to another Jira asks everyone to enter their token again. A team moving from Data Center to Cloud keeps its boards: the keys stay the same, and cards turn live again once people connect.
-- **Searching by JQL** on Jira Cloud comes in a later release.
+- **Counts of large queries are estimates.** Jira Cloud counts exactly up to 100 matches; past that the card tool says "About 140 tasks match". The tasks it adds are exact.
+- **A query needs a condition.** Jira Cloud refuses a bare `ORDER BY created`; add one, like `project = DEV`.
 
 Keep `TIKO_SECRET_KEY` safe. If you change or lose it, enter the token again.
 

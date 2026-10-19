@@ -31,7 +31,7 @@ description: "Task list for Jira Cloud"
 
 **Goal**: a query fills the board, with suggestions as on Data Center.
 
-- [ ] T011 [US2] `jira_cloud.py`: `search` by `jql/parse` then `search/jql` and `approximate-count`; `jql_vocabulary` and `jql_values` through the shared parsing. Tests on the fake
-- [ ] T012 [US2] The card tool shows "about N" for an estimated count past the limit. Tests
-- [ ] T013 [US2] On the compose stack with a live Cloud site: suggestions for fields and `status`, a query with its count, a broken query with Jira's message. `make check` green
-- [ ] T014 [US2] Guide, `CHANGELOG.md`
+- [x] T011 [US2] `jira_cloud.py`: `search` by `jql/parse` then `search/jql` and `approximate-count`; `jql_vocabulary` and `jql_values` through the shared parsing. Tests on the fake
+- [x] T012 [US2] The card tool shows "about N" for an estimated count past the limit. Tests
+- [x] T013 [US2] On the compose stack with a live Cloud site: suggestions for fields and `status`, a query with its count, a broken query with Jira's message. `make check` green
+- [x] T014 [US2] Guide, `CHANGELOG.md`

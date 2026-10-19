@@ -1,9 +1,18 @@
 import base64
 
-from app.adapters.tasks.jira_dc import FIELDS, JiraDcProvider, _json
+from app.adapters.tasks.jira_dc import FIELDS, JiraDcProvider, _json, _task
 from app.domain.errors import InvalidJql, JiraUnavailable
 from app.domain.settings import JiraCredentials
-from app.domain.tasks import Task
+from app.domain.tasks import MAX_SEARCH, SearchResult
+
+
+def _check(response) -> dict:
+    if response.status_code == 400:
+        messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
+        raise InvalidJql(" ".join(messages))
+    if response.status_code != 200:
+        raise JiraUnavailable(f"Jira returned {response.status_code}")
+    return _json(response)
 
 
 class JiraCloudProvider(JiraDcProvider):
@@ -27,5 +36,32 @@ class JiraCloudProvider(JiraDcProvider):
         issues = _json(response).get("issues", [])
         return base_url, issues if isinstance(issues, list) else []
 
-    def search(self, jql: str, limit: int) -> tuple[list[Task], int]:
-        raise InvalidJql("Adding tasks by a JQL query is not available for Jira Cloud yet.")
+    def search(self, jql: str, limit: int) -> SearchResult:
+        # search/jql answers an unknown field or value with an empty list; only parse names them.
+        _, response = self._request(
+            "POST",
+            "/rest/api/3/jql/parse",
+            params={"validation": "strict"},
+            json={"queries": [jql]},
+        )
+        for query in _check(response).get("queries") or []:
+            if isinstance(query, dict) and query.get("errors"):
+                raise InvalidJql(" ".join(query["errors"]))
+        # A full page whatever the limit: when it is the last one, the count is exact.
+        base_url, response = self._request(
+            "POST",
+            "/rest/api/2/search/jql",
+            json={"jql": jql, "fields": FIELDS if limit else ["id"], "maxResults": MAX_SEARCH},
+        )
+        body = _check(response)
+        issues = body.get("issues") if isinstance(body.get("issues"), list) else []
+        tasks = [_task(base_url, issue) for issue in issues[:limit]]
+        if body.get("isLast", True):
+            return SearchResult(tasks, len(issues))
+        # Cloud's search has no total; past the first page there is only an estimate.
+        _, response = self._request(
+            "POST", "/rest/api/2/search/approximate-count", json={"jql": jql}
+        )
+        count = _check(response).get("count")
+        count = count if isinstance(count, int) else 0
+        return SearchResult(tasks, max(count, len(issues) + 1), estimated=True)

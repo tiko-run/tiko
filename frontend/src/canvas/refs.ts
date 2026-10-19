@@ -9,6 +9,8 @@ export type Resolved = {
   failed: { ref: string; message: string }[]
   /** Set for a JQL query: how many tasks matched, including the ones past the limit. */
   total?: number
+  /** True when `total` is the tracker's estimate. */
+  estimated?: boolean
 }
 
 const JIRA_PROJECT = '[A-Za-z][A-Za-z0-9_]+'

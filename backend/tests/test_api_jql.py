@@ -17,7 +17,7 @@ def test_demo_values_are_quoted_when_needed(client):
 
 def test_count_only_search(client):
     body = client.post("/api/tasks/search", json={"jql": 'status = "Done"', "limit": 0}).json()
-    assert body == {"tasks": [], "total": 1}
+    assert body == {"tasks": [], "total": 1, "estimated": False}
 
 
 def test_jira_vocabulary_through_the_api(jira_client):
