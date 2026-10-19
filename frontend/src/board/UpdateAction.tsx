@@ -13,6 +13,31 @@ import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
 
 const PLATFORM = { railway: 'Railway', render: 'Render' }
+const INSTALLERS = [
+  ['Linux, macOS', 'curl -fsSL https://tiko.run/install.sh | sh'],
+  ['Windows', 'irm https://tiko.run/install.ps1 | iex'],
+]
+const INSTALLER_GUIDE = 'https://docs.tiko.run/updates/#when-a-release-needs-the-installer'
+
+function NeedsInstaller({ version }: { version: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span>
+        v{version} cannot be installed with one click. Run the installer again on the server; your
+        boards stay.{' '}
+        <a href={INSTALLER_GUIDE} target="_blank" rel="noreferrer" className="text-primary">
+          How it works
+        </a>
+      </span>
+      {INSTALLERS.map(([system, command]) => (
+        <div key={system} className="flex flex-col">
+          <span className="text-muted-foreground">{system}</span>
+          <code className="font-mono text-[11px] select-all">{command}</code>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
   return (
@@ -83,6 +108,9 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
       </span>
     )
   }
+  // About updates to the latest release, so a mark on any release on the way stops the button.
+  const marked = info.newer.find((release) => release.installer)
+  if (marked) return <NeedsInstaller version={marked.version} />
   const breaking = info.newer.filter((release) => release.level === 'breaking')
   return (
     <div className="flex flex-col gap-1.5">

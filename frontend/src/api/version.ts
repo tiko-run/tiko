@@ -8,6 +8,7 @@ const releaseSchema = z.object({
   version: z.string(),
   url: z.string(),
   level: levelSchema,
+  installer: z.boolean(),
 })
 
 const versionSchema = z.object({

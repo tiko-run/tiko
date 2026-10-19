@@ -25,7 +25,12 @@ const idle = {
 }
 
 function info(level: ReleaseLevel = 'feature'): VersionInfo {
-  const release = { version: '2026.11.1', url: 'https://example.test/r', level } as const
+  const release = {
+    version: '2026.11.1',
+    url: 'https://example.test/r',
+    level,
+    installer: false,
+  } as const
   return {
     version: '2026.10.6',
     update_check: true,
@@ -71,6 +76,29 @@ test('an admin starts the update', async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Update now' }))
   expect(await screen.findByText('Updating to v2026.11.1…')).toBeInTheDocument()
   expect(fetch).toHaveBeenCalledWith('/api/update', expect.objectContaining({ method: 'POST' }))
+})
+
+test('a release on the way that needs the installer shows its command instead of the button', async () => {
+  serve({ '/api/update': { available: true, hosting: null, status: idle } })
+  const latest = {
+    version: '2026.11.2',
+    url: 'https://example.test/r2',
+    level: 'feature',
+    installer: false,
+  } as const
+  const marked = {
+    version: '2026.11.1',
+    url: 'https://example.test/r1',
+    level: 'feature',
+    installer: true,
+  } as const
+  renderWith(<UpdateAction info={{ ...info(), latest, newer: [latest, marked] }} admin />)
+  expect(
+    await screen.findByText(/v2026.11.1 cannot be installed with one click/),
+  ).toBeInTheDocument()
+  expect(screen.getByText('curl -fsSL https://tiko.run/install.sh | sh')).toBeInTheDocument()
+  expect(screen.getByText('irm https://tiko.run/install.ps1 | iex')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull()
 })
 
 test('a running update shows its download in About', async () => {

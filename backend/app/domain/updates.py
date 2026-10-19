@@ -23,12 +23,15 @@ LEVEL_LINES: dict[str, Level] = {
     "**Breaking changes.**": "breaking",
     "**Security release.**": "security",
 }
+# A line in a release's notes when "Update now" cannot install it, for example a new container.
+INSTALLER_LINE = "Requires: installer"
 
 
 class Release(BaseModel):
     version: str
     url: str
     level: Level = "feature"
+    installer: bool = False
 
 
 class VersionView(BaseModel):
@@ -44,6 +47,10 @@ class VersionView(BaseModel):
 def level_of(notes: str) -> Level:
     first = next((line.strip() for line in notes.splitlines() if line.strip()), "")
     return LEVEL_LINES.get(first, "feature")
+
+
+def needs_installer(notes: str) -> bool:
+    return any(line.strip() == INSTALLER_LINE for line in notes.splitlines())
 
 
 def _calver(version: str) -> tuple[int, ...] | None:
@@ -160,9 +167,13 @@ class OneClickUpdate:
     def start(self) -> UpdateView:
         if self._updater is None:
             raise UpdateNotPossible("One-click updates are off on this instance.")
-        latest = self._updates.view().latest
+        view = self._updates.view()
+        latest = view.latest
         if latest is None or not is_newer(latest.version, self._current):
             raise UpdateNotPossible("There is no newer release to update to.")
+        # The update goes to the latest release, so it passes every newer one on the way.
+        if any(r.installer for r in view.newer):
+            raise UpdateNotPossible("This update needs the installer. Run it again on the server.")
         if self._updater.status().state == "running":
             raise UpdateNotPossible("An update is already running.")
         free, needed = self._backups.free_and_needed(self._current)

@@ -15,11 +15,16 @@ from tests.test_people import invite, join
 
 
 class Feed:
-    def __init__(self, version: str = "2999.1.1") -> None:
+    def __init__(self, version: str = "2999.1.1", installer: tuple[str, ...] = ()) -> None:
         self.version = version
+        self.installer = installer
 
     def releases(self) -> list[Release]:
-        return [Release(version=self.version, url="https://example.test/r")]
+        versions = {self.version, *self.installer}
+        return [
+            Release(version=v, url="https://example.test/r", installer=v in self.installer)
+            for v in versions
+        ]
 
 
 class FakeUpdater:
@@ -49,8 +54,10 @@ class FakeBackups:
         return self.space
 
 
-def one_click(updater=None, backups=None, latest="2026.11.1", hosting=None) -> OneClickUpdate:
-    updates = UpdateService("2026.10.6", Feed(latest))
+def one_click(
+    updater=None, backups=None, latest="2026.11.1", hosting=None, installer=()
+) -> OneClickUpdate:
+    updates = UpdateService("2026.10.6", Feed(latest, installer))
     return OneClickUpdate(updates, updater, backups or FakeBackups(), "2026.10.6", hosting)
 
 
@@ -78,6 +85,20 @@ def test_no_updater_means_by_hand():
 def test_refuses_without_a_newer_release():
     with pytest.raises(UpdateNotPossible, match="no newer release"):
         one_click(FakeUpdater(), latest="2026.10.6").start()
+
+
+@pytest.mark.parametrize("marked", ["2026.11.1", "2026.10.9"])
+def test_refuses_when_a_release_on_the_way_needs_the_installer(marked: str):
+    updater = FakeUpdater()
+    with pytest.raises(UpdateNotPossible, match="needs the installer"):
+        one_click(updater, installer=(marked,)).start()
+    assert updater.started == []
+
+
+def test_an_older_marked_release_does_not_block():
+    updater = FakeUpdater()
+    one_click(updater, installer=("2026.10.1",)).start()
+    assert updater.started == [("2026.11.1", "2026.10.6")]
 
 
 def test_refuses_a_second_update():

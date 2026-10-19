@@ -8,7 +8,7 @@ afterEach(() => vi.unstubAllGlobals())
 const RELEASES = 'https://github.com/tiko-run/tiko/releases/tag'
 
 function release(version: string, level = 'feature') {
-  return { version, url: `${RELEASES}/v${version}`, level }
+  return { version, url: `${RELEASES}/v${version}`, level, installer: false }
 }
 
 function info(overrides: object = {}) {

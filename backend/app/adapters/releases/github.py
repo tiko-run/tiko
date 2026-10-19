@@ -1,7 +1,7 @@
 import httpx
 
 from app.domain.errors import DependencyUnavailable
-from app.domain.updates import Release, level_of
+from app.domain.updates import Release, level_of, needs_installer
 
 
 class GitHubReleaseFeed:
@@ -28,6 +28,7 @@ class GitHubReleaseFeed:
                     version=item["tag_name"].removeprefix("v"),
                     url=item["html_url"],
                     level=level_of(item.get("body") or ""),
+                    installer=needs_installer(item.get("body") or ""),
                 )
                 for item in response.json()
                 if not item.get("draft") and not item.get("prerelease")
