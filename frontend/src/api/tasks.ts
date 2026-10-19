@@ -33,7 +33,12 @@ export function resolveTask(ref: string) {
 export function searchTasks(jql: string, limit: number) {
   return fetchJson(
     '/api/tasks/search',
-    z.object({ tasks: z.array(taskSchema), total: z.number() }),
+    // `estimated`: the tracker only estimates `total`, as Jira Cloud does past its first page.
+    z.object({
+      tasks: z.array(taskSchema),
+      total: z.number(),
+      estimated: z.boolean().default(false),
+    }),
     {
       method: 'POST',
       body: JSON.stringify({ jql, limit }),

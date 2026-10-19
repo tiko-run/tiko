@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, datetime
-from typing import Literal, NoReturn
+from typing import Literal, NamedTuple, NoReturn
 from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel
@@ -129,12 +129,19 @@ def resolve_task(
 MAX_SEARCH = 100
 
 
+class SearchResult(NamedTuple):
+    tasks: list[Task]
+    total: int
+    # Jira Cloud only estimates a count past the first page.
+    estimated: bool = False
+
+
 def search_tasks(
     jql: str, limit: int, provider: TaskProvider, snapshots: SnapshotRepo
-) -> tuple[list[Task], int]:
-    tasks, total = provider.search(jql.strip(), min(limit, MAX_SEARCH))
-    snapshots.put_many(tasks)
-    return tasks, total
+) -> SearchResult:
+    found = provider.search(jql.strip(), min(limit, MAX_SEARCH))
+    snapshots.put_many(found.tasks)
+    return found
 
 
 class NoTokenProvider:

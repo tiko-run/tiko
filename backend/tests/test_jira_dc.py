@@ -86,7 +86,7 @@ def test_html_page_is_unavailable_not_crash():
 
 
 def test_search_returns_page_and_total():
-    tasks, total = provider(FakeJira()).search("project = DEV", 1)
+    tasks, total, _ = provider(FakeJira()).search("project = DEV", 1)
     assert [task.key for task in tasks] == ["DEV-1"]
     assert total == 2
 

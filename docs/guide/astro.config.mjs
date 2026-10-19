@@ -49,8 +49,8 @@ export default defineConfig({
         },
         { label: 'Get started', items: ['index', 'why', 'install', 'quick-start'] },
         {
-          label: 'The board',
-          items: ['adding-tasks', 'working-together', 'search', 'keyboard-shortcuts'],
+          label: 'Features',
+          items: ['adding-tasks', 'what-you-can-add', 'working-together', 'search', 'keyboard-shortcuts'],
         },
         { label: 'Modules', items: [{ slug: 'gantt', label: 'Gantt' }, 'focus-and-timers'] },
         { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },

@@ -120,6 +120,30 @@ test('adds the tasks a JQL query finds and keeps the form open when some are lef
   expect(await screen.findByRole('alert')).toHaveTextContent('Added 1 of 3.')
 })
 
+test('says about for a count the tracker only estimates', async () => {
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ tasks: [task], total: 140, estimated: true }), {
+        status: 200,
+      }),
+  )
+  vi.stubGlobal('fetch', fetch)
+  renderToolbar()
+  fireEvent.click(screen.getByRole('button', { name: 'Task card' }))
+  const field = await screen.findByLabelText('Issue keys, links or JQL')
+  fireEvent.change(field, { target: { value: 'project = DEMO' } })
+  expect(await screen.findByText('About 140 tasks match, the first 50 are added.')).toBeTruthy()
+  fireEvent.submit(field)
+  expect(await screen.findByRole('alert')).toHaveTextContent('Added 1 of about 140.')
+})
+
+test('links to what each tracker takes instead of listing it', async () => {
+  renderToolbar()
+  fireEvent.click(screen.getByRole('button', { name: 'Task card' }))
+  const link = await screen.findByRole('link', { name: 'What you can add' })
+  expect(link).toHaveAttribute('href', 'https://docs.tiko.run/what-you-can-add/')
+})
+
 test('picks tools from the keyboard', () => {
   const onTool = vi.fn()
   renderToolbar(vi.fn(), onTool)

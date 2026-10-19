@@ -3,7 +3,7 @@ import re
 from app.domain.errors import InvalidJql, TaskNotFound
 from app.domain.jql import JqlField, JqlValue, JqlVocabulary
 from app.domain.ports import DemoStatusRepo
-from app.domain.tasks import StatusCategory, Task, now_iso
+from app.domain.tasks import SearchResult, StatusCategory, Task, now_iso
 
 DEMO_HOST = "jira.example.com"
 _QUOTED = re.compile(r'"([^"]*)"')
@@ -141,7 +141,7 @@ class DemoTaskProvider:
             self._statuses.set(self._owner, key, status, now_iso())
         return self._task(key)
 
-    def search(self, jql: str, limit: int) -> tuple[list[Task], int]:
+    def search(self, jql: str, limit: int) -> SearchResult:
         """Not real JQL: quoted values must each appear in a task's text; no quotes match all."""
         if jql.count('"') % 2:
             raise InvalidJql("The query has an unclosed quote.")
@@ -152,7 +152,7 @@ class DemoTaskProvider:
             for key, fields in tasks.items()
             if all(needle in self._text(key, fields) for needle in needles)
         ]
-        return [self._task(key, tasks) for key in keys[:limit]], len(keys)
+        return SearchResult([self._task(key, tasks) for key in keys[:limit]], len(keys))
 
     def jql_vocabulary(self) -> JqlVocabulary:
         return JqlVocabulary(

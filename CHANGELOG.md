@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
-- Put your Jira Cloud tasks on a board: an admin enters the site address, and each person connects with their Atlassian e-mail and an API token in Settings → My tracker. Cards come by key, by link or by a link copied from a Jira board, and stay live like Data Center ones. Adding tasks by a JQL query on Jira Cloud comes next. See [Connect Jira Cloud](https://docs.tiko.run/jira-cloud/).
+- Put your Jira Cloud tasks on a board: an admin enters the site address, and each person connects with their Atlassian e-mail and an API token in Settings → My tracker. Cards come by key, by link, by a link copied from a Jira board or by a JQL query with suggestions as you type, and stay live like Data Center ones. See [Connect Jira Cloud](https://docs.tiko.run/jira-cloud/).
 - Run tiko behind Railway or Cloudflare and still count each visitor on their own: `TIKO_TRUSTED_PROXIES` and `TIKO_CLIENT_IP_HEADER` tell the web container which proxy to believe about the visitor's address, which sign-in and demo limits use. Values per platform are in [The client's address](https://docs.tiko.run/configuration/#the-clients-address).
 - Expand a Gantt over the board to work on a long plan at full size: days keep a readable width, the timeline scrolls sideways under the task column, and the view opens on today. Esc takes you back to the board.
 - Set a timer without spelling the time out: type `3` and pick 3 minutes, 3 hours or 3 days; type `tu` and pick Tuesday at 10:00, 14:00 or 18:00. Each suggestion shows when it goes off, and Tab takes the first one.
@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The card tool says what it takes in one line, with a link to [What you can add](https://docs.tiko.run/what-you-can-add/): keys, links, ranges and queries for each tracker, with examples.
 - Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
 - tiko.run is now one canvas you scroll through: the board in the first screen pulls back to show the rest of the canvas, each feature has its own frame with a drawing of the real board, ten board layouts sit in a carousel you can drag, and a map shows what stays on your server.

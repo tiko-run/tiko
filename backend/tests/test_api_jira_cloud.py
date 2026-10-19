@@ -105,3 +105,18 @@ def test_usage_counts_jira_cloud(cloud):
     cloud.post(f"/api/boards/{board_with(cloud, 'DEV-1')}/refresh")
     ping = cloud.app.state.privacy.ping()
     assert "jira_cloud" in ping.trackers and "jira_dc" not in ping.trackers
+
+
+def test_jql_on_cloud(cloud, fake):
+    connect(cloud)
+    found = cloud.post("/api/tasks/search", json={"jql": "project = DEV", "limit": 50}).json()
+    assert ([t["key"] for t in found["tasks"]], found["total"], found["estimated"]) == (
+        ["DEV-1", "DEV-2"],
+        2,
+        False,
+    )
+    values = cloud.get("/api/jql/values", params={"field": "status", "prefix": "do"}).json()
+    assert values == {"values": [{"value": "Done", "label": "Done"}]}
+    refused = cloud.post("/api/tasks/search", json={"jql": "nofield = 1", "limit": 0})
+    assert refused.status_code == 422
+    assert "nofield" in refused.json()["error"]["message"]

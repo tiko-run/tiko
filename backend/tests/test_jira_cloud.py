@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 from pydantic import SecretStr
@@ -69,9 +71,51 @@ def test_beta_retry_after_is_read():
     assert info.value.retry_after == 7
 
 
-def test_search_says_it_comes_later():
-    with pytest.raises(InvalidJql, match="not available for Jira Cloud yet"):
-        provider(FakeJiraCloud()).search("project = DEV", 10)
+def test_search_checks_the_query_then_reads_one_page():
+    fake = FakeJiraCloud()
+    tasks, total, estimated = provider(fake).search("project = DEV", 10)
+    assert ([t.key for t in tasks], total, estimated) == (["DEV-1", "DEV-2"], 2, False)
+    paths = [r.url.path for r in fake.requests]
+    assert paths == ["/rest/api/3/jql/parse", "/rest/api/2/search/jql"]
+
+
+def test_search_past_the_page_is_an_estimate():
+    fake = FakeJiraCloud({f"DEV-{n}": issue(f"DEV-{n}") for n in range(1, 151)})
+    fake.estimate = 140
+    tasks, total, estimated = provider(fake).search("project = DEV", 50)
+    assert (len(tasks), total, estimated) == (50, 140, True)
+
+
+def test_estimate_below_the_page_counts_the_page():
+    fake = FakeJiraCloud({f"DEV-{n}": issue(f"DEV-{n}") for n in range(1, 151)})
+    fake.estimate = 30
+    assert provider(fake).search("project = DEV", 50).total == 101
+
+
+def test_count_only_reads_ids():
+    fake = FakeJiraCloud()
+    assert provider(fake).search("project = DEV", 0) == ([], 2, False)
+    search = next(r for r in fake.requests if r.url.path.endswith("/search/jql"))
+    assert json.loads(search.content)["fields"] == ["id"]
+
+
+@pytest.mark.parametrize(
+    ("jql", "message"),
+    [
+        ("bad query", "Expecting a value"),
+        ("nofield = 1", "Field 'nofield' does not exist"),
+        ("order by created", "Unbounded JQL queries"),
+    ],
+)
+def test_search_shows_jiras_message(jql, message):
+    with pytest.raises(InvalidJql, match=message):
+        provider(FakeJiraCloud()).search(jql, 10)
+
+
+def test_suggestions_as_on_data_center():
+    cloud = provider(FakeJiraCloud())
+    assert "status" in [f.name for f in cloud.jql_vocabulary().fields]
+    assert [v.value for v in cloud.jql_values("status", "do")] == ["Done"]
 
 
 def test_kind_from_the_site():

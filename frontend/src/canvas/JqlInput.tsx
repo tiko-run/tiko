@@ -35,7 +35,7 @@ export function useJqlCount(jql: string, enabled: boolean) {
   const debounced = useDebounced(query, COUNT_DELAY_MS)
   return useQuery({
     queryKey: ['jql-count', debounced],
-    queryFn: () => searchTasks(debounced, 0).then((body) => body.total),
+    queryFn: () => searchTasks(debounced, 0),
     enabled: enabled && debounced !== '' && debounced === query,
     retry: false,
     staleTime: 30_000,

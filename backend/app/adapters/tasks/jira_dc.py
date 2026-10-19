@@ -16,7 +16,7 @@ from app.domain.errors import (
 )
 from app.domain.jql import JqlField, JqlValue, JqlVocabulary
 from app.domain.settings import JiraCredentials
-from app.domain.tasks import StatusCategory, Task, now_iso
+from app.domain.tasks import SearchResult, StatusCategory, Task, now_iso
 
 FIELDS = ["summary", "status", "issuetype", "assignee", "priority", "updated"]
 SEARCH_CHUNK = 500
@@ -71,6 +71,16 @@ def _json(response: httpx.Response) -> dict:
     if not isinstance(body, dict):
         raise JiraUnavailable("Jira returned an unexpected response. Check the URL.")
     return body
+
+
+def query_answer(response: httpx.Response) -> dict:
+    """The body of an answer to a query; Jira's own message when it rejects the query."""
+    if response.status_code == 400:
+        messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
+        raise InvalidJql(" ".join(messages))
+    if response.status_code != 200:
+        raise JiraUnavailable(f"Jira returned {response.status_code}")
+    return _json(response)
 
 
 def _task(base_url: str, issue: dict) -> Task:
@@ -172,22 +182,17 @@ class JiraDcProvider:
         issues = _json(response).get("issues", [])
         return base_url, issues if isinstance(issues, list) else []
 
-    def search(self, jql: str, limit: int) -> tuple[list[Task], int]:
+    def search(self, jql: str, limit: int) -> SearchResult:
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search",
             json={"jql": jql, "fields": FIELDS, "maxResults": limit},
         )
-        if response.status_code == 400:
-            messages = _json(response).get("errorMessages") or ["Jira rejected the query."]
-            raise InvalidJql(" ".join(messages))
-        if response.status_code != 200:
-            raise JiraUnavailable(f"Jira returned {response.status_code}")
-        body = _json(response)
+        body = query_answer(response)
         issues = body.get("issues")
         tasks = [_task(base_url, issue) for issue in issues] if isinstance(issues, list) else []
         total = body.get("total")
-        return tasks, total if isinstance(total, int) else len(tasks)
+        return SearchResult(tasks, total if isinstance(total, int) else len(tasks))
 
     def jql_vocabulary(self) -> JqlVocabulary:
         base_url = self._credentials().base_url
