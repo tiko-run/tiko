@@ -117,7 +117,7 @@ export function AddCardForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-1.5">
-      <label htmlFor="card-ref" className="text-muted-foreground text-[13px]">
+      <label htmlFor="card-ref" className="sr-only">
         Issue keys, links or JQL
       </label>
       <JqlInput
