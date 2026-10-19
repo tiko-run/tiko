@@ -23,7 +23,7 @@ export function DemoMark({ expiresAt }: { expiresAt: string }) {
     <Badge
       variant="outline"
       className="text-muted-foreground mx-1"
-      title="Only you see your boards. They are deleted this long after your last visit; keep real work data out of the demo."
+      title="Only you see your boards. They are deleted after 7 days without a visit; keep real work data out of the demo."
     >
       Demo · {demoDaysLeft(expiresAt)}
     </Badge>

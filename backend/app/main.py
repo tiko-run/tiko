@@ -337,6 +337,7 @@ def create_app(
         SqlitePlanningViewRepo(db),
         SqlitePlanningStageRepo(db),
         on_change=app.state.live.planning_changed,
+        sample=planning_sample.IDS if settings.tiko_demo else None,
     )
     app.state.public_links = PublicLinks(
         app.state.boards, service.public_links, app.state.live, attempts=attempts

@@ -493,3 +493,21 @@ def test_the_migration_fills_the_index_from_saved_boards() -> None:
     assert [(s.board_name, s.row, str(s.start)) for s in stages] == [
         ("Plan", "WEB-7", "2026-10-12")
     ]
+
+
+def test_a_demo_on_an_old_database_shows_only_the_sample(tmp_path) -> None:
+    db = str(tmp_path / "app.db")
+    team = signed_in(create_app(Settings(db_path=db)))
+    team.patch("/api/planning", json={"enabled": True})
+    team.post("/api/planning/people", json={"name": "Petra"})
+    team.post("/api/planning/fields", json={"name": "Quarter"})
+    team.post("/api/planning/views", json={"name": "Web", "filters": {"team": ["Web"]}})
+    team.put("/api/planning/days-off", json={"dates": ["2026-11-04"]})
+
+    app = create_app(Settings(db_path=db, tiko_demo=True))
+    app.state.planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
+    view = signed_in(app).get("/api/planning").json()
+    assert {t["id"] for t in view["types"]} == {t.id for t in sample.TYPES}
+    assert "Petra" not in {p["name"] for p in view["people"]}
+    assert [f["id"] for f in view["fields"]] == ["priority", "size", "team"]
+    assert view["views"] == [] and view["daysOff"] == []

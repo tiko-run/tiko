@@ -233,6 +233,7 @@ class Planning:
         stages: PlanningStageRepo,
         on_change: Callable[[], None] = lambda: None,
         new_id: Callable[[], str] = lambda: secrets.token_hex(6),
+        sample: frozenset[str] | None = None,
     ) -> None:
         self._settings = settings
         self._types = types
@@ -243,6 +244,8 @@ class Planning:
         # Told after every write, so open Gantts reread the lists.
         self._on_change = on_change
         self._new_id = new_id
+        # A demo shows only its sample types and people, whatever else the database holds.
+        self._sample = sample
 
     def enabled(self) -> bool:
         return self._settings.get_all().get(ENABLED_KEY) == "1"
@@ -252,11 +255,12 @@ class Planning:
             return PlanningView(enabled=False)
         return PlanningView(
             enabled=True,
-            types=self._types.all(),
-            people=self._people.all(),
-            fields=self._fields.all(),
-            views=self._views.all(),
-            daysOff=self._days_off(),
+            types=self._shown_types(),
+            people=self._shown_people(),
+            fields=self._shown_fields(),
+            views=[] if self._sample is not None else self._views.all(),
+            daysOff=self._shown_days_off(),
+            sample=self._sample is not None,
         )
 
     def for_board(
@@ -269,10 +273,10 @@ class Planning:
         if not self.enabled():
             return None
         return BoardPlanning(
-            types=[t for t in self._types.all() if t.id in type_ids],
-            people=[p for p in self._people.all() if p.id in person_ids],
-            fields=[f for f in self._fields.all() if f.id in field_ids],
-            daysOff=[d for d in self._days_off() if any(s <= d <= e for s, e in ranges)],
+            types=[t for t in self._shown_types() if t.id in type_ids],
+            people=[p for p in self._shown_people() if p.id in person_ids],
+            fields=[f for f in self._shown_fields() if f.id in field_ids],
+            daysOff=[d for d in self._shown_days_off() if any(s <= d <= e for s, e in ranges)],
         )
 
     def set_enabled(self, on: bool) -> PlanningView:
@@ -450,6 +454,18 @@ class Planning:
                 )
             )
         return Workload(weeks=out, stages=listed)
+
+    def _shown_types(self) -> list[StageType]:
+        return [t for t in self._types.all() if self._sample is None or t.id in self._sample]
+
+    def _shown_people(self) -> list[PlanningPerson]:
+        return [p for p in self._people.all() if self._sample is None or p.id in self._sample]
+
+    def _shown_fields(self) -> list[PlanningField]:
+        return [f for f in self._fields.all() if self._sample is None or f.standard]
+
+    def _shown_days_off(self) -> list[date]:
+        return [] if self._sample is not None else self._days_off()
 
     def _days_off(self) -> list[date]:
         stored = self._settings.get_all().get(DAYS_OFF_KEY)

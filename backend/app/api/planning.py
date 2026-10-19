@@ -7,7 +7,6 @@ from app.api.deps import (
     CurrentAdmin,
     CurrentPerson,
     NotDemoVisitor,
-    is_demo,
     members,
     not_on_demo,
 )
@@ -47,9 +46,7 @@ Writer = [NotDemoVisitor, Depends(not_on_demo)]
 
 @router.get("")
 def get_planning(person: CurrentPerson, service: PlanningDep, request: Request) -> PlanningView:
-    view = service.view()
-    view.sample = is_demo(request)
-    return view
+    return service.view()
 
 
 @router.patch("", dependencies=[Depends(not_on_demo)])

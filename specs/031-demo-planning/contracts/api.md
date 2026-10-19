@@ -10,7 +10,7 @@ Adds `sample`:
 {"enabled": true, "types": [...], "people": [...], "fields": [...], "views": [], "daysOff": [], "sample": true}
 ```
 
-`sample` is `true` on a demo instance (`TIKO_DEMO`) and `false` elsewhere. On a demo instance the answer is the sample library: Planning is on, the types and people have fixed ids (`demo-build`, `demo-anna`), and their time off is dated around today. A client hides every control that writes to the lists, and the workload, when `sample` is `true`.
+`sample` is `true` on a demo instance (`TIKO_DEMO`) and `false` elsewhere. On a demo instance the answer is the sample library and nothing else, even when the database holds other rows: no other types or people, only the standard fields, no views and no days off. Planning is on, the types and people have fixed ids (`demo-build`, `demo-anna`), and their time off is dated around today. A client hides every control that writes to the lists, and the workload, when `sample` is `true`.
 
 ## Writes and workload
 

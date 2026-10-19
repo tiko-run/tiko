@@ -26,6 +26,8 @@ _PEOPLE = [
     (DEV, "Dev", ["Platform"]),
     (ELIF, "Elif", ["Platform"]),
 ]
+# Everything a demo shows; other rows in its database stay hidden.
+IDS = frozenset([*(t.id for t in TYPES), *(pid for pid, _, _ in _PEOPLE)])
 # Chloe is away during her Build stage on the welcome Gantt, so it shows the red outline.
 CHLOE_OFF = (11, 13)
 
