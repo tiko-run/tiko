@@ -6,7 +6,7 @@
 
 **Status**: Approved by the owner at G2 on 2026-10-19.
 
-**Input**: The owner wants the demo to show the whole Gantt, Planning mode included, from the first click. [Spec 027](../027-planning/spec.md) left Planning out of the demo because its lists are shared by the whole instance.
+**Input**: The demo should show the whole Gantt, Planning mode included, from the first click. [Spec 027](../027-planning/spec.md) left Planning out of the demo because its lists are shared by the whole instance.
 
 ## Why
 
@@ -80,11 +80,11 @@ A visitor reads on the first screen and under the demo mark that their boards ar
 
 ## Out of scope
 
-- One click giving a full account with no visitor step. It is decided together with the G1 of the hosted tiko.
-- Separate Planning lists per person or per team (workspaces). Needed before the hosted tiko; its own spec.
+- One click giving a full account with no visitor step.
+- Separate Planning lists per person or per team.
 - Workload on the demo.
 - Planning on the self-hosted welcome board.
 
 ## Decisions at G2
 
-1. "Sign up to keep it" stays on the demo as it is until the hosted tiko G1.
+1. "Sign up to keep it" stays on the demo as it is.
