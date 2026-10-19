@@ -19,6 +19,7 @@ const OFF: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
+  sample: false,
 }
 
 const row = (id: string, key?: string): Row => ({

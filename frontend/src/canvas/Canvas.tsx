@@ -184,6 +184,7 @@ export function BoardCanvas({
             fields: guestPlanning?.fields ?? [],
             views: [],
             daysOff: guestPlanning?.daysOff ?? [],
+            sample: false,
           }
         : {
             enabled: planningData?.enabled ?? false,
@@ -192,6 +193,7 @@ export function BoardCanvas({
             fields: planningData?.fields ?? [],
             views: planningData?.views ?? [],
             daysOff: planningData?.daysOff ?? [],
+            sample: planningData?.sample ?? false,
           },
     [guest, guestPlanning, planningData],
   )

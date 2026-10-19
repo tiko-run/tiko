@@ -40,6 +40,14 @@ test('nobody is suggested before the field is used, so nothing is imported in bu
   expect(suggestions('', [], [], [])).toEqual([])
 })
 
+test('a fixed directory offers only its people, no assignees and no new name', () => {
+  expect(suggestions('iv', [], people, ['Ivo'], true).map((s) => s.kind)).toEqual([
+    'person',
+    'person',
+  ])
+  expect(suggestions('Petra', [], people, [], true)).toEqual([])
+})
+
 test('an id the instance does not know reads Unknown', () => {
   expect(stagePeople(['p1', 'gone'], people)).toEqual([
     { id: 'p1', name: 'Ivan', archived: false },

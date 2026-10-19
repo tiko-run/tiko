@@ -97,6 +97,8 @@ class PlanningView(BaseModel):
     fields: list[PlanningField] = []
     views: list[SavedView] = []
     daysOff: list[date] = []  # noqa: N815 - mirrors the contract
+    # The demo's made-up lists: everyone reads them, nobody changes them.
+    sample: bool = False
 
 
 class IndexedStage(BaseModel):
@@ -281,6 +283,24 @@ class Planning:
         self._settings.set_many({ENABLED_KEY: "1" if on else None})
         self._on_change()
         return self.view()
+
+    def write_sample(self, types: list[StageType], people: list[PlanningPerson]) -> None:
+        """Turns Planning on with fixed lists; rows with the same ids are overwritten."""
+        known_types = {t.id for t in self._types.all()}
+        for stage_type in types:
+            (self._types.update if stage_type.id in known_types else self._types.add)(stage_type)
+        known_people = {p.id: p for p in self._people.all()}
+        for person in people:
+            if person.id in known_people:
+                self._people.update(person)
+                for off in known_people[person.id].off:
+                    self._people.remove_off(person.id, off.id)
+            else:
+                self._people.add(person)
+            for off in person.off:
+                self._people.add_off(person.id, off, MAX_OFF)
+        self._settings.set_many({ENABLED_KEY: "1"})
+        self._on_change()
 
     def add_type(self, body: TypeIn) -> StageType:
         self._require_enabled()

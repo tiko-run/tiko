@@ -137,4 +137,4 @@ Ivan is in Build on one board and in Design on another the same week. Anna opens
 - Writing stages, people or field values back to the tracker.
 - Dependency lines between single stages; lines connect rows, from the end of a row's last stage to the start of the next row's first. Added when users ask.
 - Field types beyond text (numbers, single choice with colors).
-- Planning on the demo instance: visitors share one instance, and a shared people list would leak between them.
+- Planning on the demo instance with lists visitors can change: visitors share one instance, and a shared people list would leak between them. The demo shows a fixed sample instead ([spec 031](../031-demo-planning/spec.md)).

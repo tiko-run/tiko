@@ -91,7 +91,7 @@ export function GanttFilters({ content, planning, onChange }: Props) {
           Filter
         </Button>
       </FilterPicker>
-      {keys.length > 0 && !current && <SaveView filters={filters} />}
+      {keys.length > 0 && !current && !planning.sample && <SaveView filters={filters} />}
     </div>
   )
 }

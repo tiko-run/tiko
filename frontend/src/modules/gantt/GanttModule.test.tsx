@@ -91,6 +91,7 @@ const OFF: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
+  sample: false,
 }
 
 function renderGantt(
@@ -327,6 +328,7 @@ const PLANNING: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
+  sample: false,
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -666,6 +668,25 @@ test('a drag across the lane marks the picked person away', async () => {
   } finally {
     vi.unstubAllGlobals()
   }
+})
+
+test('the demo sample is picked from, never added to', () => {
+  renderGantt({}, staged([]), { ...AWAY, fields: FIELDS.fields, sample: true })
+  press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
+  expect(screen.queryByRole('button', { name: 'New type' })).toBeNull()
+  fireEvent.change(screen.getByLabelText('Add a person'), { target: { value: 'Petra' } })
+  expect(screen.queryByRole('option')).toBeNull()
+})
+
+test('the demo sample keeps its time off and fields as they are', () => {
+  renderGantt({}, staged(['p1']), { ...AWAY, fields: FIELDS.fields, sample: true })
+  fireEvent.click(screen.getByRole('button', { name: /^Ivan is away/ }))
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+  fireEvent.keyDown(document.body, { key: 'Escape' })
+  press(document.querySelector('[data-gantt-timeoff]') as HTMLElement, 600)
+  expect(screen.queryByText('Who is away?')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Columns', hidden: true }))
+  expect(screen.queryByLabelText('New field')).toBeNull()
 })
 
 test('time off is removed from its popover', async () => {
