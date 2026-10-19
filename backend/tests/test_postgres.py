@@ -232,3 +232,16 @@ def test_a_request_works_in_the_workspace_of_its_board_or_person(other):
     saved = pg.PgBoardRepo(db, other).get(board_id)
     assert [n.id for n in saved.doc.nodes] == ["unsaved"]
     assert pg.PgBoardRepo(db).get(board_id) is None
+
+
+def test_the_cleanup_of_unused_accounts_stays_in_its_workspace(db, other, pg_url):
+    old = "2000-01-01T00:00:00+00:00"
+    bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="member")
+    pg.PgUserRepo(db, other).add(bob, "hash")
+    ann = _person(db, "ann")
+    pg.PgUserRepo(db).set_role(ann, "member")
+    with psycopg.connect(pg_url, autocommit=True) as conn:
+        conn.execute("UPDATE users SET created_at = %s", (old,))
+    gone, _ = pg.PgUserRepo(db).delete_unused_members("2001-01-01T00:00:00+00:00")
+    assert gone == [ann]
+    assert pg.PgUserRepo(db, other).get(bob.id) is not None

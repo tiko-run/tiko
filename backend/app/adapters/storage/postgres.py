@@ -119,13 +119,14 @@ class Database:
 
     @staticmethod
     def _migrate(conn: psycopg.Connection) -> None:
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_migrations"
-            " (number integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())"
-        )
-        # Several processes start together; one applies, the others find it done.
+        # Several processes start together; one applies, the others find it done. The table too:
+        # IF NOT EXISTS does not make two creations at once safe.
         conn.execute("SELECT pg_advisory_lock(%s)", (_MIGRATION_LOCK,))
         try:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS schema_migrations"
+                " (number integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())"
+            )
             done = {r["number"] for r in conn.execute("SELECT number FROM schema_migrations")}
             for number, path in MIGRATIONS:
                 if number in done:
@@ -141,9 +142,9 @@ class Database:
         self._app.close()
         self._jobs.close()
 
-    def transaction(self, workspace: str | None):
+    def transaction(self, workspace: str | None, kind: str | None = None):
         """One transaction as tiko_app, seeing only `workspace`; None sees global tables only."""
-        return self._tx(self._app, workspace, sys._getframe(1).f_code.co_qualname)
+        return self._tx(self._app, workspace, kind or sys._getframe(1).f_code.co_qualname)
 
     def jobs(self):
         """One transaction as tiko_jobs, for work that crosses workspaces."""
@@ -218,7 +219,8 @@ class _Repo:
         return self._fixed or current_workspace.get() or self._db.default_workspace
 
     def _tx(self):
-        return self._db.transaction(self._ws)
+        # Named after the repository method, so a slow kind of work can be told from the rest.
+        return self._db.transaction(self._ws, sys._getframe(1).f_code.co_qualname)
 
 
 class PgWorkspaces:
@@ -1027,9 +1029,12 @@ class PgUserRepo(_Repo):
     def delete_unused_members(self, before: str) -> _Gone:
         with self._tx() as conn:
             rows = conn.execute(
-                "SELECT u.id FROM users u LEFT JOIN memberships m"
+                # Members of this workspace only, and only those in no other one.
+                "SELECT u.id FROM users u JOIN memberships m"
                 " ON m.user_id = u.id AND m.workspace_id = %s"
-                " WHERE u.demo_expires_at IS NULL AND m.role IS DISTINCT FROM 'admin'"
+                " WHERE u.demo_expires_at IS NULL AND m.role <> 'admin'"
+                " AND NOT EXISTS (SELECT 1 FROM memberships o"
+                " WHERE o.user_id = u.id AND o.workspace_id <> m.workspace_id)"
                 " AND COALESCE(u.last_sign_in_at, u.created_at) <= %s",
                 (self._ws, before),
             ).fetchall()
