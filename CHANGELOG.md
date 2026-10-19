@@ -19,7 +19,6 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
-- Share says plainly who gets a board: "Everyone in tiko" is now "Everyone with an account", "Anyone with the link can view" is now "Public link", and each line says who gets in. The guide compares the three ways to share in [Working together](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
 - Sign-in remembers the browsers you signed in from, for a year: wrong passwords typed somewhere else no longer hold you up there. Wrong passwords are also counted per address now, so one place that keeps guessing slows down only itself.
 - tiko.run reads easier on a wide screen: a wider page, larger text, and the install command for your system: PowerShell on Windows, the shell script on macOS and Linux.
 - tiko.run is now one canvas you scroll through: the board in the first screen pulls back to show the rest of the canvas, each feature has its own frame with a drawing of the real board, ten board layouts sit in a carousel you can drag, and a map shows what stays on your server.
@@ -29,6 +28,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The Gantt's task column and field columns now sit on a light gray panel, so it is clear where the timeline starts.
 - The **+** at the ends of a Gantt's timeline adds one step of its scale instead of a whole quarter: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 - The daily usage counts now say how many boards changed in the last week and which system tiko was installed on, and the installer says whether it is a new install or a retry. Still only counts, nothing about any one person, and a restart no longer sends an extra count. Every field is listed on the Usage stats page of the guide.
+- Share says plainly who gets a board: "Everyone in tiko" is now "Everyone with an account", "Anyone with the link can view" is now "Public link", and each line says who gets in. The guide compares the three ways to share in [Working together](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
 
 ### Fixed
 
