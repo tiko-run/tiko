@@ -30,7 +30,7 @@ The top bar shows "Demo · 7 days", the time the boards are still kept. "Sign up
 
 How many boards a person with an account may own is up to you: set `TIKO_BOARD_LIMIT`, for example `TIKO_BOARD_LIMIT=3` to keep the visitor's three. Without it there is no limit after sign-up. Admins are never limited.
 
-On an instance with `TIKO_DEMO=1` the share picker finds a person by their whole username only, so strangers are not listed to each other. A person can run 20 such searches a minute, so usernames cannot be gone through by guessing. For the same reason Share has no "Everyone in tiko", and each person has their own statuses of the demo tasks.
+On an instance with `TIKO_DEMO=1` the share picker finds a person by their whole username only, so strangers are not listed to each other. A person can run 20 such searches a minute, so usernames cannot be gone through by guessing. For the same reason Share has no "Everyone with an account", and each person has their own statuses of the demo tasks.
 
 There is no mail on a demo, so a forgotten password cannot be reset by the person; an admin can make a reset link in Settings → People. An account that nobody signed in to for 90 days is deleted with its boards. Admins are never deleted.
 
@@ -54,5 +54,5 @@ A visitor who changed nothing is deleted an hour after their last request, and i
 - Put tiko behind a proxy on the same host or private network. The web container believes forwarded addresses only from private networks, so the address limit counts real visitors.
 - Admins are not limited and sign in on the first screen like everyone with an account. They see people who signed up, not visitors, and their list of other people's boards leaves visitors' boards out.
 - Anyone who signs up can test a tracker token against the address the instance is set to. Only an admin can point that test at another address.
-- Turning the demo on does not undo "Everyone in tiko" on boards shared that way before: visitors do not see them, everyone who signs up will. Their owners can still set it to "No access" in Share.
+- Turning the demo on does not undo "Everyone with an account" on boards shared that way before: visitors do not see them, everyone who signs up will. Their owners can still set it to "No access" in Share.
 - A demo collects what visitors put on their boards. Publish a privacy notice and terms with it.

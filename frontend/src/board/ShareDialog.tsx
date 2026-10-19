@@ -261,11 +261,11 @@ function PublicLink({
           <Globe className="text-muted-foreground size-4" strokeWidth={1.75} />
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="font-medium">Anyone with the link can view</span>
+          <span className="font-medium">Public link</span>
           <span className="text-muted-foreground text-[12px]">
             {allowed === false
               ? 'An admin switched public links off on this tiko.'
-              : 'No sign-in. Tasks from your tracker show only their key.'}
+              : 'Anyone with the link can view, no sign-in. Tracker tasks show only their key.'}
           </span>
         </div>
         {manage ? (
@@ -353,9 +353,9 @@ export function ShareDialog({
                   <Users className="text-muted-foreground size-4" strokeWidth={1.75} />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-medium">Everyone in tiko</span>
+                  <span className="font-medium">Everyone with an account</span>
                   <span className="text-muted-foreground text-[12px]">
-                    Anyone who can sign in to this tiko
+                    Everyone who signs in here finds it in their list
                   </span>
                 </div>
                 {manage ? (
