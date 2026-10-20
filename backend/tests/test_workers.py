@@ -35,9 +35,9 @@ def _free_ports() -> int:
         port = random.randrange(20000, 30000)
         with socket.socket() as first, socket.socket() as second:
             try:
-                # Where the processes bind: free on 127.0.0.1 is not always free on all addresses.
-                first.bind(("0.0.0.0", port))  # noqa: S104
-                second.bind(("0.0.0.0", port + 1))  # noqa: S104
+                # tiko binds all addresses: a port taken only there makes _start retry.
+                first.bind(("127.0.0.1", port))
+                second.bind(("127.0.0.1", port + 1))
             except OSError:
                 continue
             return port
@@ -62,7 +62,7 @@ def _start(env: dict, sockets: str) -> tuple[subprocess.Popen, "Instance"]:
             if time.monotonic() > deadline:
                 process.terminate()
                 process.wait(30)
-                raise AssertionError("tiko did not start")
+                break
             time.sleep(0.2)
     raise AssertionError("tiko did not start")
 
