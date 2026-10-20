@@ -19,20 +19,20 @@ const prompt = encodeURIComponent(`Read ${source} so I can ask questions about i
   </button>
   <details class="tiko-copy-more">
     <summary aria-label="More ways to use this page"><Icon name="down-caret" size="0.95rem" /></summary>
-    <div class="tiko-copy-menu" role="menu">
-      <button type="button" role="menuitem" data-copy>
+    <div class="tiko-copy-menu">
+      <button type="button" data-copy>
         <Icon name="document" size="1rem" />
         <span><strong>Copy page</strong>Copy this page as Markdown for LLMs</span>
       </button>
-      <a role="menuitem" href={markdown} target="_blank" rel="noopener">
+      <a href={markdown} target="_blank" rel="noopener">
         <Icon name="notes" size="1rem" />
         <span><strong>View as Markdown</strong>Open this page as plain text</span>
       </a>
-      <a role="menuitem" href={`https://chatgpt.com/?hints=search&q=${prompt}`} target="_blank" rel="noopener">
+      <a href={`https://chatgpt.com/?hints=search&q=${prompt}`} target="_blank" rel="noopener">
         <Icon name="external" size="1rem" />
         <span><strong>Open in ChatGPT</strong>Ask questions about this page</span>
       </a>
-      <a role="menuitem" href={`https://claude.ai/new?q=${prompt}`} target="_blank" rel="noopener">
+      <a href={`https://claude.ai/new?q=${prompt}`} target="_blank" rel="noopener">
         <Icon name="external" size="1rem" />
         <span><strong>Open in Claude</strong>Ask questions about this page</span>
       </a>
@@ -41,21 +41,28 @@ const prompt = encodeURIComponent(`Read ${source} so I can ask questions about i
 </div>
 
 <script>
-  async function copy(box: HTMLElement) {
-    const text = await fetch(box.dataset.markdown!).then((response) => response.text())
-    await navigator.clipboard.writeText(text)
+  function flash(box: HTMLElement, text: string) {
     const label = box.querySelector<HTMLElement>('[data-label]')!
-    label.textContent = 'Copied'
+    label.textContent = text
     setTimeout(() => (label.textContent = 'Copy page'), 1500)
+  }
+
+  async function copy(box: HTMLElement) {
+    const response = await fetch(box.dataset.markdown!)
+    if (!response.ok) throw new Error(`${response.status} for ${response.url}`)
+    const text = await response.text()
+    await navigator.clipboard.writeText(text)
+    flash(box, 'Copied')
   }
 
   document.addEventListener('click', (event) => {
     const target = event.target as Element
     for (const menu of document.querySelectorAll<HTMLDetailsElement>('.tiko-copy-more[open]')) {
-      if (!menu.contains(target) || target.closest('[role="menuitem"]')) menu.open = false
+      if (!menu.contains(target) || target.closest('.tiko-copy-menu > *')) menu.open = false
     }
     const button = target.closest('[data-copy]')
-    if (button) copy(button.closest<HTMLElement>('.tiko-copy')!).catch(() => {})
+    const box = button?.closest<HTMLElement>('.tiko-copy')
+    if (box) copy(box).catch(() => flash(box, 'Copy failed'))
   })
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return

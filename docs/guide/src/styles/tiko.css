@@ -400,11 +400,17 @@ site-search button[data-open-modal] {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--tiko-thumb) transparent;
-  transition: --tiko-thumb 0.4s ease;
 }
 :not(html):hover,
 .tiko-scrolling {
   --tiko-thumb: color-mix(in oklch, var(--tiko-muted-foreground) 35%, transparent);
+}
+/* The fade only on the boxes that scroll, so no other element's own transition is replaced. */
+:is(html, .sidebar-pane, .right-sidebar, pre, table, .dialog-frame) {
+  transition: --tiko-thumb 0.4s ease;
+}
+:is(.sidebar-pane, .right-sidebar, pre, table, .dialog-frame):hover,
+:is(html, .sidebar-pane, .right-sidebar, pre, table, .dialog-frame).tiko-scrolling {
   transition-duration: 0.1s;
 }
 html.tiko-scrolling {
