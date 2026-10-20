@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     log_level: str = "info"
     # Postgres, as the owner of tiko's database. The API switches to the roles tiko_app and
     # tiko_jobs for its work, so row-level security holds.
-    database_url: str
+    database_url: str = ""
     # The database of an SQLite release, copied into Postgres once at the first start.
     db_path: str = DEFAULT_DB_PATH
     tiko_secret_key: SecretStr | None = None
@@ -76,6 +76,16 @@ class Settings(BaseSettings):
     tiko_demo_limit: int | None = Field(default=None, ge=1)
     # Boards a person may own, admins aside. Empty: no limit.
     tiko_board_limit: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _database_set(self) -> Self:
+        # Read in the log of an install that was updated without its installer.
+        if not self.database_url:
+            raise ValueError(
+                "DATABASE_URL is not set: tiko keeps its data in Postgres; run the installer"
+                " again to add the database, see https://docs.tiko.run/updates/"
+            )
+        return self
 
     @model_validator(mode="after")
     def _metrics_ports_fit(self) -> Self:
