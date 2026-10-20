@@ -128,6 +128,19 @@ def test_github_feed_reads_releases_with_levels_and_etag():
     assert seen == [None, '"abc"']
 
 
+def test_installer_is_needed_for_a_marked_release_or_a_feed_that_stops_short():
+    marked = Release(version="2026.11.0", url="https://x", installer=True)
+    cases = [
+        ([release("2026.11.1"), release("2026.10.6")], False),
+        ([release("2026.11.1"), marked, release("2026.10.6")], True),
+        ([release("2026.11.1"), release("2026.10.9")], True),
+        ([release("2026.10.6")], False),
+        ([], False),
+    ]
+    for releases, needed in cases:
+        assert UpdateService("2026.10.6", Feed(releases)).view().installer is needed, releases
+
+
 def test_installer_mark_is_a_line_of_its_own():
     assert needs_installer("**Breaking changes.**\n\n  Requires: installer  \n- more")
     assert not needs_installer("- this release requires: installer for some people")
@@ -160,6 +173,7 @@ def test_version_endpoint_with_checks_off():
         "update_available": False,
         "level": None,
         "newer": [],
+        "installer": False,
     }
 
 

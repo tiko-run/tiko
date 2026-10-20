@@ -108,9 +108,10 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
       </span>
     )
   }
-  // About updates to the latest release, so a mark on any release on the way stops the button.
-  const marked = info.newer.find((release) => release.installer)
-  if (marked) return <NeedsInstaller version={marked.version} />
+  if (info.installer) {
+    const marked = info.newer.find((release) => release.installer) ?? info.latest
+    return <NeedsInstaller version={marked?.version ?? ''} />
+  }
   const breaking = info.newer.filter((release) => release.level === 'breaking')
   return (
     <div className="flex flex-col gap-1.5">

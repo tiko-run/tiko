@@ -42,6 +42,9 @@ class VersionView(BaseModel):
     # The highest level among the releases newer than the running one.
     level: Level | None
     newer: list[Release]
+    # "Update now" cannot reach the latest release: one on the way needs the installer, or the
+    # feed does not reach back to the running release, so a marked one may be missing from it.
+    installer: bool = False
 
 
 def level_of(notes: str) -> Level:
@@ -95,6 +98,7 @@ class UpdateService:
             reverse=True,
         )
         newer = [r for r in releases if is_newer(r.version, self._current)]
+        covered = len(newer) < len(releases)
         return VersionView(
             version=self._current,
             update_check=self._feed is not None,
@@ -102,6 +106,7 @@ class UpdateService:
             update_available=bool(newer),
             level=max((r.level for r in newer), key=LEVELS.index) if newer else None,
             newer=newer,
+            installer=bool(newer) and (not covered or any(r.installer for r in newer)),
         )
 
     def _fetch(self, force: bool) -> list[Release]:
@@ -171,8 +176,7 @@ class OneClickUpdate:
         latest = view.latest
         if latest is None or not is_newer(latest.version, self._current):
             raise UpdateNotPossible("There is no newer release to update to.")
-        # The update goes to the latest release, so it passes every newer one on the way.
-        if any(r.installer for r in view.newer):
+        if view.installer:
             raise UpdateNotPossible("This update needs the installer. Run it again on the server.")
         if self._updater.status().state == "running":
             raise UpdateNotPossible("An update is already running.")

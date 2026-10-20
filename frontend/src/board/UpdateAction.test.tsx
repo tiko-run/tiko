@@ -38,6 +38,7 @@ function info(level: ReleaseLevel = 'feature'): VersionInfo {
     update_available: true,
     level: release.level,
     newer: [release],
+    installer: false,
   }
 }
 
@@ -92,12 +93,23 @@ test('a release on the way that needs the installer shows its command instead of
     level: 'feature',
     installer: true,
   } as const
-  renderWith(<UpdateAction info={{ ...info(), latest, newer: [latest, marked] }} admin />)
+  renderWith(
+    <UpdateAction info={{ ...info(), latest, newer: [latest, marked], installer: true }} admin />,
+  )
   expect(
     await screen.findByText(/v2026.11.1 cannot be installed with one click/),
   ).toBeInTheDocument()
   expect(screen.getByText('curl -fsSL https://tiko.run/install.sh | sh')).toBeInTheDocument()
   expect(screen.getByText('irm https://tiko.run/install.ps1 | iex')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull()
+})
+
+test('a feed that stops short of the running release asks for the installer too', async () => {
+  serve({ '/api/update': { available: true, hosting: null, status: idle } })
+  renderWith(<UpdateAction info={{ ...info(), installer: true }} admin />)
+  expect(
+    await screen.findByText(/v2026.11.1 cannot be installed with one click/),
+  ).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull()
 })
 

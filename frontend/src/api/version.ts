@@ -18,6 +18,7 @@ const versionSchema = z.object({
   update_available: z.boolean(),
   level: levelSchema.nullable(),
   newer: z.array(releaseSchema),
+  installer: z.boolean(),
 })
 
 export type ReleaseLevel = z.infer<typeof levelSchema>
