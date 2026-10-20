@@ -10,14 +10,18 @@ services:
     # API processes; the web container picks the one of a board, so both get the number.
     environment:
       TIKO_WORKERS: ${TIKO_WORKERS:-1}
+      # Postgres in the db service as its owner; set DATABASE_URL in .env for a server of your own.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://tiko_owner:${POSTGRES_PASSWORD:-tiko-local}@db:5432/tiko}
       # Built from source; the usage stats say so (guide: Usage stats).
       TIKO_DEPLOY: ${TIKO_DEPLOY:-source}
     # Only this machine: past the web container a client could name any address of its own.
     ports: ["127.0.0.1:${TIKO_API_PORT:-8000}:8000"]
-    volumes: ["./data:/app/data"]  # SQLite and other local data survive rebuilds
+    volumes: ["./data:/app/data"]  # the password file, backups, an SQLite file to copy
     # An open board is a socket in the API, and a Linux host starts a container at 1024 files.
     ulimits:
       nofile: 65536
+    depends_on:
+      db: { condition: service_healthy }
 
   web:
     build: ./frontend
@@ -29,3 +33,41 @@ services:
     ports: ["${TIKO_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }
+
+  # Boards, people and settings. No port outside the compose network; data in the volume pgdata,
+  # which `docker compose down -v` deletes.
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tiko
+      # Read once, when the volume is made: a new value later locks the API out.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tiko-local}
+    # At the first start the image's superuser makes the owner the API logs in as, then loses
+    # its password: it is reached only through the socket inside this container.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        cat >/docker-entrypoint-initdb.d/tiko.sh <<'INIT'
+        psql -v ON_ERROR_STOP=1 -v pw="$$POSTGRES_PASSWORD" -U postgres -d tiko <<'SQL'
+        CREATE ROLE tiko_owner LOGIN CREATEROLE PASSWORD :'pw';
+        ALTER DATABASE tiko OWNER TO tiko_owner;
+        ALTER SCHEMA public OWNER TO tiko_owner;
+        ALTER ROLE postgres PASSWORD NULL;
+        SQL
+        INIT
+        exec docker-entrypoint.sh "$$@"
+      - sh
+    # Small, for a small server; see Configuration in the guide for more API processes.
+    command: [postgres, -c, shared_buffers=32MB, -c, max_connections=100]
+    volumes: ["pgdata:/var/lib/postgresql"]
+    # Over TCP, which opens only after the first-start setup is done.
+    healthcheck:
+      test: [CMD, pg_isready, -q, -h, 127.0.0.1, -U, tiko_owner, -d, tiko]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+volumes:
+  pgdata:

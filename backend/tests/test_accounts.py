@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters import password_file
 from app.adapters.secrets.fernet import FernetSecretBox
-from app.adapters.storage.sqlite import MIGRATIONS
+from app.adapters.storage.copy_sqlite import MIGRATIONS
 from app.config import Settings
 from app.domain.accounts import (
     PER_USERNAME_FAILURES,
@@ -287,7 +287,6 @@ def _v2026_10_9_database(path: str, secret_key: str) -> None:
     conn.close()
 
 
-@pytest.mark.sqlite_only
 def test_upgrade_from_v2026_10_9_opens_as_admin(tmp_path, monkeypatch, capsys):
     db = str(tmp_path / "app.db")
     _v2026_10_9_database(db, "test-secret-key")

@@ -21,7 +21,7 @@ from app.config import Settings
 from app.domain.accounts import PER_USERNAME_FAILURES
 from app.domain.attempts import MemoryAttempts
 from app.domain.live import GOING_AWAY, SESSION_ENDED
-from tests.conftest import PASSWORD, query_on
+from tests.conftest import PASSWORD, empty_tables, query_on
 from tests.test_live import Tab, sticky
 
 BACKEND = Path(__file__).parents[1]
@@ -104,7 +104,9 @@ def _close_code(conn) -> int:
 
 
 @pytest.fixture(scope="module", params=["ports", "ports and unix sockets"])
-def instance(request, tmp_path_factory):
+def instance(request, tmp_path_factory, pg_url):
+    # Its tests share the processes and their rows; each kind of instance starts on empty ones.
+    empty_tables(pg_url)
     port = _free_ports()
     # Not pytest's own directory: the path of a Unix socket has to stay short.
     sockets = tempfile.mkdtemp(prefix="tiko") if "unix" in request.param else ""
@@ -138,11 +140,13 @@ def instance(request, tmp_path_factory):
             shutil.rmtree(sockets, ignore_errors=True)
 
 
+@pytest.mark.shared_rows
 def test_a_process_with_unix_sockets_still_answers_on_its_port(instance):
     for port in instance.ports:
         assert httpx.get(f"http://127.0.0.1:{port}/health", timeout=10).is_success
 
 
+@pytest.mark.shared_rows
 def test_signing_out_everywhere_closes_a_socket_in_the_other_process(instance):
     admin = instance.sign_in(0)
     session = admin.cookies["tiko_session"]
@@ -157,6 +161,7 @@ def test_signing_out_everywhere_closes_a_socket_in_the_other_process(instance):
     assert not other.get("/api/auth/status").json()["me"]
 
 
+@pytest.mark.shared_rows
 def test_a_rest_save_reaches_a_tab_of_a_board_open_in_the_other_process(instance):
     admin = instance.sign_in(0)
     board_id = instance.board(admin, 1)
@@ -170,6 +175,7 @@ def test_a_rest_save_reaches_a_tab_of_a_board_open_in_the_other_process(instance
         assert admin.put(f"/api/boards/{board_id}", json=body).status_code == 409
 
 
+@pytest.mark.shared_rows
 def test_a_socket_that_reaches_the_wrong_process_is_sent_back(instance):
     admin = instance.sign_in(0)
     board_id = instance.board(admin, 1)
@@ -177,6 +183,7 @@ def test_a_socket_that_reaches_the_wrong_process_is_sent_back(instance):
         assert _close_code(conn) == GOING_AWAY
 
 
+@pytest.mark.shared_rows
 def test_wrong_passwords_are_counted_across_processes(instance):
     wrong = {"username": "nobody", "password": "wrong-password"}
     clients = [instance.client(0), instance.client(1)]

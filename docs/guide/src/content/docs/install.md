@@ -177,9 +177,9 @@ Run these in the tiko folder. A new terminal opens somewhere else, and PowerShel
 | Start again | `docker compose up -d` |
 | See logs | `docker compose logs -f` |
 | Upgrade | **Update now** in About with one-click updates on; otherwise the one-line installer again. The folder's `compose.yaml` is pinned to its release, so `docker compose pull` alone fetches nothing new |
-| Uninstall | `docker compose down`, then delete the folder |
+| Uninstall | `docker compose down -v`, which also deletes the boards, then delete the folder |
 
-The folder's `data/` holds your boards, so back it up before deleting anything. More in [Data and upgrades](../data-and-upgrades/).
+Your boards live in the Docker volume of the `db` service, and `docker compose down -v` deletes it. Back up first, as [Data and upgrades](../data-and-upgrades/) shows.
 
 ## When something goes wrong
 

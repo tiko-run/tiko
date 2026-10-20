@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.adapters.storage.update_backups import SqliteUpdateBackups
+from app.adapters.storage.update_backups import DumpUpdateBackups
 from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.config import Settings
 from app.domain.errors import DependencyUnavailable, NotEnoughSpace, UpdateNotPossible
@@ -135,13 +135,10 @@ def test_room_for_the_backup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "app.adapters.storage.update_backups.shutil.disk_usage",
         lambda path: shutil._ntuple_diskusage(10_000, 5_000, 5_000),
     )
-    db = tmp_path / "app.db"
-    db.write_bytes(b"x" * 1000)
-    (tmp_path / "app.db-wal").write_bytes(b"x" * 500)
-    backups = SqliteUpdateBackups(str(db))
+    backups = DumpUpdateBackups(lambda: 1500, str(tmp_path))
     assert backups.free_and_needed("2026.10.6") == (5_000, 1_800)
     (tmp_path / "backups").mkdir()
-    (tmp_path / "backups" / "pre-update-2026.10.6.db").write_bytes(b"x" * 700)
+    (tmp_path / "backups" / "pre-update-2026.10.6.dump").write_bytes(b"x" * 700)
     assert backups.free_and_needed("2026.10.6") == (5_700, 1_800)
 
 

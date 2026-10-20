@@ -58,8 +58,8 @@ def test_the_database_time_is_told_by_the_kind_of_work():
     admin = signed_in(app_with())
     admin.get("/api/boards")
     text = admin.get("/metrics").text
-    assert value(text, 'tiko_db_held_seconds_count{kind="SqliteBoardRepo.listing"}') > 0
-    assert value(text, 'tiko_db_held_seconds_sum{kind="SqliteBoardRepo.listing"}') > 0
+    assert value(text, 'tiko_db_held_seconds_count{kind="PgBoardRepo.listing"}') > 0
+    assert value(text, 'tiko_db_held_seconds_sum{kind="PgBoardRepo.listing"}') > 0
 
 
 def test_the_loop_is_watched_while_the_app_runs(monkeypatch):

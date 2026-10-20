@@ -53,7 +53,7 @@ tiko puts the same tasks on an infinite canvas and keeps them current. What make
 
 - **Cards are live.** Each one shows the task's real status, refreshed while the board is open.
 - **Your tracker stays in charge.** tiko shows tasks as they are in your tracker. Each person connects their own token and sees only what their tracker access allows.
-- **It is yours.** Self-hosted, one SQLite file, no ads or analytics trackers.
+- **It is yours.** Self-hosted, your data in your own Postgres, no ads or analytics trackers.
 
 Works with Jira Cloud, Jira Data Center and Server, and GitHub issues today. Linear, Plane and others are planned: [all trackers](https://docs.tiko.run/trackers/).
 

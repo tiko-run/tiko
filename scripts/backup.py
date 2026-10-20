@@ -1,33 +1,41 @@
-"""Copy data/app.db to data/backups/app-<timestamp>.db and keep the newest few.
-Stdlib only, runs on the host; safe while the stack is up (SQLite online backup)."""
+"""Dump the database of the running stack to data/backups/app-<timestamp>.dump, keep the newest few.
+Stdlib only, runs on the host through `docker compose exec`; safe while the stack is up."""
 
-import sqlite3
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
-DB = Path("data/app.db")
 BACKUPS = Path("data/backups")
 KEEP = 20
+# The image's superuser through the socket inside the container: it alone reads past row-level
+# security. Restore with pg_restore, as the guide's Data and upgrades page shows.
+DUMP = ["docker", "compose", "exec", "-T", "db", "pg_dump", "-U", "postgres", "-d", "tiko", "-Fc"]
 
 
-def main() -> None:
-    if not DB.exists():
-        print(f"backup: {DB} not found, nothing to back up")
-        return
+def main() -> int:
+    running = subprocess.run(
+        ["docker", "compose", "ps", "--status", "running", "-q", "db"],
+        capture_output=True,
+        text=True,
+    )
+    if running.returncode != 0 or not running.stdout.strip():
+        print("backup: the db service is not running, nothing to back up")
+        return 0
     BACKUPS.mkdir(parents=True, exist_ok=True)
-    target = BACKUPS / f"app-{datetime.now():%Y%m%d-%H%M%S}.db"
-    source = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-    dest = sqlite3.connect(target)
-    with dest:
-        source.backup(dest)
-    # The copy inherits WAL mode; a single self-contained file is easier to restore.
-    dest.execute("PRAGMA journal_mode=DELETE")
-    source.close()
-    dest.close()
-    for old in sorted(BACKUPS.glob("app-*.db"))[:-KEEP]:
+    target = BACKUPS / f"app-{datetime.now():%Y%m%d-%H%M%S}.dump"
+    partial = target.with_suffix(".partial")
+    with partial.open("wb") as out:
+        done = subprocess.run(DUMP, stdout=out)
+    if done.returncode != 0:
+        partial.unlink(missing_ok=True)
+        print("backup: pg_dump failed", file=sys.stderr)
+        return 1
+    partial.replace(target)
+    for old in sorted(BACKUPS.glob("app-*.dump"))[:-KEEP]:
         old.unlink()
     print(f"backup: {target}")
+    return 0
 
 
 if __name__ == "__main__":

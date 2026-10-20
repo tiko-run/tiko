@@ -1,8 +1,6 @@
 import json
-import sqlite3
 import threading
 import urllib.request
-from contextlib import closing
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
@@ -13,6 +11,7 @@ import updater
 from updater import DockerError, Job, container_body, pull, run_update, split_ref, wait_healthy
 
 REPO = "ghcr.io/tiko-run/tiko"
+DB = "db0123456789abcdef"
 COMPOSE = """services:
   api:
     image: ghcr.io/tiko-run/tiko-api:${TAG:-2026.10.6}
@@ -54,21 +53,25 @@ def old_container(service: str, version: str = "2026.10.6") -> dict:
     }
 
 
-def rows(db: Path) -> list[str]:
-    with closing(sqlite3.connect(db)) as conn:
-        return [r[0] for r in conn.execute("SELECT note FROM notes ORDER BY note")]
+def rows(dump: Path) -> list[str]:
+    return sorted(json.loads(dump.read_text()))
 
 
 def add_row(db: Path, note: str) -> None:
-    with closing(sqlite3.connect(db)) as conn, conn:
-        conn.execute("INSERT INTO notes VALUES (?)", (note,))
+    db.write_text(json.dumps([*json.loads(db.read_text()), note]))
 
 
 class FakeDocker:
-    """Docker as the updater sees it; starting the new api adds a row, as a migration would."""
+    """Docker as the updater sees it. The database is a JSON list in pg.json; starting the new
+    api adds a row, as a migration would."""
 
     def __init__(self, install: Path, healthy: bool = True, pull_error: str | None = None):
         self.install = install
+        self.db = install / "pg.json"
+        self.uploaded: dict[str, bytes] = {}
+        self.dump_error = False
+        self.restore_error = False
+        self.has_db = True
         self.calls: list[tuple] = []
         self.healthy = healthy
         self.pull_error = pull_error
@@ -83,9 +86,13 @@ class FakeDocker:
 
     def containers(self, labels):
         service = labels[1].split("=")[1]
+        if service == "db":
+            return [{"Id": DB}] if self.has_db else []
         return [{"Id": self.olds[service]["Id"]}]
 
     def container(self, ref):
+        if ref == DB:
+            return {"Id": DB}
         for c in self.olds.values():
             if c["Id"] == ref:
                 return c
@@ -127,7 +134,7 @@ class FakeDocker:
     def start(self, container):
         self.calls.append(("start", container))
         if container == "new-tiko-api-1":
-            add_row(self.install / "data" / "app.db", "written by the new version")
+            add_row(self.db, "written by the new version")
 
     def stop(self, container):
         self.calls.append(("stop", container))
@@ -138,13 +145,30 @@ class FakeDocker:
     def remove_image(self, image):
         self.calls.append(("remove_image", image))
 
+    def exec(self, container, cmd, out=None):
+        assert container == DB
+        self.calls.append(("exec", cmd[0]))
+        if cmd[0] == "pg_dump":
+            if self.dump_error:
+                return 1, "pg_dump: error: connection failed"
+            out.write(self.db.read_bytes())
+        elif cmd[0] == "pg_restore":
+            # -f <script> <dump>: the dump as SQL, the database untouched.
+            self.uploaded[cmd[2]] = self.uploaded[cmd[-1]]
+        elif cmd[0] == "psql":
+            if self.restore_error:
+                return 3, "psql: error: relation already exists"
+            self.db.write_bytes(self.uploaded[cmd[-1]])
+        return 0, ""
+
+    def put_file(self, container, folder, source):
+        self.uploaded[f"{folder}/{source.name}"] = source.read_bytes()
+
 
 @pytest.fixture
 def install(tmp_path: Path) -> Path:
     (tmp_path / "data").mkdir()
-    with closing(sqlite3.connect(tmp_path / "data" / "app.db")) as conn, conn:
-        conn.execute("CREATE TABLE notes (note TEXT)")
-        conn.execute("INSERT INTO notes VALUES ('saved before the update')")
+    (tmp_path / "pg.json").write_text(json.dumps(["saved before the update"]))
     (tmp_path / "compose.yaml").write_text(COMPOSE)
     return tmp_path
 
@@ -218,9 +242,9 @@ def test_update_replaces_api_then_web_and_cleans_up(install: Path):
         "sha-web-2026.10.4",
         "sha-web-2026.10.5",
     ]
-    backup = install / "data" / "backups" / "pre-update-2026.10.6.db"
+    backup = install / "data" / "backups" / "pre-update-2026.10.6.dump"
     assert rows(backup) == ["saved before the update"]
-    assert rows(install / "data" / "app.db") == [
+    assert rows(install / "pg.json") == [
         "saved before the update",
         "written by the new version",
     ]
@@ -231,12 +255,12 @@ def test_backup_holds_edits_made_until_the_old_api_stops(install: Path):
     stop = docker.stop
 
     def stop_after_a_last_edit(container):
-        add_row(install / "data" / "app.db", "edited while downloading")
+        add_row(install / "pg.json", "edited while downloading")
         stop(container)
 
     docker.stop = stop_after_a_last_edit
     update(docker, install)
-    backup = install / "data" / "backups" / "pre-update-2026.10.6.db"
+    backup = install / "data" / "backups" / "pre-update-2026.10.6.dump"
     assert "edited while downloading" in rows(backup)
 
 
@@ -248,8 +272,8 @@ def test_unhealthy_api_rolls_back_with_the_backup(install: Path):
     assert ("remove", "new-tiko-api-1") in docker.calls
     assert ("rename", "api0123456789abcdef", "tiko-api-1") in docker.calls
     assert docker.calls[-1] == ("start", "api0123456789abcdef")
-    assert rows(install / "data" / "app.db") == ["saved before the update"]
-    assert not (install / "data" / "app.db-wal").exists()
+    assert rows(install / "pg.json") == ["saved before the update"]
+    assert ("exec", "psql") in docker.calls
     assert "2026.10.6" in (install / "compose.yaml").read_text()
     assert "The previous version runs again" in status["log"]
 
@@ -273,14 +297,46 @@ def test_tidying_up_never_undoes_a_good_update(install: Path):
 
 
 def test_backups_keep_the_newest_three(install: Path):
+    docker = FakeDocker(install)
     for version in ["2026.10.1", "2026.10.2", "2026.10.3", "2026.10.4"]:
-        updater.backup_database(install, version)
+        updater.backup_database(docker, DB, install, version)
     names = sorted(p.name for p in (install / "data" / "backups").iterdir())
     assert names == [
-        "pre-update-2026.10.2.db",
-        "pre-update-2026.10.3.db",
-        "pre-update-2026.10.4.db",
+        "pre-update-2026.10.2.dump",
+        "pre-update-2026.10.3.dump",
+        "pre-update-2026.10.4.dump",
     ]
+
+
+def test_a_failed_restore_leaves_the_database_and_still_starts_the_old_containers(install: Path):
+    docker = FakeDocker(install, healthy=False)
+    docker.restore_error = True
+    status = update(docker, install).snapshot()
+    assert status["state"] == "failed"
+    assert "Rollback failed: psql exited with 3" in status["log"][-1]
+    # The new api's own row stays: the one transaction of the restore never committed.
+    assert rows(install / "pg.json") == ["saved before the update", "written by the new version"]
+    assert docker.calls[-1] == ("start", "api0123456789abcdef")
+
+
+def test_a_failed_dump_rolls_back_before_the_new_api_starts(install: Path):
+    docker = FakeDocker(install)
+    docker.dump_error = True
+    status = update(docker, install).snapshot()
+    assert status["state"] == "failed"
+    assert "connection failed" in status["error"]
+    assert ("create", "tiko-api-1") not in docker.calls
+    assert docker.calls[-1] == ("start", "api0123456789abcdef")
+    assert list((install / "data" / "backups").iterdir()) == []
+
+
+def test_no_update_without_a_db_service_to_back_up(install: Path):
+    docker = FakeDocker(install)
+    docker.has_db = False
+    status = update(docker, install).snapshot()
+    assert status["state"] == "failed"
+    assert "back up your database" in status["error"]
+    assert docker.calls == []
 
 
 def test_a_container_in_a_restart_loop_must_run_again_in_full():

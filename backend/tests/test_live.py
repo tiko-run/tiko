@@ -20,6 +20,9 @@ from app.domain.live import PLANNING_CHANGED, LiveDoc, stored_node
 from app.main import create_app
 from tests.conftest import signed_in
 
+# The apps of its module fixtures keep their people and boards across the tests.
+pytestmark = pytest.mark.shared_rows
+
 LONG = "long-enough-password"
 
 

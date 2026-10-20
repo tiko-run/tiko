@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+Requires: installer
+
+### Added
+
+- Run tiko on a Postgres server of your own, managed or not, with `DATABASE_URL`. The Render blueprint now brings a Render Postgres database. See [Your own Postgres server](https://docs.tiko.run/data-and-upgrades/#your-own-postgres-server).
+
+### Changed
+
+- tiko keeps boards, people and settings in Postgres, in a `db` container next to it, so several API processes write at once without waiting for each other. Update with the installer: it adds the database, and the first start moves everything from `data/app.db` with the same accounts, boards, Planning lists and public links, then keeps the old file as `data/app.db.copied-<date>`. See [Coming from an SQLite release](https://docs.tiko.run/data-and-upgrades/#coming-from-an-sqlite-release).
+- One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
+
 ## [2026.10.23] - 2026-10-20
 
 ### Added

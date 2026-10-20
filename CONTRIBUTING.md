@@ -19,11 +19,13 @@ Requirements: Docker, Python 3.12+ and [uv](https://docs.astral.sh/uv/), Node 22
 git clone <your fork>
 cd tiko
 make up           # whole stack in Docker
-make dev-api      # API with hot reload on :8000
+make dev-api      # API with hot reload on :8000, on a local Postgres in Docker (make dev-db)
 make dev-web      # UI with hot reload on :3000
-make check        # lint + tests, the gate CI runs
+make check        # lint + tests, the gate CI runs; the backend tests start a throwaway Postgres
 make help         # all commands
 ```
+
+The backend tests need Docker for that Postgres, or `TIKO_TEST_DATABASE_URL` pointing at a server of yours as a role that may create databases.
 
 Optional: `pre-commit install` runs fast checks on commit and `make check` on push.
 

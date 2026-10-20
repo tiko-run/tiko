@@ -26,19 +26,19 @@ Several pull requests on one slice; SQLite stays the default.
 ## Phase 2: Slice `feat/installer-mark`
 
 - [x] T010 About reads `Requires: installer` in release bodies and shows the installer command when any release between the current one and the target carries it. Tests with a fake release feed
-- [ ] T011 `CHANGELOG.md`; the guide's update page; release before Phase 3
+- [x] T011 `CHANGELOG.md`; the guide's update page; release before Phase 3
 
 ## Phase 3: Slice `feat/pg-switch` (US1)
 
-- [ ] T012 `copy_sqlite.py`: checkpoint, batches, counts, rename; the advisory lock between processes. Tests on a made-up `app.db` of every migration's shape, a failed copy, two processes
-- [ ] T013 Roles and settings split during the copy: admins to memberships, the first admin to server admin, instance settings to `server_settings` and the default workspace
-- [ ] T014 Compose files: the `db` service with no published port, volume, health check, memory settings, first-start creation of the three roles; `.env.example`, README
+- [x] T012 `copy_sqlite.py`: checkpoint, batches, counts, rename; the advisory lock between processes. Tests on a made-up `app.db` of every migration's shape, a failed copy, two processes
+- [x] T013 Roles and settings split during the copy: admins to memberships, the first admin to server admin, instance settings to `server_settings` and the default workspace
+- [x] T014 Compose files: the `db` service with no published port, volume, health check, memory settings, first-start creation of the three roles; `.env.example`, README
 - [ ] T015 [P] `install.sh` and `install.ps1`: `POSTGRES_PASSWORD` written only when missing; Windows checked on the stand
-- [ ] T016 [P] Updater: `pg_dump` and `pg_restore` through the `db` container, three kept; `UpdateBackups` for a dump. Tests
+- [x] T016 [P] Updater: `pg_dump` and `pg_restore` through the `db` container, three kept; `UpdateBackups` for a dump. Tests
 - [ ] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
-- [ ] T018 Remove the SQLite adapter, its migrations and the double CI run; `reset_password.py` on Postgres
-- [ ] T019 On compose stacks: the bridge release with made-up boards, Planning and a public link upgrades by the installer with equal counts; a fresh stack from the README; "Update now" from a pre-bridge release rolls back. RAM at rest for SC-005
-- [ ] T020 `CHANGELOG.md` with `Requires: installer`; the guide: install, configuration, backups (`down -v`), architecture; `make check`, `make smoke`, `make licenses` green
+- [x] T018 Remove the SQLite adapter, its migrations and the double CI run; `reset_password.py` on Postgres
+- [x] T019 On compose stacks: the bridge release with made-up boards, Planning and a public link upgrades by the installer with equal counts; a fresh stack from the README; "Update now" from a pre-bridge release rolls back. RAM at rest for SC-005
+- [x] T020 `CHANGELOG.md` with `Requires: installer`; the guide: install, configuration, backups (`down -v`), architecture; `make check`, `make smoke`, `make licenses` green
 
 ## Phase 4: Slice `feat/workspace-roles` (US2)
 
