@@ -1,4 +1,4 @@
-.PHONY: help up down backup logs dev-api dev-web test lint fmt check smoke release clean-clone render-validate audit licenses
+.PHONY: help up down backup logs dev-db dev-api dev-web test lint fmt check smoke release clean-clone render-validate audit licenses
 
 # The ports of this checkout's stack: a worktree set up by scripts/worktree-setup.sh has its own.
 # Digits only: Compose also takes a quoted value and a comment after it.
@@ -15,7 +15,7 @@ up: backup  ## back up data, build and start everything in docker (starts the da
 	@echo "API: $(API_URL)/docs"
 	@echo "UI:  $(WEB_URL)"
 
-backup:  ## copy data/app.db to data/backups/ (keeps the newest 20)
+backup:  ## dump the running stack's database to data/backups/ (keeps the newest 20)
 	@python3 scripts/backup.py
 
 down:  ## stop and remove containers (data/ is kept)
@@ -24,8 +24,13 @@ down:  ## stop and remove containers (data/ is kept)
 logs:  ## follow container logs
 	docker compose logs -f --tail=100
 
-dev-api:  ## run API locally with reload, without usage stats
-	cd backend && TIKO_USAGE_STATS=false uv run uvicorn --factory app.main:create_app --ws-per-message-deflate false --reload --port 8000
+dev-db:  ## start a local Postgres for dev-api on 127.0.0.1:5433
+	@scripts/dev-db.sh
+
+DEV_DATABASE_URL ?= postgresql://postgres:dev@127.0.0.1:5433/postgres
+
+dev-api: dev-db  ## run API locally with reload, without usage stats
+	cd backend && DATABASE_URL=$(DEV_DATABASE_URL) TIKO_USAGE_STATS=false uv run uvicorn --factory app.main:create_app --ws-per-message-deflate false --reload --port 8000
 
 dev-web:  ## run UI locally with hot reload (proxies /api to :8000)
 	cd frontend && npm run dev
