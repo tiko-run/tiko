@@ -1086,6 +1086,18 @@ class PgUserRepo(_Repo):
             ).fetchone()
         return _account(row) if row else None
 
+    def sole_active_admin(self, user_id: str) -> bool:
+        with self._tx() as conn:
+            return conn.execute(
+                # Memberships and users are global: every workspace of the person is checked.
+                "SELECT EXISTS (SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id"
+                " WHERE m.user_id = %s AND m.role = 'admin' AND u.disabled_at IS NULL"
+                " AND (SELECT COUNT(*) FROM memberships o JOIN users v ON v.id = o.user_id"
+                " WHERE o.workspace_id = m.workspace_id AND o.role = 'admin'"
+                " AND v.disabled_at IS NULL) = 1) AS sole",
+                (user_id,),
+            ).fetchone()["sole"]
+
     def active_server_admins(self) -> int:
         with self._tx() as conn:
             return conn.execute(

@@ -98,7 +98,7 @@ class Invites:
                 raise ValidationFailed("username and name are required")
             check_username(username)
             check_name(name)
-        elif self._accounts.get(invite.user_id or "").disabled:
+        elif self._accounts.account(invite.user_id or "").disabled:
             raise AccountDisabled("This account is disabled. Ask your admin.")
         if not self._repo.consume(invite.id, iso(now)):
             raise InviteExpired(EXPIRED)

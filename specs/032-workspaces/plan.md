@@ -82,7 +82,7 @@ Each of these runs without a request and gets its workspace explicitly or uses `
 
 - `memberships (workspace_id, user_id, role)` with `role in ('admin','member')`; `workspaces.owner_id`; `users.server_admin boolean`. The copy from SQLite makes the first admin the server admin and every admin an `admin` member of the default workspace. The session cache rechecks a person when their role changes.
 - In this spec an account is in at most one workspace. The domain enforces it when an invite is accepted, not the schema, so a later spec lifts it without a migration.
-- Dependencies in `api/deps.py`: `ServerAdmin` for updates, privacy, metrics without a token and accounts; `WorkspaceAdmin` for workspace settings, Planning lists, members and invites. Password reset links and disabling an account move under `ServerAdmin`.
+- Dependencies in `api/deps.py`: `ServerAdmin` for starting an update, privacy, metrics without a token and accounts (reading the update's progress stays open to everyone signed in); `WorkspaceAdmin` for workspace settings, Planning lists, members and invites. Password reset links and disabling an account move under `ServerAdmin`.
 - The last admin check runs in the domain, in one transaction with the change, so two admins stepping down at once cannot leave the workspace without one.
 - `user_credentials` is a workspace table keyed by `(workspace_id, user_id, provider)`; a token is never read outside its workspace.
 - `TIKO_BOARD_LIMIT` stays as it is: boards a person may own, admins aside.

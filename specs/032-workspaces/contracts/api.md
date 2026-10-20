@@ -49,7 +49,7 @@ The privacy switches, the instance id and the last ping time move to `server_set
 
 ## No workspace (`feat/workspace-membership`)
 
-A signed-in person with no workspace (removed from it) can still use `/api/auth/*`, `/api/me/*` for their own profile and password, `GET /api/invites/{token}` and `POST /api/invites/{token}/join`, and the server admin routes when they are the server admin. Every other route answers `403`:
+A signed-in person with no workspace (removed from it) can still use `/api/auth/*`, `/api/me/*` for their own profile and password, `GET /api/update` to follow a running update, `GET /api/invites/{token}` and `POST /api/invites/{token}/join`, and the server admin routes when they are the server admin. Every other route answers `403`:
 
 ```json
 {"error": {"code": "no_workspace", "message": "You are not in a workspace. Ask an admin for an invite link."}}

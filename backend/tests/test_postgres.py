@@ -261,13 +261,19 @@ def test_an_admin_reaches_no_account_of_another_workspace(db, other):
 
 
 def test_migration_2_moves_the_server_settings_and_names_the_server_admin(db, pg_url):
+    gone = Person(id=uuid.uuid4().hex, username="gone", name="Gone", role="admin")
     first = Person(id=uuid.uuid4().hex, username="first", name="First", role="admin")
     later = Person(id=uuid.uuid4().hex, username="later", name="Later", role="admin")
-    for person in (first, later):
+    for person in (gone, first, later):
         pg.PgUserRepo(db).add(person, hash_password(PASSWORD))
     with db.jobs() as conn:
         conn.execute("UPDATE users SET server_admin = false")
         conn.execute("UPDATE users SET created_at = '2001-01-01' WHERE id = %s", (first.id,))
+        # Older still, but disabled: not the one who runs the server.
+        conn.execute(
+            "UPDATE users SET created_at = '2000-01-01', disabled_at = now() WHERE id = %s",
+            (gone.id,),
+        )
         conn.execute("DELETE FROM server_settings WHERE key = 'usage_stats'")
         conn.execute(
             "INSERT INTO settings (workspace_id, key, value) VALUES (%s, 'usage_stats', '0')",
@@ -283,3 +289,13 @@ def test_migration_2_moves_the_server_settings_and_names_the_server_admin(db, pg
         assert [row["id"] for row in admins] == [first.id]
         assert [row["value"] for row in moved] == ["0"]
         assert left == []
+
+
+def test_the_sole_admin_of_another_workspace_is_not_disabled(db, other):
+    app = create_app(Settings(db_path=":memory:"))
+    admin = signed_in(app)
+    bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="admin")
+    pg.PgUserRepo(db, other).add(bob, hash_password(PASSWORD))
+    response = admin.patch(f"/api/accounts/{bob.id}", json={"disabled": True})
+    assert (response.status_code, response.json()["error"]["code"]) == (409, "last_admin")
+    assert pg.PgUserRepo(db, other).get(bob.id).disabled is False

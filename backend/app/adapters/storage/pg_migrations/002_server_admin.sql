@@ -15,7 +15,8 @@ UPDATE users SET server_admin = true
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE server_admin)
 AND id = (
     SELECT u.id FROM users u JOIN memberships m ON m.user_id = u.id AND m.role = 'admin'
-    WHERE u.demo_expires_at IS NULL ORDER BY u.created_at LIMIT 1
+    WHERE u.demo_expires_at IS NULL AND u.disabled_at IS NULL
+    ORDER BY u.created_at, u.id LIMIT 1
 );
 
 RESET ROLE;

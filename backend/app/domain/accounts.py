@@ -323,8 +323,7 @@ class Accounts:
         if disabled and not account.disabled:
             if account.server_admin and self._users.active_server_admins() <= 1:
                 raise LastAdmin("The server needs another admin first.")
-            member = self._users.get(user_id)
-            if member and self._last_admin(member):
+            if self._users.sole_active_admin(user_id):
                 raise LastAdmin("Make someone else an admin of the workspace first.")
         self._users.set_disabled(user_id, disabled)
         if disabled:
