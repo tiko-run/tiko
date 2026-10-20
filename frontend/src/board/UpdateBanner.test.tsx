@@ -23,6 +23,7 @@ function renderWith(level: string | null) {
     update_available: level !== null,
     level,
     newer: level ? [latest] : [],
+    installer: false,
   }
   vi.stubGlobal(
     'fetch',

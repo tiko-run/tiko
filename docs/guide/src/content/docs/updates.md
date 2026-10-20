@@ -39,7 +39,7 @@ The first `docker compose up -d` you run by hand after a one-click update recrea
 
 ### When a release needs the installer
 
-Some releases change more than the `api` and `web` containers, for example by adding a container next to them. **Update now** cannot install those, so their notes carry the line `Requires: installer`. When any release you missed has it, About shows the installer command instead of the button, and nothing is stopped. Run it again on the server, with `--dir` (`-Dir` on Windows) if tiko lives in another folder:
+Some releases change more than the `api` and `web` containers, for example by adding a container next to them. **Update now** cannot install those, so their notes carry the line `Requires: installer`. When any release you missed has it, About shows the installer command instead of the button, and nothing is stopped. About does the same when tiko is more than 100 releases behind, because it cannot see the marks that far back. Run it again on the server, with `--dir` (`-Dir` on Windows) if tiko lives in another folder:
 
 ```bash
 curl -fsSL https://tiko.run/install.sh | sh

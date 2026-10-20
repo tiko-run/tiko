@@ -19,6 +19,7 @@ function info(overrides: object = {}) {
     update_available: false,
     level: null,
     newer: [],
+    installer: false,
     ...overrides,
   }
 }

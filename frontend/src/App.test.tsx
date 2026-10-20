@@ -140,6 +140,7 @@ test.each([
           update_available: true,
           level: 'security',
           newer: [release],
+          installer: false,
         },
       },
     },

@@ -15,12 +15,15 @@ from tests.test_people import invite, join
 
 
 class Feed:
-    def __init__(self, version: str = "2999.1.1", installer: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self, version: str = "2999.1.1", installer: tuple[str, ...] = (), back_to: str = "2026.10.6"
+    ) -> None:
         self.version = version
         self.installer = installer
+        self.back_to = back_to
 
     def releases(self) -> list[Release]:
-        versions = {self.version, *self.installer}
+        versions = {self.version, self.back_to, *self.installer}
         return [
             Release(version=v, url="https://example.test/r", installer=v in self.installer)
             for v in versions
@@ -92,6 +95,16 @@ def test_refuses_when_a_release_on_the_way_needs_the_installer(marked: str):
     updater = FakeUpdater()
     with pytest.raises(UpdateNotPossible, match="needs the installer"):
         one_click(updater, installer=(marked,)).start()
+    assert updater.started == []
+
+
+def test_refuses_when_the_feed_does_not_reach_back_to_the_running_release():
+    updates = UpdateService("2026.10.6", Feed("2026.11.1", back_to="2026.10.9"))
+    updater = FakeUpdater()
+    one_click = OneClickUpdate(updates, updater, FakeBackups(), "2026.10.6")
+    assert updates.view().installer is True
+    with pytest.raises(UpdateNotPossible, match="needs the installer"):
+        one_click.start()
     assert updater.started == []
 
 
