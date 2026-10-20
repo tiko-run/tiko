@@ -42,10 +42,10 @@ Several pull requests on one slice; SQLite stays the default.
 
 ## Phase 4: Slice `feat/server-admin` (US2)
 
-- [ ] T021 Contract parts marked `feat/server-admin`: `auth/status`, the server admin routes, `/api/accounts`, `PATCH /api/people/{id}` without `disabled`
-- [ ] T022 `users.server_admin`, `ServerAdmin` on update, privacy, metrics and accounts; privacy, instance id and update state into `server_settings`; `/api/accounts` list, disable, reset; `POST /api/people/{id}/reset` removed; the last active server admin rule. Tests, including the account routes as a workspace admin
-- [ ] T023 Frontend: settings groups Workspace, Account and Server; Server holds Privacy and Accounts and shows only to `server_admin`; "Update now" in About only for `server_admin`; People loses disable and reset. Tests; an upgraded instance looks as today apart from the groups and Accounts
-- [ ] T024 `CHANGELOG.md`, the guide's people and configuration pages; `make check`, `make smoke` green
+- [x] T021 Contract parts marked `feat/server-admin`: `auth/status`, the server admin routes, `/api/accounts`, `PATCH /api/people/{id}` without `disabled`
+- [x] T022 `users.server_admin`, `ServerAdmin` on update, privacy, metrics and accounts; privacy, instance id and update state into `server_settings`; `/api/accounts` list, disable, reset; `POST /api/people/{id}/reset` removed; the last active server admin rule. Tests, including the account routes as a workspace admin
+- [x] T023 Frontend: settings groups Workspace, Account and Server; Server holds Privacy and Accounts and shows only to `server_admin`; "Update now" in About only for `server_admin`; People loses disable and reset. Tests; an upgraded instance looks as today apart from the groups and Accounts
+- [x] T024 `CHANGELOG.md`, the guide's people and configuration pages; `make check`, `make smoke` green
 
 ## Phase 5: Slice `feat/workspace-membership` (US2)
 
