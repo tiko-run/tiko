@@ -88,8 +88,9 @@ def _has(column: str = "user_id", parent: str = "users") -> str:
 
 
 _FIRST_ADMIN = (
+    # The oldest admin who can sign in, as adopt_orphans picks the owner of old boards.
     "(SELECT id FROM users WHERE role = 'admin' AND demo_expires_at IS NULL"
-    " ORDER BY created_at, id LIMIT 1)"
+    " AND disabled_at IS NULL ORDER BY created_at, id LIMIT 1)"
 )
 _STAMPS = ("expires_at", "used_at", "revoked_at", "created_at")
 

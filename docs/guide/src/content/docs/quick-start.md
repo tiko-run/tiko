@@ -37,7 +37,7 @@ To sign in after the deploy:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/tiko-run/tiko)
 
-The Blueprint creates a project named `tiko` with a `production` environment and two services in it: `tiko-api`, a private service with a 1 GB disk for your boards, and `tiko-web`, the public one. The disk needs paid instances, about $15 a month for both. Updates are manual: Deploy → Deploy latest reference on each service.
+The Blueprint creates a project named `tiko` with a `production` environment and, in it, a Postgres database `tiko-db` for your boards and two services: `tiko-api`, a private service with a 1 GB disk for backups, and `tiko-web`, the public one. The disk needs paid instances, about $20 a month with the database. Updates are manual: Deploy → Deploy latest reference on each service.
 
 Render asks for a Blueprint name: any name will do. Leave "Blueprint Path" empty, the file is found on its own.
 

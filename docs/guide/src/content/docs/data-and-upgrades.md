@@ -9,10 +9,12 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 
 ## Back up and restore
 
-- **Back up** while tiko runs, in the tiko folder:
+- **Back up** while tiko runs, in the tiko folder. The dump is written inside the `db` container and copied out, so it stays intact in any shell, PowerShell too:
 
   ```bash
-  docker compose exec -T db pg_dump -U postgres -d tiko -Fc > tiko.dump
+  docker compose exec db pg_dump -U postgres -d tiko -Fc -f /tmp/tiko.dump
+  docker compose cp db:/tmp/tiko.dump ./tiko.dump
+  docker compose exec db rm /tmp/tiko.dump
   ```
 
   From a source checkout, `make backup` writes the same dump to `data/backups/` with a timestamp and keeps the newest 20; `make up` runs it before every rebuild.
@@ -20,8 +22,10 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 
   ```bash
   docker compose stop api web
-  docker compose exec -T db psql -U postgres -d tiko -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION tiko_owner;"
-  docker compose exec -T db pg_restore -U postgres -d tiko --exit-on-error < tiko.dump
+  docker compose cp ./tiko.dump db:/tmp/tiko.dump
+  docker compose exec db psql -U postgres -d tiko -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION tiko_owner;"
+  docker compose exec db pg_restore -U postgres -d tiko --exit-on-error /tmp/tiko.dump
+  docker compose exec db rm /tmp/tiko.dump
   docker compose up -d
   ```
 
@@ -32,6 +36,13 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 Releases up to 2026.10.23 kept everything in one SQLite file, `data/app.db`. The first start on Postgres copies that file into the database: every account, board, setting, Planning list and public link, with the same passwords and links. The copy compares the row count of every table before it commits; if anything differs, nothing is kept and the file stays as it was. After a good copy the file is renamed to `data/app.db.copied-<date>` and kept.
 
 Run the installer to make this move: it adds the `db` service and its password. **Update now** cannot add a container, so About shows the installer command for such a release.
+
+### On Railway and Render
+
+The platform runs the containers, so the release that moves to Postgres needs a database added by hand before you redeploy. Without `DATABASE_URL` the new `api` stops at start and says so in its log. The SQLite file on the `api` volume is copied at the first start, as above.
+
+- **Render:** open the Blueprint in the Render dashboard and sync it. The sync adds the `tiko-db` database and gives `tiko-api` its `DATABASE_URL`; then redeploy `tiko-api` and `tiko-web`.
+- **Railway:** in the project, add a Postgres database (**Create → Database → PostgreSQL**). In the `api` service's Variables, add `DATABASE_URL` with the value `${{Postgres.DATABASE_URL}}`, then redeploy `api` and `web`.
 
 To go back to an SQLite release, rename `data/app.db.copied-<date>` to `data/app.db` before you start the old version. Without the file the old version starts as a new, empty instance. Changes made on Postgres in the meantime stay in Postgres.
 

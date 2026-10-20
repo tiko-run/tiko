@@ -44,12 +44,15 @@ def fill(path: Path) -> None:
             "INSERT INTO users (id, username, name, password_hash, role, created_at,"
             " demo_expires_at, welcomed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
+                # The oldest admin, disabled: not the one who runs the server.
+                ("a0", "old", "Old Example", pw, "admin", "2025-12-01T00:00:00+00:00", None, T),
                 ("a1", "ada", "Ada Example", pw, "admin", "2026-01-01T00:00:00+00:00", None, T),
                 ("a2", "bob", "Bob Example", pw, "admin", "2026-02-01T00:00:00+00:00", None, T),
                 ("m1", "cy", "Cy Example", pw, "member", T, None, None),
                 ("d1", "visitor-1", "Visitor", pw, "member", T, "2026-03-08T09:00:00+00:00", None),
             ],
         )
+        conn.execute("UPDATE users SET disabled_at = ? WHERE id = 'a0'", (T,))
         conn.executemany(
             "INSERT INTO sessions VALUES (?, ?, ?, ?)",
             [("s1", "m1", "2026-04-01T00:00:00+00:00", T), ("s2", "gone", T, T)],
@@ -151,7 +154,7 @@ def test_every_table_lands_in_the_default_workspace(db, tmp_path):
     }
     # Rows that pointed at deleted ones are left out; everything else is there.
     assert count == {
-        "users": 4,
+        "users": 5,
         "sessions": 1,
         "invites": 2,
         "resets": 1,
@@ -163,6 +166,7 @@ def test_every_table_lands_in_the_default_workspace(db, tmp_path):
     }
     admins = rows(db, "SELECT id, server_admin FROM users ORDER BY id")
     assert [(r["id"], r["server_admin"]) for r in admins] == [
+        ("a0", False),
         ("a1", True),
         ("a2", False),
         ("d1", False),
@@ -170,6 +174,7 @@ def test_every_table_lands_in_the_default_workspace(db, tmp_path):
     ]
     roles = rows(db, "SELECT user_id, role FROM memberships WHERE workspace_id = %s", ws)
     assert {r["user_id"]: r["role"] for r in roles} == {
+        "a0": "admin",
         "a1": "admin",
         "a2": "admin",
         "m1": "member",
@@ -273,7 +278,7 @@ def test_two_processes_starting_together_copy_once(db, tmp_path):
         thread.join()
 
     assert sorted(results) == [False, True]
-    assert rows(db, "SELECT COUNT(*) AS n FROM users") == [{"n": 4}]
+    assert rows(db, "SELECT COUNT(*) AS n FROM users") == [{"n": 5}]
 
 
 def test_a_file_put_back_after_the_copy_is_not_read_again(db, tmp_path, caplog):

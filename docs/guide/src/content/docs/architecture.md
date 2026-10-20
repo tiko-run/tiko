@@ -11,7 +11,7 @@ Browser ──> Web UI (React, nginx :3000) ──/api, WebSocket──> API (Fa
                                                                    └──REST──> Task tracker (Jira Data Center today)
 ```
 
-tiko runs as three containers. nginx serves the built UI and proxies `/api` to the API, so the browser sees one origin. The API keeps everything in Postgres, in the `db` container, which only the API reaches. With one-click updates on, a third container, `updater` (one stdlib Python file in `updater/`), holds the Docker socket and swaps `api` and `web` for a new release when the API asks.
+tiko runs as three containers. nginx serves the built UI and proxies `/api` to the API, so the browser sees one origin. The API keeps everything in Postgres, in the `db` container, which only the API reaches. With one-click updates on, a fourth container, `updater` (one stdlib Python file in `updater/`), holds the Docker socket and swaps `api` and `web` for a new release when the API asks.
 
 The backend has three layers with one dependency rule, `api → domain ← adapters`: the domain knows nothing about FastAPI or any tracker SDK. Wiring happens in `backend/app/main.py`. The reasons behind each choice are in the [decision log](https://github.com/tiko-run/tiko/blob/main/docs/decisions.md).
 

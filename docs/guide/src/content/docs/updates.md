@@ -91,4 +91,4 @@ Then run `docker compose up -d --remove-orphans`. To turn it on, set `COMPOSE_PR
 
 With rootless Docker the updater cannot reach Docker, so the installer leaves it off.
 
-On Railway and Render the platform runs the containers, so there is no updater, and About says to redeploy the service instead. A build from source updates with `git pull`.
+On Railway and Render the platform runs the containers, so there is no updater, and About says to redeploy the service instead. The release that moves to Postgres needs a database first: see [On Railway and Render](../data-and-upgrades/#on-railway-and-render). A build from source updates with `git pull`.

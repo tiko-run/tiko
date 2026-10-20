@@ -36,6 +36,8 @@ KEEP_BACKUPS = 3
 # The image's superuser, through the socket inside the db container: it alone reads past
 # row-level security, and it has no password to log in with from anywhere else.
 DB_USER, DB_NAME = "postgres", "tiko"
+# The user's id in the official postgres image.
+DB_UID = 999
 DB_TMP = "/tmp"
 
 STEPS_PER_IMAGE = 1000
@@ -182,10 +184,18 @@ class Docker:
         return code, errors.decode(errors="replace")[-2000:]
 
     def put_file(self, container: str, folder: str, source: Path) -> None:
-        """Copies a file into a container, as Docker takes it: a tar of it."""
+        """Copies a file into a container as the database user, as Docker takes it: a tar."""
+
+        def as_db_user(info: tarfile.TarInfo) -> tarfile.TarInfo:
+            # The updater's own owner would keep the database user from removing it from /tmp.
+            info.uid = info.gid = DB_UID
+            info.uname = info.gname = DB_USER
+            info.mode = 0o600
+            return info
+
         with tempfile.TemporaryFile() as packed:
             with tarfile.open(fileobj=packed, mode="w") as tar:
-                tar.add(source, arcname=source.name)
+                tar.add(source, arcname=source.name, filter=as_db_user)
             packed.seek(0)
             query = urlencode({"path": folder})
             self._call("PUT", f"/containers/{container}/archive?{query}", packed, timeout=900)
@@ -391,7 +401,9 @@ def restore_database(docker: Docker, db: str, backup: str | None, install: Path)
             if code != 0:
                 raise DockerError(f"{cmd[0]} exited with {code}: {errors.strip()}")
     finally:
-        docker.exec(db, ["rm", "-f", inside])
+        code, errors = docker.exec(db, ["rm", "-f", inside])
+        if code != 0:
+            log.warning("the dump stays in the db container at %s: %s", inside, errors.strip())
 
 
 def remove_old_images(docker: Docker, job: Job, repos: list[str], keep: set[str]) -> None:
