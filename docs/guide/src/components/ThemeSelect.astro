@@ -1,0 +1,45 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+---
+
+<!-- One icon button instead of Starlight's native select: it flips between light and dark. -->
+<button type="button" class="tiko-theme" aria-label="Switch between light and dark theme">
+  <Icon name="sun" class="tiko-theme-light" />
+  <Icon name="moon" class="tiko-theme-dark" />
+</button>
+
+<script>
+  document.addEventListener('click', (event) => {
+    if (!(event.target as Element).closest?.('.tiko-theme')) return
+    const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
+    document.documentElement.dataset.theme = theme
+    try {
+      localStorage.setItem('starlight-theme', theme)
+    } catch {}
+  })
+</script>
+
+<style>
+  .tiko-theme {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--tiko-radius);
+    background: none;
+    color: var(--sl-color-gray-3);
+    font-size: 1.125rem;
+    cursor: pointer;
+  }
+  .tiko-theme:hover {
+    color: var(--sl-color-white);
+    background: var(--sl-color-gray-6);
+  }
+  /* The icon shows the theme you get on click. */
+  :global(:root[data-theme='dark']) .tiko-theme :global(.tiko-theme-dark),
+  :global(:root[data-theme='light']) .tiko-theme :global(.tiko-theme-light) {
+    display: none;
+  }
+</style>

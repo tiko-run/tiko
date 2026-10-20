@@ -1,5 +1,6 @@
 ---
 import type { StarlightRouteData } from '@astrojs/starlight/route-data'
+import CopyPage from './CopyPage.astro'
 
 type Entry = StarlightRouteData['sidebar'][number]
 
@@ -8,8 +9,13 @@ const { entry, sidebar } = Astro.locals.starlightRoute
 const hasCurrent = (item: Entry): boolean =>
   item.type === 'link' ? item.isCurrent : item.entries.some(hasCurrent)
 const group = sidebar.find((item) => item.type === 'group' && hasCurrent(item))
+// Every guide page has a Markdown twin at /<page>.md (src/pages/[...slug].md.ts).
+const markdown = entry.id === 'index' ? '/index.md' : `/${entry.id}.md`
 ---
 
 {group && <p class="tiko-eyebrow">{group.label}</p>}
-<h1 id="_top" class="tiko-title">{entry.data.title}</h1>
+<div class="tiko-title-row">
+  <h1 id="_top" class="tiko-title">{entry.data.title}</h1>
+  <CopyPage {markdown} />
+</div>
 {entry.data.description && <p class="tiko-lead">{entry.data.description}</p>}
