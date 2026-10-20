@@ -149,7 +149,7 @@ test('a breaking update asks first', async () => {
 test('a member is sent to an admin', async () => {
   serve({ '/api/update': { available: true, hosting: null, status: idle } })
   renderWith(<UpdateAction info={info()} admin={false} />)
-  expect(await screen.findByText('Ask an admin to update.')).toBeInTheDocument()
+  expect(await screen.findByText('Ask the server admin to update.')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Update now' })).toBeNull()
 })
 

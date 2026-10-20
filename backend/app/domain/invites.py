@@ -64,7 +64,8 @@ class Invites:
         return self._create(invite, by.id)
 
     def reset(self, by_id: str, user_id: str, now: float) -> tuple[Invite, str]:
-        person = self._accounts.get(user_id)
+        # Any account on the server, also one that is in no workspace.
+        person = self._accounts.account(user_id)
         invite = Invite(
             id=uuid.uuid4().hex,
             kind="reset",

@@ -94,7 +94,7 @@ Each of these runs without a request and gets its workspace explicitly or uses `
 - SQLite never enforced foreign keys, so a row may point at one long deleted. Such rows are left out and their number logged per table; Postgres would refuse them.
 - Before commit, compare row counts per table against the rows to copy; any difference aborts the transaction and leaves the file as it was. Set the mark in the same transaction; after commit, rename `app.db` and its `-wal` and `-shm` to `app.db.copied-YYYY-MM-DD`. A file put back after the mark is logged and not read again.
 - Going back to the SQLite release means renaming the file back before starting the old image; the guide says so, because the old image on an empty `data/` starts as a new instance.
-- `users.role = 'admin'` becomes an `admin` membership; the first created admin becomes the server admin. Instance settings stay in the default workspace's `settings`, where slice 1's adapter reads them; they split into `server_settings` with the settings groups of `feat/workspace-roles`.
+- `users.role = 'admin'` becomes an `admin` membership; the first created admin becomes the server admin. Instance settings stay in the default workspace's `settings`, where slice 1's adapter reads them; they split into `server_settings` with the settings groups of `feat/server-admin`.
 
 ### Install, update, backups
 
@@ -146,7 +146,8 @@ docs/guide/                                     install, configuration, backups,
 | `feat/pg-storage` | with `DATABASE_URL` set, the whole backend suite passes on Postgres; the policy test passes; the cross-workspace read test passes for every repository; `make check` green on SQLite |
 | `feat/installer-mark` | a fake release body with the mark makes About show the installer command; released before `feat/pg-switch` |
 | `feat/pg-switch` | a compose stack of the bridge release with made-up data upgrades by the installer with equal counts; a fresh stack starts from the README; "Update now" from a pre-bridge release rolls back; `make check`, `make smoke` green; SQLite adapter gone |
-| `feat/workspace-roles` | each settings group opens only for its role and every admin route answers `403` to the rest; reset and disable only for the server admin; the last admin rule; tokens per workspace; an upgraded instance looks as today apart from the groups |
+| `feat/server-admin` | the server group and its routes open only for the server admin and answer `403` to a workspace admin; reset and disable only under `/api/accounts`; the last server admin cannot be disabled; an upgraded instance looks as today apart from the groups and Accounts |
+| `feat/workspace-membership` | every workspace admin route answers `403` to a member; a removed person signs in, sees the "not in a workspace" screen and joins back by invite; their boards go to the admin who removed them; the last active admin rule holds for role, removal and disable; tokens per workspace |
 | `feat/demo-workspace` | two demo visitors edit Planning lists apart; eviction leaves no rows; workload on the demo; the SC-002 route walk across the default and a visitor workspace |
 
 ## Risks

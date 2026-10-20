@@ -25,12 +25,9 @@ class PasswordChange(BaseModel):
 
 @router.patch("", dependencies=[NotDemoVisitor])
 def update_me(
-    body: MeUpdate,
-    person: CurrentPerson,
-    accounts: AccountsDep,
-    demo: Annotated[bool, Depends(deps.is_demo)],
+    body: MeUpdate, person: CurrentPerson, accounts: AccountsDep, request: Request
 ) -> dict:
-    return me(accounts.update(person, body.name, body.username), demo)
+    return me(request, accounts.update(person, body.name, body.username))
 
 
 @router.put("/password", status_code=204, dependencies=[NotDemoVisitor])

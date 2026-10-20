@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from app.domain.accounts import Person, PersonRecord, Role
+    from app.domain.accounts import Account, Person, PersonRecord, Role
     from app.domain.boards import BoardDoc, BoardRecord, BoardRow
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
@@ -424,6 +424,14 @@ class UserRepo(Protocol):
     def set_disabled(self, user_id: str, disabled: bool) -> None: ...
 
     def active_admins(self) -> int: ...
+
+    def accounts(self) -> list[Account]:
+        """Every account on the server but demo visitors, in any workspace or none."""
+        ...
+
+    def account(self, user_id: str) -> Account | None: ...
+
+    def active_server_admins(self) -> int: ...
 
     def touch_sign_in(self, user_id: str) -> None: ...
 

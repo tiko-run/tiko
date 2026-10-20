@@ -110,6 +110,14 @@ def current_admin(request: Request) -> Person:
     return person
 
 
+def current_server_admin(request: Request) -> Person:
+    """Runs the server; it needs no workspace of its own."""
+    person = current_person(request)
+    if not person.server_admin:
+        raise Forbidden("Only the server admin can do this.")
+    return person
+
+
 def not_demo_visitor(request: Request) -> None:
     """Sharing, account changes and a tracker of their own wait until a demo visitor signs up."""
     if is_visitor(request):
@@ -146,6 +154,7 @@ CurrentPerson = Annotated[Person, Depends(current_person)]
 AccountsDep = Annotated[Accounts, Depends(accounts)]
 SessionsDep = Annotated[Sessions, Depends(sessions)]
 CurrentAdmin = Annotated[Person, Depends(current_admin)]
+CurrentServerAdmin = Annotated[Person, Depends(current_server_admin)]
 InvitesDep = Annotated[Invites, Depends(invites)]
 MembersDep = Annotated[Members, Depends(members)]
 CanView = Annotated[BoardRole, board_role("viewer")]

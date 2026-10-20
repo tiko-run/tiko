@@ -88,7 +88,7 @@ export default function App() {
     enabled: mounted && !publicToken,
   })
   const signedIn = auth.data?.signed_in === true
-  const admin = auth.data?.me?.role === 'admin'
+  const serverAdmin = auth.data?.me?.server_admin ?? false
   const boards = useQuery({
     queryKey: ['boards'],
     queryFn: listBoards,
@@ -183,12 +183,12 @@ export default function App() {
       {signedIn && focusVisible && <FocusCapsule />}
       {signedIn && (
         <div className="absolute bottom-4 left-4 z-10 flex items-end gap-2">
-          <AboutButton admin={admin} />
+          <AboutButton admin={serverAdmin} />
           <GettingStarted demo={!!auth.data?.me?.demo_expires_at} />
         </div>
       )}
       {signedIn && <UpdatedNotice />}
-      {admin && <UpdateBanner />}
+      {serverAdmin && <UpdateBanner />}
       {signedIn && <SettingsDialog />}
     </main>
   )

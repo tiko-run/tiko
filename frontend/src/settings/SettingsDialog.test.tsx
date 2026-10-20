@@ -12,7 +12,14 @@ const settings = {
   jira: { base_url: null, token_state: 'none' },
   public_links: true,
 }
-const admin = { id: 'u1', username: 'admin', name: 'Admin', role: 'admin' }
+const admin = {
+  id: 'u1',
+  username: 'admin',
+  name: 'Admin',
+  role: 'admin',
+  server_admin: true,
+  workspace: { id: 'w1', name: 'Default' },
+}
 
 // jsdom lacks pointer capture, which a toast takes when pressed.
 Element.prototype.setPointerCapture ??= () => {}
@@ -83,12 +90,37 @@ test('keeps the section in the URL and drops it on close', async () => {
   expect(new URL(window.location.href).searchParams.has('settings')).toBe(false)
 })
 
-test('hides the Instance group from members and opens Profile instead', async () => {
-  mockApi({}, { ...admin, role: 'member' })
+test('a member gets Stages and people of the workspace and opens Profile instead of the rest', async () => {
+  mockApi({}, { ...admin, role: 'member', server_admin: false })
   show('task-source')
   expect(await screen.findByLabelText('Name')).toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Task source' })).not.toBeInTheDocument()
-  expect(screen.queryByText('Instance')).not.toBeInTheDocument()
+  const nav = screen.getByRole('navigation', { name: 'Settings sections' })
+  expect(nav).toHaveTextContent('Stages and people')
+  for (const hidden of ['Task source', 'People', 'Sharing', 'Server', 'Privacy', 'Accounts']) {
+    expect(nav).not.toHaveTextContent(hidden)
+  }
+})
+
+test('a workspace admin gets the workspace group and no server group', async () => {
+  mockApi({}, { ...admin, server_admin: false })
+  show('accounts')
+  expect(await screen.findByLabelText('Name')).toBeInTheDocument()
+  const nav = screen.getByRole('navigation', { name: 'Settings sections' })
+  for (const shown of ['Workspace', 'Task source', 'People', 'Sharing']) {
+    expect(nav).toHaveTextContent(shown)
+  }
+  for (const hidden of ['Server', 'Privacy', 'Accounts']) {
+    expect(nav).not.toHaveTextContent(hidden)
+  }
+})
+
+test('the server admin gets Privacy and Accounts under Server', async () => {
+  mockApi()
+  show()
+  const nav = await screen.findByRole('navigation', { name: 'Settings sections' })
+  expect(nav).toHaveTextContent(/Account.*Workspace.*Server/)
+  expect(screen.getByRole('button', { name: 'Privacy' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Accounts' })).toBeInTheDocument()
 })
 
 test('names a wrong current password', async () => {
@@ -171,6 +203,8 @@ test('a demo visitor gets no Profile, Security or My tracker', async () => {
     username: '~0a1b2c3d4e5f',
     name: 'Demo visitor',
     role: 'member',
+    server_admin: false,
+    workspace: { id: 'w1', name: 'Default' },
     demo_expires_at: '2026-10-18T10:00:00+00:00',
   }
   mockApi({}, visitor)

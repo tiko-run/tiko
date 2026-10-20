@@ -3,13 +3,13 @@ title: Updates
 description: How tiko tells you about a new release, how one-click updates work, and what the updater service can and cannot do.
 ---
 
-tiko checks for new releases on its own. With one-click updates on, an admin installs a release from the About button, and a small service next to tiko swaps the containers.
+tiko checks for new releases on its own. With one-click updates on, the server admin installs a release from the About button, and a small service next to tiko swaps the containers.
 
 ## Learn about a release
 
 tiko asks GitHub for new releases every 30 minutes, unless `UPDATE_CHECK=false`. A dot on the About button in the bottom left means a newer release is out, and **Check now** in About asks right away. About lists every release you missed and marks how much each one matters:
 
-- **Security**: fixes a security issue. The dot turns red, and admins see a banner until they update. If you close it, it comes back the next day.
+- **Security**: fixes a security issue. The dot turns red, and the server admin sees a banner until they update. If you close it, it comes back the next day.
 - **Breaking changes**: something works differently, so read the notes before you update.
 - **Hotfix**: fixes a bug in the release before it.
 
@@ -19,13 +19,13 @@ The check sends GitHub no data about you or your boards.
 
 ## Update with one click
 
-An admin opens About and clicks **Update now**. tiko then:
+The server admin opens About and clicks **Update now**. tiko then:
 
 1. Downloads the new release and shows the progress in About.
 2. Stops the `api` container and dumps the database to `data/backups/pre-update-<version>.dump`, so the dump holds every change made up to that moment. It keeps the 3 newest of these dumps and leaves other backups alone.
 3. Starts `api` on the new release, then restarts the `web` container the same way. Once the new version serves the page, About shows a **Reload** button. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
 
-People who are not admins see "Ask an admin to update". A release marked **Breaking changes** asks you to read its notes first.
+Everyone else sees "Ask the server admin to update". A release marked **Breaking changes** asks you to read its notes first.
 
 ### When something goes wrong
 
@@ -71,7 +71,7 @@ What the updater does:
 
 What it does not do:
 
-- it never updates on its own or on a schedule. It acts only when an admin clicks **Update now**;
+- it never updates on its own or on a schedule. It acts only when the server admin clicks **Update now**;
 - it publishes no port and cannot be reached from outside the tiko network. It answers only requests that carry the token in `data/updater-token`, which the `api` container creates on its first start;
 - it touches no other containers on the host. It finds `api` and `web` by the labels Docker Compose puts on your tiko;
 - it reads no boards and sends nothing anywhere. Its only traffic out is the image download from `ghcr.io`;

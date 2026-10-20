@@ -3,7 +3,7 @@ from typing import Annotated
 import anyio.to_thread
 from fastapi import APIRouter, Depends, Request, Response
 
-from app.api.deps import CurrentAdmin, CurrentPerson
+from app.api.deps import CurrentPerson, CurrentServerAdmin
 from app.domain.errors import Forbidden, ValidationFailed
 from app.domain.usage import PageReports, Privacy, PrivacyIn, PrivacyView
 
@@ -18,13 +18,13 @@ Switches = Annotated[Privacy, Depends(_privacy)]
 
 
 @router.get("")
-def get_privacy(_: CurrentAdmin, privacy: Switches) -> PrivacyView:
+def get_privacy(_: CurrentServerAdmin, privacy: Switches) -> PrivacyView:
     """The switches and the exact ping the instance sends next."""
     return privacy.view()
 
 
 @router.put("")
-def put_privacy(body: PrivacyIn, _: CurrentAdmin, privacy: Switches) -> PrivacyView:
+def put_privacy(body: PrivacyIn, _: CurrentServerAdmin, privacy: Switches) -> PrivacyView:
     return privacy.update(body)
 
 

@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChartGantt,
+  IdCard,
   KeyRound,
   Link2,
   Plug,
@@ -25,6 +26,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from 'cn'
+import { Accounts } from '@/settings/sections/Accounts'
 import { MyTracker } from '@/settings/sections/MyTracker'
 import { People } from '@/settings/sections/People'
 import { Planning } from '@/settings/sections/Planning'
@@ -41,14 +43,15 @@ type Entry = {
   label: string
   Icon: ComponentType<{ className?: string; strokeWidth?: number }>
   render: (me: Me) => ReactNode
+  // Who sees it: everyone by default, the workspace's admins, or the server admin.
+  need?: 'admin' | 'server'
 }
 
 const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker', 'planning'])
 
-const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
+const GROUPS: { title: string; entries: Entry[] }[] = [
   {
     title: 'Account',
-    admin: false,
     entries: [
       { id: 'profile', label: 'Profile', Icon: UserRound, render: (me) => <Profile me={me} /> },
       { id: 'security', label: 'Security', Icon: KeyRound, render: (me) => <Security me={me} /> },
@@ -62,9 +65,23 @@ const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
     ],
   },
   {
-    title: 'Planning',
-    admin: false,
+    title: 'Workspace',
     entries: [
+      {
+        id: 'task-source',
+        label: 'Task source',
+        Icon: ListTodo,
+        render: () => <TaskSource />,
+        need: 'admin',
+      },
+      {
+        id: 'people',
+        label: 'People',
+        Icon: Users,
+        render: (me) => <People me={me} />,
+        need: 'admin',
+      },
+      { id: 'sharing', label: 'Sharing', Icon: Link2, render: () => <Sharing />, need: 'admin' },
       {
         id: 'planning',
         label: 'Stages and people',
@@ -74,16 +91,31 @@ const GROUPS: { title: string; admin: boolean; entries: Entry[] }[] = [
     ],
   },
   {
-    title: 'Instance',
-    admin: true,
+    title: 'Server',
     entries: [
-      { id: 'task-source', label: 'Task source', Icon: ListTodo, render: () => <TaskSource /> },
-      { id: 'people', label: 'People', Icon: Users, render: (me) => <People me={me} /> },
-      { id: 'sharing', label: 'Sharing', Icon: Link2, render: () => <Sharing /> },
-      { id: 'privacy', label: 'Privacy', Icon: ShieldCheck, render: () => <Privacy /> },
+      {
+        id: 'privacy',
+        label: 'Privacy',
+        Icon: ShieldCheck,
+        render: () => <Privacy />,
+        need: 'server',
+      },
+      {
+        id: 'accounts',
+        label: 'Accounts',
+        Icon: IdCard,
+        render: (me) => <Accounts me={me} />,
+        need: 'server',
+      },
     ],
   },
 ]
+
+function allowed(entry: Entry, me: Me) {
+  if (entry.need === 'admin') return me.role === 'admin'
+  if (entry.need === 'server') return me.server_admin
+  return true
+}
 
 const NARROW = '(max-width: 719px)'
 
@@ -151,17 +183,16 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
   const [listShown, setListShown] = useState(narrow && section === 'profile')
   // The demo's Planning lists are a fixed sample: nothing there to change.
   const sample = usePlanningQuery().data?.sample ?? false
-  const groups = GROUPS.filter((group) => !group.admin || me.role === 'admin')
-    .map((group) => ({
-      ...group,
-      // A demo visitor has no name, password or tracker of their own until they sign up.
-      entries: group.entries.filter(
-        (item) =>
-          (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
-          !(sample && item.id === 'planning'),
-      ),
-    }))
-    .filter((group) => group.entries.length > 0)
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    // A demo visitor has no name, password or tracker of their own until they sign up.
+    entries: group.entries.filter(
+      (item) =>
+        allowed(item, me) &&
+        (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
+        !(sample && item.id === 'planning'),
+    ),
+  })).filter((group) => group.entries.length > 0)
   const entries = groups.flatMap((group) => group.entries)
   // A section the person cannot use, such as an admin one in a shared link, opens Profile.
   const entry = entries.find((item) => item.id === section) ?? entries[0]

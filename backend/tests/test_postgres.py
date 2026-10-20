@@ -252,9 +252,34 @@ def test_an_admin_reaches_no_account_of_another_workspace(db, other):
     pg.PgUserRepo(db, other).add(bob, hash_password(PASSWORD))
     assert "bob" not in {p["username"] for p in admin.get("/api/people").json()["people"]}
     assert admin.patch(f"/api/people/{bob.id}", json={"role": "admin"}).status_code == 404
-    assert admin.patch(f"/api/people/{bob.id}", json={"disabled": True}).status_code == 404
-    assert admin.post(f"/api/people/{bob.id}/reset").status_code == 404
+    # The server admin runs every account; that is the accounts list, not the workspace's people.
+    assert "bob" in {a["username"] for a in admin.get("/api/accounts").json()["accounts"]}
     with db.jobs() as conn:
         rows = conn.execute("SELECT workspace_id FROM memberships WHERE user_id = %s", (bob.id,))
         assert [r["workspace_id"] for r in rows] == [other]
     assert pg.PgUserRepo(db, other).get(bob.id).disabled is False
+
+
+def test_migration_2_moves_the_server_settings_and_names_the_server_admin(db, pg_url):
+    first = Person(id=uuid.uuid4().hex, username="first", name="First", role="admin")
+    later = Person(id=uuid.uuid4().hex, username="later", name="Later", role="admin")
+    for person in (first, later):
+        pg.PgUserRepo(db).add(person, hash_password(PASSWORD))
+    with db.jobs() as conn:
+        conn.execute("UPDATE users SET server_admin = false")
+        conn.execute("UPDATE users SET created_at = '2001-01-01' WHERE id = %s", (first.id,))
+        conn.execute("DELETE FROM server_settings WHERE key = 'usage_stats'")
+        conn.execute(
+            "INSERT INTO settings (workspace_id, key, value) VALUES (%s, 'usage_stats', '0')",
+            (db.default_workspace,),
+        )
+    step = dict(pg.MIGRATIONS)[2]
+    with psycopg.connect(pg_url, autocommit=True) as conn, conn.transaction():
+        conn.execute(step.read_text())
+    with db.jobs() as conn:
+        admins = conn.execute("SELECT id FROM users WHERE server_admin").fetchall()
+        moved = conn.execute("SELECT value FROM server_settings WHERE key = 'usage_stats'")
+        left = conn.execute("SELECT key FROM settings WHERE key = 'usage_stats'").fetchall()
+        assert [row["id"] for row in admins] == [first.id]
+        assert [row["value"] for row in moved] == ["0"]
+        assert left == []

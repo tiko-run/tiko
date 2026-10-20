@@ -11,7 +11,7 @@ from pathlib import Path
 
 import psycopg
 
-from app.adapters.storage.postgres import Database
+from app.adapters.storage.postgres import Database, move_server_settings
 from app.domain.boards import CARD, LEGACY_CARD
 from app.domain.live import LiveDoc
 from app.domain.tasks import now_iso
@@ -297,6 +297,7 @@ def copy_once(db: Database, db_path: str) -> bool:
                 counts = _copy(lite, conn, db.default_workspace)
         finally:
             work.unlink(missing_ok=True)
+        move_server_settings(conn, db.default_workspace)
         conn.execute("INSERT INTO server_settings (key, value) VALUES (%s, %s)", (MARK, now_iso()))
     db.seed(db.default_workspace)
     log.info(

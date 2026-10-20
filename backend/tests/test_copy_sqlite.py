@@ -22,6 +22,9 @@ from tests.test_live import sticky
 DOC = {"nodes": [sticky("n1", "Plan")]}
 T = "2026-03-01T09:00:00+00:00"
 
+# Every start makes an instance id; the copy marks itself next to it.
+SERVER_MARKS = "SELECT key FROM server_settings WHERE key <> 'instance_id'"
+
 
 @pytest.fixture
 def db(pg_url):
@@ -188,8 +191,11 @@ def test_every_table_lands_in_the_default_workspace(db, tmp_path):
     assert rows(db, "SELECT public_token FROM board_index WHERE board_id = 'b1'") == [
         {"public_token": "pub-1"}
     ]
-    settings = rows(db, "SELECT key, value FROM settings WHERE workspace_id = %s", ws)
-    assert {r["key"]: r["value"] for r in settings}["instance_id"] == "inst-made-up"
+    settings = rows(db, "SELECT key FROM settings WHERE workspace_id = %s", ws)
+    assert "instance_id" not in {r["key"] for r in settings}
+    # The server's own keys leave the workspace, and the copied id replaces the one made at start.
+    server = rows(db, "SELECT value FROM server_settings WHERE key = 'instance_id'")
+    assert server == [{"value": "inst-made-up"}]
     fields = rows(db, "SELECT id, name FROM planning_fields ORDER BY position")
     assert [(r["id"], r["name"]) for r in fields] == [
         ("priority", "Priority"),
@@ -198,7 +204,7 @@ def test_every_table_lands_in_the_default_workspace(db, tmp_path):
         ("f1", "Budget"),
     ]
     assert rows(db, "SELECT archived FROM planning_types") == [{"archived": True}]
-    assert rows(db, "SELECT key FROM server_settings") == [{"key": copy_sqlite.MARK}]
+    assert rows(db, SERVER_MARKS) == [{"key": copy_sqlite.MARK}]
     assert not path.exists()
     kept = list(tmp_path.glob("app.db.copied-*"))
     assert len(kept) == 1 and not list(tmp_path.glob("*.copying"))
@@ -227,7 +233,7 @@ def test_a_file_of_any_earlier_release_is_copied(db, tmp_path, upto):
     path = made(tmp_path / "app.db", upto)
 
     assert copy_sqlite.copy_once(db, str(path)) is True
-    assert rows(db, "SELECT key FROM server_settings") == [{"key": copy_sqlite.MARK}]
+    assert rows(db, SERVER_MARKS) == [{"key": copy_sqlite.MARK}]
     # The standard fields come back from the seed when the file was older than them.
     assert len(rows(db, "SELECT id FROM planning_fields WHERE standard")) == 3
 
@@ -260,7 +266,7 @@ def test_a_failed_copy_leaves_postgres_empty_and_the_file_as_it_was(db, tmp_path
 
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
     assert rows(db, "SELECT COUNT(*) AS n FROM users") == [{"n": 0}]
-    assert rows(db, "SELECT COUNT(*) AS n FROM server_settings") == [{"n": 0}]
+    assert rows(db, SERVER_MARKS) == []
     assert sorted(p.name for p in tmp_path.iterdir()) == ["app.db"]
 
 
@@ -431,5 +437,5 @@ def test_a_file_that_cannot_be_renamed_does_not_stop_the_start(db, tmp_path, mon
     monkeypatch.setattr(copy_sqlite, "_rename", refuse)
 
     assert copy_sqlite.copy_once(db, str(path)) is True
-    assert rows(db, "SELECT key FROM server_settings") == [{"key": copy_sqlite.MARK}]
+    assert rows(db, SERVER_MARKS) == [{"key": copy_sqlite.MARK}]
     assert "could not be renamed" in caplog.text

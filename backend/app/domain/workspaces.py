@@ -32,6 +32,8 @@ class WorkspaceLookup(Protocol):
         """The person's role in the workspace, None when they are not a member."""
         ...
 
+    def name(self, workspace: str) -> str | None: ...
+
 
 class NoWorkspaces:
     """Storage without workspaces: every request works in the one database."""
@@ -46,4 +48,7 @@ class NoWorkspaces:
         return None
 
     def role_in(self, user_id: str, workspace: str) -> Role | None:
+        return None
+
+    def name(self, workspace: str) -> str | None:
         return None

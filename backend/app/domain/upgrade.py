@@ -12,7 +12,7 @@ def bootstrap_admin(accounts: Accounts, users: UserRepo, password: Callable[[], 
     if users.count():
         return False
     try:
-        accounts.create(ADMIN, "Admin", password(), "admin")
+        accounts.create(ADMIN, "Admin", password(), "admin", server_admin=True)
     except UsernameTaken:
         # Another worker created the admin first.
         return False

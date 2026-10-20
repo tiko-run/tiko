@@ -40,17 +40,24 @@ Several pull requests on one slice; SQLite stays the default.
 - [x] T019 On compose stacks: the bridge release with made-up boards, Planning and a public link upgrades by the installer with equal counts; a fresh stack from the README; "Update now" from a pre-bridge release rolls back. RAM at rest for SC-005
 - [x] T020 `CHANGELOG.md` with `Requires: installer`; the guide: install, configuration, backups (`down -v`), architecture; `make check`, `make smoke`, `make licenses` green
 
-## Phase 4: Slice `feat/workspace-roles` (US2)
+## Phase 4: Slice `feat/server-admin` (US2)
 
-- [ ] T021 Contract part for `auth/status`, server settings and accounts, settings and Planning, invites
-- [ ] T022 `domain/workspaces.py`: server admin, workspace roles, the last admin rule, one workspace per account on invite; `ServerAdmin` and `WorkspaceAdmin` on every admin route; reset and disable under the server admin. Tests, including both routes as a workspace admin
-- [ ] T023 Tracker tokens per workspace; the person directory and "Everyone in this workspace" scoped to members. Tests
-- [ ] T024 Frontend: the three settings groups, `serverAdmin` for the server group, the "not in a workspace" screen, wording. Tests; an upgraded instance looks as today apart from the groups
-- [ ] T025 `CHANGELOG.md`, the guide's people, sharing and configuration pages; `make check` green
+- [ ] T021 Contract parts marked `feat/server-admin`: `auth/status`, the server admin routes, `/api/accounts`, `PATCH /api/people/{id}` without `disabled`
+- [ ] T022 `users.server_admin`, `ServerAdmin` on update, privacy, metrics and accounts; privacy, instance id and update state into `server_settings`; `/api/accounts` list, disable, reset; `POST /api/people/{id}/reset` removed; the last active server admin rule. Tests, including the account routes as a workspace admin
+- [ ] T023 Frontend: settings groups Workspace, Account and Server; Server holds Privacy and Accounts and shows only to `server_admin`; "Update now" in About only for `server_admin`; People loses disable and reset. Tests; an upgraded instance looks as today apart from the groups and Accounts
+- [ ] T024 `CHANGELOG.md`, the guide's people and configuration pages; `make check`, `make smoke` green
 
-## Phase 5: Slice `feat/demo-workspace` (US3)
+## Phase 5: Slice `feat/workspace-membership` (US2)
 
-- [ ] T026 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
-- [ ] T027 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
-- [ ] T028 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
-- [ ] T029 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green
+- [ ] T025 Contract parts marked `feat/workspace-membership`: no workspace, workspace admin, my tracker, invites
+- [ ] T026 `domain/workspaces.py`: `WorkspaceAdmin` on every workspace admin route; `DELETE /api/people/{id}` with boards, tokens, caches and sockets; the last active admin rule across role, removal and disable, in one transaction; `no_workspace` for everything outside the allowed routes. Tests
+- [ ] T027 `POST /api/invites/{token}/join`, one workspace per account; tracker tokens per workspace; the directory and "Everyone in this workspace" scoped to members. Tests
+- [ ] T028 Frontend: "Remove from workspace" in People, the "not in a workspace" screen, joining from an invite while signed in, `last_admin` and `in_workspace` messages. Tests
+- [ ] T029 `CHANGELOG.md`, the guide's people and sharing pages; `make check`, `make smoke` green
+
+## Phase 6: Slice `feat/demo-workspace` (US3)
+
+- [ ] T030 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
+- [ ] T031 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
+- [ ] T032 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
+- [ ] T033 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green

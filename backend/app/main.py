@@ -286,7 +286,8 @@ def create_app(
     if metrics_token:
         register_secret(metrics_token)
     # Inside the gate, so the person is known.
-    app.add_middleware(WorkspaceScope, lookup=storage.Workspaces(db))
+    app.state.workspaces = storage.Workspaces(db)
+    app.add_middleware(WorkspaceScope, lookup=app.state.workspaces)
     app.add_middleware(PasswordGate, sessions=app.state.sessions, metrics_token=metrics_token)
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
@@ -375,7 +376,7 @@ def create_app(
         stats_sender = HttpStatsSender(settings.tiko_stats_url, httpx.Client(timeout=5.0))
     deploy = _deploy(settings, hosting)
     app.state.privacy = Privacy(
-        storage.SettingsRepo(db),
+        storage.ServerSettingsRepo(db),
         storage.UsageCounts(db),
         stats_sender,
         VERSION,
@@ -386,6 +387,7 @@ def create_app(
         usage_env=settings.tiko_usage_stats,
         errors_env=settings.tiko_error_reports,
         errors_dsn=settings.tiko_error_reports_dsn,
+        trackers=storage.SettingsRepo(db, db.default_workspace),
     )
     # Turned off in the environment, the SDK is not even started.
     app.state.error_tunnel = None
@@ -414,9 +416,9 @@ def create_app(
 
     @app.get("/metrics", include_in_schema=False)
     async def metrics(request: Request) -> Response:
-        # The numbers tell how busy the instance is: for its admins and its monitoring only.
+        # The numbers tell how busy the server is: for its admin and its monitoring only.
         person = getattr(request.state, "person", None)
-        if not (getattr(request.state, "scraper", False) or (person and person.role == "admin")):
+        if not (getattr(request.state, "scraper", False) or (person and person.server_admin)):
             raise NotFound("not found")
         live_gauges()
         await anyio.to_thread.run_sync(demo_gauges)

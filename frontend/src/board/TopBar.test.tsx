@@ -92,7 +92,14 @@ test('shows who is signed in and opens settings with mod+comma', async () => {
     vi.fn(async () =>
       Response.json({
         signed_in: true,
-        me: { id: 'u1', username: 'ann', name: 'Ann Lee', role: 'member' },
+        me: {
+          id: 'u1',
+          username: 'ann',
+          name: 'Ann Lee',
+          role: 'member',
+          server_admin: false,
+          workspace: { id: 'w1', name: 'Default' },
+        },
       }),
     ),
   )
@@ -119,6 +126,8 @@ test('a demo visitor sees the demo mark, no Share, and is asked before signing o
             username: '~0a1b2c3d4e5f',
             name: 'Demo visitor',
             role: 'member',
+            server_admin: false,
+            workspace: { id: 'w1', name: 'Default' },
             demo_expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
           },
         })

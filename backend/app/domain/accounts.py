@@ -64,11 +64,26 @@ class Person(BaseModel):
     name: str
     role: Role
     disabled: bool = False
+    # Runs the server: updates, privacy, accounts. Not a workspace role.
+    server_admin: bool = False
     # Set for a demo visitor only: when they are deleted unless they come back or sign up.
     demo_expires_at: str | None = None
 
 
 class PersonRecord(Person):
+    last_sign_in_at: str | None
+    created_at: str
+
+
+class Account(BaseModel):
+    """An account as the server admin sees it, whatever workspace it is in."""
+
+    id: str
+    username: str
+    name: str
+    server_admin: bool
+    disabled: bool
+    in_workspace: bool
     last_sign_in_at: str | None
     created_at: str
 
@@ -179,9 +194,15 @@ class Accounts:
             "sign-in-browser", PER_BROWSER_FAILURES, PER_BROWSER_WINDOW_S, attempts=attempts
         )
 
-    def create(self, username: str, name: str, password: str, role: Role) -> Person:
+    def create(
+        self, username: str, name: str, password: str, role: Role, server_admin: bool = False
+    ) -> Person:
         person = Person(
-            id=uuid.uuid4().hex, username=check_username(username), name=check_name(name), role=role
+            id=uuid.uuid4().hex,
+            username=check_username(username),
+            name=check_name(name),
+            role=role,
+            server_admin=server_admin,
         )
         self._users.add(person, hash_password(password))
         return person
@@ -271,24 +292,46 @@ class Accounts:
     def people(self) -> list[PersonRecord]:
         return self._users.list()
 
-    def change(self, user_id: str, role: Role | None, disabled: bool | None) -> PersonRecord:
-        """Admin changes to a person; the last active admin cannot be demoted or disabled."""
+    def change_role(self, user_id: str, role: Role) -> PersonRecord:
+        """A workspace admin's change; the last active admin cannot become a member."""
         person = self.get(user_id)
         if person.demo_expires_at:
             raise NotFound("person not found")
-        loses_admin = person.role == "admin" and not person.disabled
-        loses_admin = loses_admin and (role == "member" or disabled is True)
-        if loses_admin and self._users.active_admins() <= 1:
+        if self._last_admin(person) and role == "member":
             raise LastAdmin("Make someone else an admin first.")
-        if role is not None:
-            self._users.set_role(user_id, role)
-        if disabled is not None:
-            self._users.set_disabled(user_id, disabled)
-            if disabled:
-                self._sessions.end_all(user_id)
-                self._browsers.forget(user_id)
+        self._users.set_role(user_id, role)
         self._sessions.forget(user_id)
         return next(record for record in self._users.list() if record.id == user_id)
+
+    def _last_admin(self, person: Person) -> bool:
+        active = person.role == "admin" and not person.disabled
+        return active and self._users.active_admins() <= 1
+
+    def accounts(self) -> list[Account]:
+        return self._users.accounts()
+
+    def account(self, user_id: str) -> Account:
+        found = self._users.account(user_id)
+        if found is None:
+            raise NotFound("account not found")
+        return found
+
+    def set_disabled(self, user_id: str, disabled: bool) -> Account:
+        """The server admin's change; neither the server nor the workspace loses its last
+        active admin."""
+        account = self.account(user_id)
+        if disabled and not account.disabled:
+            if account.server_admin and self._users.active_server_admins() <= 1:
+                raise LastAdmin("The server needs another admin first.")
+            member = self._users.get(user_id)
+            if member and self._last_admin(member):
+                raise LastAdmin("Make someone else an admin of the workspace first.")
+        self._users.set_disabled(user_id, disabled)
+        if disabled:
+            self._sessions.end_all(user_id)
+            self._browsers.forget(user_id)
+        self._sessions.forget(user_id)
+        return self.account(user_id)
 
     def set_password(self, user_id: str, password: str) -> None:
         """Sets a password without the current one, as a reset link does; ends every session."""

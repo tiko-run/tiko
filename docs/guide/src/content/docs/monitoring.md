@@ -3,7 +3,7 @@ title: Monitoring
 description: The Prometheus metrics of a tiko instance, who may read them and what to watch.
 ---
 
-The API serves Prometheus metrics at `/metrics`, on its own port 8000 and outside `/api`, so the web container never shows them to the internet. An admin reads them when signed in. Nobody else does: a member or a demo visitor gets 404.
+The API serves Prometheus metrics at `/metrics`, on its own port 8000 and outside `/api`, so the web container never shows them to the internet. The server admin reads them when signed in. Nobody else does: anyone else gets 404.
 
 ## Letting Prometheus in
 

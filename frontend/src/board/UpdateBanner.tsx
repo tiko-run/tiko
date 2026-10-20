@@ -16,7 +16,7 @@ function closedRecently(): boolean {
   }
 }
 
-/** For admins: a security release stays in view until the instance is updated. */
+/** For the server admin: a security release stays in view until the instance is updated. */
 export function UpdateBanner() {
   const info = useVersion().data
   const [closed, setClosed] = useState(closedRecently)

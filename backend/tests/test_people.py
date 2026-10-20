@@ -124,7 +124,6 @@ def test_invites_expire_after_seven_days(store):
     [
         ("GET", "/api/people"),
         ("PATCH", "/api/people/any"),
-        ("POST", "/api/people/any/reset"),
         ("POST", "/api/invites"),
         ("DELETE", "/api/invites/any"),
     ],
@@ -136,16 +135,65 @@ def test_people_routes_are_for_admins(app, admin, method, path):
     assert TestClient(app).request(method, path, json={}).status_code == 401
 
 
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("GET", "/api/accounts"),
+        ("PATCH", "/api/accounts/any"),
+        ("POST", "/api/accounts/any/reset"),
+        ("GET", "/api/privacy"),
+        ("PUT", "/api/privacy"),
+        ("POST", "/api/update"),
+    ],
+)
+def test_server_routes_are_for_the_server_admin(app, admin, method, path):
+    workspace_admin = join(app, invite(admin, "admin"))
+    response = workspace_admin.request(method, path, json={})
+    assert (response.status_code, response.json()["error"]["code"]) == (403, "forbidden")
+    assert TestClient(app).request(method, path, json={}).status_code == 401
+
+
+def test_metrics_are_for_the_server_admin(app, admin):
+    workspace_admin = join(app, invite(admin, "admin"))
+    assert workspace_admin.get("/metrics").status_code == 404
+    assert admin.get("/metrics").status_code == 200
+
+
+def test_status_names_the_server_admin_and_the_workspace(app, admin):
+    me = admin.get("/api/auth/status").json()["me"]
+    assert me["server_admin"] is True and me["role"] == "admin"
+    assert me["workspace"]["name"] == "Default"
+    member = join(app, invite(admin)).get("/api/auth/status").json()["me"]
+    assert member["server_admin"] is False and member["workspace"] == me["workspace"]
+
+
+def test_accounts_lists_everyone_on_the_server(app, admin):
+    join(app, invite(admin))
+    found = {a["username"]: a for a in admin.get("/api/accounts").json()["accounts"]}
+    assert set(found) == {"admin", "ann"}
+    assert found["admin"]["server_admin"] and not found["ann"]["server_admin"]
+    assert found["ann"]["in_workspace"] and not found["ann"]["disabled"]
+
+
 def test_disabling_signs_the_person_out_at_once(app, admin):
     member = join(app, invite(admin))
     ann = people(admin)["ann"]
-    body = admin.patch(f"/api/people/{ann['id']}", json={"disabled": True}).json()
+    body = admin.patch(f"/api/accounts/{ann['id']}", json={"disabled": True}).json()
     assert body["disabled"] is True
+    assert people(admin)["ann"]["disabled"] is True
     assert member.get("/api/boards").status_code == 401
     response = TestClient(app).post("/api/auth/login", json={"username": "ann", "password": LONG})
     assert (response.status_code, response.json()["error"]["code"]) == (403, "account_disabled")
-    admin.patch(f"/api/people/{ann['id']}", json={"disabled": False})
+    admin.patch(f"/api/accounts/{ann['id']}", json={"disabled": False})
     assert signed_in(app, "ann", LONG).get("/api/boards").status_code == 200
+
+
+def test_people_change_the_role_only(app, admin):
+    join(app, invite(admin))
+    ann = people(admin)["ann"]
+    response = admin.patch(f"/api/people/{ann['id']}", json={"disabled": True})
+    assert response.status_code == 422
+    assert people(admin)["ann"]["disabled"] is False
 
 
 def test_make_admin_and_back(app, admin):
@@ -157,17 +205,31 @@ def test_make_admin_and_back(app, admin):
     assert member.get("/api/people").status_code == 403
 
 
-@pytest.mark.parametrize("change", [{"role": "member"}, {"disabled": True}])
-def test_the_last_admin_stays(admin, change):
+def test_the_last_admin_stays(admin):
     me = people(admin)["admin"]
-    response = admin.patch(f"/api/people/{me['id']}", json=change)
+    response = admin.patch(f"/api/people/{me['id']}", json={"role": "member"})
+    assert (response.status_code, response.json()["error"]["code"]) == (409, "last_admin")
+
+
+def test_the_server_admin_cannot_be_disabled(app, admin):
+    join(app, invite(admin, "admin"))
+    me = people(admin)["admin"]
+    response = admin.patch(f"/api/accounts/{me['id']}", json={"disabled": True})
+    assert (response.status_code, response.json()["error"]["code"]) == (409, "last_admin")
+
+
+def test_disabling_keeps_an_admin_in_the_workspace(app, admin):
+    join(app, invite(admin, "admin"))
+    found = people(admin)
+    assert admin.patch(f"/api/people/{found['admin']['id']}", json={"role": "member"}).is_success
+    response = admin.patch(f"/api/accounts/{found['ann']['id']}", json={"disabled": True})
     assert (response.status_code, response.json()["error"]["code"]) == (409, "last_admin")
 
 
 def test_reset_link_sets_a_new_password(app, admin):
     member = join(app, invite(admin))
     ann = people(admin)["ann"]
-    response = admin.post(f"/api/people/{ann['id']}/reset")
+    response = admin.post(f"/api/accounts/{ann['id']}/reset")
     assert response.status_code == 201
     token = token_of(response.json()["url"])
     assert response.json()["url"].startswith("/?reset=")
