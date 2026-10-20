@@ -22,7 +22,7 @@ from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
-from app.adapters.storage import postgres, sqlite
+from app.adapters.storage import copy_sqlite, postgres, sqlite
 from app.adapters.storage.lock import FileLock
 from app.adapters.storage.update_backups import SqliteUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
@@ -231,6 +231,8 @@ def create_app(
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     if settings.database_url:
         storage, db = postgres, postgres.shared(settings.database_url)
+        # Before anything reads or makes accounts: the first admin would be made anew.
+        copy_sqlite.copy_once(db, settings.db_path)
     else:
         storage, db = sqlite, sqlite.Database(settings.db_path)
     users = storage.UserRepo(db)
