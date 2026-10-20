@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config'
 import { readdirSync } from 'node:fs'
 import starlight from '@astrojs/starlight'
+import starlightSidebarTopics from 'starlight-sidebar-topics'
 import { byNewest } from './src/lib/releases.mjs'
 
 // Release pages are named 2026-10-21; the sidebar shows them as versions, newest first.
@@ -38,27 +39,43 @@ export default defineConfig({
         Head: './src/components/Head.astro',
         Header: './src/components/Header.astro',
         PageTitle: './src/components/PageTitle.astro',
+        Sidebar: './src/components/Sidebar.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
       },
-      sidebar: [
-        {
-          label: "What's new",
-          items: [
-            { slug: 'whats-new', label: 'Overview' },
-            { label: 'All releases', collapsed: true, items: releases },
-          ],
-        },
-        { label: 'Get started', items: ['index', 'why', 'install', 'quick-start'] },
-        {
-          label: 'Features',
-          items: ['adding-tasks', 'what-you-can-add', 'working-together', 'search', 'keyboard-shortcuts'],
-        },
-        { label: 'Modules', items: [{ slug: 'gantt', label: 'Gantt' }, 'focus-and-timers'] },
-        { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },
-        {
-          label: 'Self-hosting',
-          items: ['configuration', 'data-and-upgrades', 'updates', 'security', 'privacy', 'monitoring', 'demo'],
-        },
-        { label: 'Project', items: ['roadmap', 'architecture'] },
+      plugins: [
+        // One sidebar per tab of the top bar.
+        starlightSidebarTopics([
+          {
+            id: 'docs',
+            label: 'Docs',
+            link: '/',
+            icon: 'open-book',
+            items: [
+              { label: 'Get started', items: ['index', 'why', 'install', 'quick-start'] },
+              {
+                label: 'Features',
+                items: ['adding-tasks', 'what-you-can-add', 'working-together', 'search', 'keyboard-shortcuts'],
+              },
+              { label: 'Modules', items: [{ slug: 'gantt', label: 'Gantt' }, 'focus-and-timers'] },
+              { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },
+              {
+                label: 'Self-hosting',
+                items: ['configuration', 'data-and-upgrades', 'updates', 'security', 'privacy', 'monitoring', 'demo'],
+              },
+              { label: 'Project', items: ['roadmap', 'architecture'] },
+            ],
+          },
+          {
+            id: 'whats-new',
+            label: "What's new",
+            link: '/whats-new/',
+            icon: 'rocket',
+            items: [
+              { slug: 'whats-new', label: 'Overview' },
+              { label: 'All releases', items: releases },
+            ],
+          },
+        ]),
       ],
     }),
   ],

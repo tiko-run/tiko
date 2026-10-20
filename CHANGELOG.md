@@ -16,6 +16,7 @@ Requires: installer
 - One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
 - Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
 - Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
+- The guide wears tiko's own colors in light and dark, with Docs and What's new as tabs in the top bar and a "Try the demo" button. Copy any page as Markdown, or open it in ChatGPT or Claude to ask about it.
 
 ## [2026.10.23] - 2026-10-20
 

@@ -1,4 +1,5 @@
-/* tiko theme for Starlight: tokens from DESIGN.md, type and density after Linear's docs. */
+/* tiko theme for Starlight: layout after docs.composio.dev, type and density after Linear's docs. */
+/* Colors are the app's shadcn tokens (frontend/src/index.css), so the guide and tiko read as one product. */
 :root {
   --sl-font: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --sl-font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
@@ -7,48 +8,78 @@
   --sl-text-h3: 1.25rem;
   --sl-text-h4: 1.0625rem;
   --sl-line-height: 1.65;
-  --sl-content-width: 44rem;
+  --sl-content-width: 46rem;
   --sl-sidebar-width: 17rem;
-  --sl-nav-height: 3.5rem;
+  --sl-nav-height: 3.75rem;
+  --tiko-radius: 6px;
 
-  --sl-color-white: #e6e8ea;
-  --sl-color-gray-1: #e6e8ea;
-  --sl-color-gray-2: #c3c7cc;
-  --sl-color-gray-3: #a3a8af;
-  --sl-color-gray-4: #5a5f66;
-  --sl-color-gray-5: #2b2e32;
-  --sl-color-gray-6: #191b1e;
-  --sl-color-black: #101214;
-  --sl-color-accent-low: #142c4d;
-  --sl-color-accent: #5fa1f3;
-  --sl-color-accent-high: #a9cdf9;
-  --sl-color-bg-nav: var(--sl-color-black);
-  --sl-color-bg-sidebar: var(--sl-color-black);
-  --sl-color-hairline: var(--sl-color-gray-5);
-  --sl-color-hairline-light: var(--sl-color-gray-5);
-  --tiko-active-bg: #1a2433;
-  --tiko-active-text: #8dbcf6;
+  /* Dark: the app's soft slate, never near-black. */
+  --tiko-background: oklch(0.274 0.018 252);
+  --tiko-card: oklch(0.311 0.022 259);
+  --tiko-muted: oklch(0.35 0.022 257);
+  --tiko-border: oklch(0.384 0.018 255);
+  --tiko-foreground: oklch(0.877 0.014 258);
+  --tiko-muted-foreground: oklch(0.71 0.016 255);
+  --tiko-primary: oklch(0.684 0.152 255);
+  --tiko-on-accent: oklch(0.22 0.018 256);
+  --tiko-accent: oklch(0.35 0.035 255);
+  --tiko-shadow: 0 8px 24px oklch(0.15 0.02 255 / 0.45);
+
+  --sl-color-white: oklch(0.95 0.01 258);
+  --sl-color-gray-1: var(--tiko-foreground);
+  --sl-color-gray-2: oklch(0.8 0.015 257);
+  --sl-color-gray-3: var(--tiko-muted-foreground);
+  --sl-color-gray-4: oklch(0.55 0.017 255);
+  --sl-color-gray-5: var(--tiko-border);
+  --sl-color-gray-6: var(--tiko-muted);
+  --sl-color-black: var(--tiko-background);
+  --sl-color-accent-low: oklch(0.36 0.06 255);
+  --sl-color-accent: var(--tiko-primary);
+  --sl-color-accent-high: oklch(0.86 0.07 255);
+  --sl-color-text-accent: var(--sl-color-accent-high);
+  --sl-color-bg-nav: var(--tiko-background);
+  --sl-color-bg-sidebar: var(--tiko-background);
+  --sl-color-bg-inline-code: var(--tiko-card);
+  --sl-color-hairline: var(--tiko-border);
+  --sl-color-hairline-light: var(--tiko-border);
+  --sl-color-hairline-shade: var(--tiko-border);
+  --tiko-active-bg: var(--tiko-accent);
+  --tiko-active-text: var(--sl-color-accent-high);
 }
 
 :root[data-theme='light'] {
-  --sl-color-white: #1c1f24;
-  --sl-color-gray-1: #1c1f24;
-  --sl-color-gray-2: #33373d;
-  --sl-color-gray-3: #656970;
-  --sl-color-gray-4: #8a8f97;
-  --sl-color-gray-5: #c9ccd1;
-  --sl-color-gray-6: #e6e8eb;
-  --sl-color-gray-7: #f5f6f7;
-  --sl-color-black: #ffffff;
-  --sl-color-accent-low: #e3eefb;
-  --sl-color-accent: #096acb;
-  --sl-color-accent-high: #0a4a8f;
-  --sl-color-bg-nav: #ffffff;
-  --sl-color-bg-sidebar: #fbfbfc;
-  --sl-color-hairline: var(--sl-color-gray-6);
-  --sl-color-hairline-light: var(--sl-color-gray-6);
-  --tiko-active-bg: #eaf2fc;
-  --tiko-active-text: #096acb;
+  --tiko-background: oklch(0.985 0.002 250);
+  --tiko-card: oklch(1 0 0);
+  --tiko-muted: oklch(0.96 0.004 260);
+  --tiko-border: oklch(0.91 0.005 250);
+  --tiko-foreground: oklch(0.24 0.01 260);
+  --tiko-muted-foreground: oklch(0.52 0.012 260);
+  --tiko-primary: oklch(0.53 0.17 255);
+  --tiko-on-accent: oklch(0.985 0 0);
+  --tiko-accent: oklch(0.96 0.012 255);
+  --tiko-shadow: 0 8px 24px oklch(0.24 0.01 260 / 0.1);
+
+  --sl-color-white: var(--tiko-foreground);
+  --sl-color-gray-1: var(--tiko-foreground);
+  --sl-color-gray-2: oklch(0.36 0.012 260);
+  --sl-color-gray-3: var(--tiko-muted-foreground);
+  --sl-color-gray-4: oklch(0.66 0.01 255);
+  --sl-color-gray-5: oklch(0.85 0.006 250);
+  --sl-color-gray-6: var(--tiko-muted);
+  --sl-color-gray-7: oklch(0.975 0.003 255);
+  --sl-color-black: var(--tiko-card);
+  --sl-color-accent-low: oklch(0.93 0.04 255);
+  --sl-color-accent: var(--tiko-primary);
+  --sl-color-accent-high: oklch(0.42 0.15 255);
+  --sl-color-text-accent: var(--tiko-primary);
+  --sl-color-bg-nav: var(--tiko-card);
+  --sl-color-bg-sidebar: var(--tiko-card);
+  --sl-color-bg-inline-code: var(--tiko-muted);
+  --sl-color-hairline: var(--tiko-border);
+  --sl-color-hairline-light: var(--tiko-border);
+  --sl-color-hairline-shade: var(--tiko-border);
+  --tiko-active-bg: var(--tiko-accent);
+  --tiko-active-text: var(--tiko-primary);
 }
 
 body {
@@ -293,4 +324,89 @@ starlight-toc a {
   line-height: 1.3;
   letter-spacing: -0.015em;
   color: var(--sl-color-white);
+}
+
+/* Page title with "Copy page" at its right, as on docs.composio.dev. */
+.tiko-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.tiko-title-row .tiko-copy {
+  margin-top: 0.375rem;
+}
+@media (max-width: 40rem) {
+  .tiko-title-row {
+    flex-direction: column;
+  }
+}
+
+/* Sidebar group titles: small caps-style labels, so the pages under them carry the weight. */
+.sidebar-content .top-level > li > details > summary .group-label .large {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.sidebar-content .top-level > li > details > summary .caret {
+  display: none;
+}
+.sidebar-content .top-level > li + li {
+  margin-top: 1.5rem;
+}
+
+/* Section tabs in the sidebar on narrow screens (Sidebar.astro). */
+.tiko-topics-mobile .starlight-sidebar-topics a {
+  border-radius: var(--tiko-radius);
+}
+
+/* On this page: a rail on the left, the current section marked on it. */
+starlight-toc nav > ul {
+  border-inline-start: 1px solid var(--sl-color-hairline);
+}
+starlight-toc a {
+  margin-inline-start: -1px;
+  border-inline-start: 1px solid transparent;
+  color: var(--sl-color-gray-3);
+}
+starlight-toc a[aria-current='true'] {
+  border-inline-start-color: var(--sl-color-accent);
+  color: var(--sl-color-text-accent);
+}
+
+/* Callouts and the search box on the tokens. */
+.starlight-aside {
+  border-radius: var(--tiko-radius);
+}
+site-search button[data-open-modal] {
+  border-radius: var(--tiko-radius);
+  background: var(--sl-color-gray-6);
+  border-color: var(--sl-color-hairline);
+}
+:root[data-theme='light'] site-search button[data-open-modal] {
+  background: var(--tiko-background);
+}
+
+/* Scrollbars as in the app (DESIGN.md): thin, no track, the thumb shows only while a box scrolls
+   or the pointer is over an inner panel, and fades out a second later (script in Head.astro).
+   The thumb color is a registered, non-inherited property, so each box fades on its own. */
+@property --tiko-thumb {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tiko-thumb) transparent;
+  transition: --tiko-thumb 0.4s ease;
+}
+:not(html):hover,
+.tiko-scrolling {
+  --tiko-thumb: color-mix(in oklch, var(--tiko-muted-foreground) 35%, transparent);
+  transition-duration: 0.1s;
+}
+html.tiko-scrolling {
+  --tiko-thumb: color-mix(in oklch, var(--tiko-muted-foreground) 45%, transparent);
 }

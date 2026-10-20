@@ -1,7 +1,131 @@
 ---
-import Default from '@astrojs/starlight/components/Header.astro'
+import Search from 'virtual:starlight/components/Search'
+import SiteTitle from 'virtual:starlight/components/SiteTitle'
+import SocialIcons from 'virtual:starlight/components/SocialIcons'
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect'
+
+const { topics } = Astro.locals.starlightSidebarTopics
 ---
 
-<div transition:persist="docs-header" style="display: contents">
-  <Default />
+<div transition:persist="docs-header" class="tiko-header">
+  <div class="tiko-header-title">
+    <SiteTitle />
+  </div>
+  <nav class="tiko-tabs" aria-label="Sections">
+    {
+      topics.map((topic) => (
+        <a href={topic.link} aria-current={topic.isCurrent ? 'page' : undefined}>
+          {topic.label}
+        </a>
+      ))
+    }
+  </nav>
+  <div class="tiko-header-search print:hidden">
+    <Search />
+  </div>
+  <div class="tiko-header-right print:hidden">
+    <div class="tiko-header-icons">
+      <SocialIcons />
+      <ThemeSelect />
+    </div>
+    <a class="tiko-demo" href="https://demo.tiko.run">Try the demo</a>
+  </div>
 </div>
+
+<script>
+  // The header persists across page loads, so the current tab follows the address bar here.
+  document.addEventListener('astro:page-load', () => {
+    const tabs = [...document.querySelectorAll<HTMLAnchorElement>('.tiko-tabs a')]
+    // Docs sits at the root, so it is the tab of every page the other tabs do not claim.
+    const current = tabs.find((tab) => tab.pathname !== '/' && location.pathname.startsWith(tab.pathname)) ?? tabs[0]
+    for (const tab of tabs) {
+      if (tab === current) tab.setAttribute('aria-current', 'page')
+      else tab.removeAttribute('aria-current')
+    }
+  })
+</script>
+
+<style>
+  .tiko-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    height: 100%;
+  }
+  .tiko-header-title {
+    display: flex;
+    min-width: 0;
+    overflow: clip;
+    padding: 0.25rem;
+    margin: -0.25rem;
+  }
+  .tiko-tabs {
+    display: none;
+    gap: 0.25rem;
+    align-self: stretch;
+  }
+  .tiko-tabs a {
+    display: flex;
+    align-items: center;
+    padding: 0 0.625rem;
+    border-bottom: 2px solid transparent;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .tiko-tabs a:hover {
+    color: var(--sl-color-white);
+  }
+  .tiko-tabs a[aria-current] {
+    color: var(--sl-color-text-accent);
+    border-bottom-color: var(--sl-color-accent);
+  }
+  .tiko-header-search {
+    display: flex;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .tiko-header-right {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+  }
+  .tiko-header-icons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .tiko-demo {
+    display: inline-flex;
+    align-items: center;
+    height: 2.125rem;
+    padding: 0 0.875rem;
+    border-radius: var(--tiko-radius);
+    background: var(--sl-color-accent);
+    color: var(--tiko-on-accent);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter 0.15s;
+  }
+  .tiko-demo:hover {
+    filter: brightness(1.08);
+  }
+  @media (min-width: 50rem) {
+    .tiko-header-right {
+      display: flex;
+    }
+    .tiko-header-search :global(site-search) {
+      width: 100%;
+      max-width: 17rem;
+    }
+  }
+  @media (min-width: 64rem) {
+    .tiko-tabs {
+      display: flex;
+    }
+  }
+</style>

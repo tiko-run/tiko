@@ -1,0 +1,35 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro'
+import Topics from 'starlight-sidebar-topics/components/Sidebar.astro'
+---
+
+<!-- The tabs live in the header; on narrow screens the header has no room, so they come back here. -->
+<div class="tiko-topics-mobile">
+  <Topics />
+  <a class="tiko-demo-mobile" href="https://demo.tiko.run">Try the demo</a>
+</div>
+<Default><slot /></Default>
+
+<style>
+  .tiko-demo-mobile {
+    display: block;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    border-radius: var(--tiko-radius);
+    background: var(--sl-color-accent);
+    color: var(--tiko-on-accent);
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+  }
+  @media (min-width: 50rem) {
+    .tiko-demo-mobile {
+      display: none;
+    }
+  }
+  @media (min-width: 64rem) {
+    .tiko-topics-mobile {
+      display: none;
+    }
+  }
+</style>

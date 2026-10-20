@@ -85,3 +85,18 @@ import { ClientRouter } from 'astro:transitions'
     }
   })
 </script>
+
+<script>
+  // Marks the box being scrolled for a second, so its thin scrollbar shows and then fades (tiko.css).
+  const timers = new WeakMap<Element, number>()
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      const box = event.target instanceof Element ? event.target : document.documentElement
+      box.classList.add('tiko-scrolling')
+      clearTimeout(timers.get(box))
+      timers.set(box, window.setTimeout(() => box.classList.remove('tiko-scrolling'), 1000))
+    },
+    { capture: true, passive: true },
+  )
+</script>
