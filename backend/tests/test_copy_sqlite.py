@@ -419,3 +419,17 @@ def test_the_token_from_before_accounts_moves_to_the_admin(db, tmp_path):
     admin = pg.PgUserRepo(db).find("admin")[0]
     assert pg.PgCredentialRepo(db).get(admin.id, "jira") == ("sealed", "https://jira.example.com")
     assert "jira_token_enc" not in pg.PgSettingsRepo(db).get_all()
+
+
+def test_a_file_that_cannot_be_renamed_does_not_stop_the_start(db, tmp_path, monkeypatch, caplog):
+    path = made(tmp_path / "app.db")
+    fill(path)
+
+    def refuse(source):
+        raise PermissionError("read-only folder")
+
+    monkeypatch.setattr(copy_sqlite, "_rename", refuse)
+
+    assert copy_sqlite.copy_once(db, str(path)) is True
+    assert rows(db, "SELECT key FROM server_settings") == [{"key": copy_sqlite.MARK}]
+    assert "could not be renamed" in caplog.text

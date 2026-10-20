@@ -70,6 +70,7 @@ class FakeDocker:
         self.db = install / "pg.json"
         self.uploaded: dict[str, bytes] = {}
         self.dump_error = False
+        self.restore_error = False
         self.has_db = True
         self.calls: list[tuple] = []
         self.healthy = healthy
@@ -152,6 +153,11 @@ class FakeDocker:
                 return 1, "pg_dump: error: connection failed"
             out.write(self.db.read_bytes())
         elif cmd[0] == "pg_restore":
+            # -f <script> <dump>: the dump as SQL, the database untouched.
+            self.uploaded[cmd[2]] = self.uploaded[cmd[-1]]
+        elif cmd[0] == "psql":
+            if self.restore_error:
+                return 3, "psql: error: relation already exists"
             self.db.write_bytes(self.uploaded[cmd[-1]])
         return 0, ""
 
@@ -300,6 +306,17 @@ def test_backups_keep_the_newest_three(install: Path):
         "pre-update-2026.10.3.dump",
         "pre-update-2026.10.4.dump",
     ]
+
+
+def test_a_failed_restore_leaves_the_database_and_still_starts_the_old_containers(install: Path):
+    docker = FakeDocker(install, healthy=False)
+    docker.restore_error = True
+    status = update(docker, install).snapshot()
+    assert status["state"] == "failed"
+    assert "Rollback failed: psql exited with 3" in status["log"][-1]
+    # The new api's own row stays: the one transaction of the restore never committed.
+    assert rows(install / "pg.json") == ["saved before the update", "written by the new version"]
+    assert docker.calls[-1] == ("start", "api0123456789abcdef")
 
 
 def test_a_failed_dump_rolls_back_before_the_new_api_starts(install: Path):

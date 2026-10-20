@@ -380,8 +380,12 @@ def restore_database(docker: Docker, db: str, backup: str | None, install: Path)
         return
     docker.put_file(db, DB_TMP, install / "data" / "backups" / backup)
     inside = f"{DB_TMP}/{backup}"
-    # A fresh schema, so tables a newer migration added go too.
+    script = f"{inside}.sql"
     steps = [
+        # The dump as SQL first: if it cannot be read, nothing is touched yet.
+        ["pg_restore", "-f", script, inside],
+        # One transaction for the fresh schema and the restore: a failure leaves the database as
+        # it was. A fresh schema, so tables a newer migration added go too.
         [
             "psql",
             "-U",
@@ -390,10 +394,12 @@ def restore_database(docker: Docker, db: str, backup: str | None, install: Path)
             DB_NAME,
             "-v",
             "ON_ERROR_STOP=1",
+            "--single-transaction",
             "-c",
             "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION tiko_owner;",
+            "-f",
+            script,
         ],
-        ["pg_restore", "-U", DB_USER, "-d", DB_NAME, "--exit-on-error", inside],
     ]
     try:
         for cmd in steps:
@@ -401,7 +407,7 @@ def restore_database(docker: Docker, db: str, backup: str | None, install: Path)
             if code != 0:
                 raise DockerError(f"{cmd[0]} exited with {code}: {errors.strip()}")
     finally:
-        code, errors = docker.exec(db, ["rm", "-f", inside])
+        code, errors = docker.exec(db, ["rm", "-f", inside, script])
         if code != 0:
             log.warning("the dump stays in the db container at %s: %s", inside, errors.strip())
 
@@ -517,10 +523,13 @@ def roll_back(
             if new:
                 docker.remove(new)
             docker.rename(container["Id"], name)
-        # The new api may have migrated the database before it failed.
-        restore_database(docker, db, backup, install)
-        for container, _, _ in replaced:
-            docker.start(container["Id"])
+        try:
+            # The new api may have migrated the database before it failed.
+            restore_database(docker, db, backup, install)
+        finally:
+            # Even with the database not restored: a stopped tiko helps nobody.
+            for container, _, _ in replaced:
+                docker.start(container["Id"])
         job.note("The previous version runs again")
     except Exception as exc:
         job.note(f"Rollback failed: {exc}")

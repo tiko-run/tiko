@@ -298,15 +298,15 @@ def copy_once(db: Database, db_path: str) -> bool:
         finally:
             work.unlink(missing_ok=True)
         conn.execute("INSERT INTO server_settings (key, value) VALUES (%s, %s)", (MARK, now_iso()))
-    kept = _rename(source)
     db.seed(db.default_workspace)
     log.info(
-        "copied %s into Postgres: %d people, %d boards; the file is kept as %s",
-        source,
-        counts["users"],
-        counts["boards"],
-        kept.name,
+        "copied %s into Postgres: %d people, %d boards", source, counts["users"], counts["boards"]
     )
+    try:
+        log.info("the file is kept as %s", _rename(source).name)
+    except OSError:
+        # The copy is done and marked; a file left in place is only logged at the next start.
+        log.exception("%s could not be renamed after the copy", source)
     return True
 
 
