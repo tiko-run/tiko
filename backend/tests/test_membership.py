@@ -230,3 +230,12 @@ def test_member_routes_of_the_workspace_admin(app, admin):
     for method, path in (("DELETE", "/api/people/any"), ("PUT", "/api/settings")):
         response = member.request(method, path, json={})
         assert (response.status_code, response.json()["error"]["code"]) == (403, "forbidden")
+
+
+def test_reset_links_stay_out_of_the_workspace_people(app, admin):
+    join(app, invite(admin))
+    ann_id = people(admin)["ann"]["id"]
+    workspace_admin = join(app, invite(admin, "admin"), "bob", "Bob Ray")
+    reset = admin.post(f"/api/accounts/{ann_id}/reset").json()["invite"]
+    assert workspace_admin.get("/api/people").json()["invites"] == []
+    assert workspace_admin.delete(f"/api/invites/{reset['id']}").status_code == 404

@@ -1438,8 +1438,11 @@ class PgInviteRepo(_Repo):
         """`own`: only an invite of this workspace; a link is used from outside it."""
         where = f" AND {_OPEN}" if now else ""
         count = 0
+        tables = [("invites", " AND workspace_id = %s")]
+        if not own:
+            tables.append(("password_resets", ""))
         with self._tx() as conn:
-            for table, scope in (("invites", " AND workspace_id = %s"), ("password_resets", "")):
+            for table, scope in tables:
                 scope = scope if own else ""
                 ws = (self._ws,) if scope else ()
                 params = (value, invite_id, *ws, *((now,) if now else ()))
@@ -1457,8 +1460,8 @@ class PgInviteRepo(_Repo):
     def pending(self, now: str) -> list[Invite]:
         with self._tx() as conn:
             rows = conn.execute(
-                f"{_INVITE} WHERE (i.workspace_id = %s OR i.workspace_id IS NULL) AND i.{_OPEN}"
-                " ORDER BY i.created_at",
+                # Reset links are the server admin's, not the workspace's.
+                f"{_INVITE} WHERE i.workspace_id = %s AND i.{_OPEN} ORDER BY i.created_at",
                 (self._ws, now),
             ).fetchall()
         return [Invite(**row) for row in rows]

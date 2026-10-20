@@ -98,6 +98,8 @@ function RemoveDialog({
     onSuccess: () => {
       toast.success(`${person?.name} removed`)
       onOpenChange(false)
+      // Their boards are the admin's now.
+      void queryClient.invalidateQueries({ queryKey: ['boards'] })
     },
     onError: toastError,
     onSettled: () => queryClient.invalidateQueries({ queryKey: PEOPLE }),
