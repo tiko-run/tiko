@@ -32,7 +32,7 @@ export const FAQ = [
   },
   {
     q: 'Where is my data?',
-    a: 'On your server, in one SQLite file. Tracker tokens are encrypted and never sent back to the browser. Usage counts carry no personal data and turn off with one setting.',
+    a: 'On your server, in its own Postgres. Tracker tokens are encrypted and never sent back to the browser. Usage counts carry no personal data and turn off with one setting.',
   },
   {
     q: 'How do I install it?',

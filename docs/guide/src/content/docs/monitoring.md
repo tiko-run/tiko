@@ -74,7 +74,7 @@ The API is one process on one CPU core, and every open board is a socket in it. 
 | `tiko_event_loop_lag_seconds` | histogram | How much later than asked the server wakes, sampled four times a second |
 | `tiko_db_wait_seconds` | histogram | Wait of a request for the database |
 | `tiko_db_transaction_seconds` | histogram | Length of a database transaction |
-| `tiko_db_held_seconds` | summary | The same time as a sum and a count by `kind`: the storage method that asked, like `SqliteBoardRepo.listing` |
+| `tiko_db_held_seconds` | summary | The same time as a sum and a count by `kind`: the storage method that asked, like `PgBoardRepo.listing` |
 | `tiko_threadpool_busy` | gauge | Worker threads busy with a request |
 | `tiko_demo_visitors`, `tiko_demo_limit` | gauge | Demo visitors kept and allowed; only with `TIKO_DEMO` |
 | `process_*`, `python_*` | | CPU time, memory, open files and garbage collection of the API process |

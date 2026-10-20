@@ -22,16 +22,18 @@ The check sends GitHub no data about you or your boards.
 An admin opens About and clicks **Update now**. tiko then:
 
 1. Downloads the new release and shows the progress in About.
-2. Stops the `api` container and copies the database to `data/backups/pre-update-<version>.db`, so the copy holds every change made up to that moment. It keeps the 3 newest of these copies and leaves other backups alone.
+2. Stops the `api` container and dumps the database to `data/backups/pre-update-<version>.dump`, so the dump holds every change made up to that moment. It keeps the 3 newest of these dumps and leaves other backups alone.
 3. Starts `api` on the new release, then restarts the `web` container the same way. Once the new version serves the page, About shows a **Reload** button. Other people get a notice with a **Reload** button, so nobody loses a change they have not saved yet.
 
 People who are not admins see "Ask an admin to update". A release marked **Breaking changes** asks you to read its notes first.
 
 ### When something goes wrong
 
-If a new container does not start within 2 minutes, tiko goes back on its own. It starts the previous containers again and puts the database copy back. About then says that the update failed and shows its log.
+With your own Postgres server in `DATABASE_URL` there is no `db` container to dump, so the update does not start: back the database up yourself and run the installer. See [Your own Postgres server](../data-and-upgrades/#your-own-postgres-server).
 
-If the disk is too full for the database copy, the update does not start, and About tells you how much space it needs. If the disk fills up during the download, the download fails before any container is touched, and the running version stays as it was.
+If a new container does not start within 2 minutes, tiko goes back on its own. It starts the previous containers again and restores the database from the dump. About then says that the update failed and shows its log.
+
+If the disk is too full for the dump, the update does not start, and About tells you how much space it needs. If the disk fills up during the download, the download fails before any container is touched, and the running version stays as it was.
 
 After a good update tiko removes images older than the previous release. The disk then holds two releases: the one running and the one before it.
 

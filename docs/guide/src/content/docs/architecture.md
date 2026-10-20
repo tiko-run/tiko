@@ -6,12 +6,12 @@ description: How tiko is built, the two containers, the code layout and how stat
 ## Overview
 
 ```text
-Browser ──> Web UI (React, nginx :3000) ──/api, WebSocket──> API (FastAPI :8000) ──> SQLite (data/app.db)
+Browser ──> Web UI (React, nginx :3000) ──/api, WebSocket──> API (FastAPI :8000) ──> Postgres (db :5432)
                                                                    │
                                                                    └──REST──> Task tracker (Jira Data Center today)
 ```
 
-tiko runs as two containers. nginx serves the built UI and proxies `/api` to the API, so the browser sees one origin. The API keeps everything in one SQLite file under `./data`. With one-click updates on, a third container, `updater` (one stdlib Python file in `updater/`), holds the Docker socket and swaps `api` and `web` for a new release when the API asks.
+tiko runs as three containers. nginx serves the built UI and proxies `/api` to the API, so the browser sees one origin. The API keeps everything in Postgres, in the `db` container, which only the API reaches. With one-click updates on, a third container, `updater` (one stdlib Python file in `updater/`), holds the Docker socket and swaps `api` and `web` for a new release when the API asks.
 
 The backend has three layers with one dependency rule, `api → domain ← adapters`: the domain knows nothing about FastAPI or any tracker SDK. Wiring happens in `backend/app/main.py`. The reasons behind each choice are in the [decision log](https://github.com/tiko-run/tiko/blob/main/docs/decisions.md).
 
@@ -25,7 +25,8 @@ backend/app/
               jql, settings, modules, updates; ports.py
   adapters/
     tasks/    jira_dc.py (httpx), demo.py (in-memory seed)
-    storage/  sqlite.py, migrations/*.sql (PRAGMA user_version)
+    storage/  postgres.py (pools, the transaction that sets the workspace), pg_migrations/*.sql;
+              copy_sqlite.py, the one-time copy of an SQLite release's data/app.db
     secrets/  fernet.py (token encryption with TIKO_SECRET_KEY)
     live/     rooms.py (open boards and their sockets)
     releases/ github.py (recent releases and their level for "update available")
@@ -45,6 +46,9 @@ The main tables:
 | `user_credentials` | Each person's encrypted tracker token |
 | `task_snapshots` | Latest fields per task key, kept apart for each person |
 | `settings` | Tracker, its URL and the refresh interval |
+| `workspaces`, `memberships` | The workspace every row belongs to, and who is in it |
+
+Every table with content carries `workspace_id`. Requests run as the role `tiko_app`, which row-level security keeps to the workspace of the request; work that crosses workspaces runs as `tiko_jobs`. Both are switched to from the owner `DATABASE_URL` names, which only runs migrations.
 
 `/health`, `/ready` and `/metrics` (Prometheus) are served outside `/api`. What the metrics hold is in [Monitoring](../monitoring/).
 
@@ -82,6 +86,6 @@ That is one batched request per open board per tick. The response lists every tr
 
 None of this is built. It is listed so the current design does not block it.
 
-- For more load, move from SQLite to Postgres behind the same repository ports, run several API replicas, and share refresh results between boards that show the same keys.
+- For more load, run several API replicas on one Postgres, and share refresh results between boards that show the same keys.
 - For fewer requests to the tracker, add a server-side poller with a cache per key, or webhooks where admins allow them.
 - A new tracker is a new `TaskProvider` adapter, with no changes to the domain. See [Task trackers](../trackers/).

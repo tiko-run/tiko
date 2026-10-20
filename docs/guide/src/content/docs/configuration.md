@@ -24,7 +24,8 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `JIRA_TLS_VERIFY` | Verify Jira's TLS certificate; `false` skips the check | `true` |
 | `JIRA_CA_BUNDLE` | Path inside the container to a CA bundle for a corporate certificate authority | unset |
 | `LOG_LEVEL` | Log level | `info` |
-| `DB_PATH` | SQLite file inside the container | `data/app.db` |
+| `POSTGRES_PASSWORD` | Password of Postgres in the `db` service; the installers write a random one. Read once, when the volume is made, so a new value later locks tiko out. Letters and digits only | `tiko-local` |
+| `DATABASE_URL` | A Postgres server of your own instead of the `db` service. See [Your own Postgres server](../data-and-upgrades/#your-own-postgres-server) | the `db` service |
 | `APP_ENV` | Environment name: `local`, `stage` or `production` | `local` |
 | `UPDATE_CHECK` | Ask GitHub every 30 minutes for new releases to show "update available" in About, and how much the update matters; `false` turns it off | `true` |
 | `TIKO_USAGE_STATS` | Daily usage counts without personal data, listed in [Usage stats](../privacy/). `false` turns them off and locks the switch in Settings → Privacy; unset, an admin decides there | unset (on) |
@@ -79,6 +80,7 @@ TIKO_WORKERS=4
 - Go through the web container (port 3000), as with one process. A socket that reaches the wrong process is closed and the tab tries again, so a proxy of your own that talks to port 8000 directly only works with one process.
 - Signing out, role changes and the limits on wrong passwords and on public links work across the processes as they do in one.
 - The processes stand and fall together: when one stops, the container restarts.
+- Each process keeps up to 6 connections to Postgres, and the `db` service takes 100. With more than 16 processes, raise `max_connections` in its `command`.
 
 ### A Unix socket between the containers
 
