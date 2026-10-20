@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 import socket
 import subprocess
@@ -30,15 +31,40 @@ BACKEND = Path(__file__).parents[1]
 def _free_ports() -> int:
     """A port whose next one is free too: the second process listens there."""
     for _ in range(50):
+        # Below the ephemeral range, which outgoing connections draw from while tiko starts.
+        port = random.randrange(20000, 30000)
         with socket.socket() as first, socket.socket() as second:
-            first.bind(("127.0.0.1", 0))
-            port = first.getsockname()[1]
             try:
-                second.bind(("127.0.0.1", port + 1))
+                # Where the processes bind: free on 127.0.0.1 is not always free on all addresses.
+                first.bind(("0.0.0.0", port))  # noqa: S104
+                second.bind(("0.0.0.0", port + 1))  # noqa: S104
             except OSError:
                 continue
             return port
     raise RuntimeError("no two free ports in a row")
+
+
+def _start(env: dict, sockets: str) -> tuple[subprocess.Popen, "Instance"]:
+    # Another process can still take a port before tiko binds it: then try new ones.
+    for _ in range(3):
+        port = _free_ports()
+        process = subprocess.Popen(
+            [sys.executable, "-m", "app.serve", "--port", str(port)], cwd=BACKEND, env=env
+        )
+        found = Instance(port, sockets)
+        deadline = time.monotonic() + 60
+        while process.poll() is None:
+            try:
+                if all(found.client(n).get("/health").is_success for n in (0, 1)):
+                    return process, found
+            except httpx.TransportError:
+                pass
+            if time.monotonic() > deadline:
+                process.terminate()
+                process.wait(30)
+                raise AssertionError("tiko did not start")
+            time.sleep(0.2)
+    raise AssertionError("tiko did not start")
 
 
 class Instance:
@@ -107,7 +133,6 @@ def _close_code(conn) -> int:
 def instance(request, tmp_path_factory, pg_url):
     # Its tests share the processes and their rows; each kind of instance starts on empty ones.
     empty_tables(pg_url)
-    port = _free_ports()
     # Not pytest's own directory: the path of a Unix socket has to stay short.
     sockets = tempfile.mkdtemp(prefix="tiko") if "unix" in request.param else ""
     env = {
@@ -118,24 +143,14 @@ def instance(request, tmp_path_factory, pg_url):
         "TIKO_PASSWORD": PASSWORD,
         "UPDATE_CHECK": "false",
     }
-    process = subprocess.Popen(
-        [sys.executable, "-m", "app.serve", "--port", str(port)], cwd=BACKEND, env=env
-    )
-    found = Instance(port, sockets)
     try:
-        deadline = time.monotonic() + 60
-        while True:
-            try:
-                if all(found.client(n).get("/health").is_success for n in (0, 1)):
-                    break
-            except httpx.TransportError:
-                pass
-            assert process.poll() is None and time.monotonic() < deadline, "tiko did not start"
-            time.sleep(0.2)
-        yield found
+        process, found = _start(env, sockets)
+        try:
+            yield found
+        finally:
+            process.terminate()
+            process.wait(30)
     finally:
-        process.terminate()
-        process.wait(30)
         if sockets:
             shutil.rmtree(sockets, ignore_errors=True)
 
