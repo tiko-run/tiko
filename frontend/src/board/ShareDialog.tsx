@@ -353,7 +353,7 @@ export function ShareDialog({
                   <Users className="text-muted-foreground size-4" strokeWidth={1.75} />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-medium">Everyone with an account</span>
+                  <span className="font-medium">Everyone in this workspace</span>
                   <span className="text-muted-foreground text-[12px]">
                     Everyone who signs in here finds it in their list
                   </span>

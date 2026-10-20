@@ -179,3 +179,25 @@ test('shows no focus timer until the session is known', async () => {
   await act(async () => undefined)
   expect(screen.queryByLabelText('Focus timer')).not.toBeInTheDocument()
 })
+
+test('someone removed from the workspace sees how to come back, and no boards', async () => {
+  const me = {
+    id: 'u2',
+    username: 'ann',
+    name: 'Ann Lee',
+    role: null,
+    server_admin: false,
+    workspace: null,
+  }
+  const fetch = mockFetch(
+    200,
+    { boards: [], all: [] },
+    {
+      '/api/auth/status': { status: 200, body: { signed_in: true, me } },
+    },
+  )
+  renderApp()
+  expect(await screen.findByText('You are not in a workspace.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+  expect(fetch.mock.calls.map(([path]) => path)).not.toContain('/api/boards')
+})

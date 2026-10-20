@@ -27,6 +27,8 @@ from app.domain.sessions import Sessions, iso, token_hash
 
 Role = Literal["admin", "member"]
 
+LAST_ADMIN = "The workspace needs another admin first."
+
 USERNAME = re.compile(r"[A-Za-z0-9._-]{3,32}")
 MIN_PASSWORD = 10
 MAX_PASSWORD = 1024
@@ -297,15 +299,15 @@ class Accounts:
         person = self.get(user_id)
         if person.demo_expires_at:
             raise NotFound("person not found")
-        if self._last_admin(person) and role == "member":
-            raise LastAdmin("Make someone else an admin first.")
-        self._users.set_role(user_id, role)
+        if not self._users.set_role(user_id, role):
+            raise LastAdmin(LAST_ADMIN)
         self._sessions.forget(user_id)
         return next(record for record in self._users.list() if record.id == user_id)
 
-    def _last_admin(self, person: Person) -> bool:
-        active = person.role == "admin" and not person.disabled
-        return active and self._users.active_admins() <= 1
+    def join(self, user_id: str, workspace: str, role: Role) -> bool:
+        joined = self._users.join(user_id, workspace, role)
+        self._sessions.forget(user_id)
+        return joined
 
     def accounts(self) -> list[Account]:
         return self._users.accounts()
@@ -319,13 +321,12 @@ class Accounts:
     def set_disabled(self, user_id: str, disabled: bool) -> Account:
         """The server admin's change; neither the server nor the workspace loses its last
         active admin."""
-        account = self.account(user_id)
-        if disabled and not account.disabled:
-            if account.server_admin and self._users.active_server_admins() <= 1:
-                raise LastAdmin("The server needs another admin first.")
-            if self._users.sole_active_admin(user_id):
-                raise LastAdmin("Make someone else an admin of the workspace first.")
-        self._users.set_disabled(user_id, disabled)
+        self.account(user_id)
+        left = self._users.set_disabled(user_id, disabled)
+        if left == "server":
+            raise LastAdmin("The server needs another admin first.")
+        if left == "workspace":
+            raise LastAdmin(LAST_ADMIN)
         if disabled:
             self._sessions.end_all(user_id)
             self._browsers.forget(user_id)

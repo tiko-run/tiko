@@ -49,11 +49,11 @@ Several pull requests on one slice; SQLite stays the default.
 
 ## Phase 5: Slice `feat/workspace-membership` (US2)
 
-- [ ] T025 Contract parts marked `feat/workspace-membership`: no workspace, workspace admin, my tracker, invites
-- [ ] T026 `domain/workspaces.py`: `WorkspaceAdmin` on every workspace admin route; `DELETE /api/people/{id}` with boards, tokens, caches and sockets; the last active admin rule across role, removal and disable, in one transaction; `no_workspace` for everything outside the allowed routes. Tests
-- [ ] T027 `POST /api/invites/{token}/join`, one workspace per account; tracker tokens per workspace; the directory and "Everyone in this workspace" scoped to members. Tests
-- [ ] T028 Frontend: "Remove from workspace" in People, the "not in a workspace" screen, joining from an invite while signed in, `last_admin` and `in_workspace` messages. Tests
-- [ ] T029 `CHANGELOG.md`, the guide's people and sharing pages; `make check`, `make smoke` green
+- [x] T025 Contract parts marked `feat/workspace-membership`: no workspace, workspace admin, my tracker, invites
+- [x] T026 `domain/workspaces.py`: `WorkspaceAdmin` on every workspace admin route; `DELETE /api/people/{id}` with boards, tokens, caches and sockets; the last active admin rule across role, removal and disable, in one transaction; `no_workspace` for everything outside the allowed routes. Tests
+- [x] T027 `POST /api/invites/{token}/join`, one workspace per account; tracker tokens per workspace; the directory and "Everyone in this workspace" scoped to members. Tests
+- [x] T028 Frontend: "Remove from workspace" in People, the "not in a workspace" screen, joining from an invite while signed in, `last_admin` and `in_workspace` messages. Tests
+- [x] T029 `CHANGELOG.md`, the guide's people and sharing pages; `make check`, `make smoke` green
 
 ## Phase 6: Slice `feat/demo-workspace` (US3)
 

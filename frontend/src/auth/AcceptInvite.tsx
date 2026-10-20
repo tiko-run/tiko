@@ -1,12 +1,16 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ComponentProps, type FormEvent } from 'react'
-import { acceptInvite, openInvite, type InviteInfo } from '@/api/people'
+import { signOut, type Me } from '@/api/auth'
+import { acceptInvite, joinInvite, openInvite, type InviteInfo } from '@/api/people'
+import { SignIn } from '@/auth/SignIn'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export type InviteLink = { kind: 'invite' | 'reset'; token: string }
+
+type Auth = { isPending: boolean; data?: { signed_in: boolean; me: Me | null } }
 
 /** `?invite=<token>` or `?reset=<token>` from the address, if the page was opened by a link. */
 export function readInviteLink(): InviteLink | null {
@@ -41,7 +45,63 @@ function Field({
   )
 }
 
-function AcceptForm({ token, info }: { token: string; info: InviteInfo }) {
+function asRole(info: InviteInfo) {
+  return info.role === 'admin' ? ' as an admin' : ''
+}
+
+/** Signed in already: the invite takes the account the person has. */
+function JoinForm({ token, info, me }: { token: string; info: InviteInfo; me: Me }) {
+  const queryClient = useQueryClient()
+  const join = useMutation({ mutationFn: () => joinInvite(token), onSuccess: leave })
+  const other = useMutation({
+    mutationFn: signOut,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['auth'] }),
+  })
+  if (me.workspace) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-[14px]">You are already in a workspace.</p>
+        <div>
+          <Button variant="outline" size="sm" onClick={leave}>
+            Open tiko
+          </Button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-muted-foreground text-[14px]">
+        You are invited to a workspace{asRole(info)}. Join as {me.name}?
+      </p>
+      <Button disabled={join.isPending} onClick={() => join.mutate()}>
+        Join
+      </Button>
+      {join.isError && <p className="text-destructive text-sm">{join.error.message}</p>}
+      <p className="text-muted-foreground text-center text-[13px]">
+        Not {me.name}?{' '}
+        <Button
+          variant="link"
+          className="h-auto p-0 text-[13px]"
+          disabled={other.isPending}
+          onClick={() => other.mutate()}
+        >
+          Sign out
+        </Button>
+      </p>
+    </div>
+  )
+}
+
+function AcceptForm({
+  token,
+  info,
+  onSignIn,
+}: {
+  token: string
+  info: InviteInfo
+  onSignIn: () => void
+}) {
   const [username, setUsername] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -62,7 +122,7 @@ function AcceptForm({ token, info }: { token: string; info: InviteInfo }) {
     <form onSubmit={submit} className="flex flex-col gap-3">
       <p className="text-muted-foreground text-[14px]">
         {isInvite
-          ? `You are invited to tiko${info.role === 'admin' ? ' as an admin' : ''}. Pick how you sign in.`
+          ? `You are invited to tiko${asRole(info)}. Pick how you sign in.`
           : `Set a new password for ${info.username}.`}
       </p>
       {isInvite && (
@@ -112,24 +172,53 @@ function AcceptForm({ token, info }: { token: string; info: InviteInfo }) {
         {isInvite ? 'Join tiko' : 'Set password'}
       </Button>
       {accept.isError && <p className="text-destructive text-sm">{accept.error.message}</p>}
+      {isInvite && (
+        <p className="text-muted-foreground text-center text-[13px]">
+          Already have an account?{' '}
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-[13px]"
+            onClick={onSignIn}
+          >
+            Sign in
+          </Button>
+        </p>
+      )}
     </form>
   )
 }
 
 /** The page an invite or password reset link opens, before or instead of signing in. */
-export function AcceptInvite({ link }: { link: InviteLink }) {
+export function AcceptInvite({ link, auth }: { link: InviteLink; auth: Auth }) {
+  const queryClient = useQueryClient()
+  const [signingIn, setSigningIn] = useState(false)
   const info = useQuery({
     queryKey: ['invite', link.token],
     queryFn: () => openInvite(link.token),
     retry: false,
   })
+  const me = auth.data?.signed_in ? auth.data.me : null
+  if (signingIn && !me) {
+    return (
+      <SignIn
+        onSignedIn={() => {
+          setSigningIn(false)
+          void queryClient.invalidateQueries({ queryKey: ['auth'] })
+        }}
+      />
+    )
+  }
+  const invite = info.data?.kind === 'invite'
   return (
     <div className="absolute top-1/2 left-1/2 flex w-80 -translate-x-1/2 -translate-y-1/2 flex-col gap-4">
       <p className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.03em]">
         <Emblem className="size-6" />
         tiko
       </p>
-      {info.isPending && <p className="text-muted-foreground text-[14px]">Checking the link…</p>}
+      {(info.isPending || (invite && auth.isPending)) && (
+        <p className="text-muted-foreground text-[14px]">Checking the link…</p>
+      )}
       {info.isError && (
         <div className="flex flex-col gap-3">
           <p className="text-[14px]">{info.error.message}</p>
@@ -140,7 +229,10 @@ export function AcceptInvite({ link }: { link: InviteLink }) {
           </div>
         </div>
       )}
-      {info.isSuccess && <AcceptForm token={link.token} info={info.data} />}
+      {info.isSuccess && invite && me && <JoinForm token={link.token} info={info.data} me={me} />}
+      {info.isSuccess && (!invite || (!auth.isPending && !me)) && (
+        <AcceptForm token={link.token} info={info.data} onSignIn={() => setSigningIn(true)} />
+      )}
     </div>
   )
 }

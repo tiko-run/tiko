@@ -152,7 +152,9 @@ def test_no_repository_reads_another_workspace(db, other):
     assert pg.PgPlanningPeopleRepo(db, other).all() == []
     assert pg.PgPlanningStageRepo(db, other).for_person("p1") == []
     assert pg.PgInviteRepo(db, other).pending(now_iso()) == []
-    assert pg.PgInviteRepo(db, other).find_open("invite-hash", now_iso()) is None
+    # A link is opened by someone outside the workspace; it names its own.
+    found = pg.PgInviteRepo(db, other).find_open("invite-hash", now_iso())
+    assert found.workspace == db.default_workspace
     # Writes by id from another workspace change nothing.
     pg.PgPlanningTypeRepo(db, other).update(StageType(id="t1", name="Taken", hue=60))
     assert pg.PgPlanningTypeRepo(db).all()[0].name == "Build"
@@ -237,7 +239,8 @@ def test_the_cleanup_of_unused_accounts_stays_in_its_workspace(db, other, pg_url
     bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="member")
     pg.PgUserRepo(db, other).add(bob, "hash")
     ann = _person(db, "ann")
-    pg.PgUserRepo(db).set_role(ann, "member")
+    with db.jobs() as conn:
+        conn.execute("UPDATE memberships SET role = 'member' WHERE user_id = %s", (ann,))
     with psycopg.connect(pg_url, autocommit=True) as conn:
         conn.execute("UPDATE users SET created_at = %s", (old,))
     gone, _ = pg.PgUserRepo(db).delete_unused_members("2001-01-01T00:00:00+00:00")

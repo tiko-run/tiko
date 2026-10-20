@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field, SecretStr
 
 from app.api import deps
-from app.api.deps import CurrentAdmin, CurrentPerson, NotDemoVisitor
+from app.api.deps import CurrentPerson, NotDemoVisitor, WorkspaceAdmin
 from app.domain.errors import Forbidden
 from app.domain.settings import (
     JiraCredentials,
@@ -44,7 +44,7 @@ def get_settings(person: CurrentPerson, settings: Settings) -> SettingsView:
 
 
 @router.put("")
-def put_settings(body: SettingsIn, admin: CurrentAdmin, settings: Settings) -> SettingsView:
+def put_settings(body: SettingsIn, admin: WorkspaceAdmin, settings: Settings) -> SettingsView:
     return settings.update(body, admin.id)
 
 

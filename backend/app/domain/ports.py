@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
@@ -419,23 +419,29 @@ class UserRepo(Protocol):
 
     def list(self) -> list[PersonRecord]: ...
 
-    def set_role(self, user_id: str, role: Role) -> None: ...
+    def set_role(self, user_id: str, role: Role) -> bool:
+        """False, with nothing changed, when the workspace would lose its last active admin."""
+        ...
 
-    def set_disabled(self, user_id: str, disabled: bool) -> None: ...
+    def set_disabled(self, user_id: str, disabled: bool) -> Literal["server", "workspace"] | None:
+        """What disabling would leave without an active admin; then nothing changes."""
+        ...
 
-    def active_admins(self) -> int: ...
+    def join(self, user_id: str, workspace: str, role: Role) -> bool:
+        """False when the person is in a workspace already."""
+        ...
+
+    def remove_member(self, user_id: str, by_id: str) -> list[str] | None:
+        """Takes the person out of the workspace with their board memberships, tokens and task
+        caches; boards they owned go to `by_id`. The boards whose access changed, or None, with
+        nothing changed, when they are its last active admin. Raises NotFound."""
+        ...
 
     def accounts(self) -> list[Account]:
         """Every account on the server but demo visitors, in any workspace or none."""
         ...
 
     def account(self, user_id: str) -> Account | None: ...
-
-    def sole_active_admin(self, user_id: str) -> bool:
-        """Whether the person is the only active admin of any workspace they are in."""
-        ...
-
-    def active_server_admins(self) -> int: ...
 
     def touch_sign_in(self, user_id: str) -> None: ...
 
@@ -484,7 +490,8 @@ class InviteRepo(Protocol):
     def add(self, invite: Invite, token_hash: str, created_by: str) -> None: ...
 
     def find_open(self, token_hash: str, now: str) -> Invite | None:
-        """Not used, not revoked and not expired."""
+        """Not used, not revoked and not expired, in any workspace: the person opening it is
+        not in the invite's one yet."""
         ...
 
     def consume(self, invite_id: str, now: str) -> bool:
