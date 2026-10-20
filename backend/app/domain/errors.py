@@ -112,6 +112,10 @@ class LastAdmin(DomainError):
     code = "last_admin"
 
 
+class InWorkspace(DomainError):
+    code = "in_workspace"
+
+
 class InviteExpired(DomainError):
     code = "invite_expired"
 

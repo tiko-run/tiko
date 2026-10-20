@@ -56,6 +56,7 @@ from app.domain.settings import (
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.domain.usage import Deploy, HostOs, Privacy
+from app.domain.workspaces import Memberships
 from app.observability import (
     DEMO_LIMIT,
     DEMO_VISITORS,
@@ -277,6 +278,7 @@ def create_app(
     credentials = storage.CredentialRepo(db)
     adopt_orphans(users, member_repo, credentials)
     app.state.members = Members(member_repo, users, app.state.live)
+    app.state.memberships = Memberships(users, app.state.sessions, app.state.live)
     # Added before the request context, so it runs inside it and 401s are logged and counted.
     metrics_token = (
         settings.tiko_metrics_token.get_secret_value().strip()

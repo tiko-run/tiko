@@ -7,6 +7,7 @@ import {
   changeRole,
   createInvite,
   listPeople,
+  removePerson,
   revokeInvite,
   type Invite,
   type Person,
@@ -15,9 +16,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -75,7 +85,59 @@ export function lastSeen(person: { last_sign_in_at: string | null }) {
   return `Last signed in ${formatDue(Date.parse(person.last_sign_in_at))}`
 }
 
-function PersonRow({ person, me }: { person: Person; me: Me }) {
+function RemoveDialog({
+  person,
+  onOpenChange,
+}: {
+  person: Person | null
+  onOpenChange: (open: boolean) => void
+}) {
+  const queryClient = useQueryClient()
+  const remove = useMutation({
+    mutationFn: (id: string) => removePerson(id),
+    onSuccess: () => {
+      toast.success(`${person?.name} removed`)
+      onOpenChange(false)
+    },
+    onError: toastError,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: PEOPLE }),
+  })
+  return (
+    <Dialog open={person !== null} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Remove {person?.name} from the workspace?</DialogTitle>
+          <DialogDescription>
+            They keep their account and can come back with an invite link. Boards they own move to
+            you; their other members stay.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={remove.isPending}
+            onClick={() => person && remove.mutate(person.id)}
+          >
+            Remove
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function PersonRow({
+  person,
+  me,
+  onRemove,
+}: {
+  person: Person
+  me: Me
+  onRemove: (person: Person) => void
+}) {
   const queryClient = useQueryClient()
   const change = useMutation({
     mutationFn: (role: Person['role']) => changeRole(person.id, role),
@@ -115,6 +177,14 @@ function PersonRow({ person, me }: { person: Person; me: Me }) {
           >
             {person.role === 'admin' ? 'Make member' : 'Make admin'}
           </DropdownMenuItem>
+          {person.id !== me.id && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => onRemove(person)}>
+                Remove from workspace
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </li>
@@ -156,6 +226,7 @@ export function People({ me }: { me: Me }) {
   const queryClient = useQueryClient()
   const people = useQuery({ queryKey: PEOPLE, queryFn: listPeople })
   const [link, setLink] = useState<Link | null>(null)
+  const [removing, setRemoving] = useState<Person | null>(null)
   const invite = useMutation({
     mutationFn: createInvite,
     onSuccess: (created) => {
@@ -197,7 +268,7 @@ export function People({ me }: { me: Me }) {
         <>
           <ul className="divide-y">
             {people.data.people.map((person) => (
-              <PersonRow key={person.id} person={person} me={me} />
+              <PersonRow key={person.id} person={person} me={me} onRemove={setRemoving} />
             ))}
           </ul>
           {people.data.invites.length > 0 && (
@@ -211,6 +282,7 @@ export function People({ me }: { me: Me }) {
           )}
         </>
       )}
+      <RemoveDialog person={removing} onOpenChange={(open) => !open && setRemoving(null)} />
     </div>
   )
 }

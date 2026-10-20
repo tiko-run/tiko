@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import UTC
 from functools import cache
 from pathlib import Path
+from typing import Literal
 
 import psycopg
 from psycopg import sql
@@ -275,6 +276,18 @@ class PgWorkspaces:
 def _lock_workspace(conn: psycopg.Connection, workspace: str) -> None:
     # Count-then-insert checks run one at a time per workspace, as SQLite's write lock did.
     conn.execute("SELECT 1 FROM workspaces WHERE id = %s FOR UPDATE", (workspace,))
+
+
+def _sole_admin(conn: psycopg.Connection, workspace: str, user_id: str) -> bool:
+    """Whether the person is the last active admin of the workspace; lock it first."""
+    return conn.execute(
+        "SELECT EXISTS (SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id"
+        " WHERE m.workspace_id = %s AND m.user_id = %s AND m.role = 'admin'"
+        " AND u.disabled_at IS NULL) AND (SELECT COUNT(*) FROM memberships m"
+        " JOIN users u ON u.id = m.user_id WHERE m.workspace_id = %s AND m.role = 'admin'"
+        " AND u.disabled_at IS NULL) <= 1 AS sole",
+        (workspace, user_id, workspace),
+    ).fetchone()["sole"]
 
 
 def _lock_key(conn: psycopg.Connection, *parts: str) -> None:
@@ -1047,28 +1060,82 @@ class PgUserRepo(_Repo):
             for row in rows
         ]
 
-    def set_role(self, user_id: str, role: Role) -> None:
+    def set_role(self, user_id: str, role: Role) -> bool:
         with self._tx() as conn:
+            _lock_workspace(conn, self._ws)
+            if role == "member" and _sole_admin(conn, self._ws, user_id):
+                return False
             conn.execute(
                 # A role changes inside the workspace; joining one is an invite's job.
                 "UPDATE memberships SET role = %s WHERE workspace_id = %s AND user_id = %s",
                 (role, self._ws, user_id),
             )
+        return True
 
-    def set_disabled(self, user_id: str, disabled: bool) -> None:
+    def set_disabled(self, user_id: str, disabled: bool) -> Literal["server", "workspace"] | None:
         with self._tx() as conn:
+            if disabled:
+                # Two admins disabled at once must not both see the other still active.
+                _lock_key(conn, "server admins")
+                rows = conn.execute(
+                    "SELECT workspace_id FROM memberships WHERE user_id = %s ORDER BY 1",
+                    (user_id,),
+                ).fetchall()
+                for row in rows:
+                    _lock_workspace(conn, row["workspace_id"])
+                if conn.execute(
+                    "SELECT u.server_admin AND u.disabled_at IS NULL AND (SELECT COUNT(*)"
+                    " FROM users o WHERE o.server_admin AND o.disabled_at IS NULL) <= 1 AS last"
+                    " FROM users u WHERE u.id = %s",
+                    (user_id,),
+                ).fetchone()["last"]:
+                    return "server"
+                if any(_sole_admin(conn, row["workspace_id"], user_id) for row in rows):
+                    return "workspace"
             conn.execute(
                 "UPDATE users SET disabled_at = %s WHERE id = %s",
                 (now_iso() if disabled else None, user_id),
             )
+        return None
 
-    def active_admins(self) -> int:
+    def join(self, user_id: str, workspace: str, role: Role) -> bool:
+        with self._db.transaction(workspace) as conn:
+            _lock_key(conn, "join", user_id)
+            if conn.execute("SELECT 1 FROM memberships WHERE user_id = %s", (user_id,)).fetchone():
+                return False
+            conn.execute(
+                "INSERT INTO memberships (workspace_id, user_id, role) VALUES (%s, %s, %s)",
+                (workspace, user_id, role),
+            )
+        return True
+
+    def remove_member(self, user_id: str, by_id: str) -> "list[str] | None":
+        ws = self._ws
         with self._tx() as conn:
-            return conn.execute(
-                "SELECT COUNT(*) AS n FROM memberships m JOIN users u ON u.id = m.user_id"
-                " WHERE m.workspace_id = %s AND m.role = 'admin' AND u.disabled_at IS NULL",
-                (self._ws,),
-            ).fetchone()["n"]
+            _lock_workspace(conn, ws)
+            if not conn.execute(
+                "SELECT 1 FROM memberships WHERE workspace_id = %s AND user_id = %s",
+                (ws, user_id),
+            ).fetchone():
+                raise NotFound("person not found")
+            if _sole_admin(conn, ws, user_id):
+                return None
+            boards = conn.execute(
+                "SELECT board_id, role FROM board_members WHERE user_id = %s", (user_id,)
+            ).fetchall()
+            # The other members of a board stay; the admin who removed its owner takes it.
+            conn.cursor().executemany(
+                "INSERT INTO board_members (workspace_id, board_id, user_id, role)"
+                " VALUES (%s, %s, %s, 'owner')"
+                " ON CONFLICT (board_id, user_id) DO UPDATE SET role = 'owner'",
+                [(ws, row["board_id"], by_id) for row in boards if row["role"] == "owner"],
+            )
+            for table in ("board_members", "user_credentials", "task_snapshots"):
+                conn.execute(f"DELETE FROM {table} WHERE user_id = %s", (user_id,))
+            conn.execute(
+                "DELETE FROM memberships WHERE workspace_id = %s AND user_id = %s", (ws, user_id)
+            )
+        return [row["board_id"] for row in boards]
 
     def accounts(self) -> "list[Account]":
         with self._tx() as conn:
@@ -1085,24 +1152,6 @@ class PgUserRepo(_Repo):
                 (user_id,),
             ).fetchone()
         return _account(row) if row else None
-
-    def sole_active_admin(self, user_id: str) -> bool:
-        with self._tx() as conn:
-            return conn.execute(
-                # Memberships and users are global: every workspace of the person is checked.
-                "SELECT EXISTS (SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id"
-                " WHERE m.user_id = %s AND m.role = 'admin' AND u.disabled_at IS NULL"
-                " AND (SELECT COUNT(*) FROM memberships o JOIN users v ON v.id = o.user_id"
-                " WHERE o.workspace_id = m.workspace_id AND o.role = 'admin'"
-                " AND v.disabled_at IS NULL) = 1) AS sole",
-                (user_id,),
-            ).fetchone()["sole"]
-
-    def active_server_admins(self) -> int:
-        with self._tx() as conn:
-            return conn.execute(
-                "SELECT COUNT(*) AS n FROM users WHERE server_admin AND disabled_at IS NULL"
-            ).fetchone()["n"]
 
     def touch_sign_in(self, user_id: str) -> None:
         with self._tx() as conn:
@@ -1333,14 +1382,14 @@ class PgSessionRepo(_Repo):
 
 # Invites join a workspace, password resets belong to the server; the domain sees one list.
 _LINKS = (
-    "(SELECT id, 'invite' AS kind, role, NULL::text AS user_id, token_hash, expires_at,"
-    " used_at, revoked_at, created_at FROM invites WHERE workspace_id = %s"
-    " UNION ALL SELECT id, 'reset', NULL, user_id, token_hash, expires_at, used_at,"
+    "(SELECT id, 'invite' AS kind, role, NULL::text AS user_id, workspace_id, token_hash,"
+    " expires_at, used_at, revoked_at, created_at FROM invites"
+    " UNION ALL SELECT id, 'reset', NULL, user_id, NULL, token_hash, expires_at, used_at,"
     " revoked_at, created_at FROM password_resets) i"
 )
 _INVITE = (
-    "SELECT i.id, i.kind, i.role, i.user_id, u.username, i.expires_at, i.created_at"
-    f" FROM {_LINKS} LEFT JOIN users u ON u.id = i.user_id"
+    "SELECT i.id, i.kind, i.role, i.user_id, u.username, i.workspace_id AS workspace,"
+    f" i.expires_at, i.created_at FROM {_LINKS} LEFT JOIN users u ON u.id = i.user_id"
 )
 _OPEN = "used_at IS NULL AND revoked_at IS NULL AND expires_at > %s"
 
@@ -1379,15 +1428,19 @@ class PgInviteRepo(_Repo):
     def find_open(self, token_hash: str, now: str) -> Invite | None:
         with self._tx() as conn:
             row = conn.execute(
-                f"{_INVITE} WHERE i.token_hash = %s AND i.{_OPEN}", (self._ws, token_hash, now)
+                f"{_INVITE} WHERE i.token_hash = %s AND i.{_OPEN}", (token_hash, now)
             ).fetchone()
         return Invite(**row) if row else None
 
-    def _mark(self, column: str, value: str | None, invite_id: str, now: str | None) -> bool:
+    def _mark(
+        self, column: str, value: str | None, invite_id: str, now: str | None, own: bool = False
+    ) -> bool:
+        """`own`: only an invite of this workspace; a link is used from outside it."""
         where = f" AND {_OPEN}" if now else ""
         count = 0
         with self._tx() as conn:
             for table, scope in (("invites", " AND workspace_id = %s"), ("password_resets", "")):
+                scope = scope if own else ""
                 ws = (self._ws,) if scope else ()
                 params = (value, invite_id, *ws, *((now,) if now else ()))
                 count += conn.execute(
@@ -1404,12 +1457,14 @@ class PgInviteRepo(_Repo):
     def pending(self, now: str) -> list[Invite]:
         with self._tx() as conn:
             rows = conn.execute(
-                f"{_INVITE} WHERE i.{_OPEN} ORDER BY i.created_at", (self._ws, now)
+                f"{_INVITE} WHERE (i.workspace_id = %s OR i.workspace_id IS NULL) AND i.{_OPEN}"
+                " ORDER BY i.created_at",
+                (self._ws, now),
             ).fetchall()
         return [Invite(**row) for row in rows]
 
     def revoke(self, invite_id: str, now: str) -> bool:
-        return self._mark("revoked_at", now, invite_id, now)
+        return self._mark("revoked_at", now, invite_id, now, own=True)
 
 
 class PgMemberRepo(_Repo):

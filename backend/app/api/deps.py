@@ -12,6 +12,7 @@ from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions
 from app.domain.settings import Provider, SettingsService
 from app.domain.tasks import NoTokenProvider
+from app.domain.workspaces import Memberships
 
 
 def boards(request: Request) -> BoardRepo:
@@ -103,7 +104,7 @@ def current_person(request: Request) -> Person:
     return request.state.person
 
 
-def current_admin(request: Request) -> Person:
+def workspace_admin(request: Request) -> Person:
     person = current_person(request)
     if person.role != "admin":
         raise Forbidden("Only an admin can do this.")
@@ -150,12 +151,17 @@ def invites(request: Request) -> Invites:
     return request.app.state.invites
 
 
+def memberships(request: Request) -> Memberships:
+    return request.app.state.memberships
+
+
 CurrentPerson = Annotated[Person, Depends(current_person)]
 AccountsDep = Annotated[Accounts, Depends(accounts)]
 SessionsDep = Annotated[Sessions, Depends(sessions)]
-CurrentAdmin = Annotated[Person, Depends(current_admin)]
+WorkspaceAdmin = Annotated[Person, Depends(workspace_admin)]
 CurrentServerAdmin = Annotated[Person, Depends(current_server_admin)]
 InvitesDep = Annotated[Invites, Depends(invites)]
+MembershipsDep = Annotated[Memberships, Depends(memberships)]
 MembersDep = Annotated[Members, Depends(members)]
 CanView = Annotated[BoardRole, board_role("viewer")]
 CanEdit = Annotated[BoardRole, board_role("editor")]

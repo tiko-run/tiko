@@ -49,7 +49,7 @@ The privacy switches, the instance id and the last ping time move to `server_set
 
 ## No workspace (`feat/workspace-membership`)
 
-A signed-in person with no workspace (removed from it) can still use `/api/auth/*`, `/api/me/*` for their own profile and password, `GET /api/update` to follow a running update, `GET /api/invites/{token}` and `POST /api/invites/{token}/join`, and the server admin routes when they are the server admin. Every other route answers `403`:
+A signed-in person with no workspace (removed from it) can still use `/api/auth/*`, `PATCH /api/me` and `PUT /api/me/password` for their own profile and password, `GET /api/update` and `GET /api/version` to follow a running update, `/api/invites/{token}` with `/accept` and `/join`, public links, and `/api/accounts`, `/api/privacy` and `POST /api/update`, which answer `403 forbidden` unless they are the server admin. A live socket closes with `1008`. Every other route answers `403`:
 
 ```json
 {"error": {"code": "no_workspace", "message": "You are not in a workspace. Ask an admin for an invite link."}}
@@ -59,13 +59,13 @@ A signed-in person with no workspace (removed from it) can still use `/api/auth/
 
 These need `role: "admin"` in the workspace and answer `403` otherwise:
 
-- `PUT /api/settings` and every write under `/api/planning`, for the workspace's values. ENV values lock their fields, as today.
+- `PUT /api/settings` and `PATCH /api/planning` (Planning on or off), for the workspace's values. ENV values lock their fields, as today. The Planning lists (types, people, time off, fields, views, days off) stay writable by every member, as today: "New type" works from a stage.
 - `GET /api/people`: the workspace's members and pending invites.
 - `PATCH /api/people/{id}` with `{"role": "admin"|"member"}`.
-- `DELETE /api/people/{id}`: removes the person from the workspace; the account and its sign-in stay. `204`. In the same transaction:
+- `DELETE /api/people/{id}`: removes the person from the workspace; the account and its sign-in stay. `204`; `422` for the admin's own id, `404` for a person outside the workspace. In the same transaction:
   - their board memberships go; boards they owned get the admin who removed them as owner, with the other members kept;
   - their tracker tokens and task caches in the workspace go;
-  - their open live sockets close.
+  - their open live sockets close with `4403` (access changed), so their tabs read the account again.
 - `POST /api/invites`, `DELETE /api/invites/{id}`.
 
 The workspace keeps at least one active admin. Stepping down, being made a member, being removed or, through `PATCH /api/accounts/{id}`, being disabled as the last active admin answers `409`:
@@ -80,7 +80,7 @@ The workspace keeps at least one active admin. Stepping down, being made a membe
 
 ## Invites (`feat/workspace-membership`)
 
-`POST /api/invites` creates an invite to the workspace with a role. Opening it signed out creates an account as today and joins. `POST /api/invites/{token}/join` lets a signed-in person with no workspace join with their account (`204`); one already in a workspace gets `409`:
+`POST /api/invites` creates an invite to the workspace with a role. Opening it signed out creates an account as today and joins. `POST /api/invites/{token}/join` lets a signed-in person with no workspace join with their account (`204`); a password reset link answers `422`, a used one `410`; one already in a workspace gets `409`, and the link stays usable:
 
 ```json
 {"error": {"code": "in_workspace", "message": "You are already in a workspace."}}

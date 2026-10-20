@@ -48,6 +48,8 @@ type Entry = {
 }
 
 const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker', 'planning'])
+// A tracker token and everything of the Workspace group live in a workspace.
+const WORKSPACE_ONLY = new Set<Section>(['tracker', 'task-source', 'people', 'sharing', 'planning'])
 
 const GROUPS: { title: string; entries: Entry[] }[] = [
   {
@@ -182,7 +184,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
   // a link to another section opens it directly.
   const [listShown, setListShown] = useState(narrow && section === 'profile')
   // The demo's Planning lists are a fixed sample: nothing there to change.
-  const sample = usePlanningQuery().data?.sample ?? false
+  const sample = usePlanningQuery(!!me.workspace).data?.sample ?? false
   const groups = GROUPS.map((group) => ({
     ...group,
     // A demo visitor has no name, password or tracker of their own until they sign up.
@@ -190,6 +192,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
       (item) =>
         allowed(item, me) &&
         (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
+        (!!me.workspace || !WORKSPACE_ONLY.has(item.id)) &&
         !(sample && item.id === 'planning'),
     ),
   })).filter((group) => group.entries.length > 0)

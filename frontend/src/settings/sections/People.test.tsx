@@ -47,6 +47,8 @@ function mockApi(revoke = () => new Response(null, { status: 204 })) {
       return Response.json({ invite, url: '/?invite=tok123' }, { status: 201 })
     if (url === '/api/people/u2' && init?.method === 'PATCH')
       return Response.json({ ...ann, ...JSON.parse(String(init.body)) })
+    if (url === '/api/people/u2' && init?.method === 'DELETE')
+      return new Response(null, { status: 204 })
     if (url === '/api/invites/i1') return revoke()
     return Response.json({}, { status: 404 })
   })
@@ -113,4 +115,23 @@ test('says in a toast why a link was not revoked', async () => {
   const row = (await screen.findByText('Invite as member')).closest('li')!
   fireEvent.click(within(row).getByRole('button', { name: 'Revoke' }))
   expect(await screen.findByText('This link is already used.')).toBeInTheDocument()
+})
+
+test('removes a person from the workspace after asking', async () => {
+  const fetchMock = mockApi()
+  await screen.findByText('Ann Lee')
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Actions for Ann Lee' }), { key: 'Enter' })
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove from workspace' }))
+  expect(await screen.findByText(/They keep their account/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+  await waitFor(() => expect(methods(fetchMock)).toContain('DELETE /api/people/u2'))
+  expect(await screen.findByText('Ann Lee removed')).toBeInTheDocument()
+})
+
+test('an admin is not offered to remove themselves', async () => {
+  mockApi()
+  await screen.findByText('Ann Lee')
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Actions for Admin' }), { key: 'Enter' })
+  await screen.findByRole('menuitem', { name: 'Make member' })
+  expect(screen.queryByRole('menuitem', { name: 'Remove from workspace' })).not.toBeInTheDocument()
 })
