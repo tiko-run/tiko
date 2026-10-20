@@ -10,6 +10,7 @@ export const SECTIONS = [
   'people',
   'sharing',
   'privacy',
+  'accounts',
 ] as const
 export type Section = (typeof SECTIONS)[number]
 

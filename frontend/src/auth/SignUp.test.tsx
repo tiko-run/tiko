@@ -5,7 +5,15 @@ import { SignUpDialog } from '@/auth/SignUp'
 
 afterEach(() => vi.unstubAllGlobals())
 
-const member = { id: 'u9', username: 'ann', name: 'Ann Lee', role: 'member', demo_expires_at: null }
+const member = {
+  id: 'u9',
+  username: 'ann',
+  name: 'Ann Lee',
+  role: 'member',
+  server_admin: false,
+  workspace: { id: 'w1', name: 'Default' },
+  demo_expires_at: null,
+}
 
 function show(reply: () => Response) {
   const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => reply())

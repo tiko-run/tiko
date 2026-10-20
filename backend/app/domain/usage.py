@@ -101,8 +101,11 @@ class Privacy:
         usage_env: bool | None = None,
         errors_env: bool | None = None,
         errors_dsn: str = "",
+        trackers: SettingsRepo | None = None,
     ) -> None:
         self._repo = repo
+        # The tracker settings live in the workspace; the switches and the id on the server.
+        self._trackers = trackers or repo
         self._counts = counts
         self._sender = sender
         self._version = version
@@ -142,7 +145,7 @@ class Privacy:
     def ping(self) -> Ping:
         since = datetime.now(UTC) - timedelta(days=ACTIVE_DAYS)
         # Cards of both kinds of Jira are stored as `jira`; the instance's kind tells them apart.
-        cloud = self._repo.get_all().get("jira_kind") == "cloud"
+        cloud = self._trackers.get_all().get("jira_kind") == "cloud"
         trackers = sorted(
             {
                 "jira_cloud" if s == "jira" and cloud else _TRACKERS[s]

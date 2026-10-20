@@ -3,7 +3,7 @@ title: Security and privacy
 description: Sign-in, people, board sharing, and what tiko stores and talks to.
 ---
 
-Every page and API route except `/health` and `/ready` asks you to sign in with a username and password. `/metrics` is for admins and for a monitoring system that sends `TIKO_METRICS_TOKEN`; see [Monitoring](../monitoring/).
+Every page and API route except `/health` and `/ready` asks you to sign in with a username and password. `/metrics` is for the server admin and for a monitoring system that sends `TIKO_METRICS_TOKEN`; see [Monitoring](../monitoring/).
 
 ## Signing in
 
@@ -18,11 +18,20 @@ Every page and API route except `/health` and `/ready` asks you to sign in with 
 
 ## People
 
-- An admin invites people in Settings → People: "Invite" gives a link to send in a chat. It works once and expires in 7 days. The person picks a username, a name and a password and is signed in. tiko sends no mail.
-- From a person's menu an admin makes them admin or member, disables them (they are signed out at once and cannot sign in) or creates a password reset link that works once within 24 hours.
+Two roles keep the people who use tiko apart from the person who runs it.
+
+- **Workspace admin**: sets the task source, sharing and Planning, invites people and makes them admin or member, in Settings → Workspace.
+- **Server admin**: the first account. Updates tiko, sets Privacy and manages accounts in Settings → Server. It is the only one who can disable an account or make a password reset link.
+
+The first account has both roles, so on a server you run alone nothing changes.
+
+- A workspace admin invites people in Settings → People: "Invite" gives a link to send in a chat. It works once and expires in 7 days. The person picks a username, a name and a password and is signed in. tiko sends no mail.
+- From a person's menu a workspace admin makes them admin or member.
+- The server admin sees every account in Settings → Accounts. From an account's menu they disable it (the person is signed out at once and cannot sign in) or create a password reset link that works once within 24 hours.
 - Only the hash of a link's token is stored, so a link is shown once. Unused links are listed under "Open links" and can be revoked.
-- Whoever deploys tiko can hand it over: invite the business owner "As admin", then make yourself a member or disable your account. Set the tracker in the environment first (`TIKO_TRACKER`, `JIRA_BASE_URL`) so it stays as deployed.
-- There is always at least one active admin. If the only admin forgets their password, run `docker compose exec api python -m app.reset_password admin` (or the username) in the tiko folder and open the printed link on your tiko address.
+- The workspace always keeps at least one active admin, and the server admin cannot be disabled.
+- Whoever deploys tiko can hand the workspace over: invite the business owner "As admin", then make yourself a member. To hand over the server too, give them the first account and let them change its username and password. Set the tracker in the environment first (`TIKO_TRACKER`, `JIRA_BASE_URL`) so it stays as deployed.
+- If the server admin forgets their password, run `docker compose exec api python -m app.reset_password admin` (or the username) in the tiko folder and open the printed link on your tiko address.
 
 ## Sharing boards
 
@@ -45,9 +54,9 @@ Every page and API route except `/health` and `/ready` asks you to sign in with 
 
 - The tracker URL you configure.
 - The GitHub API for the latest tiko release, unless `UPDATE_CHECK=false`. No data about you or your boards is sent.
-- The usage stats collector, once a day, unless `TIKO_USAGE_STATS=false` or an admin turns it off in Settings → Privacy. It gets a few counts with no personal data; every field is in [Usage stats](../privacy/).
+- The usage stats collector, once a day, unless `TIKO_USAGE_STATS=false` or the server admin turns it off in Settings → Privacy. It gets a few counts with no personal data; every field is in [Usage stats](../privacy/).
 
-With one-click updates on, the `updater` service mounts the Docker socket, which gives it control of Docker on the host. It is off unless the installer turned it on or `COMPOSE_PROFILES=updater` is set and publishes no port. It answers only requests with the token in `data/updater-token`, which the `api` container sends when an admin starts an update, and it replaces the `api` and `web` containers. See [Updates](../updates/).
+With one-click updates on, the `updater` service mounts the Docker socket, which gives it control of Docker on the host. It is off unless the installer turned it on or `COMPOSE_PROFILES=updater` is set and publishes no port. It answers only requests with the token in `data/updater-token`, which the `api` container sends when the server admin starts an update, and it replaces the `api` and `web` containers. See [Updates](../updates/).
 
 Fonts and icons ship with the app.
 

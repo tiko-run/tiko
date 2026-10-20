@@ -121,8 +121,9 @@ A visitor presses "Try the demo", adds a stage type "Design", adds a person and 
 1. `feat/pg-storage`: the Postgres adapter in its final shape, with `workspace_id`, row-level security and one default workspace, behind `DATABASE_URL`. SQLite stays the default until slice 3. Several pull requests, by groups of repositories.
 2. `feat/installer-mark`: the bridge release: About shows the installer command when a release on the way needs it. Small, ships first, on SQLite.
 3. `feat/pg-switch`: the copy from `app.db`, the compose files, the installers, the updater's dump and refusal, the Render blueprint. SQLite is removed. US1.
-4. `feat/workspace-roles`: server admin and workspace roles, accounts with the server admin, the three settings groups, tracker tokens in the workspace. US2.
-5. `feat/demo-workspace`: a visitor workspace, editable sample lists, workload on the demo, spec 031's sample removed. US3.
+4. `feat/server-admin`: the server admin, accounts on their own routes, the three settings groups. US2.
+5. `feat/workspace-membership`: removing a person, the last admin rule, the "not in a workspace" screen, joining by invite while signed in, tracker tokens in the workspace. US2.
+6. `feat/demo-workspace`: a visitor workspace, editable sample lists, workload on the demo, spec 031's sample removed. US3.
 
 ## Out of scope
 

@@ -5,7 +5,11 @@ export const meSchema = z.object({
   id: z.string(),
   username: z.string(),
   name: z.string(),
-  role: z.enum(['admin', 'member']),
+  // The role in the workspace; null for someone in no workspace.
+  role: z.enum(['admin', 'member']).nullable(),
+  // Runs the server: updates, privacy and accounts.
+  server_admin: z.boolean(),
+  workspace: z.object({ id: z.string(), name: z.string() }).nullable(),
   // Set for a demo visitor: when their boards are deleted unless they come back.
   demo_expires_at: z.string().nullish(),
 })

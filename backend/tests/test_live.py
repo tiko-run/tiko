@@ -501,9 +501,9 @@ def test_ended_sessions_close_sockets(world):
         assert closed_with(bob) == 4401
     world.clients["bob"].post("/api/auth/login", json={"username": "bob", "password": LONG})
     with world.tab("bob", board_id) as bob:
-        world.clients["admin"].patch(f"/api/people/{world.ids['bob']}", json={"disabled": True})
+        world.clients["admin"].patch(f"/api/accounts/{world.ids['bob']}", json={"disabled": True})
         assert closed_with(bob) == 4401
-    world.clients["admin"].patch(f"/api/people/{world.ids['bob']}", json={"disabled": False})
+    world.clients["admin"].patch(f"/api/accounts/{world.ids['bob']}", json={"disabled": False})
 
 
 def test_limits(world):

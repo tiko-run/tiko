@@ -701,6 +701,8 @@ def test_sign_up_keeps_the_person_their_boards_and_the_session(app):
         "username": "ann",
         "name": "Ann Lee",
         "role": "member",
+        "server_admin": False,
+        "workspace": me(ann)["workspace"],
         "demo_expires_at": None,
     }
     assert me(ann)["demo_expires_at"] is None
@@ -816,7 +818,7 @@ def test_a_reset_link_counts_as_a_sign_in_for_the_90_days(app):
         "UPDATE users SET last_sign_in_at = ? WHERE id = ?",
         (demo.iso(time.time() - 89 * DAY), ann_id),
     )
-    url = admin.post(f"/api/people/{ann_id}/reset").json()["url"]
+    url = admin.post(f"/api/accounts/{ann_id}/reset").json()["url"]
     fresh = TestClient(app)
     accepted = fresh.post(
         f"/api/invites/{url.split('=', 1)[1]}/accept", json={"password": LONG + "2"}

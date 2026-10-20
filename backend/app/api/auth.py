@@ -9,6 +9,7 @@ from app.domain.accounts import BROWSER_TTL_S, Person
 from app.domain.demo import DemoVisitors
 from app.domain.errors import NotFound
 from app.domain.sessions import SESSION_TTL_S
+from app.domain.workspaces import WorkspaceLookup, current_workspace
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,10 +19,19 @@ class SignInRequest(BaseModel):
     password: str = Field(max_length=1024)
 
 
-def me(person: Person, demo: bool = False) -> dict:
-    fields = {"id", "username", "name", "role"}
-    # Only a demo instance tells who is a demo visitor; elsewhere the answer is as it was.
-    return person.model_dump(include=fields | {"demo_expires_at"} if demo else fields)
+def me(request: Request, person: Person) -> dict:
+    fields = {"id", "username", "name", "role", "server_admin"}
+    # Only a demo instance tells who is a demo visitor.
+    if request.app.state.visitors is not None:
+        fields.add("demo_expires_at")
+    view = person.model_dump(include=fields)
+    workspace = current_workspace.get()
+    lookup: WorkspaceLookup = request.app.state.workspaces
+    name = lookup.name(workspace) if workspace else None
+    view["workspace"] = {"id": workspace, "name": name} if workspace and name else None
+    if view["workspace"] is None:
+        view["role"] = None
+    return view
 
 
 def _https(request: Request) -> bool:
@@ -39,10 +49,10 @@ def _signed_out() -> Response:
 @router.get("/status")
 def status(request: Request) -> dict:
     person = getattr(request.state, "person", None)
-    if request.app.state.visitors is None:
-        return {"signed_in": person is not None, "me": me(person) if person else None}
-    signed_in = person is not None
-    return {"signed_in": signed_in, "me": me(person, True) if person else None, "demo": True}
+    answer = {"signed_in": person is not None, "me": me(request, person) if person else None}
+    if request.app.state.visitors is not None:
+        answer["demo"] = True
+    return answer
 
 
 def signed_in(request: Request, token: str) -> Response:
@@ -115,7 +125,7 @@ def sign_up(body: SignUpRequest, request: Request) -> dict:
     person: Person | None = getattr(request.state, "person", None)
     if visitors is None or person is None or not person.demo_expires_at:
         raise NotFound("not found")
-    return me(visitors.sign_up(person, body.name, body.username, body.password), True)
+    return me(request, visitors.sign_up(person, body.name, body.username, body.password))
 
 
 @router.post("/logout", status_code=204)

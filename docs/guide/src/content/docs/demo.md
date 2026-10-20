@@ -32,7 +32,7 @@ How many boards a person with an account may own is up to you: set `TIKO_BOARD_L
 
 On an instance with `TIKO_DEMO=1` the share picker finds a person by their whole username only, so strangers are not listed to each other. A person can run 20 such searches a minute, so usernames cannot be gone through by guessing. For the same reason Share has no "Everyone with an account", and each person has their own statuses of the demo tasks.
 
-There is no mail on a demo, so a forgotten password cannot be reset by the person; an admin can make a reset link in Settings → People. An account that nobody signed in to for 90 days is deleted with its boards. Admins are never deleted.
+There is no mail on a demo, so a forgotten password cannot be reset by the person; the server admin can make a reset link in Settings → Accounts. An account that nobody signed in to for 90 days is deleted with its boards. Admins are never deleted.
 
 ## Limits
 

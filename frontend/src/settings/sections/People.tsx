@@ -4,9 +4,8 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { Me } from '@/api/auth'
 import {
-  changePerson,
+  changeRole,
   createInvite,
-  createResetLink,
   listPeople,
   revokeInvite,
   type Invite,
@@ -19,7 +18,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -30,9 +28,9 @@ import { formatDue } from '@/timers/time'
 
 const PEOPLE = ['people']
 
-type Link = { invite: Invite; url: string }
+export type Link = { invite: Invite; url: string }
 
-function LinkBox({ link, onDone }: { link: Link; onDone: () => void }) {
+export function LinkBox({ link, onDone }: { link: Link; onDone: () => void }) {
   const [copied, setCopied] = useState(false)
   const full = new URL(link.url, window.location.origin).toString()
   const what =
@@ -72,39 +70,19 @@ function LinkBox({ link, onDone }: { link: Link; onDone: () => void }) {
   )
 }
 
-function lastSeen(person: Person) {
+export function lastSeen(person: { last_sign_in_at: string | null }) {
   if (!person.last_sign_in_at) return 'Never signed in'
   return `Last signed in ${formatDue(Date.parse(person.last_sign_in_at))}`
 }
 
-function PersonRow({
-  person,
-  me,
-  onLink,
-}: {
-  person: Person
-  me: Me
-  onLink: (link: Link) => void
-}) {
+function PersonRow({ person, me }: { person: Person; me: Me }) {
   const queryClient = useQueryClient()
-  const refresh = () => queryClient.invalidateQueries({ queryKey: PEOPLE })
   const change = useMutation({
-    mutationFn: (body: Parameters<typeof changePerson>[1]) => changePerson(person.id, body),
-    onSuccess: (_, body) => {
-      if (body.role)
-        toast.success(`${person.name} is now ${body.role === 'admin' ? 'an admin' : 'a member'}`)
-      else toast.success(`${person.name} ${body.disabled ? 'disabled' : 'enabled'}`)
-    },
+    mutationFn: (role: Person['role']) => changeRole(person.id, role),
+    onSuccess: (_, role) =>
+      toast.success(`${person.name} is now ${role === 'admin' ? 'an admin' : 'a member'}`),
     onError: toastError,
-    onSettled: refresh,
-  })
-  const reset = useMutation({
-    mutationFn: () => createResetLink(person.id),
-    onSuccess: (link) => {
-      onLink(link)
-      void refresh()
-    },
-    onError: toastError,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: PEOPLE }),
   })
   return (
     <li className="flex items-center gap-3 py-2.5">
@@ -133,17 +111,9 @@ function PersonRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem
-            onSelect={() => change.mutate({ role: person.role === 'admin' ? 'member' : 'admin' })}
+            onSelect={() => change.mutate(person.role === 'admin' ? 'member' : 'admin')}
           >
             {person.role === 'admin' ? 'Make member' : 'Make admin'}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => reset.mutate()}>Reset password</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant={person.disabled ? 'default' : 'destructive'}
-            onSelect={() => change.mutate({ disabled: !person.disabled })}
-          >
-            {person.disabled ? 'Enable' : 'Disable'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -198,7 +168,7 @@ export function People({ me }: { me: Me }) {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="People"
-        description="Who can sign in to this tiko. Invite people with a link; no mail needed."
+        description="Who works in this workspace. Invite people with a link; no mail needed."
         action={
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -227,7 +197,7 @@ export function People({ me }: { me: Me }) {
         <>
           <ul className="divide-y">
             {people.data.people.map((person) => (
-              <PersonRow key={person.id} person={person} me={me} onLink={setLink} />
+              <PersonRow key={person.id} person={person} me={me} />
             ))}
           </ul>
           {people.data.invites.length > 0 && (

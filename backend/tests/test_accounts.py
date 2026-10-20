@@ -189,7 +189,7 @@ def test_sign_in_sets_a_session_cookie(gated):
     status = gated.get("/api/auth/status").json()
     assert status["signed_in"] and status["me"]["username"] == "admin"
     assert status["me"]["role"] == "admin"
-    assert set(status["me"]) == {"id", "username", "name", "role"}
+    assert set(status["me"]) == {"id", "username", "name", "role", "server_admin", "workspace"}
     assert gated.get("/api/boards").status_code == 200
 
 

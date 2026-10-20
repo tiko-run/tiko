@@ -14,6 +14,8 @@ Requires: installer
 
 - tiko keeps boards, people and settings in Postgres, in a `db` container next to it, so several API processes write at once without waiting for each other. Update with the installer: it adds the database, and the first start moves everything from `data/app.db` with the same accounts, boards, Planning lists and public links, then keeps the old file as `data/app.db.copied-<date>`. See [Coming from an SQLite release](https://docs.tiko.run/data-and-upgrades/#coming-from-an-sqlite-release).
 - One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
+- Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
+- Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
 
 ## [2026.10.23] - 2026-10-20
 

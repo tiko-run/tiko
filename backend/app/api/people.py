@@ -28,8 +28,7 @@ class PeopleList(BaseModel):
 
 
 class PersonChange(BaseModel):
-    role: Literal["admin", "member"] | None = None
-    disabled: bool | None = None
+    role: Literal["admin", "member"]
 
 
 class InviteLink(BaseModel):
@@ -58,12 +57,7 @@ def list_people(_: CurrentAdmin, accounts: AccountsDep, invites: InvitesDep) -> 
 def change_person(
     user_id: str, body: PersonChange, _: CurrentAdmin, accounts: AccountsDep
 ) -> PersonView:
-    return _view(accounts.change(user_id, body.role, body.disabled))
-
-
-@router.post("/people/{user_id}/reset", status_code=201)
-def reset_link(user_id: str, admin: CurrentAdmin, invites: InvitesDep) -> InviteLink:
-    return link(*invites.reset(admin.id, user_id, time.time()))
+    return _view(accounts.change_role(user_id, body.role))
 
 
 class DirectoryEntry(BaseModel):

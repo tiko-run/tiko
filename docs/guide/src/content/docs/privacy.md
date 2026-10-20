@@ -81,7 +81,7 @@ A running instance sends one ping 10 minutes after it starts and then once a day
 | `os` | the system tiko was installed on: `linux`, `darwin`, `windows` or `other`; empty when tiko runs in a container set up by hand, where the host is unknown |
 | `updater` | whether one-click updates are on |
 
-An admin sees the exact next ping in Settings → Privacy → Show what is sent.
+The server admin sees the exact next ping in Settings → Privacy → Show what is sent.
 
 ## What is never sent
 
@@ -102,7 +102,7 @@ A new field means a new `schema`, a line in the changelog and an update of this 
 
 Any one of these is enough:
 
-- An admin turns off "Send daily usage counts" in Settings → Privacy.
+- The server admin turns off "Send daily usage counts" in Settings → Privacy.
 - `TIKO_USAGE_STATS=false` in `.env` or in the platform's variables. It wins over the setting and locks it.
 - The installer's `--no-stats` (`install.sh`) or `-NoStats` (`install.ps1`), or `TIKO_USAGE_STATS=false` in the environment when you run it. The installer then sends nothing and writes `TIKO_USAGE_STATS=false` into `.env`.
 
@@ -110,7 +110,7 @@ Turned off, tiko sends nothing about the install. The release check (`UPDATE_CHE
 
 ## Error reports
 
-Error reports are off until an admin turns on "Send error reports" in Settings → Privacy, or `TIKO_ERROR_REPORTS=true` is set. Then an error in the server or in the page sends a report, so we can fix what breaks in a release without waiting for an issue.
+Error reports are off until the server admin turns on "Send error reports" in Settings → Privacy, or `TIKO_ERROR_REPORTS=true` is set. Then an error in the server or in the page sends a report, so we can fix what breaks in a release without waiting for an issue.
 
 A report holds only the error type (such as `KeyError`), the lines of tiko's own code it came through and the tiko version and `deploy`. It never holds:
 

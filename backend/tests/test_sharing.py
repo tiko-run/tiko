@@ -157,7 +157,7 @@ def test_owner_stays_until_transferred(world):
 def test_disabled_people_cannot_be_added(world):
     clients, ids = world
     board_id = new_board(world)
-    clients["admin"].patch(f"/api/people/{ids['dave']}", json={"disabled": True})
+    clients["admin"].patch(f"/api/accounts/{ids['dave']}", json={"disabled": True})
     try:
         response = clients["ann"].put(
             f"/api/boards/{board_id}/members/{ids['dave']}", json={"role": "viewer"}
@@ -166,7 +166,7 @@ def test_disabled_people_cannot_be_added(world):
         found = clients["ann"].get("/api/people/directory", params={"q": "da"}).json()["people"]
         assert found == []
     finally:
-        clients["admin"].patch(f"/api/people/{ids['dave']}", json={"disabled": False})
+        clients["admin"].patch(f"/api/accounts/{ids['dave']}", json={"disabled": False})
     signed_in(clients["admin"].app, "dave", LONG)
     found = clients["ann"].get("/api/people/directory", params={"q": "DA"}).json()["people"]
     assert [p["username"] for p in found] == ["dave"]

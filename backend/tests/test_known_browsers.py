@@ -89,8 +89,8 @@ def test_a_password_change_forgets_the_browsers(accounts):
 def test_disabling_a_person_forgets_their_browsers(accounts):
     _, browser = accounts.sign_in("alice", LONG, NOW)
     alice = next(p for p in accounts.people() if p.username == "alice")
-    accounts.change(alice.id, None, True)
-    accounts.change(alice.id, None, False)
+    accounts.set_disabled(alice.id, True)
+    accounts.set_disabled(alice.id, False)
     fail(accounts, PER_USERNAME_FAILURES)
     with pytest.raises(TooManyAttempts):
         accounts.sign_in("alice", LONG, NOW + 1, browser=browser)

@@ -98,7 +98,7 @@ export function UpdateAction({ info, admin }: { info: VersionInfo; admin: boolea
       </div>
     )
   }
-  if (!admin) return <span className="text-muted-foreground">Ask an admin to update.</span>
+  if (!admin) return <span className="text-muted-foreground">Ask the server admin to update.</span>
   if (!update.available) {
     return (
       <span className="text-muted-foreground">

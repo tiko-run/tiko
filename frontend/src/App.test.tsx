@@ -47,7 +47,14 @@ test('shows the unified API error message', async () => {
 })
 
 test('asks for username and password and opens the boards after signing in', async () => {
-  const me = { id: 'u1', username: 'admin', name: 'Admin', role: 'admin' }
+  const me = {
+    id: 'u1',
+    username: 'admin',
+    name: 'Admin',
+    role: 'admin',
+    server_admin: true,
+    workspace: { id: 'w1', name: 'Default' },
+  }
   let signedIn = false
   const fetch = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === '/api/auth/login') {
@@ -113,8 +120,8 @@ test('keeps the way into the demo when a visitor is signed out', async () => {
 })
 
 test.each([
-  ['admin', true],
-  ['member', false],
+  ['server admin', true],
+  ['workspace admin', false],
 ])('security banner for %s: %s', async (role, shown) => {
   localStorage.clear()
   const release = {
@@ -129,7 +136,17 @@ test.each([
     {
       '/api/auth/status': {
         status: 200,
-        body: { signed_in: true, me: { id: 'u1', username: 'ann', name: 'Ann', role } },
+        body: {
+          signed_in: true,
+          me: {
+            id: 'u1',
+            username: 'ann',
+            name: 'Ann',
+            role: 'admin',
+            server_admin: role === 'server admin',
+            workspace: { id: 'w1', name: 'Default' },
+          },
+        },
       },
       '/api/version': {
         status: 200,

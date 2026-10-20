@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
-from app.api.deps import CurrentAdmin
+from app.api.deps import CurrentServerAdmin
 from app.domain.updates import OneClickUpdate, UpdateService, UpdateView, VersionView
 
 router = APIRouter(tags=["version"])
@@ -33,6 +33,6 @@ def update_status(service: Annotated[OneClickUpdate, Depends(one_click)]) -> Upd
 
 @router.post("/update")
 def start_update(
-    _: CurrentAdmin, service: Annotated[OneClickUpdate, Depends(one_click)]
+    _: CurrentServerAdmin, service: Annotated[OneClickUpdate, Depends(one_click)]
 ) -> UpdateView:
     return service.start()

@@ -1,14 +1,14 @@
 # API: workspaces
 
-Draft for G2. Each slice fixes its part before its code. Shapes not named here do not change; they now answer for the workspace of the request.
+Each slice fixes its part before its code. Shapes not named here do not change; they now answer for the workspace of the request.
 
 ## The workspace of a request
 
 A board route, a live socket and a public link take the workspace of their board. Every other route uses the signed-in person's workspace, or a demo visitor's own. A board, invite or person of another workspace answers `404`, the same as one that does not exist.
 
-## `GET /api/auth/status`
+## `GET /api/auth/status` (`feat/server-admin`)
 
-`me` gains `serverAdmin` and `workspace`; `role` becomes the role in the workspace:
+`me` gains `server_admin` and `workspace`; `role` is the role in the workspace:
 
 ```json
 {
@@ -16,7 +16,7 @@ A board route, a live socket and a public link take the workspace of their board
   "me": {
     "id": "u1", "username": "mira", "name": "Mira Example",
     "role": "admin",
-    "serverAdmin": true,
+    "server_admin": true,
     "workspace": {"id": "w1", "name": "Default"}
   }
 }
@@ -24,24 +24,68 @@ A board route, a live socket and a public link take the workspace of their board
 
 A person with no workspace gets `workspace: null` and `role: null`.
 
-## Server settings and accounts
+## Server admin (`feat/server-admin`)
 
-`/api/version/update`, `PUT /api/privacy`, `/metrics` without a token, `POST /api/people/{id}/reset` and disabling an account in `PATCH /api/people/{id}` need `serverAdmin`. `403` otherwise.
+These need `server_admin`, answer `403` otherwise, and work with or without a workspace:
 
-`GET /api/people` answers the workspace's members with their role for a workspace admin. The server admin also gets `GET /api/accounts`: every account with `disabled` and whether it is in a workspace.
+- `POST /api/update`, `GET` and `PUT /api/privacy`, `/metrics` without a token. `GET /api/update` stays open to everyone signed in, so a running update shows its progress to all.
+- `GET /api/accounts`: every account except demo visitors.
 
-## Settings and Planning
+  ```json
+  {"accounts": [{"id": "u2", "username": "dan", "name": "Dan Example", "server_admin": false,
+    "disabled": false, "in_workspace": true, "last_sign_in_at": null, "created_at": "2026-10-20T10:00:00+00:00"}]}
+  ```
 
-`GET` and `PUT /api/settings` and everything under `/api/planning` need the workspace admin for writes, as they need the instance admin today. Values are per workspace. ENV values lock their fields, as today.
+- `PATCH /api/accounts/{id}` with `{"disabled": true|false}`. Disabling the last active server admin answers `409`.
+- `POST /api/accounts/{id}/reset`: the password reset link, as `POST /api/people/{id}/reset` answered before. That route is removed.
 
-## My tracker
+The server admin is the first account of a server; this spec has no way to make another. `reset_password.py` stays the way back in when that account is lost.
 
-`/api/me/tracker` reads and writes the person's token in their workspace.
+The privacy switches, the instance id and the last ping time move to `server_settings`; the answers of these routes keep their shape.
 
-## `GET /api/planning` on a demo
+## People (`feat/server-admin`)
 
-From `feat/demo-workspace` the answer drops `sample` (spec 031): a visitor's lists are their own and writable. Workload answers on the demo.
+`PATCH /api/people/{id}` takes `{"role": "admin"|"member"}` only; `disabled` moves to `/api/accounts/{id}`. `GET /api/people` keeps `disabled` for display.
 
-## Invites
+## No workspace (`feat/workspace-membership`)
 
-`POST /api/invites` creates an invite to the workspace with a role. Opening it signed out creates an account as today and joins. Opening it signed in, while already in a workspace, answers `409` with a message.
+A signed-in person with no workspace (removed from it) can still use `/api/auth/*`, `/api/me/*` for their own profile and password, `GET /api/update` to follow a running update, `GET /api/invites/{token}` and `POST /api/invites/{token}/join`, and the server admin routes when they are the server admin. Every other route answers `403`:
+
+```json
+{"error": {"code": "no_workspace", "message": "You are not in a workspace. Ask an admin for an invite link."}}
+```
+
+## Workspace admin (`feat/workspace-membership`)
+
+These need `role: "admin"` in the workspace and answer `403` otherwise:
+
+- `PUT /api/settings` and every write under `/api/planning`, for the workspace's values. ENV values lock their fields, as today.
+- `GET /api/people`: the workspace's members and pending invites.
+- `PATCH /api/people/{id}` with `{"role": "admin"|"member"}`.
+- `DELETE /api/people/{id}`: removes the person from the workspace; the account and its sign-in stay. `204`. In the same transaction:
+  - their board memberships go; boards they owned get the admin who removed them as owner, with the other members kept;
+  - their tracker tokens and task caches in the workspace go;
+  - their open live sockets close.
+- `POST /api/invites`, `DELETE /api/invites/{id}`.
+
+The workspace keeps at least one active admin. Stepping down, being made a member, being removed or, through `PATCH /api/accounts/{id}`, being disabled as the last active admin answers `409`:
+
+```json
+{"error": {"code": "last_admin", "message": "The workspace needs another admin first."}}
+```
+
+## My tracker (`feat/workspace-membership`)
+
+`/api/me/tracker` reads and writes the person's token in their workspace. The person directory (`GET /api/people/directory`) and "Everyone in this workspace" on a board list the workspace's members only.
+
+## Invites (`feat/workspace-membership`)
+
+`POST /api/invites` creates an invite to the workspace with a role. Opening it signed out creates an account as today and joins. `POST /api/invites/{token}/join` lets a signed-in person with no workspace join with their account (`204`); one already in a workspace gets `409`:
+
+```json
+{"error": {"code": "in_workspace", "message": "You are already in a workspace."}}
+```
+
+## `GET /api/planning` on a demo (`feat/demo-workspace`)
+
+The answer drops `sample` (spec 031): a visitor's lists are their own and writable. Workload answers on the demo.

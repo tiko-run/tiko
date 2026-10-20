@@ -17,7 +17,7 @@ from psycopg.types.datetime import TimestamptzBinaryLoader, TimestamptzLoader
 from psycopg.types.string import TextBinaryLoader, TextLoader
 from psycopg_pool import ConnectionPool
 
-from app.domain.accounts import Person, PersonRecord, Role
+from app.domain.accounts import Account, Person, PersonRecord, Role
 from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import BoardDoc, BoardRecord, BoardRow, planned_stages
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
@@ -101,9 +101,8 @@ class Database:
             # The random id of the usage stats, made here so processes that start together
             # share it.
             conn.execute(
-                "INSERT INTO settings (workspace_id, key, value)"
-                " VALUES (%s, 'instance_id', gen_random_uuid()::text) ON CONFLICT DO NOTHING",
-                (workspace,),
+                "INSERT INTO server_settings (key, value)"
+                " VALUES ('instance_id', gen_random_uuid()::text) ON CONFLICT DO NOTHING"
             )
 
     def _pool(self, role: str, size: int) -> ConnectionPool:
@@ -266,6 +265,11 @@ class PgWorkspaces:
                 (user_id, workspace),
             ).fetchone()
         return row["role"] if row else None
+
+    def name(self, workspace: str) -> str | None:
+        with self._db.transaction(None) as conn:
+            row = conn.execute("SELECT name FROM workspaces WHERE id = %s", (workspace,)).fetchone()
+        return row["name"] if row else None
 
 
 def _lock_workspace(conn: psycopg.Connection, workspace: str) -> None:
@@ -629,6 +633,48 @@ class PgSettingsRepo(_Repo):
                     )
 
 
+class PgServerSettingsRepo:
+    """Settings of the server itself, outside every workspace."""
+
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def get_all(self) -> dict[str, str]:
+        with self._db.transaction(None) as conn:
+            rows = conn.execute("SELECT key, value FROM server_settings").fetchall()
+        return {row["key"]: row["value"] for row in rows}
+
+    def set_many(self, values: dict[str, str | None]) -> None:
+        with self._db.transaction(None) as conn:
+            for key, value in values.items():
+                if value is None:
+                    conn.execute("DELETE FROM server_settings WHERE key = %s", (key,))
+                else:
+                    conn.execute(
+                        "INSERT INTO server_settings (key, value) VALUES (%s, %s)"
+                        " ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                        (key, value),
+                    )
+
+
+# Kept by the server, not a workspace: the usage stats id, the privacy switches, the last ping.
+SERVER_KEYS = ("instance_id", "usage_stats", "error_reports", "last_ping_at")
+
+
+def move_server_settings(conn: psycopg.Connection, workspace: str) -> None:
+    """Moves the server's keys out of a workspace's settings, replacing what the server had."""
+    conn.execute(
+        "INSERT INTO server_settings (key, value) SELECT key, value FROM settings"
+        " WHERE workspace_id = %s AND key = ANY(%s)"
+        " ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+        (workspace, list(SERVER_KEYS)),
+    )
+    conn.execute(
+        "DELETE FROM settings WHERE workspace_id = %s AND key = ANY(%s)",
+        (workspace, list(SERVER_KEYS)),
+    )
+
+
 class PgPlanningTypeRepo(_Repo):
     def all(self) -> list[StageType]:
         with self._tx() as conn:
@@ -841,7 +887,7 @@ class PgUsageCounts:
 
 
 # The role is the person's in the request's workspace; %s there is the workspace id.
-_PERSON = "u.id, u.username, u.name, m.role, u.disabled_at, u.demo_expires_at"
+_PERSON = "u.id, u.username, u.name, m.role, u.disabled_at, u.server_admin, u.demo_expires_at"
 _PERSON_FROM = "users u LEFT JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
 # Only the workspace's members: an account elsewhere is not found here, so no admin reaches it.
 _MEMBER_FROM = "users u JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
@@ -864,8 +910,28 @@ def _person(row: dict) -> Person:
         name=row["name"],
         role=row["role"] or "member",
         disabled=row["disabled_at"] is not None,
+        server_admin=row["server_admin"],
         demo_expires_at=row["demo_expires_at"],
     )
+
+
+def _account(row: dict) -> Account:
+    return Account(
+        id=row["id"],
+        username=row["username"],
+        name=row["name"],
+        server_admin=row["server_admin"],
+        disabled=row["disabled_at"] is not None,
+        in_workspace=row["in_workspace"],
+        last_sign_in_at=row["last_sign_in_at"],
+        created_at=row["created_at"],
+    )
+
+
+_ACCOUNT = (
+    "id, username, name, server_admin, disabled_at, last_sign_in_at, created_at,"
+    " EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = users.id) AS in_workspace"
+)
 
 
 _Gone = tuple[list[str], list[str]]
@@ -900,7 +966,7 @@ class PgUserRepo(_Repo):
             with self._tx() as conn:
                 conn.execute(
                     "INSERT INTO users (id, username, name, password_hash, created_at,"
-                    " demo_expires_at) VALUES (%s, %s, %s, %s, %s, %s)",
+                    " demo_expires_at, server_admin) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     (
                         person.id,
                         person.username,
@@ -908,6 +974,7 @@ class PgUserRepo(_Repo):
                         password_hash,
                         now_iso(),
                         person.demo_expires_at,
+                        person.server_admin,
                     ),
                 )
                 conn.execute(
@@ -1001,6 +1068,40 @@ class PgUserRepo(_Repo):
                 "SELECT COUNT(*) AS n FROM memberships m JOIN users u ON u.id = m.user_id"
                 " WHERE m.workspace_id = %s AND m.role = 'admin' AND u.disabled_at IS NULL",
                 (self._ws,),
+            ).fetchone()["n"]
+
+    def accounts(self) -> "list[Account]":
+        with self._tx() as conn:
+            rows = conn.execute(
+                f"SELECT {_ACCOUNT} FROM users WHERE demo_expires_at IS NULL"
+                " ORDER BY lower(name), lower(username)"
+            ).fetchall()
+        return [_account(row) for row in rows]
+
+    def account(self, user_id: str) -> Account | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                f"SELECT {_ACCOUNT} FROM users WHERE id = %s AND demo_expires_at IS NULL",
+                (user_id,),
+            ).fetchone()
+        return _account(row) if row else None
+
+    def sole_active_admin(self, user_id: str) -> bool:
+        with self._tx() as conn:
+            return conn.execute(
+                # Memberships and users are global: every workspace of the person is checked.
+                "SELECT EXISTS (SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id"
+                " WHERE m.user_id = %s AND m.role = 'admin' AND u.disabled_at IS NULL"
+                " AND (SELECT COUNT(*) FROM memberships o JOIN users v ON v.id = o.user_id"
+                " WHERE o.workspace_id = m.workspace_id AND o.role = 'admin'"
+                " AND v.disabled_at IS NULL) = 1) AS sole",
+                (user_id,),
+            ).fetchone()["sole"]
+
+    def active_server_admins(self) -> int:
+        with self._tx() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) AS n FROM users WHERE server_admin AND disabled_at IS NULL"
             ).fetchone()["n"]
 
     def touch_sign_in(self, user_id: str) -> None:
@@ -1409,6 +1510,7 @@ BoardRepo = PgBoardRepo
 SnapshotRepo = PgSnapshotRepo
 CredentialRepo = PgCredentialRepo
 SettingsRepo = PgSettingsRepo
+ServerSettingsRepo = PgServerSettingsRepo
 PlanningTypeRepo = PgPlanningTypeRepo
 PlanningFieldRepo = PgPlanningFieldRepo
 PlanningStageRepo = PgPlanningStageRepo
