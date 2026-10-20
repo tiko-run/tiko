@@ -14,7 +14,7 @@ export const GET: APIRoute<{ entry: CollectionEntry<'docs'> }> = ({ props: { ent
   const page = new URL(entry.id === 'index' ? '/' : `/${entry.id}/`, site)
   const body = (entry.body ?? '')
     .replace(/^import .+$\n?/gm, '')
-    .replace(/!\[([^\]]*)\]\((?!https?:)[^)]+\)/g, '[Image: $1]')
+    .replace(/!\[([^\]]*)\]\((?!https?:)[^)]+\)/g, (_, alt: string) => (alt ? `[Image: ${alt}]` : ''))
     .replace(/(?<!!)\[([^\]]*)\]\((?!https?:|#)([^)\s]+)\)/g, (_, text: string, href: string) => `[${text}](${new URL(href, page)})`)
     .trim()
   const head = [`# ${title}`, description && `> ${description}`].filter(Boolean).join('\n\n')
