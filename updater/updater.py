@@ -10,15 +10,15 @@ import logging
 import os
 import re
 import secrets
-import shutil
 import socket
-import sqlite3
+import tarfile
+import tempfile
 import threading
 import time
 from collections.abc import Callable, Iterator
-from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import BinaryIO
 from urllib.parse import quote, urlencode
 
 log = logging.getLogger("updater")
@@ -31,8 +31,13 @@ HEALTHY_WITHIN_S = 120
 # A container without a health check counts as up once it has run this long.
 SETTLE_S = 5
 STOP_TIMEOUT_S = 10
-# Copies of the database taken before an update; older ones are deleted.
+# Dumps of the database taken before an update; older ones are deleted.
 KEEP_BACKUPS = 3
+# The image's superuser, through the socket inside the db container: it alone reads past
+# row-level security, and it has no password to log in with from anywhere else.
+DB_USER, DB_NAME = "postgres", "tiko"
+DB_TMP = "/tmp"
+
 STEPS_PER_IMAGE = 1000
 LOG_LINES = 50
 VERSION = re.compile(r"^\d{4}\.\d{1,2}\.\d{1,3}$")
@@ -74,8 +79,12 @@ class Docker:
 
     def _open(self, method: str, path: str, body: object = None, timeout: float = 60):
         conn = _UnixConnection(self._path, timeout)
-        data = None if body is None else json.dumps(body).encode()
-        headers = {"Content-Type": "application/json"} if data is not None else {}
+        if hasattr(body, "read"):
+            # A file to upload; http.client streams it.
+            data, headers = body, {"Content-Type": "application/x-tar"}
+        else:
+            data = None if body is None else json.dumps(body).encode()
+            headers = {"Content-Type": "application/json"} if data is not None else {}
         conn.request(method, path, body=data, headers=headers)
         return conn, conn.getresponse()
 
@@ -142,6 +151,44 @@ class Docker:
 
     def remove_image(self, image: str) -> None:
         self._call("DELETE", f"/images/{image}")
+
+    def exec(self, container: str, cmd: list[str], out: BinaryIO | None = None) -> tuple[int, str]:
+        """Runs `cmd` as the database user in a running container; its output goes to `out`.
+
+        Returns the exit code and the end of what it wrote to stderr.
+        """
+        body = {"AttachStdout": True, "AttachStderr": True, "User": DB_USER, "Cmd": cmd}
+        run = self._call("POST", f"/containers/{container}/exec", body)["Id"]
+        conn, response = self._open("POST", f"/exec/{run}/start", {"Detach": False}, timeout=900)
+        errors = bytearray()
+        try:
+            if response.status >= 400:
+                raise DockerError(f"exec: {response.status} {response.read().decode()}")
+            # Without a TTY the two streams come in frames: 1 byte stream, 3 zero, 4 length.
+            while len(header := response.read(8)) == 8:
+                stream, left = header[0], int.from_bytes(header[4:], "big")
+                while left:
+                    chunk = response.read(min(left, 1 << 16))
+                    if not chunk:
+                        raise DockerError("exec: the output stopped halfway")
+                    left -= len(chunk)
+                    if stream == 1 and out is not None:
+                        out.write(chunk)
+                    elif stream == 2:
+                        errors += chunk
+        finally:
+            conn.close()
+        code = self._call("GET", f"/exec/{run}/json")["ExitCode"]
+        return code, errors.decode(errors="replace")[-2000:]
+
+    def put_file(self, container: str, folder: str, source: Path) -> None:
+        """Copies a file into a container, as Docker takes it: a tar of it."""
+        with tempfile.TemporaryFile() as packed:
+            with tarfile.open(fileobj=packed, mode="w") as tar:
+                tar.add(source, arcname=source.name)
+            packed.seek(0)
+            query = urlencode({"path": folder})
+            self._call("PUT", f"/containers/{container}/archive?{query}", packed, timeout=900)
 
 
 class Job:
@@ -298,36 +345,53 @@ def pin_compose(old_api: dict, target: str, install: Path) -> None:
             path.write_text(TAG_DEFAULT.sub(f"${{TAG:-{target}}}", path.read_text()))
 
 
-def backup_database(install: Path, version: str) -> str | None:
-    """Copies the database of the stopped api, so the copy holds every change made before it."""
-    data = install / "data"
-    if not (data / "app.db").exists():
-        return None
-    folder = data / "backups"
+def backup_database(docker: Docker, db: str, install: Path, version: str) -> str:
+    """Dumps the database while the api is stopped, so the dump holds every change before it."""
+    folder = install / "data" / "backups"
     folder.mkdir(exist_ok=True)
-    name = f"pre-update-{version}.db"
+    name = f"pre-update-{version}.dump"
     partial = folder / f"{name}.partial"
-    partial.unlink(missing_ok=True)
-    with (
-        closing(sqlite3.connect(data / "app.db")) as source,
-        closing(sqlite3.connect(partial)) as copy,
-    ):
-        source.backup(copy)
-        copy.execute("PRAGMA journal_mode=DELETE")
+    with partial.open("wb") as out:
+        code, errors = docker.exec(
+            db, ["pg_dump", "-U", DB_USER, "-d", DB_NAME, "--format=custom"], out
+        )
+    if code != 0:
+        partial.unlink(missing_ok=True)
+        raise DockerError(f"pg_dump exited with {code}: {errors.strip()}")
     partial.replace(folder / name)
-    kept = sorted(folder.glob("pre-update-*.db"), key=lambda p: p.stat().st_mtime)
+    kept = sorted(folder.glob("pre-update-*.dump"), key=lambda p: p.stat().st_mtime)
     for old in kept[:-KEEP_BACKUPS]:
         old.unlink()
     return name
 
 
-def restore_database(backup: str | None, install: Path) -> None:
+def restore_database(docker: Docker, db: str, backup: str | None, install: Path) -> None:
     if not backup:
         return
-    data = install / "data"
-    shutil.copyfile(data / "backups" / backup, data / "app.db")
-    for leftover in ("app.db-wal", "app.db-shm"):
-        (data / leftover).unlink(missing_ok=True)
+    docker.put_file(db, DB_TMP, install / "data" / "backups" / backup)
+    inside = f"{DB_TMP}/{backup}"
+    # A fresh schema, so tables a newer migration added go too.
+    steps = [
+        [
+            "psql",
+            "-U",
+            DB_USER,
+            "-d",
+            DB_NAME,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION tiko_owner;",
+        ],
+        ["pg_restore", "-U", DB_USER, "-d", DB_NAME, "--exit-on-error", inside],
+    ]
+    try:
+        for cmd in steps:
+            code, errors = docker.exec(db, cmd)
+            if code != 0:
+                raise DockerError(f"{cmd[0]} exited with {code}: {errors.strip()}")
+    finally:
+        docker.exec(db, ["rm", "-f", inside])
 
 
 def remove_old_images(docker: Docker, job: Job, repos: list[str], keep: set[str]) -> None:
@@ -357,8 +421,16 @@ def run_update(
 ) -> None:
     replaced: list[tuple[dict, str, str | None]] = []
     backup = None
+    db = ""
     try:
         old = {s: service_container(docker, project, s) for s in SERVICES}
+        try:
+            db = service_container(docker, project, "db")["Id"]
+        except DockerError as exc:
+            # Migrations only go forward: no update without a dump to go back to.
+            raise DockerError(
+                "no db service to back up; back up your database and update by hand"
+            ) from exc
         refs = {s: f"{split_ref(c['Config']['Image'])[0]}:{target}" for s, c in old.items()}
         pull(docker, job, list(refs.values()))
 
@@ -372,8 +444,8 @@ def run_update(
             replaced.append((container, name, None))
             docker.stop(container["Id"])
             if service == "api":
-                backup = backup_database(install, current)
-                job.note(f"Database copied to data/backups/{backup}")
+                backup = backup_database(docker, db, install, current)
+                job.note(f"Database saved to data/backups/{backup}")
             new = docker.create(name, body)
             replaced[-1] = (container, name, new)
             for network, endpoint in more_networks:
@@ -383,7 +455,7 @@ def run_update(
     except Exception as exc:
         job.note(f"Update failed: {exc}")
         if replaced:
-            roll_back(docker, job, replaced, backup, install)
+            roll_back(docker, job, replaced, db, backup, install)
         job.set(state="failed", error=str(exc))
         return
 
@@ -423,6 +495,7 @@ def roll_back(
     docker: Docker,
     job: Job,
     replaced: list[tuple[dict, str, str | None]],
+    db: str,
     backup: str | None,
     install: Path,
 ) -> None:
@@ -433,7 +506,7 @@ def roll_back(
                 docker.remove(new)
             docker.rename(container["Id"], name)
         # The new api may have migrated the database before it failed.
-        restore_database(backup, install)
+        restore_database(docker, db, backup, install)
         for container, _, _ in replaced:
             docker.start(container["Id"])
         job.note("The previous version runs again")

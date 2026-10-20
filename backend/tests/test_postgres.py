@@ -18,8 +18,6 @@ from tests.conftest import PASSWORD, PG_SERVER, signed_in
 from tests.test_live import Tab, closed_with, sticky
 from tests.test_public import publish
 
-pytestmark = pytest.mark.skipif(not PG_SERVER, reason="needs TIKO_TEST_DATABASE_URL")
-
 # Global lookups that carry workspace_id without holding workspace content.
 GLOBAL_WITH_WORKSPACE = {"board_index", "invites", "memberships"}
 

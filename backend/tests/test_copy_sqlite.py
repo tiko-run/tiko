@@ -11,14 +11,13 @@ from fastapi.testclient import TestClient
 
 from app.adapters.storage import copy_sqlite
 from app.adapters.storage import postgres as pg
-from app.adapters.storage.sqlite import MIGRATIONS
+from app.adapters.tasks.demo import DemoTaskProvider
 from app.config import Settings
 from app.domain.accounts import hash_password
+from app.domain.live import LiveDoc, stored_node
 from app.main import create_app
-from tests.conftest import PG_SERVER, signed_in
+from tests.conftest import signed_in
 from tests.test_live import sticky
-
-pytestmark = pytest.mark.skipif(not PG_SERVER, reason="needs TIKO_TEST_DATABASE_URL")
 
 DOC = {"nodes": [sticky("n1", "Plan")]}
 T = "2026-03-01T09:00:00+00:00"
@@ -218,7 +217,7 @@ def test_people_sign_in_and_see_their_boards_after_the_copy(tmp_path):
     )
 
 
-@pytest.mark.parametrize("upto", sorted({number for number, _ in MIGRATIONS}))
+@pytest.mark.parametrize("upto", sorted({number for number, _ in copy_sqlite.MIGRATIONS}))
 def test_a_file_of_any_earlier_release_is_copied(db, tmp_path, upto):
     path = made(tmp_path / "app.db", upto)
 
@@ -291,3 +290,127 @@ def test_a_file_put_back_after_the_copy_is_not_read_again(db, tmp_path, caplog):
 def test_no_file_no_copy(db, tmp_path):
     assert copy_sqlite.copy_once(db, str(tmp_path / "app.db")) is False
     assert copy_sqlite.copy_once(db, ":memory:") is False
+
+
+def old_user(conn: sqlite3.Connection, user_id: str) -> None:
+    conn.execute(
+        "INSERT INTO users (id, username, name, password_hash, role, created_at)"
+        " VALUES (?, ?, ?, 'x', 'member', ?)",
+        (user_id, user_id, user_id, T),
+    )
+
+
+def legacy_card(node_id: str) -> dict:
+    return {
+        "id": node_id,
+        "type": "jira_card",
+        "position": {"x": 0, "y": 0},
+        "data": {"key": "DEMO-1"},
+    }
+
+
+def test_a_task_cache_from_before_trackers_keeps_each_persons_rows(db, tmp_path):
+    path = made(tmp_path / "app.db", 10)
+    old = DemoTaskProvider().resolve("DEMO-1").model_dump_json(exclude={"source"})
+    with closing(sqlite3.connect(path)) as conn, conn:
+        old_user(conn, "ann")
+        conn.execute("INSERT INTO settings VALUES ('provider', 'jira')")
+        conn.executemany(
+            "INSERT INTO task_snapshots_v2 VALUES (?, 'DEMO-1', 'ok', ?, ?)",
+            [("ann", old, T), ("", old, T)],
+        )
+
+    copy_sqlite.copy_once(db, str(path))
+
+    ann = pg.PgSnapshotRepo(db).scoped("ann")
+    assert ann.get_many(["jira:DEMO-1"])["jira:DEMO-1"].source == "jira"
+    assert len(rows(db, "SELECT key FROM task_snapshots")) == 1
+
+
+def test_old_cards_are_renamed_in_live_states_and_an_unreadable_one_is_dropped(db, tmp_path):
+    path = made(tmp_path / "app.db", 11)
+    note = {
+        "id": "s",
+        "type": "sticky",
+        "position": {"x": 0, "y": 0},
+        "data": {"text": "jira_card"},
+    }
+    doc = json.dumps({"nodes": [legacy_card("a"), note], "edges": []})
+    state = LiveDoc()
+    state.write({"a": stored_node(legacy_card("a"), 0), "s": stored_node(note, 1)}, {})
+    with closing(sqlite3.connect(path)) as conn, conn:
+        conn.executemany(
+            "INSERT INTO boards (id, name, doc, version, created_at, updated_at, ydoc)"
+            " VALUES (?, ?, ?, 1, ?, ?, ?)",
+            [("live", "Live", doc, T, T, state.state()), ("bad", "Bad", doc, T, T, b"not a state")],
+        )
+
+    copy_sqlite.copy_once(db, str(path))
+
+    record, ydoc = pg.PgBoardRepo(db).load("live")
+    card, kept = record.doc.nodes
+    assert (card.type, kept.data.text) == ("task_card", "jira_card")
+    nodes, _ = LiveDoc(ydoc).read()
+    assert (nodes["a"]["type"], nodes["s"]["data"]["text"]) == ("task_card", "jira_card")
+    record, ydoc = pg.PgBoardRepo(db).load("bad")
+    assert (record.doc.nodes[0].type, ydoc) == ("task_card", None)
+
+
+def test_stages_of_boards_saved_before_the_workload_are_indexed(db, tmp_path):
+    path = made(tmp_path / "app.db", 21)
+    stage = {"id": "s1", "type": "t1", "start": "2026-10-12", "end": "2026-10-16", "people": ["p1"]}
+    content = {
+        "start": "2026-10-01",
+        "end": "2026-12-31",
+        "rows": [{"id": "c", "title": "", "key": "WEB-7", "stages": [stage]}],
+    }
+    node = {"id": "g", "type": "module", "position": {"x": 0, "y": 0}}
+    doc = {"nodes": [node | {"data": {"kind": "gantt", "content": content}}], "edges": []}
+    with closing(sqlite3.connect(path)) as conn, conn:
+        conn.execute(
+            "INSERT INTO boards (id, name, doc, version, created_at, updated_at)"
+            " VALUES ('b1', 'Plan', ?, 1, ?, ?)",
+            (json.dumps(doc), T, T),
+        )
+
+    copy_sqlite.copy_once(db, str(path))
+
+    stages = pg.PgPlanningStageRepo(db).for_person("p1")
+    assert [(s.board_name, s.row, str(s.start)) for s in stages] == [
+        ("Plan", "WEB-7", "2026-10-12")
+    ]
+
+
+def test_boards_from_before_accounts_go_to_the_first_admin_without_a_welcome(tmp_path):
+    path = tmp_path / "app.db"
+    with closing(sqlite3.connect(path)) as old:
+        old.executescript(
+            "CREATE TABLE boards (id TEXT PRIMARY KEY, name TEXT, doc TEXT, version INTEGER,"
+            " created_at TEXT, updated_at TEXT);"
+            "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
+            f"INSERT INTO boards VALUES ('b', 'Q4', '{{}}', 1, '{T}', '{T}');"
+            "PRAGMA user_version = 2;"
+        )
+
+    admin = signed_in(create_app(Settings(db_path=str(path))))
+
+    assert [b["name"] for b in admin.get("/api/boards").json()["boards"]] == ["Q4"]
+    assert admin.delete("/api/boards/b").is_success
+    assert admin.get("/api/boards").json()["boards"] == []
+
+
+def test_the_token_from_before_accounts_moves_to_the_admin(db, tmp_path):
+    path = made(tmp_path / "app.db")
+    with closing(sqlite3.connect(path)) as conn, conn:
+        conn.executemany(
+            "INSERT OR REPLACE INTO settings VALUES (?, ?)",
+            [("jira_base_url", "https://jira.example.com"), ("jira_token_enc", "sealed")],
+        )
+        # The cache from before trackers stays behind: its rows name none.
+        conn.execute("INSERT INTO task_snapshots VALUES ('DEV-7', 'ok', '{}', 'x')")
+
+    create_app(Settings(db_path=str(path)))
+
+    admin = pg.PgUserRepo(db).find("admin")[0]
+    assert pg.PgCredentialRepo(db).get(admin.id, "jira") == ("sealed", "https://jira.example.com")
+    assert "jira_token_enc" not in pg.PgSettingsRepo(db).get_all()

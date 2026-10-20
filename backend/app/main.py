@@ -22,9 +22,10 @@ from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
-from app.adapters.storage import copy_sqlite, postgres, sqlite
+from app.adapters.storage import copy_sqlite
+from app.adapters.storage import postgres as storage
 from app.adapters.storage.lock import FileLock
-from app.adapters.storage.update_backups import SqliteUpdateBackups
+from app.adapters.storage.update_backups import DumpUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_cloud import JiraCloudProvider
@@ -229,12 +230,9 @@ def create_app(
         await rooms.shutdown()
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
-    if settings.database_url:
-        storage, db = postgres, postgres.shared(settings.database_url)
-        # Before anything reads or makes accounts: the first admin would be made anew.
-        copy_sqlite.copy_once(db, settings.db_path)
-    else:
-        storage, db = sqlite, sqlite.Database(settings.db_path)
+    db = storage.shared(settings.database_url)
+    # Before anything reads or makes accounts: the first admin would be made anew.
+    copy_sqlite.copy_once(db, settings.db_path)
     users = storage.UserRepo(db)
     member_repo = storage.MemberRepo(db)
     app.state.boards = storage.BoardRepo(db)
@@ -287,9 +285,8 @@ def create_app(
     )
     if metrics_token:
         register_secret(metrics_token)
-    if storage is postgres:
-        # Inside the gate, so the person is known.
-        app.add_middleware(WorkspaceScope, lookup=storage.Workspaces(db))
+    # Inside the gate, so the person is known.
+    app.add_middleware(WorkspaceScope, lookup=storage.Workspaces(db))
     app.add_middleware(PasswordGate, sessions=app.state.sessions, metrics_token=metrics_token)
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
@@ -368,7 +365,11 @@ def create_app(
         "railway" if settings.railway_environment_name else "render" if settings.render else None
     )
     app.state.one_click = OneClickUpdate(
-        app.state.updates, updater, SqliteUpdateBackups(settings.db_path), VERSION, hosting
+        app.state.updates,
+        updater,
+        DumpUpdateBackups(db.size, str(Path(settings.db_path).parent)),
+        VERSION,
+        hosting,
     )
     if stats_sender is None:
         stats_sender = HttpStatsSender(settings.tiko_stats_url, httpx.Client(timeout=5.0))

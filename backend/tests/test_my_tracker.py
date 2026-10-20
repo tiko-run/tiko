@@ -1,13 +1,11 @@
 """US4: each person's tracker token; no task data fetched with one token reaches another."""
 
-import sqlite3
 from contextlib import ExitStack
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters.storage.sqlite import Database, SqliteCredentialRepo, SqliteSnapshotRepo
 from app.config import Settings
 from app.main import create_app
 from tests.conftest import signed_in
@@ -140,29 +138,6 @@ def test_only_admins_change_the_instance_settings(team):
     response = people["ann"].put("/api/settings", json={"refresh_interval_s": 60})
     assert (response.status_code, response.json()["error"]["code"]) == (403, "forbidden")
     assert people["ann"].get("/api/settings").json()["provider"] == "jira"
-
-
-@pytest.mark.sqlite_only
-def test_upgrade_moves_the_instance_token_to_the_admin(tmp_path):
-    path = str(tmp_path / "app.db")
-    db = Database(path)
-    conn = sqlite3.connect(path)
-    conn.executescript(
-        "INSERT INTO task_snapshots VALUES ('DEV-7', 'ok', '{}', 'x'), ('DEMO-1', 'ok', '{}', 'x');"
-        "INSERT INTO settings VALUES ('jira_base_url', 'https://jira.example.com'),"
-        " ('jira_token_enc', 'sealed');"
-    )
-    conn.commit()
-    credentials = SqliteCredentialRepo(db)
-    credentials.adopt_instance_token("admin")
-    credentials.adopt_instance_token("admin")
-    assert credentials.get("admin", "jira") == ("sealed", "https://jira.example.com")
-    # The old cache names no tracker: it is dropped and fills again on the first refresh.
-    tables = conn.execute("SELECT name FROM sqlite_master WHERE name LIKE 'task_snapshots%'")
-    assert tables.fetchall() == [("task_snapshots_v3",)]
-    assert conn.execute("SELECT COUNT(*) FROM task_snapshots_v3").fetchone() == (0,)
-    assert conn.execute("SELECT key FROM settings WHERE key = 'jira_token_enc'").fetchall() == []
-    assert SqliteSnapshotRepo(db).scoped("bob").get_many(["jira:DEV-7"]) == {}
 
 
 def test_no_task_data_travels_through_the_live_socket(team):

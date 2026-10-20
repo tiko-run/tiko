@@ -212,6 +212,11 @@ random_password() {
   LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20
 }
 
+# Letters and digits: the Postgres password goes into a URL.
+random_hex() {
+  if has openssl; then openssl rand -hex 24; else head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; fi
+}
+
 random_key() {
   if has openssl; then openssl rand -base64 32; else head -c 32 /dev/urandom | base64 | tr -d '\n'; fi
 }
@@ -250,6 +255,8 @@ prepare_dir() {
   fi
 
   keep_env TIKO_DEPLOY installer
+  # Postgres reads it once, when its volume is made: a value already there must stay.
+  grep -q '^POSTGRES_PASSWORD=.' .env || keep_env POSTGRES_PASSWORD "$(random_hex)"
   # Inside its container tiko sees Linux; the usage stats need the system it was installed on.
   case "$OS" in Linux) keep_env TIKO_HOST_OS linux ;; Darwin) keep_env TIKO_HOST_OS darwin ;; esac
   [ "$STATS" = true ] || keep_env TIKO_USAGE_STATS false
@@ -306,7 +313,7 @@ finish() {
     say "${on}  Sign in as before: boards, accounts and settings are kept.${off}"
     say ""
   fi
-  say "Folder:    $DIR (boards in data/, settings in .env)"
+  say "Folder:    $DIR (settings in .env, backups in data/)"
   say "Logs:      cd $DIR && $HINT compose logs -f"
   say "Upgrade:   run this installer again"
   say "Guide:     https://docs.tiko.run/"

@@ -1,12 +1,9 @@
 """Spec 027: the Planning switch, the stage type library and the people directory."""
 
-import json
 from datetime import date
 
-import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters.storage.sqlite import Database, SqlitePlanningStageRepo
 from app.config import Settings
 from app.domain import planning_sample as sample
 from app.domain.planning import PlanningPerson, TimeOff
@@ -462,36 +459,6 @@ def test_workload_rules(client: TestClient) -> None:
     assert len(client.get(path).json()["weeks"]) == 12
     assert client.get(f"{path}?weeks=27").status_code == 422
     assert TestClient(client.app).get(path).status_code == 401
-
-
-@pytest.mark.sqlite_only
-def test_the_migration_fills_the_index_from_saved_boards() -> None:
-    from pathlib import Path
-
-    db = Database(":memory:")
-    content = {
-        "start": "2026-10-01",
-        "end": "2026-12-31",
-        "rows": [
-            staged("p", "Checkout", "p1", "2026-10-05", "2026-10-09"),
-            staged("c", "", "p1", "2026-10-12", "2026-10-16", parent="p", key="WEB-7"),
-        ],
-    }
-    node = {"id": "g", "type": "module", "position": {"x": 0, "y": 0}}
-    doc = {"nodes": [node | {"data": {"kind": "gantt", "content": content}}], "edges": []}
-    migrations = Path(__file__).resolve().parents[1] / "app/adapters/storage/migrations"
-    script = (migrations / "022_planning_stages.sql").read_text()
-    with db.transaction() as conn:
-        conn.execute(
-            "INSERT INTO boards (id, name, doc, version, created_at, updated_at)"
-            " VALUES ('b1', 'Plan', ?, 1, '', '')",
-            (json.dumps(doc),),
-        )
-        conn.execute(script[script.index("INSERT INTO planning_stages") :])
-    stages = SqlitePlanningStageRepo(db).for_person("p1")
-    assert [(s.board_name, s.row, str(s.start)) for s in stages] == [
-        ("Plan", "WEB-7", "2026-10-12")
-    ]
 
 
 def test_a_demo_on_an_old_database_shows_only_the_sample(tmp_path) -> None:

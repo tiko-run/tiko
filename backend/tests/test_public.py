@@ -8,7 +8,13 @@ from fastapi.testclient import TestClient
 from app.domain.public import LINK_REQUESTS, PublicLinks
 from tests.conftest import run_sql
 from tests.jira_fake import TOKEN
-from tests.test_sharing import call, monkeypatch_module, new_board, world  # noqa: F401
+from tests.test_sharing import make_world, new_board
+
+
+@pytest.fixture
+def world():
+    return make_world()
+
 
 JIRA = {"base_url": "https://jira.example.com", "token": TOKEN}
 
@@ -203,7 +209,7 @@ def test_token_opens_no_other_route(client):
         assert anyone.get(f"{path}?token={token}").status_code == 401
 
 
-def test_only_the_owner_makes_and_sees_the_link(world):  # noqa: F811
+def test_only_the_owner_makes_and_sees_the_link(world):
     clients, _ = world
     board_id = new_board(world)
     for who in ("bob", "carl"):
@@ -222,7 +228,7 @@ def test_only_the_owner_makes_and_sees_the_link(world):  # noqa: F811
     assert clients["carl"].get(f"/api/boards/{board_id}").json()["public"] is True
 
 
-def test_guest_learns_nothing_about_people(world):  # noqa: F811
+def test_guest_learns_nothing_about_people(world):
     clients, _ = world
     board_id = new_board(world)
     token = publish(clients["ann"], board_id)

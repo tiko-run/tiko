@@ -169,6 +169,11 @@ class Database:
                 DB_HELD.observe(held)
                 DB_HELD_BY_KIND.labels(kind).observe(held)
 
+    def size(self) -> int:
+        """Bytes the database takes on disk."""
+        with self.jobs() as conn:
+            return conn.execute("SELECT pg_database_size(current_database()) AS n").fetchone()["n"]
+
     def ping(self) -> bool:
         try:
             with self._app.connection() as conn:

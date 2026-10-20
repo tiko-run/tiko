@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from app.adapters.storage import postgres
 from app.api.gate import COOKIE
 from app.config import Settings
 from app.domain import boards as board_service
@@ -14,7 +15,7 @@ from app.domain import demo
 from app.domain import planning_sample as sample
 from app.domain.errors import BoardLimit
 from app.main import create_app
-from tests.conftest import all_rows, run_sql, signed_in, storage
+from tests.conftest import all_rows, run_sql, signed_in
 from tests.jira_fake import FakeJira
 
 DAY = 24 * 3600
@@ -493,7 +494,7 @@ def test_a_status_or_a_new_board_name_is_a_change_worth_keeping(app, monkeypatch
     assert ann.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"}).is_success
     board_id = welcome(bob)
     # The clock counts whole seconds, and nobody renames a board in the second it was made.
-    monkeypatch.setattr(storage(), "now_iso", lambda: demo.iso(time.time() + 60))
+    monkeypatch.setattr(postgres, "now_iso", lambda: demo.iso(time.time() + 60))
     assert bob.patch(f"/api/boards/{board_id}", json={"name": "Mine"}).is_success
 
     assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 0

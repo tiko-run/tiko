@@ -6,7 +6,7 @@ For an admin who is locked out and has no other admin to issue a reset from Sett
 import sys
 import time
 
-from app.adapters.storage import postgres, sqlite
+from app.adapters.storage import postgres as storage
 from app.config import get_settings
 from app.domain.accounts import Accounts
 from app.domain.invites import RESET_TTL_S, Invites
@@ -18,10 +18,7 @@ def main(argv: list[str]) -> int:
         print("usage: python -m app.reset_password <username>", file=sys.stderr)
         return 2
     settings = get_settings()
-    if settings.database_url:
-        storage, db = postgres, postgres.shared(settings.database_url)
-    else:
-        storage, db = sqlite, sqlite.Database(settings.db_path)
+    db = storage.shared(settings.database_url)
     users = storage.UserRepo(db)
     sessions = Sessions(storage.SessionRepo(db))
     found = users.find(argv[0])

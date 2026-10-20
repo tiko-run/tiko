@@ -1,7 +1,9 @@
 """The one-time copy of an SQLite `data/app.db` into the default workspace on Postgres."""
 
+import json
 import logging
 import sqlite3
+from collections.abc import Callable
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,10 +12,53 @@ from pathlib import Path
 import psycopg
 
 from app.adapters.storage.postgres import Database
-from app.adapters.storage.sqlite import MIGRATIONS
+from app.domain.boards import CARD, LEGACY_CARD
+from app.domain.live import LiveDoc
 from app.domain.tasks import now_iso
 
 log = logging.getLogger(__name__)
+
+
+def _rename_cards(conn: sqlite3.Connection) -> None:
+    """The node type `jira_card` becomes `task_card` in every stored board and its CRDT state."""
+    rows = conn.execute(
+        "SELECT id, doc, ydoc FROM boards WHERE doc LIKE ? OR ydoc IS NOT NULL",
+        (f'%"{LEGACY_CARD}"%',),
+    ).fetchall()
+    for row in rows:
+        doc = json.loads(row["doc"])
+        for node in doc.get("nodes", []):
+            if node.get("type") == LEGACY_CARD:
+                node["type"] = CARD
+        state = row["ydoc"]
+        if state is not None:
+            try:
+                live = LiveDoc(state)
+                if live.rename_type(LEGACY_CARD, CARD):
+                    state = live.state()
+            except Exception:
+                # A room without a state builds it from the JSON, which is the saved board.
+                log.exception("board %s: live state unreadable, rebuilt on next open", row["id"])
+                state = None
+        conn.execute(
+            "UPDATE boards SET doc = ?, ydoc = ? WHERE id = ?",
+            (json.dumps(doc, separators=(",", ":"), ensure_ascii=False), state, row["id"]),
+        )
+
+
+# The schema steps of the SQLite releases, kept to bring a file of any of them up to the last
+# before it is copied. 001_init.sql gives user_version 1; a step SQL cannot express is a function.
+Step = Path | Callable[[sqlite3.Connection], None]
+MIGRATIONS: list[tuple[int, Step]] = sorted(
+    [
+        *(
+            (int(path.name.split("_", 1)[0]), path)
+            for path in (Path(__file__).parent / "sqlite_migrations").glob("*.sql")
+        ),
+        (12, _rename_cards),
+    ],
+    key=lambda step: step[0],
+)
 
 MARK = "copied_from_sqlite"
 # Not the migration lock: processes waiting here have migrated already.

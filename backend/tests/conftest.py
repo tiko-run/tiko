@@ -12,28 +12,21 @@ from app.main import create_app
 from tests.jira_fake import FakeJira
 
 PASSWORD = "test-password"
-# A Postgres server to run the suite on, as a role that may create databases; unset: SQLite.
+# A Postgres server to run the suite on, as a role that may create databases.
 PG_SERVER = os.environ.get("TIKO_TEST_DATABASE_URL")
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "sqlite_only: reads or writes an SQLite file itself")
-
-
-def pytest_collection_modifyitems(items):
-    if PG_SERVER:
-        skip = pytest.mark.skip(reason="SQLite file; the copy to Postgres has its own tests")
-        for item in items:
-            if "sqlite_only" in item.keywords:
-                item.add_marker(skip)
+    config.addinivalue_line("markers", "shared_rows: the module's tests share one app and its rows")
+    if not PG_SERVER:
+        raise pytest.UsageError(
+            "the backend tests run on Postgres: `make test`, or set TIKO_TEST_DATABASE_URL"
+        )
 
 
 @pytest.fixture(scope="session")
 def pg_url():
     """A database of this test run on PG_SERVER, migrated once, dropped at the end."""
-    if not PG_SERVER:
-        yield None
-        return
     name = f"tiko_test_{os.getpid()}"
     with psycopg.connect(PG_SERVER, autocommit=True) as conn:
         conn.execute(f"DROP DATABASE IF EXISTS {name}")
@@ -42,6 +35,8 @@ def pg_url():
     from app.adapters.storage import postgres
 
     postgres.shared(url)
+    # For the whole run: apps of module fixtures and processes the tests start use it too.
+    os.environ["DATABASE_URL"] = url
     yield url
     postgres.shared(url).close()
     postgres.shared.cache_clear()
@@ -49,12 +44,7 @@ def pg_url():
         conn.execute(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")
 
 
-@pytest.fixture(autouse=True)
-def pg_clean(pg_url, monkeypatch):
-    """Every test starts on empty tables; apps built in it use Postgres."""
-    if not pg_url:
-        return
-    monkeypatch.setenv("DATABASE_URL", pg_url)
+def empty_tables(pg_url: str) -> None:
     with psycopg.connect(pg_url, autocommit=True) as conn:
         workspace = conn.execute("SELECT id FROM workspaces WHERE kind = 'default'").fetchone()[0]
         tables = [
@@ -83,6 +73,20 @@ def pg_clean(pg_url, monkeypatch):
     postgres.shared(pg_url).seed(workspace)
 
 
+@pytest.fixture(scope="module", autouse=True)
+def pg_clean_module(pg_url, request):
+    """A module whose apps live across its tests starts on empty tables once."""
+    if request.node.get_closest_marker("shared_rows"):
+        empty_tables(pg_url)
+
+
+@pytest.fixture(autouse=True)
+def pg_clean(pg_url, request):
+    """Every other test starts on empty tables."""
+    if not request.node.get_closest_marker("shared_rows"):
+        empty_tables(pg_url)
+
+
 @pytest.fixture(autouse=True)
 def instance_password(monkeypatch):
     monkeypatch.setenv("TIKO_PASSWORD", PASSWORD)
@@ -92,24 +96,9 @@ def instance_password(monkeypatch):
     monkeypatch.setenv("TIKO_ERROR_REPORTS_DSN", "https://public@127.0.0.1:9/1")
 
 
-def storage():
-    """The storage adapter module the suite runs on."""
-    from app.adapters.storage import postgres, sqlite
-
-    return postgres if PG_SERVER else sqlite
-
-
 def all_rows(app) -> str:
     """Everything the app's database holds, as text."""
     db = app.state.boards._db
-    if not PG_SERVER:
-        with db.transaction() as conn:
-            tables = [
-                r["name"]
-                for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
-            ]
-            found = [conn.execute(f"SELECT * FROM {t}").fetchall() for t in tables]
-        return repr([tuple(row) for table in found for row in table])
     with db.jobs() as conn:
         tables = [
             r["tablename"]
@@ -124,13 +113,14 @@ def all_rows(app) -> str:
 
 @pytest.fixture
 def store(pg_url):
-    """The storage module and a fresh database of the engine the suite runs on."""
-    mod = storage()
-    return mod, (mod.shared(pg_url) if pg_url else mod.Database(":memory:"))
+    """The storage module and the database of this test run."""
+    from app.adapters.storage import postgres
+
+    return postgres, postgres.shared(pg_url)
 
 
 def add_person(store, user_id: str) -> str:
-    """An account to own rows: Postgres checks the reference, SQLite does not."""
+    """An account to own rows: the reference is checked."""
     from app.domain.accounts import Person
 
     mod, db = store
@@ -144,20 +134,13 @@ def run_sql(app, statement: str, params: tuple = ()) -> None:
 
 
 def query_on(db, statement: str, params: tuple = ()) -> list[tuple]:
-    """Rows of a query on a database of either engine, in the default workspace."""
-    if not PG_SERVER:
-        with db.transaction() as conn:
-            return [tuple(row) for row in conn.execute(statement, params)]
+    """Rows of a query in the default workspace."""
     with db.transaction(db.default_workspace) as conn:
         return [tuple(row.values()) for row in conn.execute(statement.replace("?", "%s"), params)]
 
 
 def run_sql_on(db, statement: str, params: tuple = ()) -> None:
-    """Changes rows of a database of either engine, in the default workspace."""
-    if not PG_SERVER:
-        with db.transaction() as conn:
-            conn.execute(statement, params)
-        return
+    """Changes rows in the default workspace."""
     with db.transaction(db.default_workspace) as conn:
         conn.execute(statement.replace("?", "%s"), params)
 

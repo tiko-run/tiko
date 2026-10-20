@@ -13,7 +13,7 @@ from app.domain.errors import DependencyUnavailable
 from app.domain.usage import Ping, Privacy, bucket
 from app.main import create_app
 from app.version import VERSION
-from tests.conftest import PG_SERVER, signed_in
+from tests.conftest import signed_in
 
 GUIDE = Path(__file__).parents[2] / "docs/guide/src/content/docs/privacy.md"
 
@@ -67,10 +67,6 @@ def test_instance_id_is_random_and_kept():
     first, second = (body["instance_id"] for body in sender.sent)
     assert first == second
     assert re.fullmatch(r"[0-9a-f-]{36}", first)
-    if not PG_SERVER:
-        # Each SQLite database is an instance; on Postgres both apps share the test database.
-        other, _ = app_with()
-        assert other.state.privacy.instance_id() != first
 
 
 class Counts:

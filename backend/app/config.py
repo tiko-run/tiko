@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.usage import Deploy, HostOs
 
-# The updater of compose.release.yml expects the database here, inside ./data.
+# The data folder the updater of compose.release.yml shares with the API; an SQLite release
+# kept its database here.
 DEFAULT_DB_PATH = "data/app.db"
 
 
@@ -17,10 +18,11 @@ class Settings(BaseSettings):
     app_name: str = "tiko"
     app_env: str = "local"
     log_level: str = "info"
+    # Postgres, as the owner of tiko's database. The API switches to the roles tiko_app and
+    # tiko_jobs for its work, so row-level security holds.
+    database_url: str
+    # The database of an SQLite release, copied into Postgres once at the first start.
     db_path: str = DEFAULT_DB_PATH
-    # Postgres, as its owner role; set, it wins over db_path. The API switches to the roles
-    # tiko_app and tiko_jobs for its work, so row-level security holds.
-    database_url: str | None = None
     tiko_secret_key: SecretStr | None = None
     tiko_password: SecretStr | None = None
     # Holds the generated password when TIKO_PASSWORD is empty.

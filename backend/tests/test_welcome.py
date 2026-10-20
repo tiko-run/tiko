@@ -1,24 +1,12 @@
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime
 
-import pytest
-
-from app.adapters.storage import sqlite
-from app.adapters.storage.sqlite import (
-    Database,
-    SqliteBoardRepo,
-    SqliteCredentialRepo,
-    SqliteMemberRepo,
-    SqliteUserRepo,
-)
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain import planning_sample as sample
 from app.domain.accounts import Person
 from app.domain.boards import BoardDoc, check_doc, list_boards, task_refs
 from app.domain.modules.gantt import GanttContent
 from app.domain.tasks import split_ref
-from app.domain.upgrade import adopt_orphans
 from app.domain.welcome import WELCOME_NAME, welcome_doc
 
 NOW = datetime(2026, 10, 7, 9, 30, tzinfo=UTC)
@@ -83,29 +71,6 @@ def test_someone_who_made_a_board_is_never_welcomed(store):
     repo, admin = mod.BoardRepo(db), person(store)
     repo.delete(repo.create("Q4", BoardDoc(), admin.id))
     assert repo.create_welcome(admin.id, WELCOME_NAME, BoardDoc()) is None
-
-
-@pytest.mark.sqlite_only
-def test_upgrade_gives_old_boards_to_the_admin_without_a_second_welcome(tmp_path):
-    path = str(tmp_path / "app.db")
-    # A database from before the welcome board: schema version 2 with one board.
-    old = sqlite3.connect(path)
-    old.executescript(
-        "CREATE TABLE boards (id TEXT PRIMARY KEY, name TEXT, doc TEXT, version INTEGER,"
-        " created_at TEXT, updated_at TEXT);"
-        "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
-        "INSERT INTO boards VALUES ('b', 'Q4', '{}', 1, 'x', 'x');"
-        "PRAGMA user_version = 2;"
-    )
-    old.close()
-    db = Database(path)
-    users, repo = SqliteUserRepo(db), SqliteBoardRepo(db)
-    admin = person((sqlite, db))
-    adopt_orphans(users, SqliteMemberRepo(db), SqliteCredentialRepo(db))
-    [board], _ = list_boards(admin, repo, NOW)
-    assert (board.id, board.owner.id) == ("b", "admin")
-    repo.delete("b")
-    assert list_boards(admin, repo, NOW) == ([], [])
 
 
 def test_concurrent_first_reads_create_one_board(store):

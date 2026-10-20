@@ -261,6 +261,11 @@ function Initialize-Folder {
     Write-EnvLine $envFile 'TIKO_PORT' "$Port"
   }
   Write-EnvLine $envFile 'TIKO_DEPLOY' 'installer'
+  # Postgres reads it once, when its volume is made: a value already there must stay. Hex, as it
+  # goes into a URL.
+  if (-not (Select-String -Path $envFile -Pattern '^POSTGRES_PASSWORD=.' -Quiet)) {
+    Write-EnvLine $envFile 'POSTGRES_PASSWORD' (-join ((Get-RandomByte 24) | ForEach-Object { $_.ToString('x2') }))
+  }
   # Inside its container tiko sees Linux; the usage stats need the system it was installed on.
   Write-EnvLine $envFile 'TIKO_HOST_OS' 'windows'
   if (-not $Stats) { Write-EnvLine $envFile 'TIKO_USAGE_STATS' 'false' }
@@ -314,7 +319,7 @@ function Show-Result {
     Write-Host '  Sign in as before: boards, accounts and settings are kept.' -ForegroundColor Green
     Write-Host ''
   }
-  Say "Folder:    $Dir (boards in data, settings in .env)"
+  Say "Folder:    $Dir (settings in .env, backups in data)"
   Say "Logs:      cd $Dir; docker compose logs -f"
   Say 'Upgrade:   run this installer again'
   Say 'Guide:     https://docs.tiko.run/'

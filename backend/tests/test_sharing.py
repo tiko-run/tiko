@@ -5,12 +5,19 @@ from app.config import Settings
 from app.main import create_app
 from tests.conftest import signed_in
 
+# The apps of its module fixtures keep their people and boards across the tests.
+pytestmark = pytest.mark.shared_rows
+
 LONG = "long-enough-password"
 PEOPLE = ["ann", "bob", "carl", "dave"]
 
 
 @pytest.fixture(scope="module")
 def world(monkeypatch_module):
+    return make_world()
+
+
+def make_world():
     """ann owns each board, bob edits, carl views, dave has no role, admin is admin."""
     app = create_app(Settings(db_path=":memory:"))
     admin = signed_in(app)
