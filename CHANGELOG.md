@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.23] - 2026-10-20
+
 ### Added
 
 - Put your Jira Cloud tasks on a board: an admin enters the site address, and each person connects with their Atlassian e-mail and an API token in Settings → My tracker. Cards come by key, by link, by a link copied from a Jira board or by a JQL query with suggestions as you type, and stay live like Data Center ones. See [Connect Jira Cloud](https://docs.tiko.run/jira-cloud/).
