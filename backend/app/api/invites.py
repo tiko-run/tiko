@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, Field
 
 from app.api.auth import signed_in
-from app.api.deps import CurrentAdmin, InvitesDep
+from app.api.deps import CurrentPerson, InvitesDep, WorkspaceAdmin
 from app.api.people import InviteLink, link
 
 router = APIRouter(prefix="/invites", tags=["invites"])
@@ -28,12 +28,12 @@ class Acceptance(BaseModel):
 
 
 @router.post("", status_code=201)
-def create_invite(body: InviteRequest, admin: CurrentAdmin, invites: InvitesDep) -> InviteLink:
+def create_invite(body: InviteRequest, admin: WorkspaceAdmin, invites: InvitesDep) -> InviteLink:
     return link(*invites.invite(admin, body.role, time.time()))
 
 
 @router.delete("/{invite_id}", status_code=204)
-def revoke_invite(invite_id: str, _: CurrentAdmin, invites: InvitesDep) -> Response:
+def revoke_invite(invite_id: str, _: WorkspaceAdmin, invites: InvitesDep) -> Response:
     invites.revoke(invite_id, time.time())
     return Response(status_code=204)
 
@@ -48,3 +48,9 @@ def open_invite(token: str, invites: InvitesDep) -> InviteInfo:
 def accept_invite(token: str, body: Acceptance, request: Request, invites: InvitesDep) -> Response:
     session = invites.accept(token, body.password, time.time(), body.username, body.name)
     return signed_in(request, session)
+
+
+@router.post("/{token}/join", status_code=204)
+def join_workspace(token: str, person: CurrentPerson, invites: InvitesDep) -> Response:
+    invites.join(person, token, time.time())
+    return Response(status_code=204)

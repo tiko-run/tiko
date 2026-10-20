@@ -1,10 +1,10 @@
 import time
 from typing import Literal
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 from pydantic import BaseModel
 
-from app.api.deps import AccountsDep, CurrentAdmin, CurrentPerson, InvitesDep
+from app.api.deps import AccountsDep, CurrentPerson, InvitesDep, MembershipsDep, WorkspaceAdmin
 from app.domain.accounts import PersonRecord
 from app.domain.demo import DemoVisitors
 from app.domain.invites import Invite
@@ -46,7 +46,7 @@ def _view(person: PersonRecord) -> PersonView:
 
 
 @router.get("/people")
-def list_people(_: CurrentAdmin, accounts: AccountsDep, invites: InvitesDep) -> PeopleList:
+def list_people(_: WorkspaceAdmin, accounts: AccountsDep, invites: InvitesDep) -> PeopleList:
     return PeopleList(
         people=[_view(person) for person in accounts.people()],
         invites=invites.pending(time.time()),
@@ -55,9 +55,16 @@ def list_people(_: CurrentAdmin, accounts: AccountsDep, invites: InvitesDep) -> 
 
 @router.patch("/people/{user_id}")
 def change_person(
-    user_id: str, body: PersonChange, _: CurrentAdmin, accounts: AccountsDep
+    user_id: str, body: PersonChange, _: WorkspaceAdmin, accounts: AccountsDep
 ) -> PersonView:
     return _view(accounts.change_role(user_id, body.role))
+
+
+@router.delete("/people/{user_id}", status_code=204)
+def remove_person(user_id: str, admin: WorkspaceAdmin, memberships: MembershipsDep) -> Response:
+    """Out of the workspace; the account and its sign-in stay."""
+    memberships.remove(admin, user_id)
+    return Response(status_code=204)
 
 
 class DirectoryEntry(BaseModel):

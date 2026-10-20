@@ -9,19 +9,19 @@ A shared board is live: everyone who has it open sees each other's changes as th
 
 "Share" in the top bar gives a board to people in three ways. Only the owner (and an admin) changes them.
 
-| | People you add | Everyone with an account | Public link |
+| | People you add | Everyone in this workspace | Public link |
 |---|---|---|---|
-| Who gets in | the people you pick | everyone who can sign in to this tiko | anyone who has the link |
+| Who gets in | the people you pick | every member of the workspace | anyone who has the link |
 | Sign-in | yes | yes | no |
 | Role | "Can edit" or "Can view", per person | "Can edit" or "Can view", one for all | view only |
 | Board in their list | yes | yes | no, they need the link |
 | Tasks from your tracker | in full, as their own token allows | in full, as their own token allows | the key only |
 
 - **People you add**: type a name or a username in "Add people", pick a role, click the person.
-- **Everyone with an account** is a role for the whole team at once, so you do not add people one by one. It does not reach demo visitors, and on an instance where anyone can sign up it is not offered: there "everyone" would mean strangers.
+- **Everyone in this workspace** is a role for the whole team at once, so you do not add people one by one. It does not reach demo visitors, and on an instance where anyone can sign up it is not offered: there "everyone" would mean strangers.
 - **Public link** is for people without an account, such as a client. See [Public link](#public-link).
 
-When a person is added and "Everyone with an account" is on too, the higher role wins. Adding someone as "Can view" does not take editing away from them while everyone can edit.
+When a person is added and "Everyone in this workspace" is on too, the higher role wins. Adding someone as "Can view" does not take editing away from them while everyone can edit.
 
 ## Who is here
 

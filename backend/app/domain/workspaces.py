@@ -3,7 +3,10 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Protocol
 
-from app.domain.accounts import Role
+from app.domain.accounts import LAST_ADMIN, Person, Role
+from app.domain.errors import LastAdmin, NotFound, ValidationFailed
+from app.domain.ports import LiveBoards, UserRepo
+from app.domain.sessions import Sessions
 
 # The workspace the current request or job works in. Storage reads it; None: the default one.
 # Threads of anyio and asyncio timers inherit it from where they were started.
@@ -52,3 +55,27 @@ class NoWorkspaces:
 
     def name(self, workspace: str) -> str | None:
         return None
+
+
+class Memberships:
+    """A person's place in the workspace. The account itself stays the server admin's."""
+
+    def __init__(self, users: UserRepo, sessions: Sessions, live: LiveBoards) -> None:
+        self._users = users
+        self._sessions = sessions
+        self._live = live
+
+    def remove(self, by: Person, user_id: str) -> None:
+        if user_id == by.id:
+            raise ValidationFailed("You cannot remove yourself.")
+        person = self._users.get(user_id)
+        if person is None or person.demo_expires_at:
+            raise NotFound("person not found")
+        boards = self._users.remove_member(user_id, by.id)
+        if boards is None:
+            raise LastAdmin(LAST_ADMIN)
+        self._sessions.forget(user_id)
+        # Their tabs read the account again and find no workspace.
+        self._live.recheck_person(user_id)
+        for board_id in boards:
+            self._live.recheck_board(board_id)

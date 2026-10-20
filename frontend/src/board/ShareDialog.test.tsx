@@ -116,5 +116,5 @@ test('public links switched off by an admin cannot be turned on', async () => {
 test('where anyone can sign up there is no "everyone" and a person is found by username', async () => {
   show('owner', null, true, true)
   expect(await screen.findByPlaceholderText('Add a person by their username')).toBeInTheDocument()
-  expect(screen.queryByText('Everyone with an account')).toBeNull()
+  expect(screen.queryByText('Everyone in this workspace')).toBeNull()
 })

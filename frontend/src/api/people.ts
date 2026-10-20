@@ -44,6 +44,10 @@ export function changeRole(id: string, newRole: Person['role']) {
   })
 }
 
+export function removePerson(id: string) {
+  return fetchJson(`/api/people/${id}`, z.null(), { method: 'DELETE' })
+}
+
 export function createInvite(inviteRole: Person['role']) {
   return fetchJson('/api/invites', linkSchema, {
     method: 'POST',
@@ -67,4 +71,9 @@ export function acceptInvite(
     method: 'POST',
     body: JSON.stringify(body),
   })
+}
+
+/** A signed-in person with no workspace joins the invite's one with their own account. */
+export function joinInvite(token: string) {
+  return fetchJson(`/api/invites/${encodeURIComponent(token)}/join`, z.null(), { method: 'POST' })
 }

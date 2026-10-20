@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.api.deps import (
-    CurrentAdmin,
     CurrentPerson,
     NotDemoVisitor,
+    WorkspaceAdmin,
     members,
     not_on_demo,
 )
@@ -51,7 +51,7 @@ def get_planning(person: CurrentPerson, service: PlanningDep, request: Request) 
 
 @router.patch("", dependencies=[Depends(not_on_demo)])
 def change_planning(
-    body: PlanningChange, admin: CurrentAdmin, service: PlanningDep
+    body: PlanningChange, admin: WorkspaceAdmin, service: PlanningDep
 ) -> PlanningView:
     return service.set_enabled(body.enabled)
 

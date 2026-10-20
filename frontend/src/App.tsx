@@ -5,6 +5,7 @@ import { listBoards } from '@/api/boards'
 import { AUTH_REQUIRED_EVENT } from '@/api/client'
 import { readPublicToken } from '@/api/public'
 import { AcceptInvite, readInviteLink } from '@/auth/AcceptInvite'
+import { NoWorkspace } from '@/auth/NoWorkspace'
 import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { NewBoardForm } from '@/board/NewBoardForm'
@@ -89,10 +90,12 @@ export default function App() {
   })
   const signedIn = auth.data?.signed_in === true
   const serverAdmin = auth.data?.me?.server_admin ?? false
+  // Removed from the workspace: the account still signs in, but has no boards to open.
+  const outside = signedIn && !!auth.data?.me && !auth.data.me.workspace
   const boards = useQuery({
     queryKey: ['boards'],
     queryFn: listBoards,
-    enabled: mounted && signedIn,
+    enabled: mounted && signedIn && !outside,
   })
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export default function App() {
     return (
       <main className="bg-background relative h-dvh w-full overflow-hidden">
         <h1 className="sr-only">tiko</h1>
-        <AcceptInvite link={inviteLink} />
+        <AcceptInvite link={inviteLink} auth={auth} />
       </main>
     )
   }
@@ -144,6 +147,17 @@ export default function App() {
       <main className="bg-background relative h-dvh w-full overflow-hidden">
         <h1 className="sr-only">tiko</h1>
         <SignIn demo={auth.data.demo} onSignedIn={() => void queryClient.invalidateQueries()} />
+      </main>
+    )
+  }
+
+  if (outside) {
+    return (
+      <main className="bg-background relative h-dvh w-full overflow-hidden">
+        <h1 className="sr-only">tiko</h1>
+        <NoWorkspace />
+        {serverAdmin && <UpdateBanner />}
+        <SettingsDialog />
       </main>
     )
   }

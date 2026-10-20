@@ -9,6 +9,8 @@ Requires: installer
 ### Added
 
 - Run tiko on a Postgres server of your own, managed or not, with `DATABASE_URL`. The Render blueprint now brings a Render Postgres database. See [Your own Postgres server](https://docs.tiko.run/data-and-upgrades/#your-own-postgres-server).
+- Remove someone from the workspace in Settings → People without deleting their account: their boards move to you with everyone else on them kept, and their tracker tokens go. They can still sign in, see that they are not in a workspace, and come back by opening an invite link with the same account. See [People](https://docs.tiko.run/security/#people).
+- Open an invite while you already have an account and sign in instead of making a new one.
 
 ### Changed
 
@@ -16,6 +18,7 @@ Requires: installer
 - One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
 - Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
 - Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
+- Share's role for the whole team now reads "Everyone in this workspace".
 
 ## [2026.10.23] - 2026-10-20
 

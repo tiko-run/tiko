@@ -2,7 +2,7 @@ import secrets
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.domain.accounts import (
     Accounts,
@@ -15,16 +15,19 @@ from app.domain.accounts import (
 from app.domain.errors import (
     AccountDisabled,
     InviteExpired,
+    InWorkspace,
     NotFound,
     UsernameTaken,
     ValidationFailed,
 )
 from app.domain.ports import InviteRepo
 from app.domain.sessions import Sessions, iso, token_hash
+from app.domain.workspaces import in_workspace
 
 INVITE_TTL_S = 7 * 24 * 3600
 RESET_TTL_S = 24 * 3600
 EXPIRED = "This invite link has expired. Ask your admin for a new one."
+IN_WORKSPACE = "You are already in a workspace."
 
 Kind = Literal["invite", "reset"]
 
@@ -37,6 +40,8 @@ class Invite(BaseModel):
     username: str | None = None
     expires_at: str
     created_at: str
+    # The workspace an invite joins; never shown, the link is enough.
+    workspace: str | None = Field(default=None, exclude=True)
 
 
 class Invites:
@@ -108,14 +113,29 @@ class Invites:
             self._accounts.came_back(user_id)
             return self._sessions.start(user_id, now)
         try:
-            person = self._accounts.create(
-                username or "", name or "", password, invite.role or "member"
-            )
+            with in_workspace(invite.workspace):
+                person = self._accounts.create(
+                    username or "", name or "", password, invite.role or "member"
+                )
         except UsernameTaken:
             # The link stays usable, so the person can pick another name.
             self._repo.unconsume(invite.id)
             raise
         return self._sessions.start(person.id, now)
+
+    def join(self, person: Person, token: str, now: float) -> None:
+        """A signed-in person joins the invite's workspace with the account they have."""
+        invite = self.open(token, now)
+        if invite.kind != "invite" or invite.workspace is None:
+            raise ValidationFailed("This link is not an invite.")
+        if person.demo_expires_at:
+            raise InWorkspace(IN_WORKSPACE)
+        if not self._repo.consume(invite.id, iso(now)):
+            raise InviteExpired(EXPIRED)
+        if not self._accounts.join(person.id, invite.workspace, invite.role or "member"):
+            # The link stays usable for someone who is not in a workspace yet.
+            self._repo.unconsume(invite.id)
+            raise InWorkspace(IN_WORKSPACE)
 
     def pending(self, now: float) -> list[Invite]:
         return self._repo.pending(iso(now))
