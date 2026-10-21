@@ -944,8 +944,9 @@ _PERSON = "u.id, u.username, u.name, m.role, u.disabled_at, u.server_admin, u.de
 _PERSON_FROM = "users u LEFT JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
 # Only the workspace's members: an account elsewhere is not found here, so no admin reaches it.
 _MEMBER_FROM = "users u JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
-# A demo visitor who changed nothing: at most the welcome board, as it was made, and no task
-# status of their own. A rename leaves the version alone, so the time of the last change counts.
+# A demo visitor who changed nothing: at most the welcome board, as it was made, no task
+# status of their own and no change to their Planning lists. A rename leaves the version alone,
+# so the time of the last change counts.
 _UNTOUCHED = (
     "NOT EXISTS (SELECT 1 FROM board_members m JOIN boards b ON b.id = m.board_id"
     " WHERE m.user_id = users.id AND m.role = 'owner'"
@@ -953,6 +954,8 @@ _UNTOUCHED = (
     " AND (SELECT COUNT(*) FROM board_members m"
     " WHERE m.user_id = users.id AND m.role = 'owner') <= 1"
     " AND NOT EXISTS (SELECT 1 FROM demo_statuses s WHERE s.user_id = users.id)"
+    " AND NOT EXISTS (SELECT 1 FROM workspaces w JOIN settings s ON s.workspace_id = w.id"
+    " WHERE w.owner_id = users.id AND s.key = 'planning_touched')"
 )
 
 

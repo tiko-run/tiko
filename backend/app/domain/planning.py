@@ -18,6 +18,8 @@ from app.domain.ports import (
 
 ENABLED_KEY = "planning_enabled"
 DAYS_OFF_KEY = "planning_days_off"
+# Set by every change of the lists: a demo keeps a visitor who made one.
+TOUCHED_KEY = "planning_touched"
 
 Hue = Literal[25, 60, 75, 150, 200, 250, 300, 340]
 TypeName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
@@ -279,7 +281,7 @@ class Planning:
             for name, hue in DEFAULT_TYPES:
                 self._types.add(StageType(id=self._new_id(), name=name, hue=hue))
         self._settings.set_many({ENABLED_KEY: "1" if on else None})
-        self._on_change()
+        self._changed()
         return self.view()
 
     def write_sample(self, types: list[StageType], people: list[PlanningPerson]) -> None:
@@ -298,7 +300,7 @@ class Planning:
         self._check_name(body.name, None)
         stage_type = StageType(id=self._new_id(), name=body.name, hue=body.hue)
         self._types.add(stage_type)
-        self._on_change()
+        self._changed()
         return stage_type
 
     def change_type(self, type_id: str, body: TypeChange) -> StageType:
@@ -310,7 +312,7 @@ class Planning:
         if not changed.archived:
             self._check_name(changed.name, type_id)
         self._types.update(changed)
-        self._on_change()
+        self._changed()
         return changed
 
     def add_person(self, body: PersonIn) -> PlanningPerson:
@@ -318,7 +320,7 @@ class Planning:
         person = PlanningPerson(id=self._new_id(), **body.model_dump())
         person.teams = _unique(person.teams)
         self._people.add(person)
-        self._on_change()
+        self._changed()
         return person
 
     def change_person(self, person_id: str, body: PersonChange) -> PlanningPerson:
@@ -326,7 +328,7 @@ class Planning:
         changed = self._person(person_id).model_copy(update=body.model_dump(exclude_none=True))
         changed.teams = _unique(changed.teams)
         self._people.update(changed)
-        self._on_change()
+        self._changed()
         return changed
 
     def add_off(self, person_id: str, body: TimeOffIn) -> PlanningPerson:
@@ -335,7 +337,7 @@ class Planning:
         off = TimeOff(id=self._new_id(), **body.model_dump())
         if not self._people.add_off(person_id, off, MAX_OFF):
             raise ValidationFailed(f"A person can have up to {MAX_OFF} time off ranges.")
-        self._on_change()
+        self._changed()
         return self._person(person_id)
 
     def remove_off(self, person_id: str, off_id: str) -> PlanningPerson:
@@ -343,7 +345,7 @@ class Planning:
         if not any(o.id == off_id for o in self._person(person_id).off):
             raise NotFound("No such time off.")
         self._people.remove_off(person_id, off_id)
-        self._on_change()
+        self._changed()
         return self._person(person_id)
 
     def add_field(self, body: FieldIn) -> PlanningField:
@@ -352,7 +354,7 @@ class Planning:
         field = PlanningField(id=self._new_id(), name=body.name)
         if not self._fields.add(field, MAX_FIELDS):
             raise ValidationFailed(f"Planning can have up to {MAX_FIELDS} fields of your own.")
-        self._on_change()
+        self._changed()
         return field
 
     def change_field(self, field_id: str, body: FieldChange) -> PlanningField:
@@ -366,7 +368,7 @@ class Planning:
         if not changed.archived:
             self._check_field_name(changed.name, field_id)
         self._fields.update(changed)
-        self._on_change()
+        self._changed()
         return changed
 
     def add_view(self, body: ViewIn) -> SavedView:
@@ -378,20 +380,20 @@ class Planning:
             if body.name.casefold() in {v.name.casefold() for v in self._views.all()}:
                 raise ValidationFailed(f"A view named {body.name} already exists.")
             raise ValidationFailed(f"Planning can have up to {MAX_VIEWS} views.")
-        self._on_change()
+        self._changed()
         return view
 
     def remove_view(self, view_id: str) -> None:
         self._require_enabled()
         if not self._views.remove(view_id):
             raise NotFound("No such view.")
-        self._on_change()
+        self._changed()
 
     def set_days_off(self, body: DaysOff) -> DaysOff:
         self._require_enabled()
         dates = sorted(set(body.dates))
         self._settings.set_many({DAYS_OFF_KEY: json.dumps([d.isoformat() for d in dates])})
-        self._on_change()
+        self._changed()
         return DaysOff(dates=dates)
 
     def workload(
@@ -441,6 +443,10 @@ class Planning:
                 )
             )
         return Workload(weeks=out, stages=listed)
+
+    def _changed(self) -> None:
+        self._settings.set_many({TOUCHED_KEY: "1"})
+        self._on_change()
 
     def _days_off(self) -> list[date]:
         stored = self._settings.get_all().get(DAYS_OFF_KEY)

@@ -987,7 +987,7 @@ def test_people_of_a_demo_from_before_workspaces_each_get_one(app):
     assert {stage["board"] for stage in load["stages"]} == {planned}
 
     # The visitor still goes when their time is up, with the workspace.
-    assert app.state.visitors.cleanup(time.time() + 2 * DAY) == 1
+    assert app.state.visitors.cleanup(time.time() + 8 * DAY) == 1
     assert visitor.id not in rows(app)
 
 
@@ -1004,3 +1004,15 @@ def test_a_team_that_turns_the_demo_on_stays_together():
         conn.execute("DELETE FROM server_settings WHERE key = %s", (demo_split.MARK,))
     assert demo_split.move_once(db) == 0
     assert {p["username"] for p in admin.get("/api/people").json()["people"]} == {"admin", "ann"}
+
+
+def test_a_visitor_who_only_changed_planning_is_kept(app):
+    planner, idle = visitor(app), visitor(app, "203.0.113.2")
+    for who in (planner, idle):
+        welcome(who)
+    # A rename keeps the sample's id, so only the mark tells it from the copy as it was made.
+    renamed = planner.patch(f"/api/planning/types/{sample.BUILD}", json={"name": "Code"})
+    assert renamed.status_code == 200
+    assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 1
+    assert planner.get("/api/boards").status_code == 200
+    assert idle.get("/api/boards").status_code == 401
