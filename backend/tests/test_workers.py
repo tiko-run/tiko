@@ -17,7 +17,6 @@ from websockets.exceptions import ConnectionClosed
 from websockets.sync.client import connect, unix_connect
 
 from app.adapters.live.workers import owner
-from app.adapters.storage.lock import FileLock
 from app.config import Settings
 from app.domain.accounts import PER_USERNAME_FAILURES
 from app.domain.attempts import MemoryAttempts
@@ -216,20 +215,22 @@ def test_the_end_of_an_id_names_the_process_of_a_board(board_id, process):
     assert owner(board_id, 3) == process
 
 
-def test_a_file_lock_holds_one_thread_at_a_time(tmp_path):
-    lock = FileLock(str(tmp_path / "lock"))
+def test_a_database_lock_holds_one_holder_at_a_time(store):
+    _, db = store
+    # Two objects under one name, as two processes of the instance hold it.
+    locks = [db.lock("test"), db.lock("test")]
     inside = overlaps = 0
 
-    def enter() -> None:
+    def enter(lock) -> None:
         nonlocal inside, overlaps
-        for _ in range(50):
+        for _ in range(10):
             with lock:
                 inside += 1
                 overlaps += inside > 1
-                time.sleep(0)
+                time.sleep(0.001)
                 inside -= 1
 
-    threads = [threading.Thread(target=enter) for _ in range(4)]
+    threads = [threading.Thread(target=enter, args=(locks[i % 2],)) for i in range(4)]
     for thread in threads:
         thread.start()
     for thread in threads:

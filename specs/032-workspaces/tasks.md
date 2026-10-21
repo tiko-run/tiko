@@ -57,7 +57,7 @@ Several pull requests on one slice; SQLite stays the default.
 
 ## Phase 6: Slice `feat/demo-workspace` (US3)
 
-- [ ] T030 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
-- [ ] T031 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
-- [ ] T032 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
-- [ ] T033 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green
+- [x] T030 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
+- [x] T031 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
+- [x] T032 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
+- [x] T033 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green

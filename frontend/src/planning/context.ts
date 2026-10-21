@@ -8,8 +8,6 @@ export type PlanningState = {
   fields: Field[]
   views: SavedView[]
   daysOff: string[]
-  // The demo's made-up lists: picked from, never added to.
-  sample: boolean
 }
 
 // Off until the instance says otherwise: a guest or a demo visitor never asks.
@@ -20,7 +18,6 @@ export const PlanningContext = createContext<PlanningState>({
   fields: [],
   views: [],
   daysOff: [],
-  sample: false,
 })
 
 export const usePlanning = () => useContext(PlanningContext)

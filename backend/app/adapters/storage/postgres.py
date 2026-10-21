@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import threading
 import time
 import uuid
 from collections.abc import Iterator
@@ -93,12 +94,7 @@ class Database:
     def seed(self, workspace: str) -> None:
         """What a new workspace starts with; safe to run again."""
         with self.jobs() as conn:
-            conn.execute(
-                "INSERT INTO planning_fields (workspace_id, id, name, standard, position)"
-                " VALUES (%s, 'priority', 'Priority', true, 1), (%s, 'size', 'Size', true, 2),"
-                " (%s, 'team', 'Team', true, 3) ON CONFLICT DO NOTHING",
-                (workspace, workspace, workspace),
-            )
+            _seed(conn, workspace)
             # The random id of the usage stats, made here so processes that start together
             # share it.
             conn.execute(
@@ -141,6 +137,11 @@ class Database:
     def close(self) -> None:
         self._app.close()
         self._jobs.close()
+
+    def lock(self, name: str) -> "Lock":
+        """One holder at a time across the processes on this database, for work that takes
+        several transactions."""
+        return Lock(self._url, name)
 
     def transaction(self, workspace: str | None, kind: str | None = None):
         """One transaction as tiko_app, seeing only `workspace`; None sees global tables only."""
@@ -202,6 +203,45 @@ def _refuse_bypass(conn: psycopg.Connection) -> None:
                 f"database role {role} must exist, not be a superuser, not have BYPASSRLS"
                 " and own no table; see the guide's database page"
             )
+
+
+class Lock:
+    def __init__(self, url: str, name: str) -> None:
+        self._url = url
+        self._name = name
+        # Threads of one process queue here, so each process waits with one connection.
+        self._threads = threading.Lock()
+        self._conn: psycopg.Connection | None = None
+
+    def __enter__(self) -> "Lock":
+        self._threads.acquire()
+        try:
+            # A connection of its own: the work inside takes pooled ones, and the lock goes
+            # with the connection when the process dies.
+            self._conn = _connect(self._url)
+            self._conn.execute("SELECT pg_advisory_lock(hashtextextended(%s, 0))", (self._name,))
+        except BaseException:
+            self._release()
+            raise
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self._release()
+
+    def _release(self) -> None:
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+        self._threads.release()
+
+
+def _seed(conn: psycopg.Connection, workspace: str) -> None:
+    conn.execute(
+        "INSERT INTO planning_fields (workspace_id, id, name, standard, position)"
+        " VALUES (%s, 'priority', 'Priority', true, 1), (%s, 'size', 'Size', true, 2),"
+        " (%s, 'team', 'Team', true, 3) ON CONFLICT DO NOTHING",
+        (workspace, workspace, workspace),
+    )
 
 
 def _default_workspace(conn: psycopg.Connection) -> str:
@@ -951,10 +991,18 @@ _Gone = tuple[list[str], list[str]]
 
 
 def _delete_people(conn: psycopg.Connection, user_ids: list[str]) -> list[str]:
-    """Deletes people with everything of theirs; returns the ids of the boards that went."""
+    """Deletes people with their demo workspaces and the boards they own elsewhere; returns
+    the ids of the boards that went. Run as tiko_jobs, which sees every workspace."""
     if not user_ids:
         return []
+    # One statement sees the rows as they were before it, so the index still names the boards.
     rows = conn.execute(
+        "WITH gone AS (DELETE FROM workspaces WHERE kind = 'demo' AND owner_id = ANY(%s)"
+        " RETURNING id) SELECT board_id AS id FROM board_index"
+        " WHERE workspace_id IN (SELECT id FROM gone)",
+        (user_ids,),
+    ).fetchall()
+    rows += conn.execute(
         "DELETE FROM boards WHERE id IN (SELECT board_id FROM board_members"
         " WHERE user_id = ANY(%s) AND role = 'owner') RETURNING id",
         (user_ids,),
@@ -996,6 +1044,33 @@ class PgUserRepo(_Repo):
                 )
         except UniqueViolation as error:
             raise UsernameTaken("This username is taken.") from error
+
+    def add_visitor(self, person: Person, password_hash: str) -> str:
+        workspace = uuid.uuid4().hex
+        with self._db.transaction(workspace) as conn:
+            conn.execute(
+                "INSERT INTO users (id, username, name, password_hash, created_at,"
+                " demo_expires_at) VALUES (%s, %s, %s, %s, %s, %s)",
+                (
+                    person.id,
+                    person.username,
+                    person.name,
+                    password_hash,
+                    now_iso(),
+                    person.demo_expires_at,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO workspaces (id, name, kind, owner_id, created_at)"
+                " VALUES (%s, 'Demo', 'demo', %s, %s)",
+                (workspace, person.id, now_iso()),
+            )
+            conn.execute(
+                "INSERT INTO memberships (workspace_id, user_id, role) VALUES (%s, %s, %s)",
+                (workspace, person.id, person.role),
+            )
+            _seed(conn, workspace)
+        return workspace
 
     def find(self, username: str) -> tuple[Person, str] | None:
         with self._tx() as conn:
@@ -1184,16 +1259,16 @@ class PgUserRepo(_Repo):
         return cursor.rowcount == 1
 
     def delete_unused_members(self, before: str) -> _Gone:
-        with self._tx() as conn:
+        with self._db.jobs() as conn:
             rows = conn.execute(
-                # Members of this workspace only, and only those in no other one.
-                "SELECT u.id FROM users u JOIN memberships m"
-                " ON m.user_id = u.id AND m.workspace_id = %s"
-                " WHERE u.demo_expires_at IS NULL AND m.role <> 'admin'"
-                " AND NOT EXISTS (SELECT 1 FROM memberships o"
-                " WHERE o.user_id = u.id AND o.workspace_id <> m.workspace_id)"
-                " AND COALESCE(u.last_sign_in_at, u.created_at) <= %s",
-                (self._ws, before),
+                # A member of one workspace, the default one or a demo one they kept.
+                "SELECT u.id FROM users u JOIN memberships m ON m.user_id = u.id"
+                " JOIN workspaces w ON w.id = m.workspace_id"
+                " WHERE u.demo_expires_at IS NULL"
+                " AND COALESCE(u.last_sign_in_at, u.created_at) <= %s"
+                " GROUP BY u.id HAVING COUNT(*) = 1 AND bool_and(m.role <> 'admin')"
+                " AND bool_and(w.kind IN ('default', 'demo'))",
+                (before,),
             ).fetchall()
             user_ids = [row["id"] for row in rows]
             return user_ids, _delete_people(conn, user_ids)
@@ -1205,7 +1280,8 @@ class PgUserRepo(_Repo):
             ).fetchone()["n"]
 
     def delete_expired_demo(self, now: str, untouched: str) -> _Gone:
-        with self._tx() as conn:
+        # Visitors' boards are in their own workspaces.
+        with self._db.jobs() as conn:
             rows = conn.execute(
                 "SELECT id FROM users WHERE demo_expires_at <= %s"
                 f" OR (demo_expires_at <= %s AND {_UNTOUCHED})",
@@ -1215,7 +1291,7 @@ class PgUserRepo(_Repo):
             return user_ids, _delete_people(conn, user_ids)
 
     def evict_untouched_demo(self) -> _Gone:
-        with self._tx() as conn:
+        with self._db.jobs() as conn:
             # The search starts where the last one ended: everyone before that had changed
             # something then, and walking past all of them every time grows with the demo.
             # Only a hint: before the demo is called full, the search is made from the start.

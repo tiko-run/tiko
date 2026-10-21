@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from app.domain.planning import PlanningPerson, StageType, TimeOff
 
-# Fixed ids, so the welcome boards made on a demo keep pointing at them after a rewrite.
+# Fixed ids: every visitor's workspace gets its own copy, and the welcome board names them.
 DISCOVERY, DESIGN, BUILD, REVIEW, ON_HOLD = (
     "demo-discovery",
     "demo-design",
@@ -26,8 +26,6 @@ _PEOPLE = [
     (DEV, "Dev", ["Platform"]),
     (ELIF, "Elif", ["Platform"]),
 ]
-# Everything a demo shows; other rows in its database stay hidden.
-IDS = frozenset([*(t.id for t in TYPES), *(pid for pid, _, _ in _PEOPLE)])
 # Chloe is away during her Build stage on the welcome Gantt, so it shows the red outline.
 CHLOE_OFF = (11, 13)
 
@@ -44,7 +42,7 @@ def workday(today: date, n: int) -> date:
 
 
 def people(today: date) -> list[PlanningPerson]:
-    """The demo's people; time off is dated from today, so it stays near on a long run."""
+    """The demo's people; time off is dated from the day the visitor came."""
     off = {
         CHLOE: [
             TimeOff(

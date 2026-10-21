@@ -3,13 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 
-from app.api.deps import (
-    CurrentPerson,
-    NotDemoVisitor,
-    WorkspaceAdmin,
-    members,
-    not_on_demo,
-)
+from app.api.deps import CurrentPerson, WorkspaceAdmin, members
 from app.domain.members import Members
 from app.domain.planning import (
     MAX_WEEKS,
@@ -40,8 +34,6 @@ def planning(request: Request) -> Planning:
 
 
 PlanningDep = Annotated[Planning, Depends(planning)]
-# A demo instance has visitors who never met each other: its lists are the sample, read-only.
-Writer = [NotDemoVisitor, Depends(not_on_demo)]
 
 
 @router.get("")
@@ -49,80 +41,80 @@ def get_planning(person: CurrentPerson, service: PlanningDep, request: Request) 
     return service.view()
 
 
-@router.patch("", dependencies=[Depends(not_on_demo)])
+@router.patch("")
 def change_planning(
     body: PlanningChange, admin: WorkspaceAdmin, service: PlanningDep
 ) -> PlanningView:
     return service.set_enabled(body.enabled)
 
 
-@router.post("/types", dependencies=Writer)
+@router.post("/types")
 def add_type(body: TypeIn, person: CurrentPerson, service: PlanningDep) -> StageType:
     return service.add_type(body)
 
 
-@router.patch("/types/{type_id}", dependencies=Writer)
+@router.patch("/types/{type_id}")
 def change_type(
     type_id: str, body: TypeChange, person: CurrentPerson, service: PlanningDep
 ) -> StageType:
     return service.change_type(type_id, body)
 
 
-@router.post("/people", dependencies=Writer)
+@router.post("/people")
 def add_person(body: PersonIn, person: CurrentPerson, service: PlanningDep) -> PlanningPerson:
     return service.add_person(body)
 
 
-@router.patch("/people/{person_id}", dependencies=Writer)
+@router.patch("/people/{person_id}")
 def change_person(
     person_id: str, body: PersonChange, person: CurrentPerson, service: PlanningDep
 ) -> PlanningPerson:
     return service.change_person(person_id, body)
 
 
-@router.post("/people/{person_id}/off", dependencies=Writer)
+@router.post("/people/{person_id}/off")
 def add_off(
     person_id: str, body: TimeOffIn, person: CurrentPerson, service: PlanningDep
 ) -> PlanningPerson:
     return service.add_off(person_id, body)
 
 
-@router.delete("/people/{person_id}/off/{off_id}", dependencies=Writer)
+@router.delete("/people/{person_id}/off/{off_id}")
 def remove_off(
     person_id: str, off_id: str, person: CurrentPerson, service: PlanningDep
 ) -> PlanningPerson:
     return service.remove_off(person_id, off_id)
 
 
-@router.post("/fields", dependencies=Writer)
+@router.post("/fields")
 def add_field(body: FieldIn, person: CurrentPerson, service: PlanningDep) -> PlanningField:
     return service.add_field(body)
 
 
-@router.patch("/fields/{field_id}", dependencies=Writer)
+@router.patch("/fields/{field_id}")
 def change_field(
     field_id: str, body: FieldChange, person: CurrentPerson, service: PlanningDep
 ) -> PlanningField:
     return service.change_field(field_id, body)
 
 
-@router.post("/views", dependencies=Writer)
+@router.post("/views")
 def add_view(body: ViewIn, person: CurrentPerson, service: PlanningDep) -> SavedView:
     return service.add_view(body)
 
 
-@router.put("/days-off", dependencies=Writer)
+@router.put("/days-off")
 def set_days_off(body: DaysOff, person: CurrentPerson, service: PlanningDep) -> DaysOff:
     return service.set_days_off(body)
 
 
-@router.delete("/views/{view_id}", status_code=204, dependencies=Writer)
+@router.delete("/views/{view_id}", status_code=204)
 def remove_view(view_id: str, person: CurrentPerson, service: PlanningDep) -> Response:
     service.remove_view(view_id)
     return Response(status_code=204)
 
 
-@router.get("/people/{person_id}/workload", dependencies=[Depends(not_on_demo)])
+@router.get("/people/{person_id}/workload")
 def get_workload(
     person_id: str,
     person: CurrentPerson,

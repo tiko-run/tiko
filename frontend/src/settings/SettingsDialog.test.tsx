@@ -197,7 +197,7 @@ test('an admin switches public links off for the instance', async () => {
   await waitFor(() => expect(toggle).not.toBeChecked())
 })
 
-test('a demo visitor gets no Profile, Security or My tracker', async () => {
+test('a demo visitor gets no Profile, Security or My tracker, and plans in their own lists', async () => {
   const visitor = {
     id: 'u9',
     username: '~0a1b2c3d4e5f',
@@ -211,6 +211,7 @@ test('a demo visitor gets no Profile, Security or My tracker', async () => {
   show()
   const nav = await screen.findByRole('navigation', { name: 'Settings sections' })
   expect(nav).toHaveTextContent('Preferences')
+  expect(nav).toHaveTextContent('Stages and people')
   for (const hidden of ['Profile', 'Security', 'My tracker']) {
     expect(nav).not.toHaveTextContent(hidden)
   }
