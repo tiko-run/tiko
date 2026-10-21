@@ -36,7 +36,7 @@ import {
 import { markFresh } from '@/canvas/editing'
 import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/frames'
 import { Guides } from '@/canvas/Guides'
-import { gridPositions } from '@/canvas/layout'
+import { CARD_GUESS, columnPositions } from '@/canvas/layout'
 import { absorbCards } from '@/canvas/modules'
 import { moduleControls } from '@/canvas/module-controls'
 import { ModuleExpanded } from '@/canvas/ModuleExpanded'
@@ -77,6 +77,7 @@ import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
 import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ShapeGhost } from '@/canvas/ShapeGhost'
+import { ZoomVar } from '@/canvas/ZoomVar'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
@@ -123,6 +124,8 @@ const defaultEdgeOptions = { markerEnd: { type: MarkerType.ArrowClosed } }
 // New cards step down by about one card height so several adds in a row stay readable.
 const CASCADE_X = 16
 const CASCADE_Y = 96
+// Under the 300 ms undo capture, so the close-up joins the add in one undo step.
+const CLOSE_UP_MS = 250
 // Duplicates land next to the original; a drag shorter than this places a default-size frame.
 const DUPLICATE_OFFSET = 24
 const MIN_DRAW = 8
@@ -308,7 +311,47 @@ export function BoardCanvas({
   useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
   useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
 
-  // One card goes to the point or cascades from the viewport center; several form a grid there.
+  // Cards placed on a guess, closed up once measured; quick enough to stay one undo step.
+  const closeUp = useRef<{
+    ids: string[]
+    center: XYPosition
+    at: XYPosition[]
+    since: number
+  } | null>(null)
+  useEffect(() => {
+    const pending = closeUp.current
+    if (!pending) return
+    if (performance.now() - pending.since > CLOSE_UP_MS) {
+      closeUp.current = null
+      return
+    }
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    const sizes = pending.ids.map((id) => byId.get(id)?.measured)
+    if (sizes.some((s) => !s?.width || !s?.height)) return
+    closeUp.current = null
+    const target = columnPositions(
+      sizes.map((s) => ({ width: s?.width ?? 0, height: s?.height ?? 0 })),
+      pending.center,
+    )
+    const shift = new Map(
+      pending.ids.map((id, i) => [
+        id,
+        { x: target[i].x - pending.at[i].x, y: target[i].y - pending.at[i].y },
+      ]),
+    )
+    // A shift, not a position: a card may already sit in a frame, relative to it.
+    setNodes((current) =>
+      reparent(
+        current.map((n) => {
+          const d = shift.get(n.id)
+          return d ? { ...n, position: { x: n.position.x + d.x, y: n.position.y + d.y } } : n
+        }),
+        pending.ids,
+      ),
+    )
+  }, [nodes, setNodes])
+
+  // One card goes to the point or cascades from the viewport center; several form columns there.
   const addCards = useCallback(
     (list: Task[], at?: XYPosition) => {
       didOnboarding('add_card')
@@ -316,27 +359,31 @@ export function BoardCanvas({
         ...current,
         ...Object.fromEntries(list.map((t) => [taskRef(t), t])),
       }))
+      const center = screenToFlowPosition(at ?? viewportCenter())
+      // Ids and the close-up are set out here: React may run the updater twice.
+      const ids = list.map(() => newId())
+      const guess = columnPositions(
+        list.map(() => CARD_GUESS),
+        center,
+      )
+      if (list.length > 1) closeUp.current = { ids, center, at: guess, since: performance.now() }
       setNodes((current) => {
-        const center = screenToFlowPosition(at ?? viewportCenter())
         const step = current.length % 5
         const positions =
           list.length > 1
-            ? gridPositions(list.length, center)
+            ? guess
             : [
                 at
                   ? center
                   : { x: center.x - 128 + step * CASCADE_X, y: center.y - 200 + step * CASCADE_Y },
               ]
         const fresh: AppNode[] = list.map((task, i) => ({
-          id: newId(),
+          id: ids[i],
           type: 'task_card',
           position: positions[i],
           data: { key: task.key, source: task.source, collapsed: false },
         }))
-        return reparent(
-          [...current, ...fresh],
-          fresh.map((n) => n.id),
-        )
+        return reparent([...current, ...fresh], ids)
       })
     },
     [screenToFlowPosition, setNodes],
@@ -847,6 +894,7 @@ export function BoardCanvas({
           .filter(Boolean)
           .join(' ')}
       >
+        <ZoomVar />
         <Background variant={BackgroundVariant.Dots} gap={16} color="var(--grid)" />
         <Controls showInteractive={false} position="bottom-right">
           {canGoBack && (
