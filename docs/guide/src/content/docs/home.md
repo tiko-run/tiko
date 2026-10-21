@@ -9,7 +9,7 @@ tiko opens on Home whenever the address names no board, also right after you sig
 
 Home lists every board you can open, the one changed last first. Each row shows the board's name, who owns it ("You" for your own) and when it was last changed. A globe marks a board with a public link, and "View only" a board you can only look at.
 
-- **All**, **Mine** and **Shared with me** above the list split your own boards from the ones others shared with you.
+- **All**, **Mine** and **Shared with me** above the list split your own boards from the ones others shared with you. Each shows how many boards it holds.
 - The sort menu at the right orders the list by last change or by name. Your browser remembers the choice.
 - An admin also sees "Other boards in this workspace": boards nobody shared with them, which they can still open and manage. They show under All only.
 

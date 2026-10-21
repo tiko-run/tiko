@@ -159,7 +159,12 @@ export function Home({ boards, others }: Props) {
     </ul>
   )
 
-  const filtered = query.trim() !== '' || filter !== 'all'
+  const mineCount = boards.filter((board) => board.owner?.id === me?.id).length
+  const counts: Record<Filter, number> = {
+    all: boards.length + others.length,
+    mine: mineCount,
+    shared: boards.length - mineCount,
+  }
 
   return (
     <div className="absolute inset-0 overflow-y-auto">
@@ -194,6 +199,9 @@ export function Home({ boards, others }: Props) {
                 {FILTERS.map(({ value, label }) => (
                   <ToggleGroupItem key={value} value={value} className="px-3 text-[13px]">
                     {label}
+                    <span className="text-muted-foreground font-normal tabular-nums">
+                      {counts[value]}
+                    </span>
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
@@ -285,9 +293,9 @@ export function Home({ boards, others }: Props) {
                 </ContextMenuContent>
               )}
             </ContextMenu>
-            {filtered && flat.length > 0 && (
+            {query.trim() !== '' && flat.length > 0 && (
               <p className="text-muted-foreground text-[12px]">
-                {flat.length} of {boards.length + others.length} boards
+                {flat.length} of {counts[filter]} boards
               </p>
             )}
           </>
