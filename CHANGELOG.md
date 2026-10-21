@@ -16,6 +16,8 @@ Requires: installer
 - Remove someone from the workspace in Settings → People without deleting their account: their boards move to you with everyone else on them kept, and their tracker tokens go. They can still sign in, see that they are not in a workspace, and come back by opening an invite link with the same account. See [People](https://docs.tiko.run/security/#people).
 - Open an invite while you already have an account and sign in instead of making a new one.
 
+- Line up elements from the selection bar: align their left, right, top or bottom edges or their centers, and space three or more evenly. Elements in different frames line up on the board, arrows follow, and one Undo puts them back. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
+
 ### Changed
 
 - tiko keeps boards, people and settings in Postgres, in a `db` container next to it, so several API processes write at once without waiting for each other. Update with the installer: it adds the database, and the first start moves everything from `data/app.db` with the same accounts, boards, Planning lists and public links, then keeps the old file as `data/app.db.copied-<date>`. See [Coming from an SQLite release](https://docs.tiko.run/data-and-upgrades/#coming-from-an-sqlite-release).

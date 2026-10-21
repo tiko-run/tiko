@@ -2,6 +2,14 @@ import { useStore } from '@xyflow/react'
 import {
   ALargeSmall,
   AlarmClock,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalSpaceBetween,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalSpaceBetween,
   Bold,
   ChevronDown,
   Copy,
@@ -33,6 +41,7 @@ import {
   type Kind,
   type Style,
 } from '@/canvas/selection-props'
+import type { Alignment, Distribution } from '@/canvas/align'
 import { STROKES, TEXT_SIZES, type AppNode } from '@/canvas/types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -110,6 +119,9 @@ type Props = {
   onPreview: (style: Style | null) => void
   onNarrow: (kind: Kind) => void
   onCollapse: (collapsed: boolean) => void
+  /** How many selected elements move on their own; align needs two, distribute three. */
+  movable: number
+  onAlign: (how: Alignment | Distribution) => void
   /** Set when the selection is one element a timer can attach to. */
   onAddTimer?: () => void
   onDuplicate: () => void
@@ -125,6 +137,8 @@ export function SelectionBar({
   onPreview,
   onNarrow,
   onCollapse,
+  movable,
+  onAlign,
   onAddTimer,
   onDuplicate,
   onDelete,
@@ -407,6 +421,36 @@ export function SelectionBar({
           <Bold className="size-[18px]" strokeWidth={only(bold, true) ? 2.5 : 1.75} />
         </Button>
       )}
+      {movable >= 2 && (
+        <>
+          <Divider />
+          <Popover {...popover('align')}>
+            <PopoverTrigger asChild>
+              <Button
+                variant={open === 'align' ? 'secondary' : 'ghost'}
+                size="icon"
+                aria-label="Align"
+                title="Align"
+              >
+                <AlignStartVertical className="size-[18px]" strokeWidth={1.75} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side={side} sideOffset={8} className="w-auto flex-row gap-0.5 p-1">
+              {ALIGNMENTS.map(({ how, label, Icon }) => (
+                <IconButton key={how} Icon={Icon} label={label} onClick={() => onAlign(how)} />
+              ))}
+              {movable >= 3 && (
+                <>
+                  <Divider />
+                  {DISTRIBUTIONS.map(({ how, label, Icon }) => (
+                    <IconButton key={how} Icon={Icon} label={label} onClick={() => onAlign(how)} />
+                  ))}
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
+        </>
+      )}
       {cards.length === nodes.length && (
         <>
           <Divider />
@@ -432,7 +476,21 @@ export function SelectionBar({
 
 const SIZE_NAMES = { small: 'Small', medium: 'Medium', large: 'Large' } as const
 
-type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size'
+type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size' | 'align'
+
+const ALIGNMENTS: { how: Alignment; label: string; Icon: LucideIcon }[] = [
+  { how: 'left', label: 'Align left', Icon: AlignStartVertical },
+  { how: 'center', label: 'Align center', Icon: AlignCenterVertical },
+  { how: 'right', label: 'Align right', Icon: AlignEndVertical },
+  { how: 'top', label: 'Align top', Icon: AlignStartHorizontal },
+  { how: 'middle', label: 'Align middle', Icon: AlignCenterHorizontal },
+  { how: 'bottom', label: 'Align bottom', Icon: AlignEndHorizontal },
+]
+
+const DISTRIBUTIONS: { how: Distribution; label: string; Icon: LucideIcon }[] = [
+  { how: 'horizontal', label: 'Distribute horizontally', Icon: AlignHorizontalSpaceBetween },
+  { how: 'vertical', label: 'Distribute vertically', Icon: AlignVerticalSpaceBetween },
+]
 
 // The slider moves the selection for this person only; letting go saves it as one undo step.
 function OpacitySlider({
