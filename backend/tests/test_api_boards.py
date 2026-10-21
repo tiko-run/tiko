@@ -1,5 +1,7 @@
 import pytest
 
+from app.domain.preview import DRAWING
+
 DOC = {
     "nodes": [
         {
@@ -277,15 +279,15 @@ def test_preview_follows_the_board(client):
     response = client.get(url)
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/svg+xml"
-    assert response.headers["etag"] == f'"{saved["version"]}.1"'
+    assert response.headers["etag"] == f'"{saved["version"]}.{DRAWING}"'
     assert response.headers["cache-control"] == "private, max-age=0, must-revalidate"
     assert response.headers["content-security-policy"].startswith("default-src 'none'")
     assert response.headers["x-content-type-options"] == "nosniff"
     assert "DEMO-1" in response.text and "Rotate certs" in response.text
     assert client.get(url).text == response.text
 
-    tag = f"{saved['version']}.1"
-    for header in (f'"{tag}"', f'W/"{tag}"', f'"0.1", "{tag}"'):
+    tag = f"{saved['version']}.{DRAWING}"
+    for header in (f'"{tag}"', f'W/"{tag}"', f'"0.{DRAWING}", "{tag}"'):
         assert client.get(url, headers={"If-None-Match": header}).status_code == 304
     # A picture drawn the old way, or a bare version, is drawn again.
     assert client.get(url, headers={"If-None-Match": f'"{saved["version"]}"'}).status_code == 200
@@ -294,7 +296,7 @@ def test_preview_follows_the_board(client):
         f"/api/boards/{board['id']}", json={"version": saved["version"], "doc": doc}
     ).json()
     fresh = client.get(url, headers={"If-None-Match": f'"{tag}"'})
-    assert fresh.status_code == 200 and fresh.headers["etag"] == f'"{again["version"]}.1"'
+    assert fresh.status_code == 200 and fresh.headers["etag"] == f'"{again["version"]}.{DRAWING}"'
     assert "Rotate certs" not in fresh.text
 
 

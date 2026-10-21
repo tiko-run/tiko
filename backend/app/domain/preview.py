@@ -23,7 +23,7 @@ from app.domain.ports import BoardRepo
 
 WIDTH, HEIGHT = 320, 200
 # Raised whenever the picture changes for the same board, so kept and cached pictures are redrawn.
-DRAWING = 1
+DRAWING = 2
 # Board units around the content, so nothing touches the card's edge.
 MARGIN = 40
 # The largest elements win past this: a huge board stays small and quick to draw (SC-005).
