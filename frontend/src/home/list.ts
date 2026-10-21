@@ -1,8 +1,8 @@
 import type { BoardSummary } from '@/api/boards'
 
 export type Filter = 'all' | 'mine' | 'shared'
-/** Where on the side Home is: every board, the starred ones or one folder. */
-export type Place = 'all' | 'starred' | { folder: string }
+/** Where on the side Home is: every board, the starred ones, one folder or the trash. */
+export type Place = 'all' | 'starred' | 'trash' | { folder: string }
 
 export const samePlace = (a: Place, b: Place) =>
   typeof a === 'object' && typeof b === 'object' ? a.folder === b.folder : a === b
@@ -10,6 +10,7 @@ export const samePlace = (a: Place, b: Place) =>
 export function inPlace(board: BoardSummary, place: Place) {
   if (place === 'all') return true
   if (place === 'starred') return !!board.starred
+  if (place === 'trash') return false
   return board.folder_id === place.folder
 }
 export type Sort = 'updated' | 'name'

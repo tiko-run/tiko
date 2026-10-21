@@ -3,10 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field, model_validator
 
+from app.api import deps
 from app.api.deps import CanView, CurrentPerson
+from app.domain import boards as boards_service
 from app.domain import folders as service
+from app.domain.boards import TrashedBoard
 from app.domain.folders import Folder, FolderName
-from app.domain.ports import FolderRepo
+from app.domain.ports import BoardRepo, FolderRepo
 
 router = APIRouter(tags=["folders"])
 
@@ -35,6 +38,10 @@ class FolderChange(BaseModel):
         if self.name is None and self.position is None:
             raise ValueError("send a name or a position")
         return self
+
+
+class TrashList(BaseModel):
+    boards: list[TrashedBoard]
 
 
 class PlaceIn(BaseModel):
@@ -82,3 +89,10 @@ def change_folder(
 def delete_folder(folder_id: str, person: CurrentPerson, repo: Folders) -> Response:
     service.delete_folder(person.id, folder_id, repo)
     return Response(status_code=204)
+
+
+@router.get("/trash")
+def list_trash(
+    person: CurrentPerson, boards: Annotated[BoardRepo, Depends(deps.boards)]
+) -> TrashList:
+    return TrashList(boards=boards_service.list_trash(person, boards))

@@ -21,7 +21,7 @@ from psycopg_pool import ConnectionPool
 
 from app.domain.accounts import Account, Person, PersonRecord, Role
 from app.domain.attempts import BROWSERS_PER_PERSON
-from app.domain.boards import BoardDoc, BoardRecord, BoardRow, planned_stages
+from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow, planned_stages
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
 from app.domain.folders import Folder
 from app.domain.invites import Invite
@@ -352,18 +352,22 @@ def _doc(doc: BoardDoc) -> str:
     return doc.model_dump_json(exclude_none=True)
 
 
+# A board out of the trash; `b` is the boards row.
+_ALIVE = "b.deleted_at IS NULL"
+
+
 class PgBoardRepo(_Repo):
     def listing(
         self, user_id: str, board_id: str | None = None, others: bool = False
     ) -> list[BoardRow]:
         if board_id:
-            where = "WHERE b.id = %(board)s"
+            which = "b.id = %(board)s"
         elif others:
             # A demo visitor's boards are theirs alone and gone in days; they would bury the rest.
-            where = "WHERE m.role IS NOT NULL OR u.demo_expires_at IS NULL"
+            which = "m.role IS NOT NULL OR u.demo_expires_at IS NULL"
         else:
-            where = (
-                "WHERE b.id IN (SELECT board_id FROM board_members WHERE user_id = %(user)s"
+            which = (
+                "b.id IN (SELECT board_id FROM board_members WHERE user_id = %(user)s"
                 " UNION SELECT id FROM boards WHERE everyone_role IS NOT NULL)"
             )
         with self._tx() as conn:
@@ -379,7 +383,7 @@ class PgBoardRepo(_Repo):
                 " LEFT JOIN board_members o ON o.board_id = b.id AND o.role = 'owner'"
                 " LEFT JOIN board_stars s ON s.board_id = b.id AND s.user_id = %(user)s"
                 " LEFT JOIN folder_boards f ON f.board_id = b.id AND f.user_id = %(user)s"
-                f" LEFT JOIN users u ON u.id = o.user_id {where}"
+                f" LEFT JOIN users u ON u.id = o.user_id WHERE {_ALIVE} AND ({which})"
                 # Changes in the same second keep one order, the one Home sorts by too.
                 " ORDER BY b.updated_at DESC, b.created_at DESC, b.id",
                 {"user": user_id, "board": board_id},
@@ -444,7 +448,8 @@ class PgBoardRepo(_Repo):
     def owner(self, board_id: str) -> str | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT user_id FROM board_members WHERE board_id = %s AND role = 'owner'",
+                "SELECT m.user_id FROM board_members m JOIN boards b ON b.id = m.board_id"
+                f" WHERE m.board_id = %s AND m.role = 'owner' AND {_ALIVE}",
                 (board_id,),
             ).fetchone()
         return row["user_id"] if row else None
@@ -452,7 +457,8 @@ class PgBoardRepo(_Repo):
     def get(self, board_id: str) -> BoardRecord | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT id, name, doc, version, updated_at FROM boards WHERE id = %s",
+                "SELECT id, name, doc, version, updated_at FROM boards b"
+                f" WHERE id = %s AND {_ALIVE}",
                 (board_id,),
             ).fetchone()
         if row is None:
@@ -468,7 +474,8 @@ class PgBoardRepo(_Repo):
     def load(self, board_id: str) -> tuple[BoardRecord, bytes | None] | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT id, name, doc, version, updated_at, ydoc FROM boards WHERE id = %s",
+                "SELECT id, name, doc, version, updated_at, ydoc FROM boards b"
+                f" WHERE id = %s AND {_ALIVE}",
                 (board_id,),
             ).fetchone()
         if row is None:
@@ -485,8 +492,8 @@ class PgBoardRepo(_Repo):
     def save_live(self, board_id: str, doc: BoardDoc, ydoc: bytes) -> int:
         with self._tx() as conn:
             row = conn.execute(
-                "UPDATE boards SET doc = %s::jsonb, ydoc = %s, version = version + 1,"
-                " updated_at = %s WHERE id = %s RETURNING version",
+                "UPDATE boards b SET doc = %s::jsonb, ydoc = %s, version = version + 1,"
+                f" updated_at = %s WHERE id = %s AND {_ALIVE} RETURNING version",
                 (_doc(doc), ydoc, now_iso(), board_id),
             ).fetchone()
             if row is not None:
@@ -500,7 +507,7 @@ class PgBoardRepo(_Repo):
             row = conn.execute(
                 "SELECT b.version, p.svg FROM boards b LEFT JOIN board_previews p"
                 " ON p.board_id = b.id AND p.version = b.version AND p.drawing = %s"
-                " WHERE b.id = %s",
+                f" WHERE b.id = %s AND {_ALIVE}",
                 (drawing, board_id),
             ).fetchone()
         return (row["version"], row["svg"]) if row else None
@@ -509,31 +516,37 @@ class PgBoardRepo(_Repo):
         with self._tx() as conn:
             conn.execute(
                 "INSERT INTO board_previews (workspace_id, board_id, version, drawing, svg)"
-                " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (board_id) DO UPDATE"
+                f" SELECT %s, id, %s, %s, %s FROM boards b WHERE id = %s AND {_ALIVE}"
+                " ON CONFLICT (board_id) DO UPDATE"
                 " SET version = excluded.version, drawing = excluded.drawing, svg = excluded.svg"
                 " WHERE (board_previews.version, board_previews.drawing)"
                 " < (excluded.version, excluded.drawing)",
-                (self._ws, board_id, version, drawing, svg),
+                (self._ws, version, drawing, svg, board_id),
             )
 
     def keep_live_state(self, board_id: str, ydoc: bytes) -> None:
         with self._tx() as conn:
             conn.execute(
-                "UPDATE boards SET ydoc = %s WHERE id = %s AND ydoc IS NULL", (ydoc, board_id)
+                f"UPDATE boards b SET ydoc = %s WHERE id = %s AND ydoc IS NULL AND {_ALIVE}",
+                (ydoc, board_id),
             )
-            exists = conn.execute("SELECT 1 FROM boards WHERE id = %s", (board_id,)).fetchone()
+            exists = conn.execute(
+                f"SELECT 1 FROM boards b WHERE id = %s AND {_ALIVE}", (board_id,)
+            ).fetchone()
         if exists is None:
             raise NotFound("board not found")
 
     def save(self, board_id: str, version: int, doc: BoardDoc, ydoc: bytes | None = None) -> int:
         with self._tx() as conn:
             cursor = conn.execute(
-                "UPDATE boards SET doc = %s::jsonb, ydoc = %s, version = version + 1,"
-                " updated_at = %s WHERE id = %s AND version = %s",
+                "UPDATE boards b SET doc = %s::jsonb, ydoc = %s, version = version + 1,"
+                f" updated_at = %s WHERE id = %s AND version = %s AND {_ALIVE}",
                 (_doc(doc), ydoc, now_iso(), board_id, version),
             )
             if cursor.rowcount == 0:
-                exists = conn.execute("SELECT 1 FROM boards WHERE id = %s", (board_id,)).fetchone()
+                exists = conn.execute(
+                    f"SELECT 1 FROM boards b WHERE id = %s AND {_ALIVE}", (board_id,)
+                ).fetchone()
                 if exists is None:
                     raise NotFound("board not found")
                 raise VersionConflict("board was changed elsewhere; reload it")
@@ -543,24 +556,74 @@ class PgBoardRepo(_Repo):
     def rename(self, board_id: str, name: str) -> None:
         with self._tx() as conn:
             cursor = conn.execute(
-                "UPDATE boards SET name = %s, updated_at = %s WHERE id = %s",
+                f"UPDATE boards b SET name = %s, updated_at = %s WHERE id = %s AND {_ALIVE}",
                 (name, now_iso(), board_id),
             )
         if cursor.rowcount == 0:
             raise NotFound("board not found")
 
-    def delete(self, board_id: str) -> None:
-        # Members, stages and the index row go by cascade.
+    def delete(self, board_id: str, by_id: str) -> None:
+        # Every other row stays, so a restore brings back members, roles and the link.
         with self._tx() as conn:
-            cursor = conn.execute("DELETE FROM boards WHERE id = %s", (board_id,))
+            cursor = conn.execute(
+                f"UPDATE boards b SET deleted_at = %s, deleted_by = %s WHERE id = %s AND {_ALIVE}",
+                (now_iso(), by_id, board_id),
+            )
         if cursor.rowcount == 0:
             raise NotFound("board not found")
+
+    def trash(self, owner_id: str | None, board_id: str | None = None) -> list[TrashRow]:
+        params = {"owner": owner_id, "board": board_id}
+        with self._tx() as conn:
+            rows = conn.execute(
+                "SELECT b.id, b.name, b.deleted_at, o.user_id AS owner_id, u.name AS owner_name,"
+                " b.deleted_by AS deleted_by_id, d.name AS deleted_by_name FROM boards b"
+                " LEFT JOIN board_members o ON o.board_id = b.id AND o.role = 'owner'"
+                " LEFT JOIN users u ON u.id = o.user_id"
+                " LEFT JOIN users d ON d.id = b.deleted_by WHERE b.deleted_at IS NOT NULL"
+                " AND (%(owner)s::text IS NULL OR o.user_id = %(owner)s)"
+                " AND (%(board)s::text IS NULL OR b.id = %(board)s)"
+                " ORDER BY b.deleted_at DESC, b.id",
+                params,
+            ).fetchall()
+        return [TrashRow(**row) for row in rows]
+
+    def restore(self, board_id: str) -> bool:
+        with self._tx() as conn:
+            cursor = conn.execute(
+                "UPDATE boards SET deleted_at = NULL, deleted_by = NULL"
+                " WHERE id = %s AND deleted_at IS NOT NULL",
+                (board_id,),
+            )
+        return cursor.rowcount > 0
+
+    def purge(self, board_id: str) -> bool:
+        # Members, stages, stars and the index row go by cascade.
+        with self._tx() as conn:
+            cursor = conn.execute(
+                "DELETE FROM boards WHERE id = %s AND deleted_at IS NOT NULL", (board_id,)
+            )
+        return cursor.rowcount > 0
+
+    def purge_trashed(self, before: str, batch: int = 500) -> int:
+        gone = 0
+        while True:
+            # A transaction per batch keeps each one short.
+            with self._db.jobs() as conn:
+                n = conn.execute(
+                    "DELETE FROM boards WHERE id IN (SELECT id FROM boards"
+                    " WHERE deleted_at <= %s ORDER BY deleted_at LIMIT %s)",
+                    (before, batch),
+                ).rowcount
+            gone += n
+            if n < batch:
+                return gone
 
     def public_token(self, board_id: str) -> str | None:
         with self._tx() as conn:
             row = conn.execute(
                 "SELECT i.public_token FROM boards b JOIN board_index i ON i.board_id = b.id"
-                " WHERE b.id = %s",
+                f" WHERE b.id = %s AND {_ALIVE}",
                 (board_id,),
             ).fetchone()
         return row["public_token"] if row else None
@@ -570,7 +633,8 @@ class PgBoardRepo(_Repo):
             # Through boards, so only a board this workspace sees gets a link.
             conn.execute(
                 "UPDATE board_index i SET public_token = %s FROM boards b"
-                " WHERE b.id = i.board_id AND i.board_id = %s AND i.public_token IS NULL",
+                " WHERE b.id = i.board_id AND i.board_id = %s AND i.public_token IS NULL"
+                f" AND {_ALIVE}",
                 (token, board_id),
             )
         return self.public_token(board_id)
@@ -579,7 +643,7 @@ class PgBoardRepo(_Repo):
         with self._tx() as conn:
             row = conn.execute(
                 "SELECT i.public_token FROM boards b JOIN board_index i ON i.board_id = b.id"
-                " WHERE b.id = %s FOR UPDATE OF i",
+                f" WHERE b.id = %s AND {_ALIVE} FOR UPDATE OF i",
                 (board_id,),
             ).fetchone()
             # board_index is global: only a board this workspace sees loses its link.
@@ -594,7 +658,7 @@ class PgBoardRepo(_Repo):
         with self._tx() as conn:
             row = conn.execute(
                 "SELECT b.id, b.version, b.updated_at FROM board_index i"
-                " JOIN boards b ON b.id = i.board_id WHERE i.public_token = %s",
+                f" JOIN boards b ON b.id = i.board_id WHERE i.public_token = %s AND {_ALIVE}",
                 (token,),
             ).fetchone()
         return (row["id"], row["version"], row["updated_at"]) if row else None
@@ -616,8 +680,9 @@ class PgFolderRepo(_Repo):
             if starred:
                 conn.execute(
                     "INSERT INTO board_stars (workspace_id, board_id, user_id)"
-                    " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
-                    (self._ws, board_id, user_id),
+                    f" SELECT %s, id, %s FROM boards b WHERE id = %s AND {_ALIVE}"
+                    " ON CONFLICT DO NOTHING",
+                    (self._ws, user_id, board_id),
                 )
             else:
                 conn.execute(
@@ -695,8 +760,9 @@ class PgFolderRepo(_Repo):
             cursor = conn.execute(
                 "INSERT INTO folder_boards (workspace_id, board_id, user_id, folder_id)"
                 " SELECT %s, %s, user_id, id FROM folders WHERE id = %s AND user_id = %s"
+                f" AND EXISTS (SELECT 1 FROM boards b WHERE b.id = %s AND {_ALIVE})"
                 " ON CONFLICT (board_id, user_id) DO UPDATE SET folder_id = excluded.folder_id",
-                (self._ws, board_id, folder_id, user_id),
+                (self._ws, board_id, folder_id, user_id, board_id),
             )
         return cursor.rowcount > 0
 
@@ -929,7 +995,7 @@ class PgPlanningStageRepo(_Repo):
             rows = conn.execute(
                 'SELECT s.board_id, b.name AS board_name, s.row_title, s.type, s.start, s."end"'
                 " FROM planning_stages s JOIN boards b ON b.id = s.board_id"
-                " WHERE s.person_id = %s ORDER BY s.start",
+                f" WHERE s.person_id = %s AND {_ALIVE} ORDER BY s.start",
                 (person_id,),
             ).fetchall()
         return [
@@ -1699,7 +1765,7 @@ class PgMemberRepo(_Repo):
             row = conn.execute(
                 "SELECT m.role, b.everyone_role FROM boards b"
                 " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = %s"
-                " WHERE b.id = %s",
+                f" WHERE b.id = %s AND {_ALIVE}",
                 (user_id, board_id),
             ).fetchone()
         return (row["role"], row["everyone_role"]) if row else None
@@ -1707,7 +1773,8 @@ class PgMemberRepo(_Repo):
     def role(self, board_id: str, user_id: str) -> BoardRole | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT role FROM board_members WHERE board_id = %s AND user_id = %s",
+                "SELECT m.role FROM board_members m JOIN boards b ON b.id = m.board_id"
+                f" WHERE m.board_id = %s AND m.user_id = %s AND {_ALIVE}",
                 (board_id, user_id),
             ).fetchone()
         return row["role"] if row else None
@@ -1716,7 +1783,8 @@ class PgMemberRepo(_Repo):
         with self._tx() as conn:
             rows = conn.execute(
                 "SELECT u.id, u.username, u.name, m.role FROM board_members m"
-                " JOIN users u ON u.id = m.user_id WHERE m.board_id = %s"
+                " JOIN boards b ON b.id = m.board_id JOIN users u ON u.id = m.user_id"
+                f" WHERE m.board_id = %s AND {_ALIVE}"
                 " ORDER BY m.role = 'owner' DESC, lower(u.name)",
                 (board_id,),
             ).fetchall()
@@ -1731,7 +1799,7 @@ class PgMemberRepo(_Repo):
     def everyone(self, board_id: str) -> ShareRole | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT everyone_role FROM boards WHERE id = %s", (board_id,)
+                f"SELECT everyone_role FROM boards b WHERE id = %s AND {_ALIVE}", (board_id,)
             ).fetchone()
         return row["everyone_role"] if row else None
 
@@ -1739,24 +1807,32 @@ class PgMemberRepo(_Repo):
         with self._tx() as conn:
             conn.execute(
                 "INSERT INTO board_members (workspace_id, board_id, user_id, role)"
-                " VALUES (%s, %s, %s, %s)"
+                f" SELECT %s, id, %s, %s FROM boards b WHERE id = %s AND {_ALIVE}"
                 " ON CONFLICT (board_id, user_id) DO UPDATE SET role = excluded.role",
-                (self._ws, board_id, user_id, role),
+                (self._ws, user_id, role, board_id),
             )
 
     def remove(self, board_id: str, user_id: str) -> None:
         with self._tx() as conn:
             conn.execute(
-                "DELETE FROM board_members WHERE board_id = %s AND user_id = %s",
+                "DELETE FROM board_members m USING boards b WHERE b.id = m.board_id"
+                f" AND m.board_id = %s AND m.user_id = %s AND {_ALIVE}",
                 (board_id, user_id),
             )
 
     def set_everyone(self, board_id: str, role: ShareRole | None) -> None:
         with self._tx() as conn:
-            conn.execute("UPDATE boards SET everyone_role = %s WHERE id = %s", (role, board_id))
+            conn.execute(
+                f"UPDATE boards b SET everyone_role = %s WHERE id = %s AND {_ALIVE}",
+                (role, board_id),
+            )
 
     def transfer(self, board_id: str, user_id: str) -> None:
         with self._tx() as conn:
+            if not conn.execute(
+                f"SELECT 1 FROM boards b WHERE id = %s AND {_ALIVE}", (board_id,)
+            ).fetchone():
+                return
             conn.execute(
                 "UPDATE board_members SET role = 'editor' WHERE board_id = %s AND role = 'owner'",
                 (board_id,),

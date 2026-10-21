@@ -194,6 +194,8 @@ def test_rows_go_with_their_board_and_person(world):
     ann.put(f"/api/boards/{board}/folder", json={"folder_id": team["id"]})
     bob.put(f"/api/boards/{board}/star")
     assert ann.delete(f"/api/boards/{board}").status_code == 204
+    # The trash keeps them for a restore; deleting for good takes them.
+    assert ann.delete(f"/api/boards/{board}?forever=1").status_code == 204
     rows = all_rows(app)
     assert board not in rows
     assert "Team" in rows

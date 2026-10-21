@@ -5,6 +5,7 @@ import random
 import ssl
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 
@@ -37,11 +38,12 @@ from app.api.workspace import WorkspaceScope
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
 from app.domain import demo, usage
 from app.domain.accounts import Accounts
+from app.domain.boards import purge_trash
 from app.domain.errors import NotFound
 from app.domain.invites import Invites
 from app.domain.members import Members
 from app.domain.planning import Planning
-from app.domain.ports import FolderRepo, ReleaseFeed, StatsSender, Updater
+from app.domain.ports import BoardRepo, FolderRepo, ReleaseFeed, StatsSender, Updater
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
@@ -179,9 +181,12 @@ def create_app(
                 log.exception("demo cleanup failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
-    async def housekeeping(folders: FolderRepo) -> None:
+    async def housekeeping(boards: BoardRepo, folders: FolderRepo) -> None:
         while True:
             try:
+                purged = await anyio.to_thread.run_sync(purge_trash, boards, datetime.now(UTC))
+                if purged:
+                    log.info("housekeeping: %d boards deleted for good from the trash", purged)
                 gone = await anyio.to_thread.run_sync(folders.forget_unreachable)
                 if gone:
                     log.info("housekeeping: %d stars, folders and places deleted", gone)
@@ -198,7 +203,7 @@ def create_app(
             else None
         )
         keeper = (
-            asyncio.create_task(housekeeping(app.state.folders))
+            asyncio.create_task(housekeeping(app.state.boards, app.state.folders))
             if settings.tiko_worker == 0
             else None
         )

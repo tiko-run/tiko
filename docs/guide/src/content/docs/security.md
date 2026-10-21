@@ -26,7 +26,7 @@ Two roles keep the people who use tiko apart from the person who runs it.
 The first account has both roles, so on a server you run alone nothing changes.
 
 - A workspace admin invites people in Settings → People: "Invite" gives a link to send in a chat. It works once and expires in 7 days. The person picks a username, a name and a password and is signed in. tiko sends no mail.
-- From a person's menu a workspace admin makes them admin or member, or removes them from the workspace. A removed person keeps their account and can still sign in, but sees no boards until an invite brings them back; opening an invite while signed in joins with the same account. Boards they owned move to the admin who removed them, with their other members kept; their tracker tokens and cached tasks are deleted, and their open boards close at once.
+- From a person's menu a workspace admin makes them admin or member, or removes them from the workspace. A removed person keeps their account and can still sign in, but sees no boards until an invite brings them back; opening an invite while signed in joins with the same account. Boards they owned move to the admin who removed them, with their other members kept, boards in their trash too; their tracker tokens and cached tasks are deleted, and their open boards close at once.
 - An account is in one workspace at a time. Someone already in a workspace who opens an invite is told so.
 - The server admin sees every account in Settings → Accounts. From an account's menu they disable it (the person is signed out at once and cannot sign in) or create a password reset link that works once within 24 hours.
 - Only the hash of a link's token is stored, so a link is shown once. Unused links are listed under "Open links" and can be revoked.
@@ -37,7 +37,7 @@ The first account has both roles, so on a server you run alone nothing changes.
 ## Sharing boards
 
 - A board belongs to the person who made it. "Share" in the top bar lists who has access; the owner adds people as "Can edit" or "Can view", removes them, makes someone else the owner, or gives a role to "Everyone in this workspace". The three ways side by side are in [Working together](../working-together/#three-ways-to-share-a-board).
-- Editors change the board and its name. Viewers see it with a "View only" badge: no toolbar, nothing moves or changes, and the server refuses their saves. Only the owner deletes a board or changes who has access.
+- Editors change the board and its name. Viewers see it with a "View only" badge: no toolbar, nothing moves or changes, and the server refuses their saves. Only the owner moves a board to the trash or changes who has access; the owner and a workspace admin restore it from the trash.
 - A board you cannot open is not in your list, and its link answers as if it did not exist.
 - Admins act as owner on every board, so a board is never stranded when its owner is disabled. Boards nobody shared with them are under "Other boards" on [Home](../home/#the-list) and in the board menu.
 - Each new person gets their own welcome board once.

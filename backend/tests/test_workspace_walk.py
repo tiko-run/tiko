@@ -1,13 +1,16 @@
-"""SC-002 of spec 032: no route answers with a row of another workspace or changes one."""
+"""SC-002 of spec 032: no route answers with a row of another workspace or changes one.
+SC-003 of spec 033: nothing of a trashed board, a star or a folder reaches anyone else."""
 
 import re
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from app.config import Settings
 from app.main import create_app
 from tests.conftest import signed_in
+from tests.test_folders import join
 
 # Reached by a secret in the address, from anywhere by design: an invite or a public link.
 BY_TOKEN = ("/api/invites/{token}", "/api/public/{token}")
@@ -85,6 +88,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
     folder = ok(client.post("/api/folders", json={"name": f"folder-{tag}"}))["id"]
     assert client.put(f"/api/boards/{board_id}/star").is_success
     assert client.put(f"/api/boards/{board_id}/folder", json={"folder_id": folder}).is_success
+    trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
+    assert client.delete(f"/api/boards/{trashed}").is_success
     return {
         "board_id": board_id,
         "user_id": me["id"],
@@ -106,6 +111,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             f"view-{tag}",
             f"folder-{tag}",
             folder,
+            f"trashed-{tag}",
+            trashed,
             day,
             me["id"],
             board_id,
@@ -130,7 +137,7 @@ def workspace_rows(app, workspace: str) -> list[str]:
         )
 
 
-def walk(app, client: TestClient, own: dict, other: dict) -> list[str]:
+def walk(app, client: TestClient, own: dict, other: dict, only=None) -> list[str]:
     """Every route with the other workspace's ids; returns what went wrong."""
     wrong = []
     sent = bodies(own)
@@ -138,7 +145,7 @@ def walk(app, client: TestClient, own: dict, other: dict) -> list[str]:
         if path.startswith(BY_TOKEN) or (path.startswith(SERVER) and own["server"]):
             continue
         for method in (m.upper() for m in methods):
-            if (method, path) in SKIPPED:
+            if (method, path) in SKIPPED or (only and not only(method, path)):
                 continue
             url = re.sub(r"\{(\w+)\}", lambda m: str(other[m.group(1)]), path)
             body = sent.get((method, path), {}) if method != "GET" else None
@@ -170,3 +177,60 @@ def test_no_route_reaches_another_workspace(app):
         wrong += walk(app, client, own, other)
         assert workspace_rows(app, other["workspace"]) == before
     assert wrong == []
+
+
+def board_rows(app, workspace: str, *ids: str) -> list[str]:
+    return [row for row in workspace_rows(app, workspace) if any(i in row for i in ids)]
+
+
+# The trash routes show a trashed board to its owner and an admin, as FR-009 lets them.
+TRASH_ROUTES = {("GET", "/api/trash"), ("POST", "/api/boards/{board_id}/restore")}
+
+
+def test_nothing_of_a_trashed_board_reaches_anyone(app):
+    admin = signed_in(app)
+    ann, bob, carl = (join(app, admin, name) for name in ("ann", "bob", "carl"))
+    ids = {c: c.get("/api/auth/status").json()["me"]["id"] for c in (admin, ann, bob, carl)}
+    board = ok(ann.post("/api/boards", json={"name": "trashed-board"}))["id"]
+    doc = {"nodes": [STICKY | {"data": {"text": "note-trashed", "color": "yellow"}}], "edges": []}
+    ok(ann.put(f"/api/boards/{board}", json={"version": 1, "doc": doc}))
+    assert ann.put(f"/api/boards/{board}/members/{ids[bob]}", json={"role": "editor"}).is_success
+    token = ok(ann.put(f"/api/boards/{board}/public", json={"public": True}))["public_token"]
+    folder = ok(bob.post("/api/folders", json={"name": "folder-bob"}))["id"]
+    assert bob.put(f"/api/boards/{board}/star").is_success
+    assert bob.put(f"/api/boards/{board}/folder", json={"folder_id": folder}).is_success
+    assert ann.delete(f"/api/boards/{board}").status_code == 204
+    workspace = admin.get("/api/auth/status").json()["me"]["workspace"]["id"]
+
+    wrong = []
+    for client in (ann, bob, admin, carl):
+        own = {"board_id": board, "user_id": ids[client], "folder_id": folder}
+        own["server"] = client is admin
+        target = {name: "nope" for name in ("person_id", "off_id", "type_id", "field_id")}
+        target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1"}
+        target |= own | {"markers": ["trashed-board", "note-trashed", board, token]}
+        owner_like = client in (ann, admin)
+
+        def only(method, path, owner_like=owner_like):
+            if owner_like and (method, path) in TRASH_ROUTES:
+                return False
+            # Routes that name the board, and lists that might show it.
+            return "{board_id}" in path or (method == "GET" and "{" not in path)
+
+        # A first list makes a welcome board; only rows of the trashed board must stay as they are.
+        before = board_rows(app, workspace, board, folder)
+        wrong += [f"{ids[client]}: {w}" for w in walk(app, client, own, target, only)]
+        assert board_rows(app, workspace, board, folder) == before
+        cookie = client.cookies.get("tiko_session")
+        with (
+            pytest.raises(WebSocketDisconnect),
+            TestClient(app).websocket_connect(
+                f"/api/boards/{board}/live", headers={"cookie": f"tiko_session={cookie}"}
+            ) as socket,
+        ):
+            socket.receive_bytes()
+    assert wrong == []
+    assert TestClient(app).get(f"/api/public/{token}").status_code == 404
+    assert [b["id"] for b in ok(ann.get("/api/trash"))["boards"]] == [board]
+    assert [b["id"] for b in ok(admin.get("/api/trash"))["boards"]] == [board]
+    assert ok(bob.get("/api/trash"))["boards"] == ok(carl.get("/api/trash"))["boards"] == []

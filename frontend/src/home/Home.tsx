@@ -33,7 +33,7 @@ import {
 import { getAuthStatus } from '@/api/auth'
 import { canEdit, previewUrl, type BoardSummary } from '@/api/boards'
 import type { Folder } from '@/api/folders'
-import { DeleteBoardDialog, RenameBoardForm } from '@/board/BoardActions'
+import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -78,8 +78,9 @@ import {
   type Place,
   type Sort,
 } from './list'
-import { useFolders, usePlace, useStar } from './organize'
+import { useFolders, usePlace, useStar, useTrash } from './organize'
 import { BOARD_DRAG, Side, type Counts } from './Side'
+import { Trash } from './Trash'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -125,6 +126,7 @@ export function Home({ boards, others }: Props) {
   const placeBoard = usePlace()
   const folders = useFolders()
   const folder = typeof place === 'object' ? folders.find((f) => f.id === place.folder) : undefined
+  const trashed = useTrash().data?.boards.length ?? 0
 
   useShortcut('findBoard', () => search.current?.focus())
 
@@ -200,6 +202,8 @@ export function Home({ boards, others }: Props) {
     if (!board) return
     if (target === 'starred') {
       if (!board.starred) menu.star(board, true)
+    } else if (target === 'trash') {
+      if (board.my_role === 'owner') menu.remove(board)
     } else {
       const folderId = target === 'all' ? null : target.folder
       if ((board.folder_id ?? null) !== folderId) menu.move(board, folderId)
@@ -208,6 +212,7 @@ export function Home({ boards, others }: Props) {
   const sideCounts: Counts = {
     all: all.length,
     starred: all.filter((board) => board.starred).length,
+    trash: trashed,
     folders: Object.fromEntries(
       folders.map((f) => [f.id, all.filter((board) => board.folder_id === f.id).length]),
     ),
@@ -216,7 +221,8 @@ export function Home({ boards, others }: Props) {
     setPlace(value)
     setSelected(0)
   }
-  const title = place === 'starred' ? 'Starred' : (folder?.name ?? 'Boards')
+  const title =
+    place === 'starred' ? 'Starred' : place === 'trash' ? 'Trash' : (folder?.name ?? 'Boards')
 
   const Item = layout === 'grid' ? BoardCard : BoardRow
   const rows = (items: BoardSummary[], offset: number) => (
@@ -256,7 +262,7 @@ export function Home({ boards, others }: Props) {
   return (
     <div className="absolute inset-0 overflow-y-auto">
       <div className="mx-auto flex max-w-[1192px] flex-col gap-4 px-4 pt-32 pb-24 sm:px-8 md:flex-row md:gap-8">
-        {(boards.length > 0 || others.length > 0) && (
+        {(boards.length > 0 || others.length > 0 || trashed > 0) && (
           <Side
             place={place}
             onPlace={changePlace}
@@ -268,13 +274,17 @@ export function Home({ boards, others }: Props) {
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="truncate text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
-            <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
-              <Plus strokeWidth={1.75} />
-              New board
-            </Button>
+            {place !== 'trash' && (
+              <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
+                <Plus strokeWidth={1.75} />
+                New board
+              </Button>
+            )}
           </div>
 
-          {boards.length === 0 && others.length === 0 ? (
+          {place === 'trash' ? (
+            <Trash me={me?.id} admin={me?.role === 'admin'} />
+          ) : boards.length === 0 && others.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-8">
               <p className="text-[14px]">No boards yet. Make one to start placing tasks on it.</p>
               <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
@@ -421,7 +431,7 @@ export function Home({ boards, others }: Props) {
       {sharing && (
         <ShareDialog board={sharing} open onOpenChange={(open) => !open && setSharing(null)} />
       )}
-      <DeleteBoardDialog board={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
+      <TrashBoardDialog board={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
     </div>
   )
 }
@@ -478,7 +488,14 @@ function actionsFor(board: BoardSummary, demo: boolean, menu: Menu, folders: Fol
     ...(demo ? [] : [{ label: 'Share', Icon: Share2, run: () => menu.share(board) }]),
     { label: 'Move to folder', Icon: FolderInput, choices, empty: 'No folders yet' },
     ...(board.my_role === 'owner'
-      ? [{ label: 'Delete…', Icon: Trash2, run: () => menu.remove(board), destructive: true }]
+      ? [
+          {
+            label: 'Move to trash…',
+            Icon: Trash2,
+            run: () => menu.remove(board),
+            destructive: true,
+          },
+        ]
       : []),
   ]
 }

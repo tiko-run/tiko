@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { deleteBoard, renameBoard, type BoardSummary } from '@/api/boards'
+import { deleteBoard, renameBoard, type BoardList, type BoardSummary } from '@/api/boards'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +13,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { toastError } from '@/lib/toast'
+import { useRestore } from '@/home/organize'
+import { goTo } from '@/lib/navigation'
+import { ERROR_MS, toastError } from '@/lib/toast'
 
 /** Inline name field in the top bar; Enter saves, Escape or leaving the field cancels. */
 export function RenameBoardForm({ board, onDone }: { board: BoardSummary; onDone: () => void }) {
@@ -59,19 +61,36 @@ export function RenameBoardForm({ board, onDone }: { board: BoardSummary; onDone
   )
 }
 
-type DeleteProps = {
+type TrashProps = {
   board: BoardSummary | null
   onOpenChange: (open: boolean) => void
 }
 
-export function DeleteBoardDialog({ board, onOpenChange }: DeleteProps) {
+/** Asks before a board moves to the trash, then offers to undo it. */
+export function TrashBoardDialog({ board, onOpenChange }: TrashProps) {
   const queryClient = useQueryClient()
-  const remove = useMutation({
-    mutationFn: (id: string) => deleteBoard(id),
-    onSuccess: () => {
+  const restore = useRestore()
+  const trash = useMutation({
+    mutationFn: (target: BoardSummary) => deleteBoard(target.id),
+    onSuccess: (_, target) => {
+      // Off the board first, so the app does not take it for one that was taken away.
+      goTo(null, { replace: true })
+      queryClient.setQueryData<BoardList>(['boards'], (list) =>
+        list
+          ? {
+              boards: list.boards.filter((item) => item.id !== target.id),
+              all: list.all.filter((item) => item.id !== target.id),
+            }
+          : list,
+      )
       void queryClient.invalidateQueries({ queryKey: ['boards'] })
+      void queryClient.invalidateQueries({ queryKey: ['trash'] })
       onOpenChange(false)
-      toast.success('Board deleted')
+      toast.success(`${target.name} moved to the trash`, {
+        action: { label: 'Undo', onClick: () => restore.mutate(target.id) },
+        // Long enough to reach Undo.
+        duration: ERROR_MS,
+      })
     },
     onError: toastError,
   })
@@ -79,10 +98,10 @@ export function DeleteBoardDialog({ board, onOpenChange }: DeleteProps) {
     <Dialog open={board !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Delete board?</DialogTitle>
+          <DialogTitle>Move to trash?</DialogTitle>
           <DialogDescription>
-            "{board?.name}" and everything on it will be deleted. Tasks stay in their tracker. A
-            copy remains in the latest backup, if one was made.
+            "{board?.name}" waits in the trash for 30 days. Until you restore it, people it is
+            shared with lose it and its public link stops working.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -91,10 +110,10 @@ export function DeleteBoardDialog({ board, onOpenChange }: DeleteProps) {
           </Button>
           <Button
             variant="destructive"
-            disabled={remove.isPending}
-            onClick={() => board && remove.mutate(board.id)}
+            disabled={trash.isPending}
+            onClick={() => board && trash.mutate(board)}
           >
-            Delete board
+            Move to trash
           </Button>
         </DialogFooter>
       </DialogContent>

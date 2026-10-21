@@ -60,7 +60,7 @@ The owner of a board can show it to anyone, with no account: in "Share", turn on
 - A guest does not see who is on the board, and nobody sees the guest.
 - Tasks from your tracker show a guest only their key, as a link to the tracker. Titles, statuses and assignees are fetched with each person's own token and are never published. Demo tasks are shown in full.
 - The focus timer and its music work for a guest: they live in the guest's browser. Timers on the board are shown, but they ring only for the people on it.
-- Turning the link off stops it at once, and it never works again: turning it on later makes a new link. Deleting the board stops it too.
+- Turning the link off stops it at once, and it never works again: turning it on later makes a new link. Moving the board to the trash stops it too, and restoring the board brings the same link back.
 - A board with a link has a "Public" mark in the top bar and a globe in the board menu, for everyone on it. Only the owner (and an admin) sees the link itself.
 - An admin can switch public links off for the whole tiko in Settings → Sharing. Every link stops while it is off.
 
