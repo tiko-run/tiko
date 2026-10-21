@@ -44,11 +44,14 @@ import { ClientRouter } from 'astro:transitions'
       workload: '/gantt/working-time/',
     },
   }
-  document.addEventListener('astro:page-load', () => {
+  const follow = () => {
     const anchor = location.hash.slice(1)
     const page = MOVED[location.pathname]?.[anchor]
     if (page) location.replace(`${page}#${anchor}`)
-  })
+  }
+  document.addEventListener('astro:page-load', follow)
+  // A hash typed on the page itself changes it without a page load.
+  addEventListener('hashchange', follow)
 </script>
 
 <script>
