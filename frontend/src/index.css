@@ -290,6 +290,35 @@
   opacity: 1;
 }
 
+/* A side grip is 8 screen pixels wide at any zoom; the visible line stays 1px. */
+.react-flow__resize-control {
+  z-index: 1;
+}
+.react-flow__resize-control.line::before {
+  content: '';
+  position: absolute;
+}
+.react-flow__resize-control.line.left::before,
+.react-flow__resize-control.line.right::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: calc(8px / var(--zoom, 1));
+  translate: -50% 0;
+}
+.react-flow__resize-control.line.top::before,
+.react-flow__resize-control.line.bottom::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: calc(8px / var(--zoom, 1));
+  translate: 0 -50%;
+}
+/* An arrow dot sits on the middle of a side and wins over the grip under it. */
+.react-flow__node .react-flow__handle {
+  z-index: 2;
+}
+
 /* An anchor's handles only hold the arrow tip at its center; the anchor itself is the grip. */
 .react-flow__node .react-flow__handle.anchor-handle {
   top: 50%;

@@ -22,6 +22,8 @@ Requires: installer
 - One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
 - Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
 - Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
+- Resize a sticky note, shape, text, frame or Gantt from any side to change just its width or height. The side is easy to grab at any zoom, and the arrow dot in its middle still starts an arrow.
+- Several cards added at once line up close together in columns of five, so a list from a query reads top to bottom.
 - Share's role for the whole team now reads "Everyone in this workspace".
 - Plan on the demo in your own space: add stage types, people and time off, and see their workload. Each visitor gets a workspace of their own with a copy of the sample lists, kept when they sign up. See [The demo](https://docs.tiko.run/demo/).
 - The guide wears tiko's own colors in light and dark, with Docs and What's new as tabs in the top bar and a "Try the demo" button. Copy any page as Markdown, or open it in ChatGPT or Claude to ask about it.
