@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal, Protocol
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
     from app.domain.boards import BoardDoc, BoardRecord, BoardRow
+    from app.domain.folders import Folder
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
@@ -130,6 +131,37 @@ class BoardRepo(Protocol):
 
     def by_public_token(self, token: str) -> tuple[str, int, str] | None:
         """The id, version and last change time of the board with this public link."""
+        ...
+
+
+class FolderRepo(Protocol):
+    """A person's stars and folders in the workspace; nobody else reads them."""
+
+    def star(self, user_id: str, board_id: str, starred: bool) -> None: ...
+
+    def folders(self, user_id: str) -> list[Folder]:
+        """By position."""
+        ...
+
+    def add(self, user_id: str, name: str, limit: int) -> Folder | None:
+        """A folder after the others; None when the person already keeps `limit`."""
+        ...
+
+    def change(
+        self, user_id: str, folder_id: str, name: str | None, position: int | None
+    ) -> Folder | None:
+        """Renames and moves to `position`, the others shifting; None for no such folder."""
+        ...
+
+    def remove(self, user_id: str, folder_id: str) -> bool: ...
+
+    def place(self, user_id: str, board_id: str, folder_id: str | None) -> bool:
+        """False when `folder_id` is not one of the person's folders."""
+        ...
+
+    def forget_unreachable(self) -> int:
+        """Deletes, in every workspace, stars and folder places on boards their person can no
+        longer open, and folders of people who left the workspace; returns how many went."""
         ...
 
 

@@ -18,6 +18,9 @@ const summarySchema = z.object({
   public: z.boolean(),
   /** The board version its preview follows; absent or null for a board with nothing on it. */
   preview: z.number().int().nullish(),
+  /** The person's own star and folder. */
+  starred: z.boolean().optional(),
+  folder_id: z.string().nullish(),
 })
 
 /** The server-drawn picture of a board; the version in the address skips the image cache. */
@@ -163,6 +166,18 @@ export function renameBoard(id: string, name: string) {
 
 export function deleteBoard(id: string) {
   return fetchJson(`/api/boards/${id}`, z.null(), { method: 'DELETE' })
+}
+
+export function starBoard(id: string, starred: boolean) {
+  return fetchJson(`/api/boards/${id}/star`, z.null(), { method: starred ? 'PUT' : 'DELETE' })
+}
+
+/** Moves the board into one of the person's folders, or out of any with null. */
+export function placeBoard(id: string, folderId: string | null) {
+  return fetchJson(`/api/boards/${id}/folder`, z.null(), {
+    method: 'PUT',
+    body: JSON.stringify({ folder_id: folderId }),
+  })
 }
 
 export function getBoard(id: string) {

@@ -41,7 +41,7 @@ from app.domain.errors import NotFound
 from app.domain.invites import Invites
 from app.domain.members import Members
 from app.domain.planning import Planning
-from app.domain.ports import ReleaseFeed, StatsSender, Updater
+from app.domain.ports import FolderRepo, ReleaseFeed, StatsSender, Updater
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
@@ -75,6 +75,8 @@ log = logging.getLogger(__name__)
 
 # The Fernet key is a plain SHA-256 of this string, so a short one is easy to brute-force.
 MIN_SECRET_KEY_LENGTH = 32
+# Rows nobody can reach any more go within the hour.
+HOUSEKEEPING_EVERY_S = 3600
 
 
 def _jira_client(settings: Settings, transport: httpx.BaseTransport | None) -> httpx.Client:
@@ -177,12 +179,27 @@ def create_app(
                 log.exception("demo cleanup failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
+    async def housekeeping(folders: FolderRepo) -> None:
+        while True:
+            try:
+                gone = await anyio.to_thread.run_sync(folders.forget_unreachable)
+                if gone:
+                    log.info("housekeeping: %d stars, folders and places deleted", gone)
+            except Exception:
+                log.exception("housekeeping failed")
+            await asyncio.sleep(HOUSEKEEPING_EVERY_S)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # One process cleans up for all of them.
         cleaner = (
             asyncio.create_task(clean_demo(app.state.visitors))
             if app.state.visitors and settings.tiko_worker == 0
+            else None
+        )
+        keeper = (
+            asyncio.create_task(housekeeping(app.state.folders))
+            if settings.tiko_worker == 0
             else None
         )
         watcher = asyncio.create_task(watch_loop(live_gauges))
@@ -212,6 +229,8 @@ def create_app(
             pinger.cancel()
         if cleaner:
             cleaner.cancel()
+        if keeper:
+            keeper.cancel()
         if workers:
             await workers.close()
         # Open boards are saved and their sockets told to come back.
@@ -226,6 +245,7 @@ def create_app(
     users = storage.UserRepo(db)
     member_repo = storage.MemberRepo(db)
     app.state.boards = storage.BoardRepo(db)
+    app.state.folders = storage.FolderRepo(db)
     rooms = LiveRooms(app.state.boards, member_repo, storage.Workspaces(db))
     workers = (
         Workers(rooms, settings.tiko_worker, settings.tiko_workers, settings.tiko_workers_dir)

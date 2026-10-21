@@ -10,6 +10,7 @@ from app.domain.errors import (
     DemoFull,
     DependencyUnavailable,
     DomainError,
+    FolderLimit,
     Forbidden,
     HostMismatch,
     InvalidCredentials,
@@ -63,6 +64,7 @@ _STATUS = {
     TooManyAttempts: 429,
     DemoFull: 429,
     BoardLimit: 409,
+    FolderLimit: 409,
     UpdateNotPossible: 409,
     NotEnoughSpace: 507,
 }

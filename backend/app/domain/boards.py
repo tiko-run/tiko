@@ -267,6 +267,9 @@ class BoardSummary(BaseModel):
     public: bool = False
     # The board version its preview follows; None for a board with nothing on it.
     preview: int | None = None
+    # The person's own star and folder.
+    starred: bool = False
+    folder_id: str | None = None
 
 
 class BoardRow(BaseModel):
@@ -282,6 +285,8 @@ class BoardRow(BaseModel):
     owner_name: str | None
     public: bool = False
     preview: int | None = None
+    starred: bool = False
+    folder_id: str | None = None
 
 
 class BoardRecord(BaseModel):
@@ -414,6 +419,8 @@ def _summary(row: BoardRow, role: BoardRole) -> BoardSummary:
         owner=owner,
         public=row.public,
         preview=row.preview,
+        starred=row.starred,
+        folder_id=row.folder_id,
     )
 
 

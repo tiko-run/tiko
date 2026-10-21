@@ -17,6 +17,14 @@ The two buttons next to the sort menu switch between the grid and a compact list
 - The sort menu at the right orders the list by last change or by name. Your browser remembers the choice.
 - An admin also sees "Other boards in this workspace": boards nobody shared with them, which they can still open and manage. They show under All only.
 
+## Stars and folders
+
+The star next to a board's `⋯` button pins it: starred boards come first in every view and sort, and "Starred" at the left lists them alone. Click the star again to take it off.
+
+Folders group boards your own way. Make one with the plus next to "Folders" at the left, type its name and press `Enter`. Move a board into a folder from its menu, "Move to folder", or drag the board onto the folder; drag it onto "All boards" to take it out again. A board sits in one folder at most, and it stays under All and in search wherever it is. A folder's `⋯` renames or deletes it; deleting a folder keeps its boards on Home. You can keep up to 100 folders.
+
+Stars and folders are yours alone: nobody else sees them, and they change nothing about who can open a board. When a board stops being shared with you, it leaves your stars and folders too, and comes back without them if it is shared again. On a narrow screen the places sit in one row above the list.
+
 ## Find a board
 
 Press `/` or `⌘K` (`Ctrl+K`) on Home and type part of a name. The list keeps the boards whose name has every word you typed. `↑` and `↓` move the highlight, `Enter` opens the board, `Esc` clears the field.
@@ -32,9 +40,11 @@ The `⋯` button of a board, or a right click on it, opens the board's menu:
 | Item | Who sees it |
 |---|---|
 | Open | everyone |
+| Star, Unstar | everyone |
 | Rename | editors and the owner |
 | Duplicate | everyone who can open the board |
 | Share | everyone, except on the demo |
+| Move to folder | everyone |
 | Delete… | the owner, after a confirmation |
 
 Duplicate makes a board of your own named "Copy of …" with the same content. Nobody else is on the copy and it has no public link, whoever the first board was shared with. A copy counts toward the boards you may own, where the server sets a limit.
