@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
-    from app.domain.boards import BoardDoc, BoardRecord, BoardRow
+    from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow
     from app.domain.folders import Folder
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
@@ -114,8 +114,24 @@ class BoardRepo(Protocol):
         """Leaves the doc version alone so open tabs keep saving; raises NotFound."""
         ...
 
-    def delete(self, board_id: str) -> None:
-        """Raises NotFound."""
+    def delete(self, board_id: str, by_id: str) -> None:
+        """Moves the board to the trash; NotFound when it is missing or already there."""
+        ...
+
+    def trash(self, owner_id: str | None, board_id: str | None = None) -> list[TrashRow]:
+        """Trashed boards, newest first: of `owner_id`, or the workspace's for None."""
+        ...
+
+    def restore(self, board_id: str) -> bool:
+        """Takes the board out of the trash; False when it is not there."""
+        ...
+
+    def purge(self, board_id: str) -> bool:
+        """Deletes a trashed board for good with every row of it."""
+        ...
+
+    def purge_trashed(self, before: str, batch: int = 500) -> int:
+        """Deletes, in every workspace, boards trashed at `before` or earlier; returns how many."""
         ...
 
     def public_token(self, board_id: str) -> str | None: ...

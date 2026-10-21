@@ -62,14 +62,18 @@ def test_deleting_every_board_does_not_bring_it_back(store):
     mod, db = store
     repo, admin = mod.BoardRepo(db), person(store)
     [board], _ = list_boards(admin, repo, NOW)
-    repo.delete(board.id)
+    repo.delete(board.id, admin.id)
+    assert list_boards(admin, repo, NOW) == ([], [])
+    repo.purge(board.id)
     assert list_boards(admin, repo, NOW) == ([], [])
 
 
 def test_someone_who_made_a_board_is_never_welcomed(store):
     mod, db = store
     repo, admin = mod.BoardRepo(db), person(store)
-    repo.delete(repo.create("Q4", BoardDoc(), admin.id))
+    board_id = repo.create("Q4", BoardDoc(), admin.id)
+    repo.delete(board_id, admin.id)
+    repo.purge(board_id)
     assert repo.create_welcome(admin.id, WELCOME_NAME, BoardDoc()) is None
 
 

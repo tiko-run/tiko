@@ -592,6 +592,15 @@ def test_a_visitor_deleted_between_the_read_and_the_touch_is_signed_out(app, mon
     assert sessions.resolve(ann.cookies[COOKIE], time.time() + 120) is None
 
 
+def test_the_cleanup_takes_the_visitors_trash(app):
+    ann = visitor(app)
+    board_id = ann.post("/api/boards", json={"name": "Scratch"}).json()["id"]
+    assert ann.delete(f"/api/boards/{board_id}").status_code == 204
+    assert ann.get("/api/trash").json()["boards"][0]["id"] == board_id
+    assert app.state.visitors.cleanup(time.time() + 8 * DAY) == 1
+    assert board_id not in rows(app)
+
+
 def test_an_expired_visitor_is_refused_before_the_cleanup(app, monkeypatch):
     ann = visitor(app)
     assert ann.get("/api/boards").status_code == 200

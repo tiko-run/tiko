@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, Any, Literal, NamedTuple
 
 from pydantic import (
@@ -12,7 +12,7 @@ from pydantic import (
 )
 
 from app.domain.accounts import Person
-from app.domain.errors import BoardLimit, NotFound, ValidationFailed
+from app.domain.errors import BoardLimit, Forbidden, NotFound, ValidationFailed
 from app.domain.members import BoardRole, ShareRole, effective_role, granted_role
 from app.domain.modules import KIND_PATTERN, module_keys, validate_module
 from app.domain.ports import BoardRepo, LiveBoards, SnapshotRepo
@@ -24,6 +24,9 @@ CARD = "task_card"
 # What a card was called before trackers could be mixed. A tab left open over the upgrade and
 # a script written for the old API still send it.
 LEGACY_CARD = "jira_card"
+
+# How long a deleted board waits in the trash before it is gone for good.
+TRASH_DAYS = 30
 
 BOARD_NAME_MAX = 100
 BoardName = Annotated[
@@ -289,6 +292,26 @@ class BoardRow(BaseModel):
     folder_id: str | None = None
 
 
+class TrashRow(BaseModel):
+    id: str
+    name: str
+    deleted_at: str
+    owner_id: str | None
+    owner_name: str | None
+    deleted_by_id: str | None
+    deleted_by_name: str | None
+
+
+class TrashedBoard(BaseModel):
+    id: str
+    name: str
+    owner: BoardOwner | None
+    deleted_at: str
+    # None once the person who deleted it has no account any more.
+    deleted_by: BoardOwner | None
+    purge_at: str
+
+
 class BoardRecord(BaseModel):
     id: str
     name: str
@@ -512,10 +535,58 @@ def rename_board(
     return summary(person, board_id, boards)
 
 
-def delete_board(board_id: str, boards: BoardRepo, live: LiveBoards) -> None:
-    boards.delete(board_id)
+def delete_board(person: Person, board_id: str, boards: BoardRepo, live: LiveBoards) -> None:
+    """Moves the board to the trash; it is closed for everyone until restored."""
+    boards.delete(board_id, person.id)
     live.recheck_board(board_id)
     live.end_public(board_id)
+
+
+def _person(person_id: str | None, name: str | None) -> BoardOwner | None:
+    return BoardOwner(id=person_id, name=name or "") if person_id else None
+
+
+def _trashed(row: TrashRow) -> TrashedBoard:
+    purge = datetime.fromisoformat(row.deleted_at) + timedelta(days=TRASH_DAYS)
+    return TrashedBoard(
+        id=row.id,
+        name=row.name,
+        owner=_person(row.owner_id, row.owner_name),
+        deleted_at=row.deleted_at,
+        deleted_by=_person(row.deleted_by_id, row.deleted_by_name),
+        purge_at=purge.isoformat(timespec="seconds"),
+    )
+
+
+def list_trash(person: Person, boards: BoardRepo) -> list[TrashedBoard]:
+    """The person's trashed boards; a workspace admin sees the whole workspace's trash."""
+    rows = boards.trash(None if person.role == "admin" else person.id)
+    return [_trashed(row) for row in rows]
+
+
+def _in_trash(person: Person, board_id: str, boards: BoardRepo) -> TrashRow:
+    rows = boards.trash(None if person.role == "admin" else person.id, board_id)
+    if not rows:
+        raise NotFound("board not found")
+    return rows[0]
+
+
+def restore_board(person: Person, board_id: str, boards: BoardRepo) -> None:
+    _in_trash(person, board_id, boards)
+    if not boards.restore(board_id):
+        raise NotFound("board not found")
+
+
+def delete_forever(person: Person, board_id: str, boards: BoardRepo) -> None:
+    if _in_trash(person, board_id, boards).owner_id != person.id:
+        raise Forbidden("Only the board's owner can delete it for good.")
+    if not boards.purge(board_id):
+        raise NotFound("board not found")
+
+
+def purge_trash(boards: BoardRepo, now: datetime) -> int:
+    """Deletes for good every board in the trash for TRASH_DAYS or longer."""
+    return boards.purge_trashed((now - timedelta(days=TRASH_DAYS)).isoformat())
 
 
 def save_board(board_id: str, version: int, doc: BoardDoc, live: LiveBoards) -> int:

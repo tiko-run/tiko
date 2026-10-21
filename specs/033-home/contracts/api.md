@@ -43,12 +43,12 @@ Anyone who can open the board. `200 image/svg+xml`, `ETag: "<version>.<drawing>"
 ## Trash (`feat/trash`)
 
 - `DELETE /api/boards/{id}`: now moves the board to the trash; still `204`, still owner only. Sockets and public guests are closed as before.
-- `DELETE /api/boards/{id}?forever=1`: owner, only a board in the trash; `204`, the board is gone with every row.
+- `DELETE /api/boards/{id}?forever=1`: owner, only a board in the trash; `204`, the board is gone with every row. A workspace admin who is not the owner gets `403`.
 - `POST /api/boards/{id}/restore`: owner or workspace admin; `204`. Members, roles and the public link work again.
 - `GET /api/trash`: the person's trashed boards; a workspace admin gets every trashed board of the workspace.
 
 ```json
 {"boards": [{"id": "b1", "name": "Roadmap", "owner": {"id": "u1", "name": "Mira Example"},
-  "deleted_at": "2026-10-21T08:30:00Z", "deleted_by": {"id": "u1", "name": "Mira Example"},
-  "purge_at": "2026-11-20T08:30:00Z"}]}
+  "deleted_at": "2026-10-21T08:30:00+00:00", "deleted_by": {"id": "u1", "name": "Mira Example"},
+  "purge_at": "2026-11-20T08:30:00+00:00"}]}
 ```

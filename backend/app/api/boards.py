@@ -160,8 +160,26 @@ def rename_board(
 
 
 @router.delete("/{board_id}", status_code=204)
-def delete_board(board_id: str, _: IsOwner, boards: Boards, live: Live) -> Response:
-    service.delete_board(board_id, boards, live)
+def delete_board(
+    board_id: str,
+    person: CurrentPerson,
+    members: MembersDep,
+    boards: Boards,
+    live: Live,
+    forever: bool = False,
+) -> Response:
+    # A board in the trash answers 404 to the role check, so `forever` checks on its own.
+    if forever:
+        service.delete_forever(person, board_id, boards)
+    else:
+        members.require(person, board_id, "owner")
+        service.delete_board(person, board_id, boards, live)
+    return Response(status_code=204)
+
+
+@router.post("/{board_id}/restore", status_code=204)
+def restore_board(board_id: str, person: CurrentPerson, boards: Boards) -> Response:
+    service.restore_board(person, board_id, boards)
     return Response(status_code=204)
 
 
