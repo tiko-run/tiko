@@ -16,9 +16,9 @@ description: "Task list for Canvas polish"
 
 ## Phase 2: Slice `feat/align` (US2)
 
-- [ ] T004 `canvas/align.ts`: six alignments and two distributions on board boxes, skipping children of a selected frame. Tests
-- [ ] T005 Align button and popover in `SelectionBar`, one undo step, live for a second client. Tests
-- [ ] T006 `DESIGN.md` selection bar section, `CHANGELOG.md`, the guide; `make check`, `/ui-review`
+- [x] T004 `canvas/align.ts`: six alignments and two distributions on board boxes, skipping children of a selected frame. Tests
+- [x] T005 Align button and popover in `SelectionBar`, one undo step, live for a second client. Tests
+- [x] T006 `DESIGN.md` selection bar section, `CHANGELOG.md`, the guide; `make check`, `/ui-review`
 
 ## Phase 3: Slice `feat/minimap` (US3)
 
