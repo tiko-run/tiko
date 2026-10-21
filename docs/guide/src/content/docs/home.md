@@ -1,6 +1,6 @@
 ---
 title: Home
-description: Every board you can open on one page, with filters, search and a menu per board.
+description: Every board you can open on one page, with filters, search, a menu per board and a trash.
 ---
 
 tiko opens on Home whenever the address names no board, also right after you sign in. A link to a board opens the board at once. The Home button at the left of the top bar, "All boards" at the end of the board menu and the browser's Back button all lead back here.
@@ -25,6 +25,14 @@ Folders group boards your own way. Make one with the plus next to "Folders" at t
 
 Stars and folders are yours alone: nobody else sees them, and they change nothing about who can open a board. When a board stops being shared with you, it leaves your stars and folders too, and comes back without them if it is shared again. On a narrow screen the places sit in one row above the list.
 
+## Trash
+
+"Move to trash…" in the board menu, or dragging your board onto "Trash" at the left, moves the board to your trash for 30 days. Until then it is closed for everyone: people it is shared with lose it, its public link stops working and open tabs of it close. The toast that follows has an Undo.
+
+"Trash" at the left lists your deleted boards with the days left before each goes for good. **Restore** brings a board back as it was, with everyone it was shared with, their roles, its public link and their stars and folders. The bin button deletes it for good after a confirmation; that cannot be undone. After 30 days a board goes by itself, within the hour.
+
+A workspace admin sees the trash of everyone in the workspace and can restore any board in it; only the owner deletes a board for good. A board in the trash still counts toward the boards you may own until it is gone for good.
+
 ## Find a board
 
 Press `/` or `⌘K` (`Ctrl+K`) on Home and type part of a name. The list keeps the boards whose name has every word you typed. `↑` and `↓` move the highlight, `Enter` opens the board, `Esc` clears the field.
@@ -45,7 +53,7 @@ The `⋯` button of a board, or a right click on it, opens the board's menu:
 | Duplicate | everyone who can open the board |
 | Share | everyone, except on the demo |
 | Move to folder | everyone |
-| Delete… | the owner, after a confirmation |
+| Move to trash… | the owner, after a confirmation |
 
 Duplicate makes a board of your own named "Copy of …" with the same content. Nobody else is on the copy and it has no public link, whoever the first board was shared with. A copy counts toward the boards you may own, where the server sets a limit.
 

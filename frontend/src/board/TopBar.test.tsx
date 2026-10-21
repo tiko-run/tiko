@@ -98,21 +98,23 @@ test('renames the current board inline', async () => {
   vi.unstubAllGlobals()
 })
 
-test('deletes a board only after confirming', async () => {
+test('moves a board to the trash only after confirming, then goes Home', async () => {
   const fetch = vi.fn(async () => new Response(null, { status: 204 }))
   vi.stubGlobal('fetch', fetch)
+  window.history.replaceState(null, '', '/?board=a')
   renderBar()
   fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
-  fireEvent.click(await screen.findByRole('menuitem', { name: 'Delete board…' }))
-  expect(await screen.findByText(/"Q4 goals" and everything on it/)).toBeTruthy()
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Move to trash…' }))
+  expect(await screen.findByText(/"Q4 goals" waits in the trash for 30 days/)).toBeTruthy()
   expect(fetch).not.toHaveBeenCalledWith('/api/boards/a', expect.anything())
-  fireEvent.click(screen.getByRole('button', { name: 'Delete board' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Move to trash' }))
   await waitFor(() =>
     expect(fetch).toHaveBeenCalledWith(
       '/api/boards/a',
       expect.objectContaining({ method: 'DELETE' }),
     ),
   )
+  await waitFor(() => expect(new URL(window.location.href).searchParams.has('board')).toBe(false))
   vi.unstubAllGlobals()
 })
 

@@ -19,3 +19,12 @@ export function relativeTime(iso: string | null, now = Date.now()): string | nul
   }
   return 'just now'
 }
+
+const DAY_MS = 24 * 3600 * 1000
+
+/** "29 days left" until the board goes for good; the last day reads "Goes today". */
+export function timeLeft(purgeAt: string, now = Date.now()): string {
+  const days = Math.floor((Date.parse(purgeAt) - now) / DAY_MS)
+  if (days < 1) return 'Goes today'
+  return days === 1 ? '1 day left' : `${days} days left`
+}

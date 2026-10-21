@@ -27,7 +27,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
 import { canEdit, type BoardSummary } from '@/api/boards'
-import { DeleteBoardDialog, RenameBoardForm } from '@/board/BoardActions'
+import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { DemoMark } from '@/board/DemoMark'
 import { SignUpDialog } from '@/auth/SignUp'
 import { ShareDialog } from '@/board/ShareDialog'
@@ -327,7 +327,7 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
         </DropdownMenuContent>
       </DropdownMenu>
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-      <DeleteBoardDialog board={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
+      <TrashBoardDialog board={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
       <Dialog open={leaving} onOpenChange={setLeaving}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -413,7 +413,7 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
               {current.my_role === 'owner' && (
                 <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(current)}>
                   <Trash2 strokeWidth={1.75} />
-                  Delete board…
+                  Move to trash…
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

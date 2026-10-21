@@ -1,4 +1,11 @@
-import { Folder as FolderIcon, LayoutDashboard, MoreHorizontal, Plus, Star } from 'lucide-react'
+import {
+  Folder as FolderIcon,
+  LayoutDashboard,
+  MoreHorizontal,
+  Plus,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import type { Folder } from '@/api/folders'
 import { Button } from '@/components/ui/button'
@@ -16,7 +23,12 @@ import { useCreateFolder, useDeleteFolder, useRenameFolder } from './organize'
 /** What a dragged card or row carries: the board's id. */
 export const BOARD_DRAG = 'application/x-tiko-board'
 
-export type Counts = { all: number; starred: number; folders: Record<string, number> }
+export type Counts = {
+  all: number
+  starred: number
+  trash: number
+  folders: Record<string, number>
+}
 
 type Props = {
   place: Place
@@ -26,7 +38,7 @@ type Props = {
   onDropBoard: (place: Place, boardId: string) => void
 }
 
-/** Home's side: every board, the starred ones and the person's folders. */
+/** Home's side: every board, the starred ones, the person's folders and the trash. */
 export function Side({ place, onPlace, folders, counts, onDropBoard }: Props) {
   const [adding, setAdding] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -119,6 +131,8 @@ export function Side({ place, onPlace, folders, counts, onDropBoard }: Props) {
         />
       )}
       {!adding && plus('size-8 border md:hidden')}
+      <div className="hidden pt-3 md:block" />
+      {entry('trash', 'Trash', <Trash2 strokeWidth={1.75} />, counts.trash)}
     </nav>
   )
 }

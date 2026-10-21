@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { toast } from 'sonner'
 import { placeBoard, starBoard, type BoardList, type BoardSummary } from '@/api/boards'
 import { createFolder, deleteFolder, listFolders, renameFolder, type Folder } from '@/api/folders'
+import { deleteForever, listTrash, restoreBoard, type TrashedBoard } from '@/api/trash'
 import { toastError } from '@/lib/toast'
 
 const BOARDS = ['boards']
@@ -99,6 +100,43 @@ export function useDeleteFolder(onDeleted: (id: string) => void) {
       void queryClient.invalidateQueries({ queryKey: BOARDS })
       onDeleted(id)
       toast.success('Folder deleted. Its boards stay on Home.')
+    },
+    onError: toastError,
+  })
+}
+
+const TRASH = ['trash']
+
+export function useTrash() {
+  return useQuery({ queryKey: TRASH, queryFn: listTrash })
+}
+
+/** Takes a board out of the trash with its members, roles and public link. */
+export function useRestore() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: restoreBoard,
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<{ boards: TrashedBoard[] }>(TRASH, (list) =>
+        list ? { boards: list.boards.filter((board) => board.id !== id) } : list,
+      )
+      void queryClient.invalidateQueries({ queryKey: TRASH })
+      void queryClient.invalidateQueries({ queryKey: BOARDS })
+    },
+    onError: toastError,
+  })
+}
+
+export function useDeleteForever(onDone: () => void) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteForever,
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<{ boards: TrashedBoard[] }>(TRASH, (list) =>
+        list ? { boards: list.boards.filter((board) => board.id !== id) } : list,
+      )
+      void queryClient.invalidateQueries({ queryKey: TRASH })
+      onDone()
     },
     onError: toastError,
   })

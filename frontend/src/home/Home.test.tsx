@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import type { BoardSummary } from '@/api/boards'
 import { Home } from './Home'
 import { inPlace, visibleBoards } from './list'
+import { timeLeft } from '@/lib/time'
 
 const ann = { id: 'u1', name: 'Ann' }
 const bob = { id: 'u2', name: 'Bob' }
@@ -38,9 +39,32 @@ const person = {
 
 const team = { id: 'f1', name: 'Team', position: 1 }
 
-function mockFetch(me: object = person, folders = [team]) {
+const DAY = 24 * 3600 * 1000
+const trashed = [
+  {
+    id: 't1',
+    name: 'Old plan',
+    owner: ann,
+    deleted_at: new Date(Date.now() - DAY).toISOString(),
+    deleted_by: ann,
+    purge_at: new Date(Date.now() + 29 * DAY + 3600_000).toISOString(),
+  },
+  {
+    id: 't2',
+    name: 'Bob notes',
+    owner: bob,
+    deleted_at: new Date(Date.now() - 2 * DAY).toISOString(),
+    deleted_by: bob,
+    purge_at: new Date(Date.now() + 28 * DAY + 3600_000).toISOString(),
+  },
+]
+
+function mockFetch(me: object = person, folders = [team], trash = trashed.slice(0, 1)) {
   const fetch = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === '/api/auth/status') return Response.json({ signed_in: true, me })
+    if (path === '/api/trash') return Response.json({ boards: trash })
+    if (path.endsWith('/restore') || path.includes('forever=1'))
+      return new Response(null, { status: 204 })
     if (path === '/api/folders' && init?.method === 'POST')
       return Response.json({ id: 'f2', name: 'Archive', position: 2 }, { status: 201 })
     if (path === '/api/folders') return Response.json({ folders })
@@ -174,7 +198,7 @@ test('New board makes an untitled board and opens it with the name ready', async
   )
 })
 
-test('the board menu duplicates, renames and asks before deleting', async () => {
+test('the board menu duplicates, renames and asks before moving to the trash', async () => {
   const fetch = mockFetch()
   renderHome()
   const openMenu = async () => {
@@ -193,8 +217,8 @@ test('the board menu duplicates, renames and asks before deleting', async () => 
   fireEvent.click(within(await openMenu()).getByRole('menuitem', { name: 'Rename' }))
   expect(await screen.findByLabelText('Board name')).toHaveValue('Roadmap Q4')
   fireEvent.keyDown(screen.getByLabelText('Board name'), { key: 'Escape' })
-  fireEvent.click(within(await openMenu()).getByRole('menuitem', { name: 'Delete…' }))
-  expect(await screen.findByText(/"Roadmap Q4" and everything on it/)).toBeInTheDocument()
+  fireEvent.click(within(await openMenu()).getByRole('menuitem', { name: 'Move to trash…' }))
+  expect(await screen.findByText(/"Roadmap Q4" waits in the trash/)).toBeInTheDocument()
   expect(fetch).not.toHaveBeenCalledWith('/api/boards/b1', expect.anything())
 })
 
@@ -207,7 +231,7 @@ test('a board shared with me has no delete, and a demo visitor has no share', as
   })
   const menu = await screen.findByRole('menu')
   expect(within(menu).getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument()
-  expect(within(menu).queryByRole('menuitem', { name: 'Delete…' })).toBeNull()
+  expect(within(menu).queryByRole('menuitem', { name: 'Move to trash…' })).toBeNull()
   expect(within(menu).queryByRole('menuitem', { name: 'Share' })).toBeNull()
 })
 
@@ -371,4 +395,53 @@ test('deleting a folder asks nothing and keeps its boards', async () => {
     ),
   )
   expect(fetch).not.toHaveBeenCalledWith('/api/boards/b1', expect.anything())
+})
+
+test('the trash lists deleted boards with the time left, restores and deletes for good', async () => {
+  const fetch = mockFetch(person, [team], trashed)
+  renderHome()
+  const side = await screen.findByRole('navigation', { name: 'Places' })
+  await waitFor(() => expect(within(side).getByRole('button', { name: /Trash\s?2/ })).toBeTruthy())
+  fireEvent.click(within(side).getByRole('button', { name: /Trash/ }))
+  expect(await screen.findByRole('heading', { name: 'Trash' })).toBeInTheDocument()
+  const list = screen.getByRole('list', { name: 'Boards in the trash' })
+  expect(within(list).getAllByText('29 days left').length).toBeGreaterThan(0)
+  expect(within(list).getByText(/Deleted yesterday$/)).toBeInTheDocument()
+  expect(within(list).getByText(/by Bob/)).toBeInTheDocument()
+  // Only the owner deletes for good; anyone who sees the board here restores it.
+  expect(screen.queryByRole('button', { name: 'Delete Bob notes for good' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'New board' })).toBeNull()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Restore Bob notes' }))
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/t2/restore',
+      expect.objectContaining({ method: 'POST' }),
+    ),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Delete Old plan for good' }))
+  expect(await screen.findByText(/This cannot be undone/)).toBeInTheDocument()
+  expect(fetch).not.toHaveBeenCalledWith('/api/boards/t1?forever=1', expect.anything())
+  fireEvent.click(screen.getByRole('button', { name: 'Delete for good' }))
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/t1?forever=1',
+      expect.objectContaining({ method: 'DELETE' }),
+    ),
+  )
+})
+
+test('an empty trash says so', async () => {
+  mockFetch(person, [team], [])
+  renderHome()
+  fireEvent.click(await screen.findByRole('button', { name: /^Trash/ }))
+  expect(await screen.findByText('The trash is empty.')).toBeInTheDocument()
+})
+
+test('the time left counts whole days and the last one reads Goes today', () => {
+  const now = Date.parse('2026-10-21T12:00:00Z')
+  expect(timeLeft('2026-11-20T12:00:00Z', now)).toBe('30 days left')
+  expect(timeLeft('2026-10-23T11:00:00Z', now)).toBe('1 day left')
+  expect(timeLeft('2026-10-22T11:00:00Z', now)).toBe('Goes today')
+  expect(timeLeft('2026-10-21T11:00:00Z', now)).toBe('Goes today')
 })
