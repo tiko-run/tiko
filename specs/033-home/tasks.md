@@ -34,9 +34,9 @@ description: "Task list for Home"
 
 ## Phase 4: Slice `feat/trash` (US4)
 
-- [ ] T016 `boards.deleted_at`, `deleted_by`; every board read skips trashed boards; a storage test over each repository method that takes a board id
-- [ ] T017 `DELETE` to the trash, `?forever=1`, `POST /restore`, `GET /api/trash` with the admin's view; the limit counts trashed boards. Contract first. Tests
-- [ ] T018 The 30-day job in process 0; removal from the workspace moves trashed boards too; the demo's eviction takes the trash. Tests
-- [ ] T019 The route walk of spec 032 extended with a trashed board, stars and folders as owner, member, admin and stranger (SC-003)
-- [ ] T020 Home: the trash view, restore, delete for good with a confirmation, the time left. Tests
-- [ ] T021 `CHANGELOG.md`, the guide's Home, boards and demo pages; `make check`, `make smoke`, `/ui-review`
+- [x] T016 `boards.deleted_at`, `deleted_by`; every board read skips trashed boards; a storage test over each repository method that takes a board id
+- [x] T017 `DELETE` to the trash, `?forever=1`, `POST /restore`, `GET /api/trash` with the admin's view; the limit counts trashed boards. Contract first. Tests
+- [x] T018 The 30-day job in process 0; removal from the workspace moves trashed boards too; the demo's eviction takes the trash. Tests
+- [x] T019 The route walk of spec 032 extended with a trashed board, stars and folders as owner, member, admin and stranger (SC-003)
+- [x] T020 Home: the trash view, restore, delete for good with a confirmation, the time left. Tests
+- [x] T021 `CHANGELOG.md`, the guide's Home, boards and demo pages; `make check`, `make smoke`, `/ui-review`
