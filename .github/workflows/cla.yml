@@ -16,9 +16,10 @@ on:
 
 permissions: {}
 
-# A run per comment, so a second signature comment does not replace a waiting one.
+# One run at a time per pull request; the rest wait in line instead of replacing each other.
 concurrency:
-  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event.comment.id || github.event_name }}
+  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}
+  queue: max
 
 jobs:
   cla:
@@ -114,7 +115,9 @@ jobs:
             const missing = [...people]
               .filter(([id, login]) => !allowed(login) && !signed.has(id))
               .map(([, login]) => login)
-            const ok = missing.length === 0 && unlinked.length === 0
+            // The API lists at most 250 commits: past that, authors could go unchecked.
+            const complete = commits.length === pr.commits
+            const ok = complete && missing.length === 0 && unlinked.length === 0
 
             await github.rest.repos.createCommitStatus({
               owner, repo, sha: pr.head.sha, context: 'cla', target_url: doc,
@@ -142,6 +145,9 @@ jobs:
                 'You sign once; it covers your later pull requests too.',
               ]
               if (missing.length) lines.push('', `Not signed yet: ${missing.map((l) => '@' + l).join(', ')}`)
+              if (!complete) {
+                lines.push('', `This pull request has more commits than the check can read (${commits.length} of ${pr.commits}). Please split it or squash it.`)
+              }
               if (unlinked.length) {
                 lines.push('', `Commits ${unlinked.join(', ')} have an author e-mail that is not linked to a GitHub account. Add that e-mail to your account, or amend the commits, then comment \`recheck\`.`)
               }
