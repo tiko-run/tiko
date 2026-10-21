@@ -426,7 +426,7 @@ export function Home({ boards, others }: Props) {
   )
 }
 
-type Choice = { label: string; checked: boolean; run: () => void; separated?: boolean }
+type Choice = { key: string; label: string; checked: boolean; run: () => void; separated?: boolean }
 type Action = {
   label: string
   Icon: LucideIcon
@@ -450,13 +450,16 @@ type Menu = {
 
 function actionsFor(board: BoardSummary, demo: boolean, menu: Menu, folders: Folder[]): Action[] {
   const inside = board.folder_id ?? null
+  // Folder names may repeat, so a choice is known by the folder's id.
   const choices: Choice[] = folders.map((folder) => ({
+    key: folder.id,
     label: folder.name,
     checked: folder.id === inside,
     run: () => folder.id !== inside && menu.move(board, folder.id),
   }))
   if (inside && choices.some((choice) => choice.checked)) {
     choices.push({
+      key: 'none',
       label: 'No folder',
       checked: false,
       run: () => menu.move(board, null),
@@ -722,7 +725,7 @@ function MenuItems({ kind, actions }: { kind: 'dropdown' | 'context'; actions: A
           <SubContent className="max-h-72 w-48 overflow-y-auto">
             {choices.length === 0 && <Item disabled>{empty}</Item>}
             {choices.map((choice) => (
-              <Fragment key={choice.label + choice.checked}>
+              <Fragment key={choice.key}>
                 {choice.separated && <Separator />}
                 <Item onSelect={choice.run}>
                   <span className="truncate">{choice.label}</span>
