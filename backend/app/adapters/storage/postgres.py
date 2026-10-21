@@ -368,7 +368,8 @@ class PgBoardRepo(_Repo):
             params = (user_id, user_id)
         with self._tx() as conn:
             rows = conn.execute(
-                "SELECT b.id, b.name, b.updated_at, b.everyone_role, m.role AS member_role,"
+                "SELECT b.id, b.name, b.created_at, b.updated_at, b.everyone_role,"
+                " m.role AS member_role,"
                 " o.user_id AS owner_id, u.name AS owner_name,"
                 " i.public_token IS NOT NULL AS public FROM boards b"
                 " JOIN board_index i ON i.board_id = b.id"

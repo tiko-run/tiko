@@ -25,7 +25,10 @@ CARD = "task_card"
 # a script written for the old API still send it.
 LEGACY_CARD = "jira_card"
 
-BoardName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+BOARD_NAME_MAX = 100
+BoardName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=BOARD_NAME_MAX)
+]
 
 
 class _Strict(BaseModel):
@@ -256,6 +259,7 @@ class BoardOwner(BaseModel):
 class BoardSummary(BaseModel):
     id: str
     name: str
+    created_at: str
     updated_at: str
     my_role: BoardRole
     owner: BoardOwner | None
@@ -268,6 +272,7 @@ class BoardRow(BaseModel):
 
     id: str
     name: str
+    created_at: str
     updated_at: str
     member_role: BoardRole | None
     everyone_role: ShareRole | None
@@ -400,6 +405,7 @@ def _summary(row: BoardRow, role: BoardRole) -> BoardSummary:
     return BoardSummary(
         id=row.id,
         name=row.name,
+        created_at=row.created_at,
         updated_at=row.updated_at,
         my_role=role,
         owner=owner,
@@ -447,6 +453,20 @@ def create_board(
     if board_id is None:
         raise BoardLimit(f"An account here holds {limit} boards. Delete one to make another.")
     return summary(person, board_id, boards)
+
+
+def duplicate_board(
+    person: Person, board_id: str, boards: BoardRepo, limit: int | None = None
+) -> BoardSummary:
+    """A copy of the board's content owned by the person, with no members or public link."""
+    record = boards.get(board_id)
+    if record is None:
+        raise NotFound("board not found")
+    name = f"Copy of {record.name}"[:BOARD_NAME_MAX].rstrip()
+    copy_id = boards.create(name, record.doc, person.id, limit)
+    if copy_id is None:
+        raise BoardLimit(f"An account here holds {limit} boards. Delete one to make another.")
+    return summary(person, copy_id, boards)
 
 
 def get_board(

@@ -102,6 +102,14 @@ def create_board(
     return service.create_board(person, body.name, boards, limit)
 
 
+@router.post("/{board_id}/duplicate", status_code=201)
+def duplicate_board(
+    board_id: str, _: CanView, person: CurrentPerson, boards: Boards, request: Request
+) -> BoardSummary:
+    limit = board_limit(person, request.app.state.board_limit)
+    return service.duplicate_board(person, board_id, boards, limit)
+
+
 @router.get("/{board_id}")
 def get_board(
     board_id: str,

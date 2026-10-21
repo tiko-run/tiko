@@ -8,6 +8,7 @@ import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { openFirstBoard } from '@/lib/navigation'
 
 function message(error: Error) {
   if (!(error instanceof ApiError)) return error.message
@@ -29,8 +30,9 @@ export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; d
   // The demo button has an address of its own; everything else is the sign-in form.
   if (demo && /^\/demo\/?$/.test(window.location.pathname)) {
     const started = () => {
-      // The board opens at the root, so a reload does not land on the button again.
+      // Home takes the button's place, so a reload or Back never lands on it again.
       window.history.replaceState(null, '', '/')
+      openFirstBoard()
       onSignedIn()
     }
     return <DemoStart onStarted={started} />

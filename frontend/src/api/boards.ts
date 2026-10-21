@@ -10,6 +10,7 @@ export type ShareRole = z.infer<typeof shareRoleSchema>
 const summarySchema = z.object({
   id: z.string(),
   name: z.string(),
+  created_at: z.string(),
   updated_at: z.string(),
   my_role: boardRoleSchema,
   owner: z.object({ id: z.string(), name: z.string() }).nullable(),
@@ -52,7 +53,8 @@ export const docSchema = z.object({
 export type BoardDoc = z.infer<typeof docSchema>
 export type DocNode = z.infer<typeof docNodeSchema>
 
-const boardSchema = summarySchema.extend({
+// The canvas has no use for when the board was made; a public board does not say it.
+const boardSchema = summarySchema.omit({ created_at: true }).extend({
   version: z.number(),
   doc: docSchema,
   // By ref, `source:key`.
@@ -139,6 +141,11 @@ export function createBoard(name: string) {
     method: 'POST',
     body: JSON.stringify({ name }),
   })
+}
+
+/** A copy of the board's content, owned by the person, with no members or public link. */
+export function duplicateBoard(id: string) {
+  return fetchJson(`/api/boards/${id}/duplicate`, summarySchema, { method: 'POST' })
 }
 
 export function renameBoard(id: string, name: string) {

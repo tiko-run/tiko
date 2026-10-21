@@ -5,7 +5,13 @@ import type { BoardSummary } from '@/api/boards'
 import { TopBar } from '@/board/TopBar'
 
 const owner = { id: 'u1', name: 'Admin' }
-const base = { updated_at: '2026-10-05T07:00:00Z', my_role: 'owner', owner, public: false } as const
+const base = {
+  created_at: '2026-10-01T07:00:00Z',
+  updated_at: '2026-10-05T07:00:00Z',
+  my_role: 'owner',
+  owner,
+  public: false,
+} as const
 const boards = [
   { id: 'a', name: 'Q4 goals', ...base },
   { id: 'b', name: 'Team Platform', ...base },
@@ -13,23 +19,47 @@ const boards = [
 
 afterEach(() => {
   localStorage.clear()
+  window.history.replaceState(null, '', '/')
   document.documentElement.classList.remove('dark')
 })
 
-function renderBar(onSelect = vi.fn()) {
+function renderBar() {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <TopBar boards={boards} current={boards[0]} onSelect={onSelect} />
+      <TopBar boards={boards} current={boards[0]} />
     </QueryClientProvider>,
   )
-  return onSelect
 }
 
+const addressBoard = () => new URL(window.location.href).searchParams.get('board')
+
 test('switches boards from the board menu', async () => {
-  const onSelect = renderBar()
+  renderBar()
   fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
   fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Team Platform' }))
-  expect(onSelect).toHaveBeenCalledWith('b')
+  expect(addressBoard()).toBe('b')
+})
+
+test('goes back to Home from the Home button and from All boards', async () => {
+  window.history.replaceState(null, '', '/?board=a')
+  renderBar()
+  fireEvent.click(screen.getByRole('button', { name: 'Home' }))
+  expect(addressBoard()).toBeNull()
+  window.history.replaceState(null, '', '/?board=a')
+  fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'All boards' }))
+  expect(addressBoard()).toBeNull()
+})
+
+test('a board just made opens with its name ready to type', async () => {
+  window.history.replaceState(null, '', '/?board=a&rename=1')
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TopBar boards={boards} current={boards[0]} renameOnOpen />
+    </QueryClientProvider>,
+  )
+  expect(await screen.findByLabelText('Board name')).toHaveValue('Q4 goals')
+  expect(new URL(window.location.href).searchParams.has('rename')).toBe(false)
 })
 
 test('switches to the dark theme from the main menu', async () => {
@@ -161,7 +191,6 @@ test('a viewer sees View only and cannot rename or delete', async () => {
         boards={[{ ...boards[0], my_role: 'viewer' }]}
         others={[]}
         current={{ ...boards[0], my_role: 'viewer' }}
-        onSelect={vi.fn()}
       />
     </QueryClientProvider>,
   )
@@ -172,18 +201,17 @@ test('a viewer sees View only and cannot rename or delete', async () => {
   expect(screen.queryByRole('menuitem', { name: /Delete board/ })).toBeNull()
 })
 
-test('admins find boards shared with no one under All boards', async () => {
+test('admins find boards shared with no one under Other boards', async () => {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <TopBar
         boards={[boards[0]]}
         others={[{ ...boards[1], owner: { id: 'u9', name: 'Dana' } }]}
         current={boards[0]}
-        onSelect={vi.fn()}
       />
     </QueryClientProvider>,
   )
   fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
-  expect(await screen.findByText('All boards')).toBeInTheDocument()
+  expect(await screen.findByText('Other boards')).toBeInTheDocument()
   expect(screen.getByRole('menuitemradio', { name: /Team Platform/ })).toBeInTheDocument()
 })
