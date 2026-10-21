@@ -19,6 +19,7 @@ Requires: installer
 - Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
 - Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
 - Share's role for the whole team now reads "Everyone in this workspace".
+- Plan on the demo in your own space: add stage types, people and time off, and see their workload. Each visitor gets a workspace of their own with a copy of the sample lists, kept when they sign up. See [The demo](https://docs.tiko.run/demo/).
 - The guide wears tiko's own colors in light and dark, with Docs and What's new as tabs in the top bar and a "Try the demo" button. Copy any page as Markdown, or open it in ChatGPT or Claude to ask about it.
 - Guide pages are easier to scan: tables in a frame, Install with one tab per system that the whole page follows, callouts for what to watch out for, and Gantt split into a short overview and a page per planning topic. Old links to Gantt sections still land on the right page.
 

@@ -24,4 +24,4 @@ Each stage can name the people planned for it. They come from one list for the w
 
 The tracker's assignee and the stage's people are independent: the tracker says who owns the task now, a stage says who is planned for that phase. Names show after the stage type, or centered under each stage with **⋯ → Under each stage**. When they do not fit, the stage shows a people icon with a count; click the stage for the list. An archived person stays on old stages, muted, and is not offered again. Someone viewing a public link sees the names but cannot change them.
 
-On the [public demo](https://demo.tiko.run) the people and stage types are made up: you can use them but not change them.
+On the [public demo](https://demo.tiko.run) the people and stage types are made up and yours to change: every visitor gets a copy of their own.

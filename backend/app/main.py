@@ -5,7 +5,6 @@ import random
 import ssl
 import time
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 
@@ -22,9 +21,8 @@ from app.adapters.live.workers import Workers
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
-from app.adapters.storage import copy_sqlite
+from app.adapters.storage import copy_sqlite, demo_split
 from app.adapters.storage import postgres as storage
-from app.adapters.storage.lock import FileLock
 from app.adapters.storage.update_backups import DumpUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
@@ -37,7 +35,7 @@ from app.api.gate import PasswordGate
 from app.api.routes import router
 from app.api.workspace import WorkspaceScope
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
-from app.domain import demo, planning_sample, usage
+from app.domain import demo, usage
 from app.domain.accounts import Accounts
 from app.domain.errors import NotFound
 from app.domain.invites import Invites
@@ -56,7 +54,7 @@ from app.domain.settings import (
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.domain.usage import Deploy, HostOs, Privacy
-from app.domain.workspaces import Memberships
+from app.domain.workspaces import Memberships, current_workspace
 from app.observability import (
     DEMO_LIMIT,
     DEMO_VISITORS,
@@ -169,8 +167,7 @@ def create_app(
     if key and len(key) < MIN_SECRET_KEY_LENGTH:
         log.warning("TIKO_SECRET_KEY is short; use openssl rand -base64 32")
 
-    async def clean_demo(visitors: demo.DemoVisitors, planning: Planning) -> None:
-        sampled = None
+    async def clean_demo(visitors: demo.DemoVisitors) -> None:
         while True:
             try:
                 gone = await anyio.to_thread.run_sync(visitors.cleanup, time.time())
@@ -178,23 +175,13 @@ def create_app(
                     log.info("demo cleanup: %d visitors deleted", gone)
             except Exception:
                 log.exception("demo cleanup failed")
-            # Once a day, so the sample time off moves along with today.
-            today = datetime.now(UTC).date()
-            if sampled != today:
-                try:
-                    await anyio.to_thread.run_sync(
-                        planning.write_sample, planning_sample.TYPES, planning_sample.people(today)
-                    )
-                    sampled = today
-                except Exception:
-                    log.exception("demo planning sample failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # One process cleans up for all of them.
         cleaner = (
-            asyncio.create_task(clean_demo(app.state.visitors, app.state.planning))
+            asyncio.create_task(clean_demo(app.state.visitors))
             if app.state.visitors and settings.tiko_worker == 0
             else None
         )
@@ -234,6 +221,8 @@ def create_app(
     db = storage.shared(settings.database_url)
     # Before anything reads or makes accounts: the first admin would be made anew.
     copy_sqlite.copy_once(db, settings.db_path)
+    if settings.tiko_demo:
+        demo_split.move_once(db)
     users = storage.UserRepo(db)
     member_repo = storage.MemberRepo(db)
     app.state.boards = storage.BoardRepo(db)
@@ -256,19 +245,6 @@ def create_app(
         workers.heard("end_person", app.state.sessions.uncache_person)
         workers.heard("recheck_person", app.state.sessions.uncache_person)
     app.state.accounts = Accounts(users, app.state.sessions, attempts, storage.KnownBrowsers(db))
-    # None unless the instance takes demo visitors; routes and dependencies read the switch here.
-    app.state.visitors = (
-        demo.DemoVisitors(
-            users,
-            app.state.sessions,
-            app.state.live,
-            settings.tiko_demo_limit or demo.MAX_ALIVE,
-            attempts,
-            None if settings.db_path == ":memory:" else FileLock(f"{settings.db_path}.demo-lock"),
-        )
-        if settings.tiko_demo
-        else None
-    )
     app.state.board_limit = settings.tiko_board_limit
     app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))
@@ -326,8 +302,21 @@ def create_app(
         storage.PlanningFieldRepo(db),
         storage.PlanningViewRepo(db),
         storage.PlanningStageRepo(db),
-        on_change=app.state.live.planning_changed,
-        sample=planning_sample.IDS if settings.tiko_demo else None,
+        on_change=lambda: app.state.live.planning_changed(current_workspace.get()),
+    )
+    # None unless the instance takes demo visitors; routes and dependencies read the switch here.
+    app.state.visitors = (
+        demo.DemoVisitors(
+            users,
+            app.state.sessions,
+            app.state.live,
+            app.state.planning,
+            settings.tiko_demo_limit or demo.MAX_ALIVE,
+            attempts,
+            db.lock("demo visitors"),
+        )
+        if settings.tiko_demo
+        else None
     )
     app.state.public_links = PublicLinks(
         app.state.boards, service.public_links, app.state.live, attempts=attempts

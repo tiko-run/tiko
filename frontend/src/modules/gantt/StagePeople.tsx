@@ -5,7 +5,6 @@ import { addPerson, storePerson, type Person } from '@/api/planning'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
-import { usePlanning } from '@/planning/context'
 
 // Mirrors MAX_STAGE_PEOPLE in backend/app/domain/modules/gantt.py.
 export const MAX_STAGE_PEOPLE = 10
@@ -26,21 +25,19 @@ type Suggestion =
   | { kind: 'tracker'; name: string }
   | { kind: 'new'; name: string }
 
-/** Directory matches, then this Gantt's assignees nobody added yet, then a new name.
- *  With a fixed directory only its people. */
+/** Directory matches, then this Gantt's assignees nobody added yet, then a new name. */
 export function suggestions(
   query: string,
   chosen: string[],
   people: Person[],
   assignees: string[],
-  fixed = false,
 ): Suggestion[] {
   const q = query.trim().toLocaleLowerCase()
   const known = new Set(people.map((p) => p.name.toLocaleLowerCase()))
   const listed = people
     .filter((p) => !p.archived && !chosen.includes(p.id) && p.name.toLocaleLowerCase().includes(q))
     .map((person) => ({ kind: 'person' as const, person }))
-  const tracker = (fixed ? [] : assignees)
+  const tracker = assignees
     .filter((name) => !known.has(name.toLocaleLowerCase()) && name.toLocaleLowerCase().includes(q))
     .map((name) => ({ kind: 'tracker' as const, name }))
   const found = [...listed, ...tracker].slice(0, SHOWN)
@@ -48,7 +45,7 @@ export function suggestions(
   const exact = [...people.map((p) => p.name), ...assignees].some(
     (name) => name.toLocaleLowerCase() === q,
   )
-  return q && !exact && !fixed ? [...found, { kind: 'new', name: query.trim() }] : found
+  return q && !exact ? [...found, { kind: 'new', name: query.trim() }] : found
 }
 
 type Props = {
@@ -62,11 +59,10 @@ type Props = {
 /** People of a stage in its popover: chips to remove, a field that finds or adds someone. */
 export function StagePeople({ chosen, people, assignees, onAdd, onRemove }: Props) {
   const queryClient = useQueryClient()
-  const { sample } = usePlanning()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const shown = open || query ? suggestions(query, chosen, people, assignees, sample) : []
+  const shown = open || query ? suggestions(query, chosen, people, assignees) : []
   const full = chosen.length >= MAX_STAGE_PEOPLE
 
   const pick = async (choice: Suggestion) => {

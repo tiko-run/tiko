@@ -35,7 +35,7 @@ Several pull requests on one slice; SQLite stays the default.
 - [x] T014 Compose files: the `db` service with no published port, volume, health check, memory settings, first-start creation of the three roles; `.env.example`, README
 - [ ] T015 [P] `install.sh` and `install.ps1`: `POSTGRES_PASSWORD` written only when missing; Windows checked on the stand
 - [x] T016 [P] Updater: `pg_dump` and `pg_restore` through the `db` container, three kept; `UpdateBackups` for a dump. Tests
-- [ ] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
+- [x] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
 - [x] T018 Remove the SQLite adapter, its migrations and the double CI run; `reset_password.py` on Postgres
 - [x] T019 On compose stacks: the bridge release with made-up boards, Planning and a public link upgrades by the installer with equal counts; a fresh stack from the README; "Update now" from a pre-bridge release rolls back. RAM at rest for SC-005
 - [x] T020 `CHANGELOG.md` with `Requires: installer`; the guide: install, configuration, backups (`down -v`), architecture; `make check`, `make smoke`, `make licenses` green
@@ -57,7 +57,7 @@ Several pull requests on one slice; SQLite stays the default.
 
 ## Phase 6: Slice `feat/demo-workspace` (US3)
 
-- [ ] T030 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
-- [ ] T031 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
-- [ ] T032 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
-- [ ] T033 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green
+- [x] T030 A workspace per visitor with a copy of the sample lists; the welcome board points at it; eviction by one delete; the visitor lock as an advisory lock. The demo guards in `people.py` stay until here. Tests
+- [x] T031 Remove spec 031's sample answer and the daily rewrite; workload back; the frontend controls back on the demo. Contract note
+- [x] T032 Sign up keeps the workspace. The SC-002 route walk across the default and a visitor workspace. On a demo compose stack: two visitors edit Planning apart
+- [x] T033 `CHANGELOG.md`, the guide's demo and Gantt pages; `make check`, `make smoke` green

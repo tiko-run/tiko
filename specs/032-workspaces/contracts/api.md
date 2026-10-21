@@ -89,3 +89,5 @@ The workspace keeps at least one active admin. Stepping down, being made a membe
 ## `GET /api/planning` on a demo (`feat/demo-workspace`)
 
 The answer drops `sample` (spec 031): a visitor's lists are their own and writable. Workload answers on the demo.
+
+A visitor works in a workspace of their own and keeps it after `POST /api/auth/signup`. Their boards answer `404` to everyone outside it, an admin of the default workspace too, and the share picker of a visitor finds nobody else. `GET /api/people/directory` matches part of a name or username on a demo too, and no longer answers `429`.
