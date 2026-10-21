@@ -445,3 +445,25 @@ test('the time left counts whole days and the last one reads Goes today', () => 
   expect(timeLeft('2026-10-22T11:00:00Z', now)).toBe('Goes today')
   expect(timeLeft('2026-10-21T11:00:00Z', now)).toBe('Goes today')
 })
+
+test('a trash that did not load says so and tries again', async () => {
+  const fetch = mockFetch()
+  fetch.mockImplementation(async (path: string) =>
+    path === '/api/trash'
+      ? Response.json({ error: { code: 'internal', message: 'down' } }, { status: 500 })
+      : Response.json({ boards, all: [] }),
+  )
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <Home boards={boards} others={[]} />
+    </QueryClientProvider>,
+  )
+  fireEvent.click(await screen.findByRole('button', { name: /^Trash/ }))
+  expect(await screen.findByText('The trash did not load.')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  await waitFor(() =>
+    expect(fetch.mock.calls.filter(([path]) => path === '/api/trash').length).toBeGreaterThan(1),
+  )
+})

@@ -2,6 +2,7 @@ import { LayoutDashboard, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { TrashedBoard } from '@/api/trash'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,6 +40,21 @@ export function Trash({ me, admin }: Props) {
         Boards wait here 30 days, then they are deleted for good.
         {admin && ' As an admin you see the trash of everyone in this workspace.'}
       </p>
+      {trash.isError && !trash.data && (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center justify-between gap-3">
+            The trash did not load.
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={trash.isFetching}
+              onClick={() => void trash.refetch()}
+            >
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       {trash.isSuccess && boards.length === 0 && (
         <div className="rounded-lg border border-dashed p-8 text-[14px]">The trash is empty.</div>
       )}
