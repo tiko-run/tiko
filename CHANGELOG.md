@@ -22,6 +22,10 @@ Requires: installer
 - The guide wears tiko's own colors in light and dark, with Docs and What's new as tabs in the top bar and a "Try the demo" button. Copy any page as Markdown, or open it in ChatGPT or Claude to ask about it.
 - Guide pages are easier to scan: tables in a frame, Install with one tab per system that the whole page follows, callouts for what to watch out for, and Gantt split into a short overview and a page per planning topic. Old links to Gantt sections still land on the right page.
 
+### Security
+
+- tiko no longer trusts the emSign ECC Root CA - G3 certificate, under which several intermediate keys were compromised, when it connects to your tracker, GitHub or the update server ([GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)).
+
 ## [2026.10.23] - 2026-10-20
 
 ### Added
