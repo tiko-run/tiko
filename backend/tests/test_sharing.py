@@ -10,6 +10,7 @@ pytestmark = pytest.mark.shared_rows
 
 LONG = "long-enough-password"
 PEOPLE = ["ann", "bob", "carl", "dave"]
+STICKY = {"id": "s", "type": "sticky", "position": {"x": 0, "y": 0}, "data": {"text": "Hi"}}
 
 
 @pytest.fixture(scope="module")
@@ -62,6 +63,11 @@ def call(world, who: str, route: str, board_id: str):
     if route == "save":
         version = clients["ann"].get(base).json()["version"]
         return client.put(base, json={"version": version, "doc": {"nodes": [], "edges": []}})
+    if route == "preview":
+        version = clients["ann"].get(base).json()["version"]
+        doc = {"nodes": [STICKY], "edges": []}
+        assert clients["ann"].put(base, json={"version": version, "doc": doc}).is_success
+        return client.get(f"{base}/preview")
     requests = {
         "get": ("GET", base, None),
         "refresh": ("POST", f"{base}/refresh", None),
@@ -83,6 +89,7 @@ EDIT = {"ann": 200, "bob": 200, "carl": 403, "dave": 404, "admin": 200}
 OWN = {"ann": 200, "bob": 403, "carl": 403, "dave": 404, "admin": 200}
 MATRIX = {
     "get": VIEW,
+    "preview": VIEW,
     "refresh": VIEW,
     "members": VIEW,
     "save": EDIT,

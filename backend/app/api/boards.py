@@ -20,12 +20,20 @@ from app.domain.demo import board_limit
 from app.domain.errors import BoardLimit
 from app.domain.members import Member, ShareRole
 from app.domain.ports import BoardRepo, LiveBoards, SnapshotRepo, TaskProvider
+from app.domain.preview import board_preview
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService, SourceStatus
 from app.domain.settings import SettingsService
 from app.domain.tasks import Task, now_iso
 
 router = APIRouter(prefix="/boards", tags=["boards"])
+
+PREVIEW_HEADERS = {
+    "Cache-Control": "private, max-age=0, must-revalidate",
+    # Shown through <img>; this keeps a script out even if the file is opened on its own.
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+    "X-Content-Type-Options": "nosniff",
+}
 
 Boards = Annotated[BoardRepo, Depends(deps.boards)]
 Snapshots = Annotated[SnapshotRepo, Depends(deps.snapshots)]
@@ -108,6 +116,22 @@ def duplicate_board(
 ) -> BoardSummary:
     limit = board_limit(person, request.app.state.board_limit)
     return service.duplicate_board(person, board_id, boards, limit)
+
+
+def _seen_versions(header: str | None) -> set[int]:
+    # A proxy that compresses turns the tag weak, W/"42"; it still names the same version.
+    tags = (tag.strip().removeprefix("W/").strip('"') for tag in (header or "").split(","))
+    return {int(tag) for tag in tags if tag.isdigit()}
+
+
+@router.get("/{board_id}/preview")
+def get_preview(board_id: str, _: CanView, boards: Boards, request: Request) -> Response:
+    seen = _seen_versions(request.headers.get("if-none-match"))
+    version, svg = board_preview(board_id, boards, seen)
+    headers = {"ETag": f'"{version}"', **PREVIEW_HEADERS}
+    if svg is None:
+        return Response(status_code=304, headers=headers)
+    return Response(svg, media_type="image/svg+xml", headers=headers)
 
 
 @router.get("/{board_id}")

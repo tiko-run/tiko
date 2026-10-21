@@ -265,6 +265,8 @@ class BoardSummary(BaseModel):
     owner: BoardOwner | None
     # Anyone with the board's public link can view it.
     public: bool = False
+    # The board version its preview follows; None for a board with nothing on it.
+    preview: int | None = None
 
 
 class BoardRow(BaseModel):
@@ -279,6 +281,7 @@ class BoardRow(BaseModel):
     owner_id: str | None
     owner_name: str | None
     public: bool = False
+    preview: int | None = None
 
 
 class BoardRecord(BaseModel):
@@ -410,6 +413,7 @@ def _summary(row: BoardRow, role: BoardRole) -> BoardSummary:
         my_role=role,
         owner=owner,
         public=row.public,
+        preview=row.preview,
     )
 
 

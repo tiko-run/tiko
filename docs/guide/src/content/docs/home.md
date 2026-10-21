@@ -5,9 +5,13 @@ description: Every board you can open on one page, with filters, search and a me
 
 tiko opens on Home whenever the address names no board, also right after you sign in. A link to a board opens the board at once. The Home button at the left of the top bar, "All boards" at the end of the board menu and the browser's Back button all lead back here.
 
-## The list
+## Grid and list
 
-Home lists every board you can open, the one changed last first. Each row shows the board's name, who owns it ("You" for your own) and when it was last changed. A globe marks a board with a public link, and "View only" a board you can only look at.
+Home lists every board you can open, the one changed last first. Each board shows its name, who owns it ("You" for your own) and when it was last changed. A globe marks a board with a public link, and "View only" a board you can only look at.
+
+The grid shows a small picture of each board: sticky notes with their text, frames with their titles, task cards with their key, shapes, arrows and Gantts as bars, each in its place. Task titles are never in it, since they come from each person's own tracker access. The picture follows the board's changes within a minute, and only people who can open the board can see it. A board with nothing on it shows its first letter instead.
+
+The two buttons next to the sort menu switch between the grid and a compact list without pictures. Your browser remembers the choice.
 
 - **All**, **Mine** and **Shared with me** above the list split your own boards from the ones others shared with you. Each shows how many boards it holds.
 - The sort menu at the right orders the list by last change or by name. Your browser remembers the choice.
@@ -23,7 +27,7 @@ Press `/` or `⌘K` (`Ctrl+K`) on Home and type part of a name. The list keeps t
 
 ## The board menu
 
-The `⋯` button at the end of a row, or a right click on the row, opens the board's menu:
+The `⋯` button of a board, or a right click on it, opens the board's menu:
 
 | Item | Who sees it |
 |---|---|

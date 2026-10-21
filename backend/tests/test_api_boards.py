@@ -264,6 +264,41 @@ def test_duplicate_of_a_missing_board(client):
     assert client.post("/api/boards/nope/duplicate").status_code == 404
 
 
+def test_preview_follows_the_board(client):
+    board = create(client, "Roadmap")
+    url = f"/api/boards/{board['id']}/preview"
+    assert board["preview"] is None
+    assert client.get(url).status_code == 404
+    version = client.get(f"/api/boards/{board['id']}").json()["version"]
+    saved = client.put(f"/api/boards/{board['id']}", json={"version": version, "doc": DOC}).json()
+    listed = client.get("/api/boards").json()["boards"]
+    assert next(b for b in listed if b["id"] == board["id"])["preview"] == saved["version"]
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/svg+xml"
+    assert response.headers["etag"] == f'"{saved["version"]}"'
+    assert response.headers["cache-control"] == "private, max-age=0, must-revalidate"
+    assert response.headers["content-security-policy"].startswith("default-src 'none'")
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert "DEMO-1" in response.text and "Rotate certs" in response.text
+    assert client.get(url).text == response.text
+
+    for tag in (f'"{saved["version"]}"', f'W/"{saved["version"]}"', f'"0", "{saved["version"]}"'):
+        assert client.get(url, headers={"If-None-Match": tag}).status_code == 304
+    doc = DOC | {"nodes": DOC["nodes"][:1], "edges": []}
+    again = client.put(
+        f"/api/boards/{board['id']}", json={"version": saved["version"], "doc": doc}
+    ).json()
+    fresh = client.get(url, headers={"If-None-Match": f'"{saved["version"]}"'})
+    assert fresh.status_code == 200 and fresh.headers["etag"] == f'"{again["version"]}"'
+    assert "Rotate certs" not in fresh.text
+
+
+def test_preview_of_a_missing_board(client):
+    assert client.get("/api/boards/nope/preview").status_code == 404
+
+
 def test_delete_board(client):
     keep, gone = create(client, "Keep"), create(client, "Gone")
     assert client.delete(f"/api/boards/{gone['id']}").status_code == 204

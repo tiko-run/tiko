@@ -57,7 +57,7 @@ def test_every_workspace_table_forces_its_policy(pg_url):
     checked = [t for t in tables if t[0] not in GLOBAL_WITH_WORKSPACE]
     # Lookups run before the workspace is known, so a policy there would hide every row.
     assert {t[0] for t in tables if t[1]} & GLOBAL_WITH_WORKSPACE == set()
-    assert len(checked) == 13
+    assert len(checked) == 14
     for name, enabled, forced in checked:
         assert enabled and forced, name
         assert name in policies, name

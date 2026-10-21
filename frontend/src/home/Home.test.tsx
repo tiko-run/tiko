@@ -87,7 +87,54 @@ test('sorts by name and remembers it', async () => {
   fireEvent.keyDown(screen.getByRole('button', { name: /Last change/ }), { key: 'Enter' })
   fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Name' }))
   expect(names()).toEqual(['Archive', 'Roadmap Q4', 'Sprint 12'])
-  expect(JSON.parse(localStorage.getItem('tiko.home') ?? '{}')).toEqual({ sort: 'name' })
+  expect(JSON.parse(localStorage.getItem('tiko.home') ?? '{}')).toEqual({
+    sort: 'name',
+    layout: 'grid',
+  })
+})
+
+test('the grid shows previews, a placeholder for an empty board, and the list loads none', () => {
+  mockFetch()
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <Home
+        boards={[
+          board('b1', 'Roadmap', { preview: 7 }),
+          board('b2', 'empty plan', { preview: null }),
+        ]}
+        others={[]}
+      />
+    </QueryClientProvider>,
+  )
+  const images = document.querySelectorAll('img')
+  expect([...images].map((image) => image.getAttribute('src'))).toEqual([
+    '/api/boards/b1/preview?v=7',
+  ])
+  expect(images[0]).toHaveAttribute('loading', 'lazy')
+  expect(screen.getByText('E')).toBeInTheDocument()
+  // A picture that fails to load gives way to the placeholder.
+  fireEvent.error(images[0])
+  expect(document.querySelector('img')).toBeNull()
+  expect(screen.getByText('R')).toBeInTheDocument()
+
+  fireEvent.click(screen.getByRole('radio', { name: 'List' }))
+  expect(screen.queryByText('E')).toBeNull()
+  expect(JSON.parse(localStorage.getItem('tiko.home') ?? '{}')).toEqual({
+    sort: 'updated',
+    layout: 'list',
+  })
+})
+
+test('the list view is remembered and draws no previews', () => {
+  mockFetch()
+  localStorage.setItem('tiko.home', JSON.stringify({ layout: 'list' }))
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <Home boards={[board('b1', 'Roadmap', { preview: 7 })]} others={[]} />
+    </QueryClientProvider>,
+  )
+  expect(document.querySelector('img')).toBeNull()
+  expect(screen.getByRole('radio', { name: 'List' })).toHaveAttribute('aria-checked', 'true')
 })
 
 test('finds a board from the keyboard: slash, typing, arrows and Enter', async () => {

@@ -20,10 +20,10 @@ description: "Task list for Home"
 
 ## Phase 2: Slice `feat/board-previews` (US2)
 
-- [ ] T008 `domain/preview.py`: SVG from a board document, per node type, escaping, the node cap. Tests, SC-005 timing
-- [ ] T009 `003_home.sql`: `board_previews`; `GET /api/boards/{id}/preview` with ETag, headers and access; `preview` in `BoardSummary`. Contract first. Tests
-- [ ] T010 The grid view with previews, lazy loading, the placeholder. Tests
-- [ ] T011 `CHANGELOG.md`, the guide; `make check`, `/ui-review`
+- [x] T008 `domain/preview.py`: SVG from a board document, per node type, escaping, the node cap. Tests, SC-005 timing
+- [x] T009 `003_board_previews.sql`: `board_previews`; `GET /api/boards/{id}/preview` with ETag, headers and access; `preview` in `BoardSummary`. Contract first. Tests
+- [x] T010 The grid view with previews, lazy loading, the placeholder. Tests
+- [x] T011 `CHANGELOG.md`, the guide; `make check`, `/ui-review`
 
 ## Phase 3: Slice `feat/stars-folders` (US3)
 
