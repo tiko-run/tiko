@@ -14,19 +14,21 @@ on:
   issue_comment: # zizmor: ignore[dangerous-triggers]
     types: [created]
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  statuses: write
+permissions: {}
 
+# A run per comment, so a second signature comment does not replace a waiting one.
 concurrency:
-  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event.comment.id || github.event_name }}
 
 jobs:
   cla:
     if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: write
+      statuses: write
     steps:
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -79,16 +81,17 @@ jobs:
             const commits = await github.paginate(github.rest.pulls.listCommits, {
               owner, repo, pull_number: number, per_page: 100,
             })
-            const people = new Set([pr.user.login])
+            // By account id: a login can be renamed or taken by someone else later.
+            const people = new Map([[pr.user.id, pr.user.login]])
             const unlinked = []
             for (const c of commits) {
-              if (c.author?.login) people.add(c.author.login)
+              if (c.author?.login) people.set(c.author.id, c.author.login)
               else unlinked.push(c.sha.slice(0, 7))
             }
 
             let { list, sha } = await load()
             const signer = comment?.user.login
-            if (said === PHRASE && people.has(signer) && !allowed(signer)) {
+            if (said === PHRASE && people.has(comment.user.id) && !allowed(signer)) {
               // Two pull requests signing at once: read again and retry once on a stale file.
               for (let attempt = 0; attempt < 2; attempt++) {
                 if (list.some((s) => s.id === comment.user.id)) break
@@ -107,8 +110,10 @@ jobs:
               }
             }
 
-            const signed = new Set(list.map((s) => s.login))
-            const missing = [...people].filter((login) => !allowed(login) && !signed.has(login))
+            const signed = new Set(list.map((s) => s.id))
+            const missing = [...people]
+              .filter(([id, login]) => !allowed(login) && !signed.has(id))
+              .map(([, login]) => login)
             const ok = missing.length === 0 && unlinked.length === 0
 
             await github.rest.repos.createCommitStatus({
