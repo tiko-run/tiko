@@ -37,8 +37,10 @@ function renderBar(
   nodes: AppNode[],
   withTimer = false,
   controls?: (side: 'top' | 'bottom') => ReactNode,
+  movable = nodes.length,
 ) {
   const on = {
+    onAlign: vi.fn(),
     onStyle: vi.fn(),
     onPreview: vi.fn(),
     onNarrow: vi.fn(),
@@ -51,7 +53,7 @@ function renderBar(
     <ReactFlowProvider>
       <div style={{ width: 800, height: 600 }}>
         <ReactFlow nodes={nodes} />
-        <SelectionBar nodes={nodes} {...on} controls={controls} />
+        <SelectionBar nodes={nodes} movable={movable} {...on} controls={controls} />
       </div>
     </ReactFlowProvider>,
   )
@@ -122,7 +124,7 @@ test('cards alone get Collapse, cards with notes only the actions', () => {
 
 test('cards with a note: no fill, no collapse', () => {
   renderBar([card('a', false), sticky('s', 'yellow')])
-  expect(names()).toEqual(['Filter 2 objects', 'Duplicate', 'Delete'])
+  expect(names()).toEqual(['Filter 2 objects', 'Align', 'Duplicate', 'Delete'])
 })
 
 test('collapsed cards offer Expand', () => {
@@ -178,4 +180,24 @@ test('a module brings its own controls into the bar', () => {
   // No room above a module at the top of the canvas: the bar and its popovers go below.
   expect(within(bar).getByRole('button', { name: 'Weeks bottom' })).toBeTruthy()
   expect(within(bar).getByRole('button', { name: 'Delete' })).toBeTruthy()
+})
+
+test('two elements get the six alignments and no distribution', () => {
+  const on = renderBar([sticky('a', 'yellow'), sticky('b', 'blue')])
+  fireEvent.click(button('Align'))
+  expect(screen.queryByRole('button', { name: 'Distribute horizontally' })).toBeNull()
+  fireEvent.click(button('Align top'))
+  expect(on.onAlign).toHaveBeenCalledWith('top')
+})
+
+test('three elements can be distributed', () => {
+  const on = renderBar([sticky('a', 'yellow'), sticky('b', 'blue'), sticky('c', 'pink')])
+  fireEvent.click(button('Align'))
+  fireEvent.click(button('Distribute vertically'))
+  expect(on.onAlign).toHaveBeenCalledWith('vertical')
+})
+
+test('one element on its own offers no align', () => {
+  renderBar([sticky('a', 'yellow'), sticky('b', 'blue')], false, undefined, 1)
+  expect(screen.queryByRole('button', { name: 'Align' })).toBeNull()
 })

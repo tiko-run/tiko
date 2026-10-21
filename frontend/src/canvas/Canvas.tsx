@@ -37,6 +37,15 @@ import { markFresh } from '@/canvas/editing'
 import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/frames'
 import { Guides } from '@/canvas/Guides'
 import { CARD_GUESS, columnPositions } from '@/canvas/layout'
+import {
+  alignShifts,
+  applyShifts,
+  boxesOf,
+  distributeShifts,
+  movers,
+  type Alignment,
+  type Distribution,
+} from '@/canvas/align'
 import { absorbCards } from '@/canvas/modules'
 import { moduleControls } from '@/canvas/module-controls'
 import { ModuleExpanded } from '@/canvas/ModuleExpanded'
@@ -721,6 +730,21 @@ export function BoardCanvas({
   // One call, so a style on many elements is one undo step.
   const setStyle = (style: Style) =>
     setNodes((current) => current.map((n) => (n.selected ? withStyle(n, style) : n)))
+  const align = (how: Alignment | Distribution) =>
+    setNodes((current) => {
+      const moving = movers(current)
+      if (moving.length < 2) return current
+      const boxes = boxesOf(moving, current)
+      const shifts =
+        how === 'horizontal' || how === 'vertical'
+          ? distributeShifts(boxes, how)
+          : alignShifts(boxes, how)
+      // Like a drop: an element that lands in a frame or leaves one changes frame.
+      return reparent(
+        applyShifts(current, shifts),
+        moving.map((n) => n.id),
+      )
+    })
   const narrowTo = (kind: Kind) => {
     setNodes((current) =>
       current.map((n) => (n.selected && n.type !== kind ? { ...n, selected: false } : n)),
@@ -917,6 +941,8 @@ export function BoardCanvas({
           onPreview={setPreview}
           onNarrow={narrowTo}
           onCollapse={setCollapsed}
+          movable={movers(nodes).length}
+          onAlign={align}
           onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
           onDuplicate={duplicate}
           onDelete={deleteSelection}
