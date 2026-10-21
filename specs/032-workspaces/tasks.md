@@ -35,7 +35,7 @@ Several pull requests on one slice; SQLite stays the default.
 - [x] T014 Compose files: the `db` service with no published port, volume, health check, memory settings, first-start creation of the three roles; `.env.example`, README
 - [ ] T015 [P] `install.sh` and `install.ps1`: `POSTGRES_PASSWORD` written only when missing; Windows checked on the stand
 - [x] T016 [P] Updater: `pg_dump` and `pg_restore` through the `db` container, three kept; `UpdateBackups` for a dump. Tests
-- [ ] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
+- [x] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
 - [x] T018 Remove the SQLite adapter, its migrations and the double CI run; `reset_password.py` on Postgres
 - [x] T019 On compose stacks: the bridge release with made-up boards, Planning and a public link upgrades by the installer with equal counts; a fresh stack from the README; "Update now" from a pre-bridge release rolls back. RAM at rest for SC-005
 - [x] T020 `CHANGELOG.md` with `Requires: installer`; the guide: install, configuration, backups (`down -v`), architecture; `make check`, `make smoke`, `make licenses` green
