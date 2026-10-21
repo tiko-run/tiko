@@ -38,9 +38,9 @@ export const GET: APIRoute<Props> = ({ props: { entry, releases }, site }) => {
     // A tab's content follows its label, so every system's steps stay in the twin.
     .replace(/<TabItem\b[^>]*>/g, (tag) => `**${attrs(tag).label}**\n`)
     .replace(/<\/?(Feature|Details?|Card|CardGrid|Tabs|TabItem|Steps)\b[^>]*>/g, '')
-    // Callouts become quotes with their title.
+    // Callouts become quotes headed by their kind and title.
     .replace(/^:::(\w+)(?:\[(.*)\])?\n([\s\S]*?)\n:::$/gm, (_, type: string, label: string | undefined, text: string) =>
-      [`**${label ?? type[0].toUpperCase() + type.slice(1)}**`, '', ...text.split('\n')].map((line) => (line ? `> ${line}` : '>')).join('\n'),
+      [`**${type[0].toUpperCase() + type.slice(1)}${label ? `: ${label}` : ''}**`, '', ...text.split('\n')].map((line) => (line ? `> ${line}` : '>')).join('\n'),
     )
     // Local images are build assets with hashed names, so they become their alt text.
     .replace(/!\[([^\]]*)\]\((?!https?:)[^)]+\)/g, (_, alt: string) => (alt ? `[Image: ${alt}]` : ''))
