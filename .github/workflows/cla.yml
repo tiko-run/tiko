@@ -1,0 +1,157 @@
+name: cla
+
+# Every author of a pull request signs CLA.md once, by a comment with the phrase below.
+# Signatures live in signatures.json on the cla-signatures branch. The check is the commit
+# status `cla` on the pull request's head, so a comment can turn it green.
+# pull_request_target runs this file from main with write access; it never checks out or runs
+# the pull request's code.
+
+# Both triggers are needed to sign from a fork; nothing from the pull request is run or
+# interpolated into the script.
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, synchronize, reopened]
+  issue_comment: # zizmor: ignore[dangerous-triggers]
+    types: [created]
+
+permissions: {}
+
+# One run at a time per pull request; the rest wait in line instead of replacing each other.
+concurrency:
+  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}
+  queue: max
+
+jobs:
+  cla:
+    if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: write
+      statuses: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const PHRASE = 'I have read the CLA Document and I hereby sign the CLA'
+            const ALLOWED = ['Smacktur']
+            const BRANCH = 'cla-signatures'
+            const FILE = 'signatures.json'
+            const MARK = '<!-- cla-check -->'
+            const { owner, repo } = context.repo
+            const doc = `https://github.com/${owner}/${repo}/blob/main/CLA.md`
+            const allowed = (login) => ALLOWED.includes(login) || login.endsWith('[bot]')
+
+            const comment = context.payload.comment
+            const said = comment?.body.trim()
+            if (comment && said !== PHRASE && said !== 'recheck') return
+            const number = context.payload.pull_request?.number ?? context.issue.number
+            const pr = (await github.rest.pulls.get({ owner, repo, pull_number: number })).data
+
+            async function load() {
+              try {
+                const { data } = await github.rest.repos.getContent({ owner, repo, path: FILE, ref: BRANCH })
+                return { list: JSON.parse(Buffer.from(data.content, 'base64').toString()), sha: data.sha }
+              } catch (error) {
+                if (error.status === 404) return { list: [], sha: null }
+                throw error
+              }
+            }
+
+            async function save(list, sha, login) {
+              const content = JSON.stringify(list, null, 2) + '\n'
+              const message = `${login} signed the CLA in #${number}`
+              if (sha) {
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner, repo, path: FILE, branch: BRANCH, message, sha,
+                  content: Buffer.from(content).toString('base64'),
+                })
+                return
+              }
+              // The first signature starts the branch with this one file and no history of main.
+              const tree = await github.rest.git.createTree({
+                owner, repo, tree: [{ path: FILE, mode: '100644', type: 'blob', content }],
+              })
+              const commit = await github.rest.git.createCommit({
+                owner, repo, message, tree: tree.data.sha, parents: [],
+              })
+              await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${BRANCH}`, sha: commit.data.sha })
+            }
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner, repo, pull_number: number, per_page: 100,
+            })
+            // By account id: a login can be renamed or taken by someone else later.
+            const people = new Map([[pr.user.id, pr.user.login]])
+            const unlinked = []
+            for (const c of commits) {
+              if (c.author?.login) people.set(c.author.id, c.author.login)
+              else unlinked.push(c.sha.slice(0, 7))
+            }
+
+            let { list, sha } = await load()
+            const signer = comment?.user.login
+            if (said === PHRASE && people.has(comment.user.id) && !allowed(signer)) {
+              // Two pull requests signing at once: read again and retry once on a stale file.
+              for (let attempt = 0; attempt < 2; attempt++) {
+                if (list.some((s) => s.id === comment.user.id)) break
+                const next = [...list, {
+                  login: signer, id: comment.user.id, signed_at: comment.created_at,
+                  pull_request: number, comment: comment.html_url,
+                }]
+                try {
+                  await save(next, sha, signer)
+                  list = next
+                  break
+                } catch (error) {
+                  if (attempt === 1 || ![409, 422].includes(error.status)) throw error
+                  ;({ list, sha } = await load())
+                }
+              }
+            }
+
+            const signed = new Set(list.map((s) => s.id))
+            const missing = [...people]
+              .filter(([id, login]) => !allowed(login) && !signed.has(id))
+              .map(([, login]) => login)
+            // The API lists at most 250 commits: past that, authors could go unchecked.
+            const complete = commits.length === pr.commits
+            const ok = complete && missing.length === 0 && unlinked.length === 0
+
+            await github.rest.repos.createCommitStatus({
+              owner, repo, sha: pr.head.sha, context: 'cla', target_url: doc,
+              state: ok ? 'success' : 'failure',
+              description: ok ? 'Everyone here has signed the CLA' : 'The CLA is not signed yet',
+            })
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: number, per_page: 100,
+            })
+            const mine = comments.find((c) => c.user.type === 'Bot' && c.body.includes(MARK))
+            let body
+            if (ok) {
+              if (!mine) return
+              body = `${MARK}\nEveryone on this pull request has signed the [CLA](${doc}). Thank you!`
+            } else {
+              const lines = [
+                MARK,
+                `Thank you for your pull request! Before it can be merged, please read the [Contributor License Agreement](${doc}) and sign it by replying here with this exact comment:`,
+                '',
+                '```',
+                PHRASE,
+                '```',
+                '',
+                'You sign once; it covers your later pull requests too.',
+              ]
+              if (missing.length) lines.push('', `Not signed yet: ${missing.map((l) => '@' + l).join(', ')}`)
+              if (!complete) {
+                lines.push('', `This pull request has more commits than the check can read (${commits.length} of ${pr.commits}). Please split it or squash it.`)
+              }
+              if (unlinked.length) {
+                lines.push('', `Commits ${unlinked.join(', ')} have an author e-mail that is not linked to a GitHub account. Add that e-mail to your account, or amend the commits, then comment \`recheck\`.`)
+              }
+              body = lines.join('\n')
+            }
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body })
+            else await github.rest.issues.createComment({ owner, repo, issue_number: number, body })
