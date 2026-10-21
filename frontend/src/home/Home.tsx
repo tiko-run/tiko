@@ -504,7 +504,10 @@ function dragBoard(event: DragEvent, board: BoardSummary) {
   event.dataTransfer.effectAllowed = 'move'
 }
 
-function StarButton({ board, menu }: { board: BoardSummary; menu: Menu }) {
+type StarProps = { board: BoardSummary; menu: Menu; className?: string }
+
+/** A starred board keeps its star in sight; the others show it on hover, and always by touch. */
+function StarButton({ board, menu, className }: StarProps) {
   const starred = !!board.starred
   return (
     <Button
@@ -514,8 +517,9 @@ function StarButton({ board, menu }: { board: BoardSummary; menu: Menu }) {
       aria-pressed={starred}
       onClick={() => menu.star(board, !starred)}
       className={cn(
-        'size-8 shrink-0',
+        'shrink-0',
         !starred && 'opacity-100 group-hover:opacity-100 focus-visible:opacity-100 sm:opacity-0',
+        className,
       )}
     >
       <Star
@@ -605,7 +609,7 @@ const BoardCard = memo(function BoardCard({
       onDragStart={(event) => dragBoard(event, board)}
       onContextMenu={() => menu.point(board)}
       className={cn(
-        'group bg-card hover:border-foreground/20 flex min-w-0 flex-col rounded-lg border transition-colors',
+        'group bg-card hover:border-foreground/20 relative flex min-w-0 flex-col rounded-lg border transition-colors',
         selected && 'ring-primary ring-2',
       )}
     >
@@ -620,6 +624,11 @@ const BoardCard = memo(function BoardCard({
       >
         <Preview key={board.preview} board={board} />
       </a>
+      <StarButton
+        board={board}
+        menu={menu}
+        className="bg-background/80 hover:bg-background absolute top-2 right-2 size-7 border shadow-xs backdrop-blur-sm"
+      />
       <div className="flex items-center gap-1 py-2 pr-1.5 pl-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {renaming ? (
@@ -639,7 +648,6 @@ const BoardCard = memo(function BoardCard({
             {edited && ` · Edited ${edited}`}
           </span>
         </div>
-        <StarButton board={board} menu={menu} />
         <BoardMenu board={board} demo={demo} menu={menu} folders={folders} />
       </div>
     </li>
@@ -671,15 +679,18 @@ const BoardRow = memo(function BoardRow({
       {renaming ? (
         <RenameBoardForm board={board} onDone={menu.renamed} />
       ) : (
-        <a
-          href={boardHref(board.id)}
-          onClick={(event) => openHere(event, board.id)}
-          draggable={false}
-          className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
-        >
-          <LayoutDashboard className="text-muted-foreground size-4 shrink-0" strokeWidth={1.75} />
-          <BoardName board={board} />
-        </a>
+        <div className="flex min-w-0 items-center gap-1">
+          <a
+            href={boardHref(board.id)}
+            onClick={(event) => openHere(event, board.id)}
+            draggable={false}
+            className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
+          >
+            <LayoutDashboard className="text-muted-foreground size-4 shrink-0" strokeWidth={1.75} />
+            <BoardName board={board} />
+          </a>
+          <StarButton board={board} menu={menu} className="size-7" />
+        </div>
       )}
       <span className="text-muted-foreground hidden truncate text-[13px] sm:block">
         {own ? 'You' : board.owner?.name}
@@ -687,10 +698,7 @@ const BoardRow = memo(function BoardRow({
       <span className="text-muted-foreground hidden truncate text-[12px] whitespace-nowrap tabular-nums sm:block">
         {edited && `Edited ${edited}`}
       </span>
-      <div className="flex items-center">
-        <StarButton board={board} menu={menu} />
-        <BoardMenu board={board} demo={demo} menu={menu} folders={folders} />
-      </div>
+      <BoardMenu board={board} demo={demo} menu={menu} folders={folders} />
     </li>
   )
 })
