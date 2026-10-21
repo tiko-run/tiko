@@ -6,6 +6,7 @@ import {
   ConnectionMode,
   ControlButton,
   Controls,
+  Panel,
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
@@ -16,7 +17,7 @@ import {
   type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Map as MapIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { canEdit, getBoard, type Board } from '@/api/boards'
 import type { Task } from '@/api/tasks'
@@ -87,6 +88,7 @@ import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
 import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ShapeGhost } from '@/canvas/ShapeGhost'
 import { ZoomVar } from '@/canvas/ZoomVar'
+import { Minimap, readMinimapShown, saveMinimapShown } from '@/canvas/Minimap'
 import { ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
@@ -224,6 +226,11 @@ export function BoardCanvas({
   const [lastView] = useState(() => readViewport(board.id))
   const [added, setAdded] = useState<Record<string, Task>>({})
   const [tool, setTool] = useState<Tool>('select')
+  const [minimapShown, setMinimapShown] = useState(readMinimapShown)
+  const toggleMinimap = () => {
+    saveMinimapShown(!minimapShown)
+    setMinimapShown(!minimapShown)
+  }
   const [connecting, setConnecting] = useState(false)
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -920,17 +927,31 @@ export function BoardCanvas({
       >
         <ZoomVar />
         <Background variant={BackgroundVariant.Dots} gap={16} color="var(--grid)" />
-        <Controls showInteractive={false} position="bottom-right">
-          {canGoBack && (
+        {/* One column, so the minimap stays above the zoom buttons however many there are. */}
+        <Panel position="bottom-right" className="canvas-corner">
+          {minimapShown && <Minimap />}
+          <Controls showInteractive={false}>
+            {canGoBack && (
+              <ControlButton
+                onClick={goBack}
+                title="Back to where you were (B)"
+                aria-label="Back to where you were"
+              >
+                <ArrowLeft />
+              </ControlButton>
+            )}
             <ControlButton
-              onClick={goBack}
-              title="Back to where you were (B)"
-              aria-label="Back to where you were"
+              className="max-sm:hidden"
+              onClick={toggleMinimap}
+              title={minimapShown ? 'Hide minimap' : 'Show minimap'}
+              aria-label={minimapShown ? 'Hide minimap' : 'Show minimap'}
+              aria-pressed={minimapShown}
             >
-              <ArrowLeft />
+              {/* xyflow fills control icons; a closed outline must stay an outline. */}
+              <MapIcon style={{ fill: 'none' }} />
             </ControlButton>
-          )}
-        </Controls>
+          </Controls>
+        </Panel>
         <Guides guides={guides.guides} />
         <PresenceLayer />
       </ReactFlow>
