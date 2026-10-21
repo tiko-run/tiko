@@ -1,21 +1,40 @@
 ---
 import type { StarlightRouteData } from '@astrojs/starlight/route-data'
+import { Aside } from '@astrojs/starlight/components'
 import CopyPage from './CopyPage.astro'
 
 type Entry = StarlightRouteData['sidebar'][number]
 
 const { entry, sidebar } = Astro.locals.starlightRoute
 
-const hasCurrent = (item: Entry): boolean =>
-  item.type === 'link' ? item.isCurrent : item.entries.some(hasCurrent)
-const group = sidebar.find((item) => item.type === 'group' && hasCurrent(item))
+// The groups above the current page, outermost first: "Modules · Gantt".
+const trail = (items: Entry[]): string[] => {
+  for (const item of items) {
+    if (item.type === 'link') {
+      if (item.isCurrent) return []
+      continue
+    }
+    const inner = trail(item.entries)
+    if (inner.length || item.entries.some((child) => child.type === 'link' && child.isCurrent)) return [item.label, ...inner]
+  }
+  return []
+}
+const groups = trail(sidebar)
 // Every guide page has a Markdown twin at /<page>.md (src/pages/[...slug].md.ts).
 const markdown = entry.id === 'index' ? '/index.md' : `/${entry.id}.md`
 ---
 
-{group && <p class="tiko-eyebrow">{group.label}</p>}
+{groups.length > 0 && <p class="tiko-eyebrow">{groups.join(' · ')}</p>}
 <div class="tiko-title-row">
   <h1 id="_top" class="tiko-title">{entry.data.title}</h1>
   <CopyPage {markdown} />
 </div>
 {entry.data.description && <p class="tiko-lead">{entry.data.description}</p>}
+{
+  entry.data.experimental && (
+    <Aside type="caution" title="Experimental">
+      This feature is new and may change between releases. Tell us how it works for you in{' '}
+      <a href="https://github.com/tiko-run/tiko/discussions">Discussions</a>.
+    </Aside>
+  )
+}
