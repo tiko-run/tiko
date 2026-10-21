@@ -50,6 +50,8 @@ def bodies(own: dict) -> dict[tuple[str, str], dict]:
         ("PATCH", "/api/planning/fields/{field_id}"): {"name": "Taken"},
         ("PUT", "/api/demo/tasks/{key}/status"): {"status": "Done"},
         ("POST", "/api/tasks/resolve"): {"ref": "DEMO-1"},
+        ("PATCH", "/api/folders/{folder_id}"): {"name": "Taken"},
+        ("PUT", "/api/boards/{board_id}/folder"): {"folder_id": own["folder_id"]},
     }
 
 
@@ -80,6 +82,9 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
     view = ok(client.post("/api/planning/views", json=view))["id"]
     ok(client.put("/api/planning/days-off", json={"dates": [day]}))
     ok(client.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"}))
+    folder = ok(client.post("/api/folders", json={"name": f"folder-{tag}"}))["id"]
+    assert client.put(f"/api/boards/{board_id}/star").is_success
+    assert client.put(f"/api/boards/{board_id}/folder", json={"folder_id": folder}).is_success
     return {
         "board_id": board_id,
         "user_id": me["id"],
@@ -89,6 +94,7 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "field_id": field,
         "view_id": view,
         "invite_id": invite,
+        "folder_id": folder,
         "key": "DEMO-1",
         "workspace": me["workspace"]["id"],
         "markers": [
@@ -98,6 +104,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             f"type-{tag}",
             f"field-{tag}",
             f"view-{tag}",
+            f"folder-{tag}",
+            folder,
             day,
             me["id"],
             board_id,

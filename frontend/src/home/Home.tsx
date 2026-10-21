@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDownWideNarrow,
+  Check,
   Copy,
+  FolderInput,
   Globe,
   LayoutDashboard,
   LayoutGrid,
@@ -12,6 +14,8 @@ import {
   Search,
   Share2,
   SquareArrowOutUpRight,
+  Star,
+  StarOff,
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
@@ -22,11 +26,13 @@ import {
   useMemo,
   useRef,
   useState,
+  type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
 } from 'react'
 import { getAuthStatus } from '@/api/auth'
 import { canEdit, previewUrl, type BoardSummary } from '@/api/boards'
+import type { Folder } from '@/api/folders'
 import { DeleteBoardDialog, RenameBoardForm } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
 import { Button } from '@/components/ui/button'
@@ -35,6 +41,9 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import {
@@ -45,6 +54,9 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -56,7 +68,18 @@ import { relativeTime } from '@/lib/time'
 import { useFlip } from '@/lib/useFlip'
 import { cn } from 'cn'
 import { useDuplicateBoard, useNewBoard } from './actions'
-import { readView, saveView, visibleBoards, type Filter, type Layout, type Sort } from './list'
+import {
+  inPlace,
+  readView,
+  saveView,
+  visibleBoards,
+  type Filter,
+  type Layout,
+  type Place,
+  type Sort,
+} from './list'
+import { useFolders, usePlace, useStar } from './organize'
+import { BOARD_DRAG, Side, type Counts } from './Side'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -79,6 +102,7 @@ type Props = {
 export function Home({ boards, others }: Props) {
   const me = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me
   const demo = !!me?.demo_expires_at
+  const [place, setPlace] = useState<Place>('all')
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>(() => readView().sort)
@@ -97,6 +121,10 @@ export function Home({ boards, others }: Props) {
   const list = useRef<HTMLDivElement>(null)
   const newBoard = useNewBoard()
   const duplicate = useDuplicateBoard()
+  const star = useStar()
+  const placeBoard = usePlace()
+  const folders = useFolders()
+  const folder = typeof place === 'object' ? folders.find((f) => f.id === place.folder) : undefined
 
   useShortcut('findBoard', () => search.current?.focus())
 
@@ -107,12 +135,14 @@ export function Home({ boards, others }: Props) {
   }, [queryClient])
 
   const data = useMemo(() => ({ boards, others }), [boards, others])
-  useFlip(list, data, `${filter}|${query}|${sort}`)
+  useFlip(list, data, `${JSON.stringify(place)}|${filter}|${query}|${sort}`)
 
+  const here = boards.filter((board) => inPlace(board, place))
+  const othersHere = others.filter((board) => inPlace(board, place))
   const options = { filter, query, sort, me: me?.id }
-  const shown = visibleBoards(boards, options)
+  const shown = visibleBoards(here, options)
   // Boards of others are nobody's own and nobody shared them: only "All" has them.
-  const shownOthers = filter === 'all' ? visibleBoards(others, options) : []
+  const shownOthers = filter === 'all' ? visibleBoards(othersHere, options) : []
   const flat = [...shown, ...shownOthers]
   const current = Math.min(selected, flat.length - 1)
 
@@ -148,6 +178,8 @@ export function Home({ boards, others }: Props) {
 
   // Stable, so a row redraws only when its own board or state changes.
   const { mutate: duplicateBoard } = duplicate
+  const { mutate: starBoard } = star
+  const { mutate: moveBoard } = placeBoard
   const menu = useMemo<Menu>(
     () => ({
       rename: setRenaming,
@@ -156,9 +188,35 @@ export function Home({ boards, others }: Props) {
       share: setSharing,
       remove: setDeleting,
       point: setPointed,
+      star: (board, starred) => starBoard({ id: board.id, starred }),
+      move: (board, folderId) => moveBoard({ id: board.id, folderId }),
     }),
-    [duplicateBoard],
+    [duplicateBoard, starBoard, moveBoard],
   )
+
+  const all = [...boards, ...others]
+  const dropBoard = (target: Place, id: string) => {
+    const board = all.find((item) => item.id === id)
+    if (!board) return
+    if (target === 'starred') {
+      if (!board.starred) menu.star(board, true)
+    } else {
+      const folderId = target === 'all' ? null : target.folder
+      if ((board.folder_id ?? null) !== folderId) menu.move(board, folderId)
+    }
+  }
+  const sideCounts: Counts = {
+    all: all.length,
+    starred: all.filter((board) => board.starred).length,
+    folders: Object.fromEntries(
+      folders.map((f) => [f.id, all.filter((board) => board.folder_id === f.id).length]),
+    ),
+  }
+  const changePlace = (value: Place) => {
+    setPlace(value)
+    setSelected(0)
+  }
+  const title = place === 'starred' ? 'Starred' : (folder?.name ?? 'Boards')
 
   const Item = layout === 'grid' ? BoardCard : BoardRow
   const rows = (items: BoardSummary[], offset: number) => (
@@ -178,169 +236,187 @@ export function Home({ boards, others }: Props) {
           selected={picking && offset + index === current}
           renaming={renaming === board.id}
           menu={menu}
+          folders={folders}
         />
       ))}
     </ul>
   )
 
-  const mineCount = boards.filter((board) => board.owner?.id === me?.id).length
+  const mineCount = here.filter((board) => board.owner?.id === me?.id).length
   const counts: Record<Filter, number> = {
-    all: boards.length + others.length,
+    all: here.length + othersHere.length,
     mine: mineCount,
-    shared: boards.length - mineCount,
+    shared: here.length - mineCount,
   }
+  const nothingHere =
+    place === 'starred'
+      ? 'Star a board to keep it here.'
+      : 'Move boards here from their menu or by dragging them onto the folder.'
 
   return (
     <div className="absolute inset-0 overflow-y-auto">
-      <div className="mx-auto flex max-w-[960px] flex-col gap-4 px-4 pt-32 pb-24 sm:px-8">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[20px] font-semibold tracking-[-0.01em]">Boards</h2>
-          <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
-            <Plus strokeWidth={1.75} />
-            New board
-          </Button>
-        </div>
-
-        {boards.length === 0 && others.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-8">
-            <p className="text-[14px]">No boards yet. Make one to start placing tasks on it.</p>
+      <div className="mx-auto flex max-w-[1192px] flex-col gap-4 px-4 pt-32 pb-24 sm:px-8 md:flex-row md:gap-8">
+        {(boards.length > 0 || others.length > 0) && (
+          <Side
+            place={place}
+            onPlace={changePlace}
+            folders={folders}
+            counts={sideCounts}
+            onDropBoard={dropBoard}
+          />
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="truncate text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
             <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
               <Plus strokeWidth={1.75} />
               New board
             </Button>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-2">
-              <ToggleGroup
-                type="single"
-                variant="outline"
-                size="sm"
-                value={filter}
-                onValueChange={(value) => value && setFilter(value as Filter)}
-                aria-label="Show boards"
-              >
-                {FILTERS.map(({ value, label }) => (
-                  <ToggleGroupItem key={value} value={value} className="px-3 text-[13px]">
-                    {label}
-                    <span className="text-muted-foreground font-normal tabular-nums">
-                      {counts[value]}
-                    </span>
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-              <div className="relative min-w-48 flex-1">
-                <Search
-                  className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-                  strokeWidth={1.75}
-                />
-                <label htmlFor="home-search" className="sr-only">
-                  Find a board
-                </label>
-                <Input
-                  id="home-search"
-                  ref={search}
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value)
-                    setSelected(0)
-                  }}
-                  onKeyDown={onSearchKey}
-                  onFocus={() => setSearching(true)}
-                  onBlur={() => {
-                    setSearching(false)
-                    setSteering(false)
-                  }}
-                  placeholder="Find a board"
-                  className="h-8 pr-10 pl-8"
-                  autoComplete="off"
-                />
-                <Kbd className="absolute top-1/2 right-2 -translate-y-1/2">
-                  {formatShortcut('findBoard')[0].join('')}
-                </Kbd>
-              </div>
-              <div className="ml-auto flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-[13px] font-normal">
-                      <ArrowDownWideNarrow strokeWidth={1.75} />
-                      {SORTS.find((item) => item.value === sort)?.label}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
-                      Sort by
-                    </DropdownMenuLabel>
-                    <DropdownMenuRadioGroup
-                      value={sort}
-                      onValueChange={(value) => changeSort(value as Sort)}
-                    >
-                      {SORTS.map(({ value, label }) => (
-                        <DropdownMenuRadioItem key={value} value={value}>
-                          {label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+          {boards.length === 0 && others.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-8">
+              <p className="text-[14px]">No boards yet. Make one to start placing tasks on it.</p>
+              <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
+                <Plus strokeWidth={1.75} />
+                New board
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
                 <ToggleGroup
                   type="single"
                   variant="outline"
                   size="sm"
-                  value={layout}
-                  onValueChange={(value) => value && changeLayout(value as Layout)}
-                  aria-label="Layout"
+                  value={filter}
+                  onValueChange={(value) => value && setFilter(value as Filter)}
+                  aria-label="Show boards"
                 >
-                  <ToggleGroupItem value="grid" aria-label="Grid" className="px-2">
-                    <LayoutGrid strokeWidth={1.75} />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="list" aria-label="List" className="px-2">
-                    <List strokeWidth={1.75} />
-                  </ToggleGroupItem>
+                  {FILTERS.map(({ value, label }) => (
+                    <ToggleGroupItem key={value} value={value} className="px-3 text-[13px]">
+                      {label}
+                      <span className="text-muted-foreground font-normal tabular-nums">
+                        {counts[value]}
+                      </span>
+                    </ToggleGroupItem>
+                  ))}
                 </ToggleGroup>
-              </div>
-            </div>
-
-            <ContextMenu>
-              <ContextMenuTrigger asChild>
-                <div
-                  ref={list}
-                  className="flex flex-col gap-6"
-                  onContextMenuCapture={() => setPointed(null)}
-                >
-                  {shown.length > 0 && rows(shown, 0)}
-                  {shownOthers.length > 0 && (
-                    <section className="flex flex-col gap-2" aria-label="Other boards">
-                      <h3 className="text-muted-foreground text-[12px] font-medium">
-                        Other boards in this workspace
-                      </h3>
-                      {rows(shownOthers, shown.length)}
-                    </section>
-                  )}
-                  {flat.length === 0 && (
-                    <p className="text-muted-foreground py-8 text-center text-[14px]">
-                      {query.trim()
-                        ? `No boards match "${query.trim()}".`
-                        : filter === 'mine'
-                          ? 'You own no boards yet.'
-                          : 'Nobody has shared a board with you yet.'}
-                    </p>
-                  )}
+                <div className="relative min-w-48 flex-1">
+                  <Search
+                    className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+                    strokeWidth={1.75}
+                  />
+                  <label htmlFor="home-search" className="sr-only">
+                    Find a board
+                  </label>
+                  <Input
+                    id="home-search"
+                    ref={search}
+                    value={query}
+                    onChange={(event) => {
+                      setQuery(event.target.value)
+                      setSelected(0)
+                    }}
+                    onKeyDown={onSearchKey}
+                    onFocus={() => setSearching(true)}
+                    onBlur={() => {
+                      setSearching(false)
+                      setSteering(false)
+                    }}
+                    placeholder="Find a board"
+                    className="h-8 pr-10 pl-8"
+                    autoComplete="off"
+                  />
+                  <Kbd className="absolute top-1/2 right-2 -translate-y-1/2">
+                    {formatShortcut('findBoard')[0].join('')}
+                  </Kbd>
                 </div>
-              </ContextMenuTrigger>
-              {pointed && (
-                <ContextMenuContent className="w-44">
-                  <MenuItems kind="context" actions={actionsFor(pointed, demo, menu)} />
-                </ContextMenuContent>
+                <div className="ml-auto flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-[13px] font-normal">
+                        <ArrowDownWideNarrow strokeWidth={1.75} />
+                        {SORTS.find((item) => item.value === sort)?.label}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
+                        Sort by
+                      </DropdownMenuLabel>
+                      <DropdownMenuRadioGroup
+                        value={sort}
+                        onValueChange={(value) => changeSort(value as Sort)}
+                      >
+                        {SORTS.map(({ value, label }) => (
+                          <DropdownMenuRadioItem key={value} value={value}>
+                            {label}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    size="sm"
+                    value={layout}
+                    onValueChange={(value) => value && changeLayout(value as Layout)}
+                    aria-label="Layout"
+                  >
+                    <ToggleGroupItem value="grid" aria-label="Grid" className="px-2">
+                      <LayoutGrid strokeWidth={1.75} />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="list" aria-label="List" className="px-2">
+                      <List strokeWidth={1.75} />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              </div>
+
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div
+                    ref={list}
+                    className="flex flex-col gap-6"
+                    onContextMenuCapture={() => setPointed(null)}
+                  >
+                    {shown.length > 0 && rows(shown, 0)}
+                    {shownOthers.length > 0 && (
+                      <section className="flex flex-col gap-2" aria-label="Other boards">
+                        <h3 className="text-muted-foreground text-[12px] font-medium">
+                          Other boards in this workspace
+                        </h3>
+                        {rows(shownOthers, shown.length)}
+                      </section>
+                    )}
+                    {flat.length === 0 && (
+                      <p className="text-muted-foreground py-8 text-center text-[14px]">
+                        {query.trim()
+                          ? `No boards match "${query.trim()}".`
+                          : place !== 'all' && counts.all === 0
+                            ? nothingHere
+                            : filter === 'mine'
+                              ? 'You own no boards yet.'
+                              : 'Nobody has shared a board with you yet.'}
+                      </p>
+                    )}
+                  </div>
+                </ContextMenuTrigger>
+                {pointed && (
+                  <ContextMenuContent className="w-44">
+                    <MenuItems kind="context" actions={actionsFor(pointed, demo, menu, folders)} />
+                  </ContextMenuContent>
+                )}
+              </ContextMenu>
+              {query.trim() !== '' && flat.length > 0 && (
+                <p className="text-muted-foreground text-[12px]">
+                  {flat.length} of {counts[filter]} boards
+                </p>
               )}
-            </ContextMenu>
-            {query.trim() !== '' && flat.length > 0 && (
-              <p className="text-muted-foreground text-[12px]">
-                {flat.length} of {counts[filter]} boards
-              </p>
-            )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
       {sharing && (
         <ShareDialog board={sharing} open onOpenChange={(open) => !open && setSharing(null)} />
@@ -350,7 +426,16 @@ export function Home({ boards, others }: Props) {
   )
 }
 
-type Action = { label: string; Icon: LucideIcon; run: () => void; destructive?: boolean }
+type Choice = { key: string; label: string; checked: boolean; run: () => void; separated?: boolean }
+type Action = {
+  label: string
+  Icon: LucideIcon
+  run?: () => void
+  destructive?: boolean
+  /** A submenu instead of `run`; empty, it says `empty`. */
+  choices?: Choice[]
+  empty?: string
+}
 
 type Menu = {
   rename: (id: string) => void
@@ -359,16 +444,39 @@ type Menu = {
   share: (board: BoardSummary) => void
   remove: (board: BoardSummary) => void
   point: (board: BoardSummary) => void
+  star: (board: BoardSummary, starred: boolean) => void
+  move: (board: BoardSummary, folderId: string | null) => void
 }
 
-function actionsFor(board: BoardSummary, demo: boolean, menu: Menu): Action[] {
+function actionsFor(board: BoardSummary, demo: boolean, menu: Menu, folders: Folder[]): Action[] {
+  const inside = board.folder_id ?? null
+  // Folder names may repeat, so a choice is known by the folder's id.
+  const choices: Choice[] = folders.map((folder) => ({
+    key: folder.id,
+    label: folder.name,
+    checked: folder.id === inside,
+    run: () => folder.id !== inside && menu.move(board, folder.id),
+  }))
+  if (inside && choices.some((choice) => choice.checked)) {
+    choices.push({
+      key: 'none',
+      label: 'No folder',
+      checked: false,
+      run: () => menu.move(board, null),
+      separated: true,
+    })
+  }
   return [
     { label: 'Open', Icon: SquareArrowOutUpRight, run: () => goTo(board.id) },
+    board.starred
+      ? { label: 'Unstar', Icon: StarOff, run: () => menu.star(board, false) }
+      : { label: 'Star', Icon: Star, run: () => menu.star(board, true) },
     ...(canEdit(board.my_role)
       ? [{ label: 'Rename', Icon: Pencil, run: () => menu.rename(board.id) }]
       : []),
     { label: 'Duplicate', Icon: Copy, run: () => menu.duplicate(board) },
     ...(demo ? [] : [{ label: 'Share', Icon: Share2, run: () => menu.share(board) }]),
+    { label: 'Move to folder', Icon: FolderInput, choices, empty: 'No folders yet' },
     ...(board.my_role === 'owner'
       ? [{ label: 'Delete…', Icon: Trash2, run: () => menu.remove(board), destructive: true }]
       : []),
@@ -382,6 +490,7 @@ type RowProps = {
   selected: boolean
   renaming: boolean
   menu: Menu
+  folders: Folder[]
 }
 
 function openHere(event: MouseEvent<HTMLAnchorElement>, id: string) {
@@ -391,7 +500,40 @@ function openHere(event: MouseEvent<HTMLAnchorElement>, id: string) {
   goTo(id)
 }
 
-function BoardMenu({ board, demo, menu }: { board: BoardSummary; demo: boolean; menu: Menu }) {
+type MenuProps = { board: BoardSummary; demo: boolean; menu: Menu; folders: Folder[] }
+
+function dragBoard(event: DragEvent, board: BoardSummary) {
+  event.dataTransfer.setData(BOARD_DRAG, board.id)
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+type StarProps = { board: BoardSummary; menu: Menu; className?: string }
+
+/** A starred board keeps its star in sight; the others show it on hover, and always by touch. */
+function StarButton({ board, menu, className }: StarProps) {
+  const starred = !!board.starred
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={starred ? `Unstar ${board.name}` : `Star ${board.name}`}
+      aria-pressed={starred}
+      onClick={() => menu.star(board, !starred)}
+      className={cn(
+        'shrink-0',
+        !starred && 'opacity-100 group-hover:opacity-100 focus-visible:opacity-100 sm:opacity-0',
+        className,
+      )}
+    >
+      <Star
+        strokeWidth={1.75}
+        className={starred ? 'fill-warning text-warning' : 'text-muted-foreground'}
+      />
+    </Button>
+  )
+}
+
+function BoardMenu({ board, demo, menu, folders }: MenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -405,7 +547,7 @@ function BoardMenu({ board, demo, menu }: { board: BoardSummary; demo: boolean; 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <MenuItems kind="dropdown" actions={actionsFor(board, demo, menu)} />
+        <MenuItems kind="dropdown" actions={actionsFor(board, demo, menu, folders)} />
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -459,15 +601,18 @@ const BoardCard = memo(function BoardCard({
   selected,
   renaming,
   menu,
+  folders,
 }: RowProps) {
   const edited = relativeTime(board.updated_at)
   return (
     <li
       data-flip={board.id}
       data-selected={selected}
+      draggable={!renaming}
+      onDragStart={(event) => dragBoard(event, board)}
       onContextMenu={() => menu.point(board)}
       className={cn(
-        'group bg-card hover:border-foreground/20 flex min-w-0 flex-col rounded-lg border transition-colors',
+        'group bg-card hover:border-foreground/20 relative flex min-w-0 flex-col rounded-lg border transition-colors',
         selected && 'ring-primary ring-2',
       )}
     >
@@ -477,10 +622,16 @@ const BoardCard = memo(function BoardCard({
         onClick={(event) => openHere(event, board.id)}
         tabIndex={-1}
         aria-hidden
+        draggable={false}
         className="bg-muted/40 block aspect-[8/5] overflow-hidden rounded-t-lg border-b"
       >
         <Preview key={board.preview} board={board} />
       </a>
+      <StarButton
+        board={board}
+        menu={menu}
+        className="bg-background/80 hover:bg-background absolute top-2 right-2 size-7 border shadow-xs backdrop-blur-sm"
+      />
       <div className="flex items-center gap-1 py-2 pr-1.5 pl-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {renaming ? (
@@ -489,6 +640,7 @@ const BoardCard = memo(function BoardCard({
             <a
               href={boardHref(board.id)}
               onClick={(event) => openHere(event, board.id)}
+              draggable={false}
               className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
             >
               <BoardName board={board} />
@@ -499,18 +651,28 @@ const BoardCard = memo(function BoardCard({
             {edited && ` · Edited ${edited}`}
           </span>
         </div>
-        <BoardMenu board={board} demo={demo} menu={menu} />
+        <BoardMenu board={board} demo={demo} menu={menu} folders={folders} />
       </div>
     </li>
   )
 })
 
-const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, menu }: RowProps) {
+const BoardRow = memo(function BoardRow({
+  board,
+  own,
+  demo,
+  selected,
+  renaming,
+  menu,
+  folders,
+}: RowProps) {
   const edited = relativeTime(board.updated_at)
   return (
     <li
       data-flip={board.id}
       data-selected={selected}
+      draggable={!renaming}
+      onDragStart={(event) => dragBoard(event, board)}
       onContextMenu={() => menu.point(board)}
       className={cn(
         'group hover:bg-accent/60 grid h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 first:rounded-t-lg last:rounded-b-lg sm:grid-cols-[minmax(0,1fr)_160px_168px_auto]',
@@ -520,14 +682,18 @@ const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, 
       {renaming ? (
         <RenameBoardForm board={board} onDone={menu.renamed} />
       ) : (
-        <a
-          href={boardHref(board.id)}
-          onClick={(event) => openHere(event, board.id)}
-          className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
-        >
-          <LayoutDashboard className="text-muted-foreground size-4 shrink-0" strokeWidth={1.75} />
-          <BoardName board={board} />
-        </a>
+        <div className="flex min-w-0 items-center gap-1">
+          <a
+            href={boardHref(board.id)}
+            onClick={(event) => openHere(event, board.id)}
+            draggable={false}
+            className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
+          >
+            <LayoutDashboard className="text-muted-foreground size-4 shrink-0" strokeWidth={1.75} />
+            <BoardName board={board} />
+          </a>
+          <StarButton board={board} menu={menu} className="size-7" />
+        </div>
       )}
       <span className="text-muted-foreground hidden truncate text-[13px] sm:block">
         {own ? 'You' : board.owner?.name}
@@ -535,21 +701,46 @@ const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, 
       <span className="text-muted-foreground hidden truncate text-[12px] whitespace-nowrap tabular-nums sm:block">
         {edited && `Edited ${edited}`}
       </span>
-      <BoardMenu board={board} demo={demo} menu={menu} />
+      <BoardMenu board={board} demo={demo} menu={menu} folders={folders} />
     </li>
   )
 })
 
 function MenuItems({ kind, actions }: { kind: 'dropdown' | 'context'; actions: Action[] }) {
-  const Item = kind === 'dropdown' ? DropdownMenuItem : ContextMenuItem
-  const Separator = kind === 'dropdown' ? DropdownMenuSeparator : ContextMenuSeparator
-  return actions.map(({ label, Icon, run, destructive }) => (
+  const dropdown = kind === 'dropdown'
+  const Item = dropdown ? DropdownMenuItem : ContextMenuItem
+  const Separator = dropdown ? DropdownMenuSeparator : ContextMenuSeparator
+  const Sub = dropdown ? DropdownMenuSub : ContextMenuSub
+  const SubTrigger = dropdown ? DropdownMenuSubTrigger : ContextMenuSubTrigger
+  const SubContent = dropdown ? DropdownMenuSubContent : ContextMenuSubContent
+  return actions.map(({ label, Icon, run, destructive, choices, empty }) => (
     <Fragment key={label}>
       {destructive && <Separator />}
-      <Item variant={destructive ? 'destructive' : 'default'} onSelect={run}>
-        <Icon strokeWidth={1.75} />
-        {label}
-      </Item>
+      {choices ? (
+        <Sub>
+          <SubTrigger>
+            <Icon strokeWidth={1.75} className="text-muted-foreground size-4" />
+            {label}
+          </SubTrigger>
+          <SubContent className="max-h-72 w-48 overflow-y-auto">
+            {choices.length === 0 && <Item disabled>{empty}</Item>}
+            {choices.map((choice) => (
+              <Fragment key={choice.key}>
+                {choice.separated && <Separator />}
+                <Item onSelect={choice.run}>
+                  <span className="truncate">{choice.label}</span>
+                  {choice.checked && <Check strokeWidth={1.75} className="ml-auto" />}
+                </Item>
+              </Fragment>
+            ))}
+          </SubContent>
+        </Sub>
+      ) : (
+        <Item variant={destructive ? 'destructive' : 'default'} onSelect={run}>
+          <Icon strokeWidth={1.75} />
+          {label}
+        </Item>
+      )}
     </Fragment>
   ))
 }

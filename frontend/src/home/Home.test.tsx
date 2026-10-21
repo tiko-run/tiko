@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, expect, test, vi } from 'vitest'
 import type { BoardSummary } from '@/api/boards'
 import { Home } from './Home'
-import { visibleBoards } from './list'
+import { inPlace, visibleBoards } from './list'
 
 const ann = { id: 'u1', name: 'Ann' }
 const bob = { id: 'u2', name: 'Bob' }
@@ -22,7 +22,7 @@ function board(id: string, name: string, extra: Partial<BoardSummary> = {}): Boa
 }
 
 const boards = [
-  board('b1', 'Roadmap Q4', { updated_at: '2026-10-21T08:00:00Z' }),
+  board('b1', 'Roadmap Q4', { updated_at: '2026-10-21T08:00:00Z', folder_id: 'f1' }),
   board('b2', 'Sprint 12', { owner: bob, my_role: 'editor', updated_at: '2026-10-21T09:00:00Z' }),
   board('b3', 'Archive', { updated_at: '2026-09-01T09:00:00Z', public: true }),
 ]
@@ -36,9 +36,15 @@ const person = {
   workspace: { id: 'w1', name: 'Default' },
 }
 
-function mockFetch(me: object = person) {
+const team = { id: 'f1', name: 'Team', position: 1 }
+
+function mockFetch(me: object = person, folders = [team]) {
   const fetch = vi.fn(async (path: string, init?: RequestInit) => {
     if (path === '/api/auth/status') return Response.json({ signed_in: true, me })
+    if (path === '/api/folders' && init?.method === 'POST')
+      return Response.json({ id: 'f2', name: 'Archive', position: 2 }, { status: 201 })
+    if (path === '/api/folders') return Response.json({ folders })
+    if (/\/(star|folder)$|^\/api\/folders\//.test(path)) return new Response(null, { status: 204 })
     if (path === '/api/boards' && init?.method === 'POST')
       return Response.json(board('new', 'Untitled board'), { status: 201 })
     if (path.endsWith('/duplicate'))
@@ -247,4 +253,122 @@ test('boards changed in the same second keep one order', () => {
     visibleBoards(list, { filter: 'all', query: '', sort: 'updated' }).map((b) => b.id)
   expect(order(tied)).toEqual(['a', 'b', 'c'])
   expect(order(tied.toReversed())).toEqual(['a', 'b', 'c'])
+})
+
+test('starred boards come first in either sort', () => {
+  const starred = boards.map((b) => (b.id === 'b3' ? { ...b, starred: true } : b))
+  const order = (sort: 'updated' | 'name') =>
+    visibleBoards(starred, { filter: 'all', query: '', sort }).map((b) => b.id)
+  expect(order('updated')).toEqual(['b3', 'b2', 'b1'])
+  expect(order('name')).toEqual(['b3', 'b1', 'b2'])
+  expect(starred.filter((b) => inPlace(b, 'starred')).map((b) => b.id)).toEqual(['b3'])
+  expect(boards.filter((b) => inPlace(b, { folder: 'f1' })).map((b) => b.id)).toEqual(['b1'])
+})
+
+test('the side shows starred boards and a folder with its boards', async () => {
+  mockFetch()
+  renderHome()
+  const places = screen.getByRole('navigation', { name: 'Places' })
+  fireEvent.click(await within(places).findByRole('button', { name: /^Team/ }))
+  expect(screen.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
+  expect(names()).toEqual(['Roadmap Q4'])
+  fireEvent.click(within(places).getByRole('button', { name: /^Starred/ }))
+  expect(screen.getByText('Star a board to keep it here.')).toBeInTheDocument()
+  fireEvent.click(within(places).getByRole('button', { name: /^All boards/ }))
+  expect(names()).toEqual(['Sprint 12', 'Roadmap Q4', 'Archive'])
+})
+
+test('a star and the folder menu send the change', async () => {
+  const fetch = mockFetch()
+  renderHome()
+  fireEvent.click(screen.getByRole('button', { name: 'Star Sprint 12' }))
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/b2/star',
+      expect.objectContaining({ method: 'PUT' }),
+    ),
+  )
+  await screen.findByRole('button', { name: /^Team/ })
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Actions for Archive' }), { key: 'Enter' })
+  const menu = await screen.findByRole('menu')
+  fireEvent.keyDown(within(menu).getByRole('menuitem', { name: 'Move to folder' }), {
+    key: 'ArrowRight',
+  })
+  const folders = (await screen.findAllByRole('menu')).at(-1)!
+  fireEvent.click(within(folders).getByRole('menuitem', { name: 'Team' }))
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/b3/folder',
+      expect.objectContaining({ body: JSON.stringify({ folder_id: 'f1' }) }),
+    ),
+  )
+})
+
+test('without folders the move menu says so', async () => {
+  mockFetch(person, [])
+  renderHome()
+  fireEvent.keyDown(screen.getByRole('button', { name: 'Actions for Archive' }), { key: 'Enter' })
+  const menu = await screen.findByRole('menu')
+  fireEvent.keyDown(within(menu).getByRole('menuitem', { name: 'Move to folder' }), {
+    key: 'ArrowRight',
+  })
+  const sub = (await screen.findAllByRole('menu')).at(-1)!
+  expect(within(sub).getByRole('menuitem', { name: 'No folders yet' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  )
+})
+
+test('a new folder is named in place, and a board dragged onto it moves there', async () => {
+  const fetch = mockFetch()
+  renderHome()
+  fireEvent.click(screen.getAllByRole('button', { name: 'New folder' })[0])
+  const field = screen.getByLabelText('New folder name')
+  fireEvent.change(field, { target: { value: ' Archive ' } })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/folders',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Archive' }) }),
+    ),
+  )
+  expect(fetch.mock.calls.filter(([path]) => path === '/api/folders').length).toBeGreaterThan(0)
+
+  const data = new Map<string, string>()
+  const dataTransfer = {
+    get types() {
+      return [...data.keys()]
+    },
+    setData: (type: string, value: string) => data.set(type, value),
+    getData: (type: string) => data.get(type) ?? '',
+  }
+  const row = screen.getByRole('link', { name: 'Sprint 12' }).closest('li')!
+  fireEvent.dragStart(row, { dataTransfer })
+  const target = (await screen.findByRole('button', { name: /^Team/ })).parentElement!
+  fireEvent.dragOver(target, { dataTransfer })
+  fireEvent.drop(target, { dataTransfer })
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/b2/folder',
+      expect.objectContaining({ body: JSON.stringify({ folder_id: 'f1' }) }),
+    ),
+  )
+})
+
+test('deleting a folder asks nothing and keeps its boards', async () => {
+  const fetch = mockFetch()
+  renderHome()
+  fireEvent.keyDown(await screen.findByRole('button', { name: 'Actions for Team' }), {
+    key: 'Enter',
+  })
+  fireEvent.click(
+    within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Delete folder' }),
+  )
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/folders/f1',
+      expect.objectContaining({ method: 'DELETE' }),
+    ),
+  )
+  expect(fetch).not.toHaveBeenCalledWith('/api/boards/b1', expect.anything())
 })

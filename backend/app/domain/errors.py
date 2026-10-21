@@ -146,3 +146,7 @@ class UpdateNotPossible(DomainError):
 
 class NotEnoughSpace(DomainError):
     code = "not_enough_space"
+
+
+class FolderLimit(DomainError):
+    code = "folder_limit"

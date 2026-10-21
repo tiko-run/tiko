@@ -23,6 +23,7 @@ from app.domain.accounts import Account, Person, PersonRecord, Role
 from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import BoardDoc, BoardRecord, BoardRow, planned_stages
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
+from app.domain.folders import Folder
 from app.domain.invites import Invite
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
 from app.domain.onboarding import Onboarding
@@ -356,30 +357,32 @@ class PgBoardRepo(_Repo):
         self, user_id: str, board_id: str | None = None, others: bool = False
     ) -> list[BoardRow]:
         if board_id:
-            where, params = "WHERE b.id = %s", (user_id, board_id)
+            where = "WHERE b.id = %(board)s"
         elif others:
             # A demo visitor's boards are theirs alone and gone in days; they would bury the rest.
-            where, params = "WHERE m.role IS NOT NULL OR u.demo_expires_at IS NULL", (user_id,)
+            where = "WHERE m.role IS NOT NULL OR u.demo_expires_at IS NULL"
         else:
             where = (
-                "WHERE b.id IN (SELECT board_id FROM board_members WHERE user_id = %s"
+                "WHERE b.id IN (SELECT board_id FROM board_members WHERE user_id = %(user)s"
                 " UNION SELECT id FROM boards WHERE everyone_role IS NOT NULL)"
             )
-            params = (user_id, user_id)
         with self._tx() as conn:
             rows = conn.execute(
                 "SELECT b.id, b.name, b.created_at, b.updated_at, b.everyone_role,"
                 " m.role AS member_role,"
                 " o.user_id AS owner_id, u.name AS owner_name,"
                 " i.public_token IS NOT NULL AS public,"
-                " CASE WHEN b.has_nodes THEN b.version END AS preview FROM boards b"
+                " CASE WHEN b.has_nodes THEN b.version END AS preview,"
+                " s.user_id IS NOT NULL AS starred, f.folder_id FROM boards b"
                 " JOIN board_index i ON i.board_id = b.id"
-                " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = %s"
+                " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = %(user)s"
                 " LEFT JOIN board_members o ON o.board_id = b.id AND o.role = 'owner'"
+                " LEFT JOIN board_stars s ON s.board_id = b.id AND s.user_id = %(user)s"
+                " LEFT JOIN folder_boards f ON f.board_id = b.id AND f.user_id = %(user)s"
                 f" LEFT JOIN users u ON u.id = o.user_id {where}"
                 # Changes in the same second keep one order, the one Home sorts by too.
                 " ORDER BY b.updated_at DESC, b.created_at DESC, b.id",
-                params,
+                {"user": user_id, "board": board_id},
             ).fetchall()
         return [BoardRow(**row) for row in rows]
 
@@ -595,6 +598,120 @@ class PgBoardRepo(_Repo):
                 (token,),
             ).fetchone()
         return (row["id"], row["version"], row["updated_at"]) if row else None
+
+
+# Whether the person `x.user_id` may open the board `b`, as effective_role decides.
+_CAN_OPEN = (
+    "EXISTS (SELECT 1 FROM board_members m WHERE m.board_id = b.id AND m.user_id = x.user_id)"
+    " OR EXISTS (SELECT 1 FROM memberships w WHERE w.workspace_id = b.workspace_id"
+    " AND w.user_id = x.user_id AND (w.role = 'admin' OR (b.everyone_role IS NOT NULL"
+    " AND NOT EXISTS (SELECT 1 FROM users u WHERE u.id = x.user_id"
+    " AND u.demo_expires_at IS NOT NULL))))"
+)
+
+
+class PgFolderRepo(_Repo):
+    def star(self, user_id: str, board_id: str, starred: bool) -> None:
+        with self._tx() as conn:
+            if starred:
+                conn.execute(
+                    "INSERT INTO board_stars (workspace_id, board_id, user_id)"
+                    " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                    (self._ws, board_id, user_id),
+                )
+            else:
+                conn.execute(
+                    "DELETE FROM board_stars WHERE board_id = %s AND user_id = %s",
+                    (board_id, user_id),
+                )
+
+    def folders(self, user_id: str) -> list[Folder]:
+        with self._tx() as conn:
+            return self._folders(conn, user_id)
+
+    @staticmethod
+    def _folders(conn: psycopg.Connection, user_id: str) -> list[Folder]:
+        rows = conn.execute(
+            "SELECT id, name, position FROM folders WHERE user_id = %s ORDER BY position, id",
+            (user_id,),
+        ).fetchall()
+        return [Folder(**row) for row in rows]
+
+    def add(self, user_id: str, name: str, limit: int) -> Folder | None:
+        with self._tx() as conn:
+            _lock_key(conn, "folders", user_id)
+            kept = self._folders(conn, user_id)
+            if len(kept) >= limit:
+                return None
+            folder = Folder(
+                id=uuid.uuid4().hex,
+                name=name,
+                position=max((f.position for f in kept), default=0) + 1,
+            )
+            conn.execute(
+                "INSERT INTO folders (workspace_id, id, user_id, name, position)"
+                " VALUES (%s, %s, %s, %s, %s)",
+                (self._ws, folder.id, user_id, folder.name, folder.position),
+            )
+        return folder
+
+    def change(
+        self, user_id: str, folder_id: str, name: str | None, position: int | None
+    ) -> Folder | None:
+        with self._tx() as conn:
+            _lock_key(conn, "folders", user_id)
+            kept = self._folders(conn, user_id)
+            folder = next((f for f in kept if f.id == folder_id), None)
+            if folder is None:
+                return None
+            if name is not None:
+                conn.execute("UPDATE folders SET name = %s WHERE id = %s", (name, folder_id))
+                folder.name = name
+            if position is not None:
+                kept.remove(folder)
+                kept.insert(min(max(position, 1), len(kept) + 1) - 1, folder)
+                moved = [(i, f.id) for i, f in enumerate(kept, 1) if f.position != i]
+                conn.cursor().executemany("UPDATE folders SET position = %s WHERE id = %s", moved)
+                folder.position = kept.index(folder) + 1
+        return folder
+
+    def remove(self, user_id: str, folder_id: str) -> bool:
+        # Its places go by cascade; the boards stay.
+        with self._tx() as conn:
+            cursor = conn.execute(
+                "DELETE FROM folders WHERE id = %s AND user_id = %s", (folder_id, user_id)
+            )
+        return cursor.rowcount > 0
+
+    def place(self, user_id: str, board_id: str, folder_id: str | None) -> bool:
+        with self._tx() as conn:
+            if folder_id is None:
+                conn.execute(
+                    "DELETE FROM folder_boards WHERE board_id = %s AND user_id = %s",
+                    (board_id, user_id),
+                )
+                return True
+            # Through folders, so only a folder of this person in this workspace takes it.
+            cursor = conn.execute(
+                "INSERT INTO folder_boards (workspace_id, board_id, user_id, folder_id)"
+                " SELECT %s, %s, user_id, id FROM folders WHERE id = %s AND user_id = %s"
+                " ON CONFLICT (board_id, user_id) DO UPDATE SET folder_id = excluded.folder_id",
+                (self._ws, board_id, folder_id, user_id),
+            )
+        return cursor.rowcount > 0
+
+    def forget_unreachable(self) -> int:
+        with self._db.jobs() as conn:
+            gone = conn.execute(
+                "DELETE FROM folders x WHERE NOT EXISTS (SELECT 1 FROM memberships w"
+                " WHERE w.workspace_id = x.workspace_id AND w.user_id = x.user_id)"
+            ).rowcount
+            for table in ("board_stars", "folder_boards"):
+                gone += conn.execute(
+                    f"DELETE FROM {table} x USING boards b"
+                    f" WHERE b.id = x.board_id AND NOT ({_CAN_OPEN})"
+                ).rowcount
+        return gone
 
 
 class PgSnapshotRepo(_Repo):
@@ -1669,6 +1786,7 @@ class PgMemberRepo(_Repo):
 
 # The names main.py builds the app from, the same in both adapters until SQLite goes.
 BoardRepo = PgBoardRepo
+FolderRepo = PgFolderRepo
 SnapshotRepo = PgSnapshotRepo
 CredentialRepo = PgCredentialRepo
 SettingsRepo = PgSettingsRepo
