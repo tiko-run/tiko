@@ -45,6 +45,8 @@
   --sl-color-hairline-shade: var(--tiko-border);
   --tiko-active-bg: var(--tiko-accent);
   --tiko-active-text: var(--sl-color-accent-high);
+  /* Note callouts in the brand blue, a step lighter than Starlight's navy. */
+  --sl-color-blue-low: oklch(0.33 0.055 255);
 }
 
 :root[data-theme='light'] {
@@ -92,36 +94,51 @@ header.header {
   border-bottom: 1px solid var(--sl-color-hairline);
 }
 
-/* Sidebar: small muted group titles, quiet links, the open page tinted instead of filled. */
-.sidebar-content summary {
-  padding-block: 0.35rem;
-}
-.sidebar-content .group-label .large {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--sl-color-white);
-}
-.sidebar-content .caret {
-  color: var(--sl-color-gray-4);
-  width: 1rem;
-  height: 1rem;
-}
+/* Sidebar, three levels after docs.composio.dev:
+   section titles are small uppercase headings that never fold, the pages under them carry the weight,
+   and a group nested in a section folds open with a chevron, its pages on a rail. */
 .sidebar-content ul ul li {
   margin-inline-start: 0;
   border-inline-start: 0;
   padding-inline-start: 0;
 }
 .sidebar-content .top-level > li + li {
-  margin-top: 1.25rem;
+  margin-top: 1.75rem;
 }
-.sidebar-content a {
+.sidebar-content .top-level > li > details > summary {
+  padding: 0 0.5rem 0.5rem;
+  cursor: default;
+}
+.sidebar-content .top-level > li > details > summary .group-label .large {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-4);
+}
+.sidebar-content .top-level > li > details > summary .caret {
+  display: none;
+}
+.sidebar-content a,
+.sidebar-content ul ul summary {
   padding: 0.3rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--tiko-radius);
   font-size: 0.9375rem;
-  color: var(--sl-color-gray-3);
+  color: var(--sl-color-gray-2);
+}
+.sidebar-content ul ul summary .group-label .large {
+  font-size: inherit;
+  font-weight: 400;
+  color: inherit;
+}
+.sidebar-content ul ul summary .caret {
+  width: 1rem;
+  height: 1rem;
+  color: var(--sl-color-gray-4);
 }
 .sidebar-content a:hover,
-.sidebar-content a:focus {
+.sidebar-content a:focus,
+.sidebar-content ul ul summary:hover {
   color: var(--sl-color-white);
   background: var(--sl-color-gray-6);
 }
@@ -131,6 +148,33 @@ header.header {
   font-weight: 500;
   color: var(--tiko-active-text);
   background: var(--tiko-active-bg);
+}
+/* Pages of a nested group hang on a rail; the open one is marked on it. */
+.sidebar-content ul ul ul {
+  margin: 0.125rem 0 0.375rem 0.75rem;
+  border-inline-start: 1px solid var(--sl-color-hairline);
+}
+.sidebar-content ul ul ul li {
+  padding-inline-start: 0.5rem;
+}
+.sidebar-content ul ul ul a[aria-current='page'] {
+  position: relative;
+}
+.sidebar-content ul ul ul a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.3rem;
+  inset-inline-start: calc(-0.5rem - 1.5px);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--sl-color-accent);
+}
+/* A badge sits at the right end of its link. */
+.sidebar-content a:has(.sl-badge) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 /* Page head: group name over the title, the description as a lead, no rule under it. */
@@ -200,21 +244,45 @@ header.header {
   border-radius: 10px;
 }
 
-/* Tables: hairlines only, muted small headers. */
+/* Tables read as a card: a frame, a tinted header row, hairlines between rows. */
 .sl-markdown-content table:not(:where(.not-content *)) {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--sl-color-hairline);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
   font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  padding: 0.625rem 0.875rem;
+  border: 0;
+  border-bottom: 1px solid var(--sl-color-hairline);
+  vertical-align: top;
 }
 .sl-markdown-content th:not(:where(.not-content *)) {
-  border-bottom: 1px solid var(--sl-color-hairline);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--sl-color-gray-3);
+  background: var(--sl-color-gray-6);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sl-color-white);
+  white-space: nowrap;
 }
-.sl-markdown-content td:not(:where(.not-content *)) {
-  border-bottom: 1px solid var(--sl-color-hairline);
+:root[data-theme='light'] .sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--sl-color-gray-7);
+}
+.sl-markdown-content tr:last-child td:not(:where(.not-content *)) {
+  border-bottom: 0;
 }
 .sl-markdown-content tr:nth-child(2n):not(:where(.not-content *)) {
   background: transparent;
+}
+.sl-markdown-content tbody tr:hover td:not(:where(.not-content *)) {
+  background: color-mix(in oklch, var(--sl-color-gray-6) 45%, transparent);
+}
+/* A table's first column names the row: a command, an option, a key. */
+.sl-markdown-content td:first-child:not(:where(.not-content *)) {
+  white-space: nowrap;
 }
 
 /* Code blocks and cards share the 1px border and radius of a card on the board. */
@@ -342,21 +410,6 @@ starlight-toc a {
   }
 }
 
-/* Sidebar group titles: small caps-style labels, so the pages under them carry the weight. */
-.sidebar-content .top-level > li > details > summary .group-label .large {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--sl-color-gray-3);
-}
-.sidebar-content .top-level > li > details > summary .caret {
-  display: none;
-}
-.sidebar-content .top-level > li + li {
-  margin-top: 1.5rem;
-}
-
 /* Section tabs in the sidebar on narrow screens (Sidebar.astro). */
 .tiko-topics-mobile .starlight-sidebar-topics a {
   border-radius: var(--tiko-radius);
@@ -376,10 +429,90 @@ starlight-toc a[aria-current='true'] {
   color: var(--sl-color-text-accent);
 }
 
-/* Callouts and the search box on the tokens. */
+/* Callouts: a tinted card with a colored edge, the title bold. */
 .starlight-aside {
-  border-radius: var(--tiko-radius);
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
 }
+.starlight-aside__title {
+  font-size: 1rem;
+}
+.sl-markdown-content .starlight-aside {
+  margin-block: 1.5rem;
+}
+
+/* Tabs (one per system on Install): a segmented row over the panel, the picked one raised. */
+starlight-tabs [role='tablist'] {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 8px;
+  background: var(--sl-color-gray-6);
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+:root[data-theme='light'] starlight-tabs [role='tablist'] {
+  background: var(--sl-color-gray-7);
+}
+starlight-tabs .tab {
+  margin-bottom: 0;
+}
+starlight-tabs .tab > [role='tab'] {
+  padding: 0.3rem 0.875rem;
+  border: 0;
+  border-radius: var(--tiko-radius);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--sl-color-gray-3);
+  box-shadow: none;
+}
+starlight-tabs .tab > [role='tab']:hover {
+  color: var(--sl-color-white);
+}
+starlight-tabs .tab [role='tab'][aria-selected='true'] {
+  background: var(--tiko-background);
+  color: var(--sl-color-white);
+  box-shadow: 0 1px 2px oklch(0.15 0.02 255 / 0.25);
+}
+:root[data-theme='light'] starlight-tabs .tab [role='tab'][aria-selected='true'] {
+  background: var(--tiko-card);
+}
+
+/* Steps: numbered circles on a rail. */
+.sl-steps {
+  --bullet-size: 1.75rem;
+  --bullet-margin: 0.5rem;
+}
+.sl-steps > li::before {
+  border: 1px solid var(--sl-color-hairline);
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sl-steps > li::after {
+  background: var(--sl-color-hairline);
+}
+
+/* Badges: small, square-ish, as in the app. EXP is amber, like composio's. */
+.sl-badge {
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.sl-badge.tiko-exp {
+  padding: 0 0.3rem;
+  border: 1px solid oklch(0.75 0.15 80 / 0.55);
+  background: oklch(0.75 0.15 80 / 0.12);
+  color: oklch(0.82 0.15 85);
+}
+:root[data-theme='light'] .sl-badge.tiko-exp {
+  color: oklch(0.52 0.13 70);
+}
+
+/* The search box on the tokens. */
 site-search button[data-open-modal] {
   border-radius: var(--tiko-radius);
   background: var(--sl-color-gray-6);

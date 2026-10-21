@@ -7,6 +7,51 @@ import { ClientRouter } from 'astro:transitions'
 <Default />
 
 <script>
+  // Code styles come as a stylesheet link inside the first code block of an MDX page. ClientRouter waits
+  // only for head stylesheets before it swaps, so move the link there and wait for it too: no unstyled flash.
+  document.addEventListener('astro:before-preparation', (event) => {
+    const load = event.loader
+    event.loader = async () => {
+      await load()
+      const page = event.newDocument
+      const links = [...page.body.querySelectorAll<HTMLLinkElement>('link[rel=stylesheet]')]
+      page.head.append(...links)
+      const fresh = links.filter((link) => !document.querySelector(`link[rel=stylesheet][href="${link.getAttribute('href')}"]`))
+      await Promise.all(
+        fresh.map(
+          (link) =>
+            new Promise((done) => {
+              const preload = Object.assign(document.createElement('link'), { rel: 'preload', as: 'style', href: link.href })
+              preload.onload = preload.onerror = done
+              document.head.append(preload)
+            }),
+        ),
+      )
+    }
+  })
+</script>
+
+<script>
+  // Sections that moved off a page to their own page: old links with the anchor still land on them.
+  const MOVED: Record<string, Record<string, string>> = {
+    '/gantt/': {
+      stages: '/gantt/stages/',
+      'people-on-stages': '/gantt/stages/',
+      columns: '/gantt/columns-and-filters/',
+      'filters-and-views': '/gantt/columns-and-filters/',
+      'working-days': '/gantt/working-time/',
+      'time-off': '/gantt/working-time/',
+      workload: '/gantt/working-time/',
+    },
+  }
+  document.addEventListener('astro:page-load', () => {
+    const anchor = location.hash.slice(1)
+    const page = MOVED[location.pathname]?.[anchor]
+    if (page) location.replace(`${page}#${anchor}`)
+  })
+</script>
+
+<script>
   // Starlight restores groups the reader collapsed; keep the current page's group open anyway.
   document.addEventListener('astro:page-load', () => {
     let node = document.querySelector('#starlight__sidebar a[aria-current="page"]')?.parentElement

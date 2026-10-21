@@ -3,23 +3,61 @@ title: Install
 description: Install tiko on Linux, macOS or Windows with one command or step by step.
 ---
 
+import { Steps, Tabs, TabItem } from '@astrojs/starlight/components'
+
 tiko runs in Docker on your own machine or server. The installer does everything for you; the manual steps below are for when you want to see each step or the installer cannot help.
 
 ## One command
 
-On Linux or macOS, open a terminal and run:
+<Tabs syncKey="os">
+<TabItem label="Linux">
+
+Open a terminal and run:
 
 ```bash
 curl -fsSL https://tiko.run/install.sh | sh
 ```
 
+</TabItem>
+<TabItem label="macOS">
+
+Open Terminal and run:
+
+```bash
+curl -fsSL https://tiko.run/install.sh | sh
+```
+
+</TabItem>
+<TabItem label="Windows">
+
+On Windows 10 or 11, open PowerShell and run:
+
+```powershell
+irm https://tiko.run/install.ps1 | iex
+```
+
+</TabItem>
+</Tabs>
+
 The installer:
 
-1. Checks the machine: 64-bit Linux or macOS, at least 1 GB of memory (2 GB is better), 2 GB of free disk, a free port.
-2. Installs Docker if it is missing, after asking: Docker Engine from [get.docker.com](https://get.docker.com) on Linux, [Colima](https://github.com/abiosoft/colima) with Homebrew on macOS.
-3. Creates the folder `~/tiko` (`/opt/tiko` when run as root on Linux) with a generated password and secret key in `.env`.
+<Steps>
+
+1. Checks the machine: 64-bit Linux or macOS with at least 1 GB of memory (2 GB is better), or 64-bit Windows 10 version 2004 or later with at least 4 GB and virtualization turned on in the firmware. Either way, 2 GB of free disk and a free port.
+2. Installs Docker if it is missing, after asking: Docker Engine from [get.docker.com](https://get.docker.com) on Linux, [Colima](https://github.com/abiosoft/colima) with Homebrew on macOS. On Windows it installs WSL 2 first if it is missing; Windows turns WSL on only while it starts, so the installer asks you to restart, then run the same line again. Then it installs [Docker Desktop](https://docs.docker.com/desktop/) with `winget` and starts it.
+3. Creates the folder `~/tiko` (`/opt/tiko` when run as root on Linux, `%USERPROFILE%\tiko` on Windows) with a generated password and secret key in `.env`.
 4. Asks whether to turn on one-click updates (yes by default), see [Updates](../updates/).
-5. Starts the latest release and prints the address, the username `admin` and the password.
+5. Starts the latest release and prints the address, the username `admin` and the password. On Windows it also opens the browser.
+
+</Steps>
+
+On its first start Docker Desktop on Windows opens a few windows: press **Skip** on "Welcome to Docker" (tiko needs no Docker account), close "Welcome to Windows Subsystem for Linux", and answer the Windows Firewall question about "Docker Desktop Backend": **Allow** lets other devices on your network open tiko, **Cancel** keeps it on this computer.
+
+:::tip[Upgrade the same way]
+Run the same command again to upgrade: it keeps your boards, accounts and `.env`.
+:::
+
+### Options
 
 Options go after `sh -s --`, for example `curl -fsSL https://tiko.run/install.sh | sh -s -- --yes --port 8080`:
 
@@ -31,22 +69,7 @@ Options go after `sh -s --`, for example `curl -fsSL https://tiko.run/install.sh
 | `--version 2026.10.12` | `TIKO_VERSION` | Install a specific release |
 | `--no-updater` | `TIKO_UPDATER=no` | No one-click updates; `TIKO_UPDATER=yes` turns them on without asking |
 
-Run the same command again to upgrade: it keeps your boards, accounts and `.env`.
-
-On Windows 10 or 11, open PowerShell and run:
-
-```powershell
-irm https://tiko.run/install.ps1 | iex
-```
-
-The Windows installer does the same, with Docker Desktop instead of Docker Engine:
-
-1. Checks the machine: 64-bit Windows 10 version 2004 or later, at least 4 GB of memory, virtualization turned on in the firmware, 2 GB of free disk, a free port.
-2. Installs WSL 2 if it is missing, after asking. Windows turns WSL on only while it starts, so the installer asks you to restart, then run the same line again.
-3. Installs [Docker Desktop](https://docs.docker.com/desktop/) with `winget`, after asking, and starts it. On its first start Docker Desktop opens a few windows: press **Skip** on "Welcome to Docker" (tiko needs no Docker account), close "Welcome to Windows Subsystem for Linux", and answer the Windows Firewall question about "Docker Desktop Backend": **Allow** lets other devices on your network open tiko, **Cancel** keeps it on this computer.
-4. Creates the folder `%USERPROFILE%\tiko`, starts the latest release, prints the address, the username and the password, and opens the browser.
-
-Options: `& ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Port 8080`, with `-Dir`, `-Version` and `-NoUpdater` as well, or the same environment variables as above.
+On Windows: `& ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Port 8080`, with `-Dir`, `-Version` and `-NoUpdater` as well, or the same environment variables.
 
 ## Step by step
 
@@ -54,14 +77,20 @@ Options: `& ([scriptblock]::Create((irm https://tiko.run/install.ps1))) -Yes -Po
 
 Docker runs tiko in containers, so nothing else gets installed on your system.
 
-**Windows 10 or 11**
+<Tabs syncKey="os">
+<TabItem label="Linux">
 
-1. Check that virtualization is on: open Task Manager → Performance → CPU and look for "Virtualization: Enabled". If it says Disabled, turn on Intel VT-x or AMD-V in your computer's BIOS or UEFI settings.
-2. Download [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) and run the installer. Keep "Use WSL 2 instead of Hyper-V" checked.
-3. Restart the computer when the installer asks.
-4. Open Docker Desktop from the Start menu, accept the terms and wait until the bottom left corner says "Engine running".
+On Ubuntu or Debian:
 
-**macOS**
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+```
+
+Sign out and back in, so you can run `docker` without `sudo`. Other distributions: [Docker Engine install guide](https://docs.docker.com/engine/install/).
+
+</TabItem>
+<TabItem label="macOS">
 
 Pick one:
 
@@ -75,20 +104,26 @@ Pick one:
   colima start
   ```
 
-Docker Desktop is free for personal use, education and companies under 250 people and $10 million in revenue; larger companies need a paid plan. Colima has no such limit.
+</TabItem>
+<TabItem label="Windows">
 
-**Ubuntu or Debian**
+<Steps>
 
-```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER
-```
+1. Check that virtualization is on: open Task Manager → Performance → CPU and look for "Virtualization: Enabled". If it says Disabled, turn on Intel VT-x or AMD-V in your computer's BIOS or UEFI settings.
+2. Download [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/) and run the installer. Keep "Use WSL 2 instead of Hyper-V" checked.
+3. Restart the computer when the installer asks.
+4. Open Docker Desktop from the Start menu, accept the terms and wait until the bottom left corner says "Engine running".
 
-Sign out and back in, so you can run `docker` without `sudo`. Other distributions: [Docker Engine install guide](https://docs.docker.com/engine/install/).
+</Steps>
 
-**Check it**
+</TabItem>
+</Tabs>
 
-In a terminal (PowerShell on Windows):
+:::note[Docker Desktop license]
+Docker Desktop is free for personal use, education and companies under 250 people and $10 million in revenue; larger companies need a paid plan. Docker Engine on Linux and Colima on macOS have no such limit.
+:::
+
+Check it in a terminal (PowerShell on Windows):
 
 ```bash
 docker run hello-world
@@ -99,7 +134,8 @@ The first command prints "Hello from Docker!", the second a version like `v2.x`.
 
 ### 2. Start tiko
 
-Linux and macOS:
+<Tabs syncKey="os">
+<TabItem label="Linux">
 
 ```bash
 mkdir ~/tiko && cd ~/tiko
@@ -107,7 +143,19 @@ curl -fsSL https://github.com/tiko-run/tiko/releases/latest/download/compose.rel
 docker compose up -d
 ```
 
-Windows, in PowerShell:
+</TabItem>
+<TabItem label="macOS">
+
+```bash
+mkdir ~/tiko && cd ~/tiko
+curl -fsSL https://github.com/tiko-run/tiko/releases/latest/download/compose.release.yml -o compose.yaml
+docker compose up -d
+```
+
+</TabItem>
+<TabItem label="Windows">
+
+In PowerShell:
 
 ```powershell
 mkdir $HOME\tiko; cd $HOME\tiko
@@ -115,23 +163,40 @@ Invoke-WebRequest https://github.com/tiko-run/tiko/releases/latest/download/comp
 docker compose up -d
 ```
 
+</TabItem>
+</Tabs>
+
 The first start downloads about 130 MB.
 
 ### 3. Sign in
 
-Open http://localhost:3000 and sign in as `admin`. The password is generated on the first start and printed once to the log. Read it in the tiko folder.
+Open http://localhost:3000 and sign in as `admin`. The password is generated on the first start and printed once to the log. Read it in the tiko folder:
 
-Linux and macOS:
+<Tabs syncKey="os">
+<TabItem label="Linux">
 
 ```bash
 docker compose logs api | grep 'tiko password'
 ```
 
-Windows, in PowerShell, which has no `grep`:
+</TabItem>
+<TabItem label="macOS">
+
+```bash
+docker compose logs api | grep 'tiko password'
+```
+
+</TabItem>
+<TabItem label="Windows">
+
+PowerShell has no `grep`:
 
 ```powershell
 docker compose logs api | Select-String 'tiko password'
 ```
+
+</TabItem>
+</Tabs>
 
 Change it in Settings → Security. To pick your own from the start, put `TIKO_PASSWORD=...` into a file named `.env` next to `compose.yaml` before the first start; see [Configuration](../configuration/).
 
@@ -179,7 +244,9 @@ Run these in the tiko folder. A new terminal opens somewhere else, and PowerShel
 | Upgrade | **Update now** in About with one-click updates on; otherwise the one-line installer again. The folder's `compose.yaml` is pinned to its release, so `docker compose pull` alone fetches nothing new |
 | Uninstall | `docker compose down -v`, which also deletes the boards, then delete the folder |
 
+:::caution[`down -v` deletes your boards]
 Your boards live in the Docker volume of the `db` service, and `docker compose down -v` deletes it. Back up first, as [Data and upgrades](../data-and-upgrades/) shows.
+:::
 
 ## When something goes wrong
 

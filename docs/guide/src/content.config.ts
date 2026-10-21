@@ -11,6 +11,8 @@ export const collections = {
       extend: z.object({
         date: z.string().optional(),
         cover: z.string().optional(),
+        // An experimental feature: an EXP badge in the sidebar and a notice under the title.
+        experimental: z.boolean().default(false),
       }),
     }),
   }),

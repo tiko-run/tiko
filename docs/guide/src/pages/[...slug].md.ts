@@ -35,7 +35,13 @@ export const GET: APIRoute<Props> = ({ props: { entry, releases }, site }) => {
       return [`### ${area ? `${area}: ` : ''}${title}`, href && `[Read in the guide](${link(href)})`].filter(Boolean).join('\n\n') + '\n'
     })
     .replace(/<ReleaseList\s*\/>/g, releases)
-    .replace(/<\/?(Feature|Details?|Card|CardGrid)\b[^>]*>/g, '')
+    // A tab's content follows its label, so every system's steps stay in the twin.
+    .replace(/<TabItem\b[^>]*>/g, (tag) => `**${attrs(tag).label}**\n`)
+    .replace(/<\/?(Feature|Details?|Card|CardGrid|Tabs|TabItem|Steps)\b[^>]*>/g, '')
+    // Callouts become quotes with their title.
+    .replace(/^:::(\w+)(?:\[(.*)\])?\n([\s\S]*?)\n:::$/gm, (_, type: string, label: string | undefined, text: string) =>
+      [`**${label ?? type[0].toUpperCase() + type.slice(1)}**`, '', ...text.split('\n')].map((line) => (line ? `> ${line}` : '>')).join('\n'),
+    )
     // Local images are build assets with hashed names, so they become their alt text.
     .replace(/!\[([^\]]*)\]\((?!https?:)[^)]+\)/g, (_, alt: string) => (alt ? `[Image: ${alt}]` : ''))
     // Relative links point back to the site.
@@ -52,6 +58,7 @@ export const GET: APIRoute<Props> = ({ props: { entry, releases }, site }) => {
       .join('\n')
   }
   body = body.replace(/\n{3,}/g, '\n\n').trim()
-  const head = [`# ${title}`, description && `> ${description}`].filter(Boolean).join('\n\n')
+  const notice = entry.data.experimental && '> **Experimental.** This feature is new and may change between releases.'
+  const head = [`# ${title}`, description && `> ${description}`, notice].filter(Boolean).join('\n\n')
   return new Response(`${head}\n\n${body}\n`, { headers: { 'Content-Type': 'text/markdown; charset=utf-8' } })
 }
