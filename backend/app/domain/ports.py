@@ -192,8 +192,9 @@ class LiveBoards(Protocol):
         sockets are closed."""
         ...
 
-    def planning_changed(self) -> None:
-        """People on every open board are told to read `/api/planning` again."""
+    def planning_changed(self, workspace: str | None = None) -> None:
+        """People on the open boards of the workspace, or of every one, are told to read
+        `/api/planning` again."""
         ...
 
     def put(self, board_id: str, version: int, doc: BoardDoc) -> int:
@@ -401,6 +402,10 @@ class UserRepo(Protocol):
         """Raises UsernameTaken."""
         ...
 
+    def add_visitor(self, person: Person, password_hash: str) -> str:
+        """Adds a demo visitor with a workspace of their own; returns its id."""
+        ...
+
     def find(self, username: str) -> tuple[Person, str] | None:
         """The person and their password hash, matching the username without regard to case."""
         ...
@@ -455,16 +460,17 @@ class UserRepo(Protocol):
         ...
 
     def delete_unused_members(self, before: str) -> tuple[list[str], list[str]]:
-        """Deletes everyone but admins and demo visitors who last signed in before this time,
-        with their boards; returns the ids of the people and of the boards that went."""
+        """Deletes everyone in one workspace who is not its admin, is no demo visitor and last
+        signed in before this time, with their boards and demo workspace; returns the ids of
+        the people and of the boards that went."""
         ...
 
     def demo_alive(self, now: str) -> int: ...
 
     def delete_expired_demo(self, now: str, untouched: str) -> tuple[list[str], list[str]]:
         """Deletes demo visitors whose expiry is before `now`, or before `untouched` when they
-        changed nothing, with their boards, sessions, statuses and cache in one step; returns
-        the ids of the people and of the boards that went."""
+        changed nothing, with their workspaces and sessions in one step; returns the ids of the
+        people and of the boards that went."""
         ...
 
     def evict_untouched_demo(self) -> tuple[list[str], list[str]]:

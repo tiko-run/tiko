@@ -19,7 +19,6 @@ import {
 import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
-import { usePlanning } from '@/planning/context'
 
 type Props = {
   items: PlacedAway[]
@@ -40,7 +39,6 @@ const HATCH = {
 /** Who is away over this Gantt's range; drag across free days to mark someone else away. */
 export function TimeOffLane({ items, height, axis, people }: Props) {
   const getZoom = useZoom()
-  const { sample } = usePlanning()
   const [ghost, setGhost] = useState<Span | null>(null)
   const [asking, setAsking] = useState<Span | null>(null)
   const [open, setOpen] = useState<string | null>(null)
@@ -49,7 +47,7 @@ export function TimeOffLane({ items, height, axis, people }: Props) {
     dayAt((clientX - left) / zoom, axis)
 
   const startDraw = (event: PointerEvent<HTMLDivElement>) => {
-    if (sample || event.target !== event.currentTarget || event.button !== 0) return
+    if (event.target !== event.currentTarget || event.button !== 0) return
     event.stopPropagation()
     const zoom = getZoom()
     const left = event.currentTarget.getBoundingClientRect().left
@@ -85,7 +83,7 @@ export function TimeOffLane({ items, height, axis, people }: Props) {
     <div
       data-gantt-timeoff
       aria-label="Time off"
-      className={cn('relative border-b', !sample && 'cursor-crosshair')}
+      className="relative cursor-crosshair border-b"
       style={{ height }}
       onPointerDown={startDraw}
       onPointerMove={moveDraw}
@@ -101,7 +99,6 @@ export function TimeOffLane({ items, height, axis, people }: Props) {
           item={item}
           axis={axis}
           open={open === item.off.id}
-          fixed={sample}
           onOpen={(next) => setOpen(next ? item.off.id : null)}
         />
       ))}
@@ -129,13 +126,11 @@ function AwayBar({
   item,
   axis,
   open,
-  fixed,
   onOpen,
 }: {
   item: PlacedAway
   axis: Axis
   open: boolean
-  fixed: boolean
   onOpen: (open: boolean) => void
 }) {
   const queryClient = useQueryClient()
@@ -207,20 +202,18 @@ function AwayBar({
               Time off belongs to the person, so it shows on every board where they have a stage.
               Only the dates are kept.
             </p>
-            {!fixed && (
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={removing}
-                  className="text-destructive hover:text-destructive"
-                  onClick={remove}
-                >
-                  <Trash2 className="size-3.5" />
-                  Remove time off
-                </Button>
-              </div>
-            )}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={removing}
+                className="text-destructive hover:text-destructive"
+                onClick={remove}
+              >
+                <Trash2 className="size-3.5" />
+                Remove time off
+              </Button>
+            </div>
           </div>
         </PopoverContent>
       </Popover>

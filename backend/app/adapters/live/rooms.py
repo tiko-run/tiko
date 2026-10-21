@@ -528,10 +528,13 @@ class LiveRooms:
 
         loop.call_soon_threadsafe(run)
 
-    def planning_changed(self) -> None:
+    def planning_changed(self, workspace: str | None = None) -> None:
         # Only `connections`: guests sit in `room.guests` and read names from the public payload.
         data = bytes([PLANNING_CHANGED])
-        self._each(lambda _, __: True, lambda _, c: c.push(data))
+        self._each(
+            lambda room, _: workspace is None or room.workspace == workspace,
+            lambda _, c: c.push(data),
+        )
 
     def recheck_board(self, board_id: str) -> None:
         def recheck(room: Room, connection: Connection) -> None:

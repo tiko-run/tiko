@@ -43,7 +43,6 @@ import {
   type Span,
 } from '@/modules/gantt/timeline'
 import { stageColors } from '@/planning/colors'
-import { usePlanning } from '@/planning/context'
 import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
@@ -462,7 +461,6 @@ function StageForm({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
-  const { sample } = usePlanning()
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
@@ -537,7 +535,7 @@ function StageForm({
             {t.name}
           </button>
         ))}
-        {!adding && !sample && (
+        {!adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}

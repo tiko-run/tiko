@@ -49,7 +49,6 @@ const planningSchema = z.object({
   fields: z.array(fieldSchema),
   views: z.array(viewSchema),
   daysOff: z.array(z.string()),
-  sample: z.boolean().default(false),
 })
 export type Planning = z.infer<typeof planningSchema>
 
