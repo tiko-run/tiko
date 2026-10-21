@@ -344,9 +344,12 @@ def test_the_board_limit_of_the_instance_holds_members_and_not_admins():
     ann = visitor(app)
     sign_up(ann)
     welcome(ann)
-    assert ann.post("/api/boards", json={"name": "Second"}).status_code == 201
+    second = ann.post("/api/boards", json={"name": "Second"})
+    assert second.status_code == 201
     response = ann.post("/api/boards", json={"name": "Third"})
     assert response.json()["error"]["code"] == "board_limit"
+    copy = ann.post(f"/api/boards/{second.json()['id']}/duplicate")
+    assert copy.json()["error"]["code"] == "board_limit"
     # A visitor keeps the three of the demo whatever the instance allows its people.
     bob = visitor(app, "203.0.113.2")
     welcome(bob)

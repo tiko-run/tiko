@@ -1,9 +1,11 @@
 import {
   ChevronDown,
   Globe,
+  House,
   Keyboard,
   KeyRound,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   Menu,
   Monitor,
@@ -22,12 +24,11 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
 import { canEdit, type BoardSummary } from '@/api/boards'
 import { DeleteBoardDialog, RenameBoardForm } from '@/board/BoardActions'
 import { DemoMark } from '@/board/DemoMark'
-import { NewBoardForm } from '@/board/NewBoardForm'
 import { SignUpDialog } from '@/auth/SignUp'
 import { ShareDialog } from '@/board/ShareDialog'
 import { Faces } from '@/live/Avatar'
@@ -65,17 +66,21 @@ import { setTimerPanelOpen } from '@/timers/panel'
 import { formatShortcut, useShortcut } from '@/lib/shortcuts'
 import { useTheme, type Theme } from '@/lib/theme'
 import { openSettings } from '@/settings/store'
+import { useNewBoard } from '@/home/actions'
+import { clearRename, goTo } from '@/lib/navigation'
 
 // Boards owned by someone else name the owner, so shared ones stand apart from your own.
 function BoardItem({ board }: { board: BoardSummary }) {
   const me = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me
   const foreign = me && board.owner && board.owner.id !== me.id
   return (
-    <DropdownMenuRadioItem value={board.id}>
-      <span className="truncate">{board.name}</span>
-      {board.public && <Globe className="text-muted-foreground size-3.5" strokeWidth={1.75} />}
+    <DropdownMenuRadioItem value={board.id} className="min-w-0">
+      <span className="min-w-0 truncate">{board.name}</span>
+      {board.public && (
+        <Globe className="text-muted-foreground size-3.5 shrink-0" strokeWidth={1.75} />
+      )}
       {foreign && (
-        <span className="text-muted-foreground ml-auto truncate pl-3 text-[12px]">
+        <span className="text-muted-foreground ml-auto max-w-24 shrink-0 truncate pl-3 text-[12px]">
           {board.owner?.name}
         </span>
       )}
@@ -94,18 +99,25 @@ type Props = {
   /** Admins only: boards nobody shared with them. */
   others?: BoardSummary[]
   current?: BoardSummary
-  onSelect: (id: string) => void
+  /** The board was just made: its name opens for typing. */
+  renameOnOpen?: boolean
 }
 
-export function TopBar({ boards, others = [], current, onSelect }: Props) {
+export function TopBar({ boards, others = [], current, renameOnOpen = false }: Props) {
   const { theme, setTheme } = useTheme()
   const focusVisible = useFocusVisible()
-  const [creating, setCreating] = useState(false)
+  const newBoard = useNewBoard()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [sharing, setSharing] = useState(false)
   const people = useBoardPeople()
   const [deleting, setDeleting] = useState<BoardSummary | null>(null)
+
+  useEffect(() => {
+    if (!renameOnOpen || !current) return
+    if (canEdit(current.my_role)) setRenaming(true)
+    clearRename()
+  }, [renameOnOpen, current])
 
   const me = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me
   // A demo visitor has no account yet: nothing to share with, no password to come back by.
@@ -194,8 +206,20 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
       group: 'Commands',
       Icon: Plus,
       keywords: 'create add',
-      run: () => setCreating(true),
+      run: () => newBoard.mutate(),
     },
+    ...(current
+      ? [
+          {
+            id: 'app:home',
+            title: 'Go to Home',
+            group: 'Commands' as const,
+            Icon: House,
+            keywords: 'all boards list',
+            run: () => goTo(null),
+          },
+        ]
+      : []),
     ...(current && canEdit(current.my_role)
       ? [
           {
@@ -215,7 +239,7 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
         group: 'Boards' as const,
         Icon: LayoutDashboard,
         keywords: 'open switch',
-        run: () => onSelect(board.id),
+        run: () => goTo(board.id),
       })),
   ])
 
@@ -328,16 +352,18 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
         </DialogContent>
       </Dialog>
 
-      {creating ? (
-        <NewBoardForm
-          autoFocus
-          onCreated={(id) => {
-            setCreating(false)
-            onSelect(id)
-          }}
-          onCancel={() => setCreating(false)}
-        />
-      ) : renaming && current ? (
+      {current && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Home"
+          title="Home"
+          onClick={() => goTo(null)}
+        >
+          <House className="size-[18px]" strokeWidth={1.75} />
+        </Button>
+      )}
+      {renaming && current ? (
         <RenameBoardForm board={current} onDone={() => setRenaming(false)} />
       ) : (
         current && (
@@ -348,11 +374,11 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
                 <ChevronDown strokeWidth={1.75} data-icon="inline-end" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" className="w-72">
               <DropdownMenuRadioGroup
                 value={current.id}
-                onValueChange={onSelect}
-                className="max-h-80 overflow-y-auto"
+                onValueChange={(id) => goTo(id)}
+                className="max-h-80 overflow-x-hidden overflow-y-auto"
               >
                 {boards.map((board) => (
                   <BoardItem key={board.id} board={board} />
@@ -361,7 +387,7 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
-                      All boards
+                      Other boards
                     </DropdownMenuLabel>
                     {others.map((board) => (
                       <BoardItem key={board.id} board={board} />
@@ -370,7 +396,11 @@ export function TopBar({ boards, others = [], current, onSelect }: Props) {
                 )}
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => setCreating(true)}>
+              <DropdownMenuItem onSelect={() => goTo(null)}>
+                <LayoutGrid strokeWidth={1.75} />
+                All boards
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => newBoard.mutate()} disabled={newBoard.isPending}>
                 <Plus strokeWidth={1.75} />
                 New board
               </DropdownMenuItem>

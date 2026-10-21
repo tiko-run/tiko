@@ -239,6 +239,31 @@ def test_rename_validates_and_404s(client):
     assert client.patch("/api/boards/missing", json={"name": "X"}).status_code == 404
 
 
+def test_duplicate_copies_the_content_under_a_new_name(client):
+    board = create(client, "Roadmap")
+    version = client.get(f"/api/boards/{board['id']}").json()["version"]
+    client.put(f"/api/boards/{board['id']}", json={"version": version, "doc": DOC})
+    response = client.post(f"/api/boards/{board['id']}/duplicate")
+    assert response.status_code == 201
+    copy = response.json()
+    assert copy["id"] != board["id"] and copy["name"] == "Copy of Roadmap"
+    assert copy["my_role"] == "owner" and copy["public"] is False and copy["created_at"]
+    assert client.get(f"/api/boards/{copy['id']}").json()["doc"] == DOC
+    members = client.get(f"/api/boards/{copy['id']}/members").json()
+    assert [m["role"] for m in members["members"]] == ["owner"]
+    assert members["everyone_role"] is None and members["public"] is False
+
+
+def test_duplicate_keeps_the_name_within_its_limit(client):
+    board = create(client, "x" * 100)
+    copy = client.post(f"/api/boards/{board['id']}/duplicate").json()
+    assert copy["name"] == ("Copy of " + "x" * 100)[:100]
+
+
+def test_duplicate_of_a_missing_board(client):
+    assert client.post("/api/boards/nope/duplicate").status_code == 404
+
+
 def test_delete_board(client):
     keep, gone = create(client, "Keep"), create(client, "Gone")
     assert client.delete(f"/api/boards/{gone['id']}").status_code == 204

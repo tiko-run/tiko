@@ -3,7 +3,7 @@ title: Running a demo
 description: Let anyone try your tiko instance in one click, without an account, and stay on it when they sign up.
 ---
 
-A demo is an ordinary tiko instance started with `TIKO_DEMO=1`. The demo then lives at `/demo`: a page with one button, "Try the demo". One click gives the visitor a workspace of their own with a board of the demo tasks, and nobody else sees it. Opening the page makes nobody; the button does, so link previews and crawlers leave no accounts behind.
+A demo is an ordinary tiko instance started with `TIKO_DEMO=1`. The demo then lives at `/demo`: a page with one button, "Try the demo". One click gives the visitor a workspace of their own with a board of the demo tasks, and nobody else sees it. The click opens that board, and Back or the Home button lead to [Home](../home/) with the visitor's boards. Opening the page makes nobody; the button does, so link previews and crawlers leave no accounts behind.
 
 The first screen of the instance stays the sign-in form, with a "Try the demo" link under it. Send people who come to look straight to `https://your-tiko/demo`.
 

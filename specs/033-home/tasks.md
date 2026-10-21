@@ -10,13 +10,13 @@ description: "Task list for Home"
 
 ## Phase 1: Slice `feat/home` (US1)
 
-- [ ] T001 `DESIGN.md`: a Home section (grid, list, card, menu, empty state, narrow screen); `/hallmark` on the screen before code
-- [ ] T002 `BoardSummary.created_at`; `POST /api/boards/{id}/duplicate` with limits and a fresh stage index. Contract first. Tests
-- [ ] T003 `App.tsx`: navigation by `pushState` and `popstate`, Home without `?board=`, `tiko.lastBoard` no longer read; the top bar's Home button and "All boards". Tests for Back and Forward
-- [ ] T004 `frontend/src/home/`: the page, the list view, filters all, mine, shared with me, sort, the admin's section, the empty state; the view choice in `localStorage`. Tests
-- [ ] T005 Search by name from the keyboard, arrows and Enter; "New board" opening with the name in edit mode; the board menu: open, rename, duplicate, share, delete as today. Tests
-- [ ] T006 The demo: "Try the demo" opens the welcome board, Back lands on Home. SC-001 timing with 500 boards
-- [ ] T007 `CHANGELOG.md`, the guide's new Home page and the boards page; `make check`, `make smoke`, `/ui-review`
+- [x] T001 `DESIGN.md`: a Home section (grid, list, card, menu, empty state, narrow screen); `/hallmark` on the screen before code
+- [x] T002 `BoardSummary.created_at`; `POST /api/boards/{id}/duplicate` with limits and a fresh stage index. Contract first. Tests
+- [x] T003 `App.tsx`: navigation by `pushState` and `popstate`, Home without `?board=`, `tiko.lastBoard` no longer read; the top bar's Home button and "All boards". Tests for Back and Forward
+- [x] T004 `frontend/src/home/`: the page, the list view, filters all, mine, shared with me, sort, the admin's section, the empty state; the view choice in `localStorage`. Tests
+- [x] T005 Search by name from the keyboard, arrows and Enter; "New board" opening with the name in edit mode; the board menu: open, rename, duplicate, share, delete as today. Tests
+- [x] T006 The demo: "Try the demo" opens the welcome board, Back lands on Home. SC-001 timing with 500 boards
+- [x] T007 `CHANGELOG.md`, the guide's new Home page and the boards page; `make check`, `make smoke`, `/ui-review`
 
 ## Phase 2: Slice `feat/board-previews` (US2)
 

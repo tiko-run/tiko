@@ -368,13 +368,16 @@ class PgBoardRepo(_Repo):
             params = (user_id, user_id)
         with self._tx() as conn:
             rows = conn.execute(
-                "SELECT b.id, b.name, b.updated_at, b.everyone_role, m.role AS member_role,"
+                "SELECT b.id, b.name, b.created_at, b.updated_at, b.everyone_role,"
+                " m.role AS member_role,"
                 " o.user_id AS owner_id, u.name AS owner_name,"
                 " i.public_token IS NOT NULL AS public FROM boards b"
                 " JOIN board_index i ON i.board_id = b.id"
                 " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = %s"
                 " LEFT JOIN board_members o ON o.board_id = b.id AND o.role = 'owner'"
-                f" LEFT JOIN users u ON u.id = o.user_id {where} ORDER BY b.updated_at DESC",
+                f" LEFT JOIN users u ON u.id = o.user_id {where}"
+                # Changes in the same second keep one order, the one Home sorts by too.
+                " ORDER BY b.updated_at DESC, b.created_at DESC, b.id",
                 params,
             ).fetchall()
         return [BoardRow(**row) for row in rows]

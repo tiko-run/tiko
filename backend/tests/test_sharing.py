@@ -72,6 +72,7 @@ def call(world, who: str, route: str, board_id: str):
         "everyone": ("PUT", f"{base}/everyone", {"role": "viewer"}),
         "transfer": ("POST", f"{base}/transfer", {"user_id": ids["bob"]}),
         "delete": ("DELETE", base, None),
+        "duplicate": ("POST", f"{base}/duplicate", None),
     }
     method, path, body = requests[route]
     return client.request(method, path, json=body)
@@ -91,6 +92,7 @@ MATRIX = {
     "everyone": {**OWN, "ann": 204, "admin": 204},
     "transfer": {**OWN, "ann": 204, "admin": 204},
     "delete": {**OWN, "ann": 204, "admin": 204},
+    "duplicate": {who: 201 if code == 200 else code for who, code in VIEW.items()},
 }
 
 
