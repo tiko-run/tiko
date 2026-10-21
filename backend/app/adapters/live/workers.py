@@ -159,9 +159,9 @@ class Workers:
         self._rooms.recheck_person(user_id)
         self.tell("recheck_person", user_id)
 
-    def planning_changed(self) -> None:
-        self._rooms.planning_changed()
-        self.tell("planning_changed")
+    def planning_changed(self, workspace: str | None = None) -> None:
+        self._rooms.planning_changed(workspace)
+        self.tell("planning_changed", workspace)
 
     def recheck_board(self, board_id: str) -> None:
         if self._mine(board_id):
