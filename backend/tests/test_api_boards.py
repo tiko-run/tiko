@@ -289,6 +289,8 @@ def test_preview_follows_the_board(client):
     tag = f"{saved['version']}.{DRAWING}"
     for header in (f'"{tag}"', f'W/"{tag}"', f'"0.{DRAWING}", "{tag}"'):
         assert client.get(url, headers={"If-None-Match": header}).status_code == 304
+    # A different tag holding the current one before a comma is still a different tag.
+    assert client.get(url, headers={"If-None-Match": f'"{tag},x"'}).status_code == 200
     # A picture drawn the old way, or a bare version, is drawn again.
     assert client.get(url, headers={"If-None-Match": f'"{saved["version"]}"'}).status_code == 200
     doc = DOC | {"nodes": DOC["nodes"][:1], "edges": []}

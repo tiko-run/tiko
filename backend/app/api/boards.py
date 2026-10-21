@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -28,6 +29,7 @@ from app.domain.tasks import Task, now_iso
 
 router = APIRouter(prefix="/boards", tags=["boards"])
 
+ENTITY_TAG = re.compile(r'(?:W/)?"([^"]*)"')
 PREVIEW_HEADERS = {
     "Cache-Control": "private, max-age=0, must-revalidate",
     # Shown through <img>; this keeps a script out even if the file is opened on its own.
@@ -119,8 +121,9 @@ def duplicate_board(
 
 
 def _seen_tags(header: str | None) -> set[str]:
-    # A proxy that compresses turns the tag weak, W/"42.1"; it still names the same picture.
-    return {tag.strip().removeprefix("W/").strip('"') for tag in (header or "").split(",")}
+    # Whole quoted tags, which may hold a comma; a proxy that compresses makes them weak,
+    # W/"42.1", and they still name the same picture.
+    return set(ENTITY_TAG.findall(header or ""))
 
 
 @router.get("/{board_id}/preview")
