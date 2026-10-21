@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft, waiting for the owner at G2.
+**Status**: Approved at G2 on 2026-10-21.
 
 **Input**: A place to land before a board, as whiteboard products have: every board you can open, with previews, stars, your own folders and a trash. Templates are not part of it.
 
@@ -38,7 +38,7 @@ Every whiteboard product people come from lands on such a page: recent boards fi
 8. **Previews are drawn by the server** from the board: shapes, frames, sticky notes with their text, task cards with their key, Gantts as bars. Task titles are left out: they come from each person's own tracker access. A preview follows the board's changes within a minute and is shown to whoever can open the board.
 9. **Stars and folders are personal.** Folders are flat: a board sits in at most one of your folders. Deleting a folder leaves its boards on Home.
 10. **Deleting moves a board to its owner's trash for 30 days.** It disappears for everyone else and its public link stops working. The owner restores it or deletes it for good; after 30 days it goes by itself. A workspace admin sees and restores every board in the workspace's trash. A board in the trash still counts against a board limit until it is gone for good.
-11. **On the demo**, a visitor lands on their welcome board as today, and Home lists their boards. Their trash goes with them.
+11. **On the demo**, "Try the demo" opens the visitor's welcome board through a board address, so it is a board link under decision 1, not an exception to it. Any later address without a board opens Home with their boards. Their trash goes with them.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -92,7 +92,7 @@ An owner deletes the wrong board. They open the trash, restore it, and everyone 
 
 1. **Given** an owner deletes a board, **Then** it moves to their trash and is gone for everyone else, its public link included.
 2. **Given** a board in the trash, **When** its owner restores it, **Then** its members, roles and public link work again.
-3. **Given** a board 30 days in the trash, **Then** it is deleted for good.
+3. **Given** a board 30 days in the trash, **Then** it is deleted for good within the next hour.
 4. **Given** a workspace admin, **Then** they see the trash of every owner in the workspace and can restore from it.
 5. **Given** a person at their board limit, **When** they delete a board for good from the trash, **Then** they can make a new one.
 
@@ -116,7 +116,7 @@ An owner deletes the wrong board. They open the trash, restore it, and everyone 
 - **FR-006**: The board menu: open, rename, duplicate, share, star, move to folder, delete. Duplicate copies the content to a new board owned by the person, without members or public link, named "Copy of …", and respects the board limit.
 - **FR-007**: The server draws each board's preview from its content without task titles, keeps it current within a minute of a change, and serves it only to who can open the board.
 - **FR-008**: Stars and folders belong to a person in a workspace; a folder holds a board at most once; deleting a folder keeps its boards. Limits: 100 folders a person.
-- **FR-009**: Deleting a board moves it to the trash for 30 days: it answers as missing to everyone, its public link and live sockets stop. The owner and a workspace admin restore it with its members, roles and link; the owner deletes it for good; a daily job deletes what is older than 30 days. Trashed boards count against board limits.
+- **FR-009**: Deleting a board moves it to the trash for 30 days: it answers as missing to everyone, its public link and live sockets stop. The owner and a workspace admin restore it with its members, roles and link; the owner deletes it for good; 30 days after the deletion it may be removed, and an hourly job removes it within an hour of that. Trashed boards count against board limits.
 - **FR-010**: The demo keeps its welcome board on "Try the demo"; a visitor's trash goes with the visitor.
 - **FR-011**: API contract changes go to `specs/033-home/contracts/` before the code. `CHANGELOG.md` and the guide (a Home page, boards, sharing, demo) follow.
 

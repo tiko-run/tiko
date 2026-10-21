@@ -4,7 +4,7 @@
 
 ## Summary
 
-Home is a new frontend page shown when the address names no board. It reads the board list that exists today, extended with what a card needs: creation time, the person's star and folder, and whether the board has a preview. Previews are SVG drawn by the backend from the board document on request and cached by board version. Stars and folders are two small workspace tables keyed by person. Deleting sets `deleted_at` on the board instead of removing the row; every read of a board skips such rows, and a daily job removes what is 30 days old.
+Home is a new frontend page shown when the address names no board. It reads the board list that exists today, extended with what a card needs: creation time, the person's star and folder, and whether the board has a preview. Previews are SVG drawn by the backend from the board document on request and cached by board version. Stars and folders are two small workspace tables keyed by person. Deleting sets `deleted_at` on the board instead of removing the row; every read of a board skips such rows, and an hourly job removes what has been there 30 days.
 
 ## Today
 
@@ -47,7 +47,7 @@ Home is a new frontend page shown when the address names no board. It reads the 
 ### Stars and folders
 
 - `board_stars (workspace_id, user_id, board_id)`, primary key `(board_id, user_id)`; `folders (workspace_id, id, user_id, name, position)`; `folder_boards (workspace_id, user_id, board_id, folder_id)`, primary key `(board_id, user_id)` so a board sits in one folder of a person. All cascade from `boards`, `users` and `folders`, and carry row-level security like every workspace table.
-- Losing access to a board does not delete the star or folder row; the list only shows boards the person can open, so the row is invisible and comes back with the access. A daily job removes rows whose person cannot open the board any more, so they do not pile up.
+- Losing access to a board hides the star or folder row at once: the list only shows boards the person can open. The hourly job then deletes rows whose person cannot open the board, so they do not pile up. A star or folder place is not kept across lost access; access given back later starts without it. A trashed board is not a lost access: its rows stay until it is gone for good, so a restore brings them back.
 - Routes: `PUT`/`DELETE /api/boards/{id}/star`; `GET`/`POST /api/folders`, `PATCH`/`DELETE /api/folders/{id}`; `PUT /api/boards/{id}/folder` with `{folder_id}` or `null`. Folder names 1–60 characters, 100 folders a person.
 
 ### Trash
@@ -56,7 +56,7 @@ Home is a new frontend page shown when the address names no board. It reads the 
 - Every read that finds a board for a request filters `deleted_at IS NULL`: `listing`, `get`, `load`, `owner`, `by_public_token`, members and roles, the workspace lookup in `board_index`, stage reads for the workload. The route walk of spec 032 gets a trashed board in each workspace and must find nothing of it (SC-003).
 - `GET /api/trash`: the person's own trashed boards; for a workspace admin every trashed board of the workspace, with its owner. `POST /api/boards/{id}/restore` (owner or workspace admin) clears the mark; `DELETE /api/boards/{id}?forever=1` (owner, only a trashed board) removes the row as today.
 - The board limit keeps counting owned rows, trashed ones included.
-- The 30-day job runs in process 0 once an hour as `tiko_jobs`, deletes boards with `deleted_at` older than 30 days in batches, and logs the count. The demo's eviction removes the visitor's workspace with its trash already.
+- One job runs in process 0 once an hour as `tiko_jobs`. It deletes, in batches, boards whose `deleted_at` is 30 days old or more, so a board goes within an hour after its `purge_at`; it also removes the star and folder rows above; it logs the counts. The demo's eviction removes the visitor's workspace with its trash already.
 - Removing a person from the workspace moves their boards to the remover, trashed ones too, since `board_members` rows stay.
 
 ### Contract and docs

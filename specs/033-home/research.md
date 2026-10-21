@@ -1,7 +1,7 @@
 # Research: the home screen of infinite-canvas products
 
 Date: 2026-10-21. Input for a tiko spec: the screen you land on before opening a board.
-Sources are official help centers, product pages and changelogs unless marked *(forum)*.
+Sources are official help centers, product pages and changelogs unless marked *(forum)* or *(issue)* for a public issue tracker.
 "Not documented" means the official source does not say. It does not mean the feature is missing.
 
 ## 1. Miro — Home dashboard
@@ -118,8 +118,8 @@ Sources:
 
 Sources:
 - "What's new" (March 2025): https://tldraw.dev/blog/whats-new-2025
-- Issue #9412 (sidebar time groups): https://github.com/tldraw/tldraw/issues/9412
-- Issue #9143 (welcome file): https://github.com/tldraw/tldraw/issues/9143
+- Issue #9412 (sidebar time groups) *(issue)*: https://github.com/tldraw/tldraw/issues/9412
+- Issue #9143 (welcome file) *(issue)*: https://github.com/tldraw/tldraw/issues/9143
 
 **There is no separate home page.** The app opens a canvas, and the files sit in a left **sidebar**: "Your recent files are shown in the sidebar … synced between devices." A New file button sits at the top. A three-dots menu appears on hover.
 
@@ -170,7 +170,7 @@ Source: https://www.notion.com/help/navigate-with-the-sidebar
 
 ## Synthesis
 
-### The common core (every product has it)
+### Common patterns observed
 
 1. **Recent first.** The landing view is a list of recently opened or edited items (Miro Home, Figma Recents, Excalidraw+ dashboard, tldraw sidebar, Mural "Recently opened").
 2. **Personal star or pin.** Miro, Figma, tldraw, Mural and Notion all have one, and it is per user. Figma: "only you can see". A star is a shortcut and does not move the board.
@@ -214,8 +214,9 @@ tiko's case: one workspace per server, a small team, boards owned by a person an
 8. **Empty state:** one sentence, a "New board" button, and (if spec 026-onboarding allows) a starter board created on first visit, like Miro "My First Board" and the tldraw welcome file. Demo visitors land on the Home with their ~3 boards already listed.
 
 **Defer:**
-- Folders, Spaces and projects. One workspace and a few boards per person do not need them; add them when people ask, and follow the one-board-one-place rule.
-- Trash and restore. In v1, a confirmation on delete is enough. Add soft delete with a 30-day restore once boards hold real planning work, since the lack of recovery is a top complaint for Mural.
-- Thumbnails and grid view. They cost render work on the server or in the client, and Miro's cover image is a whole feature of its own.
+- Shared folders, Spaces and projects with their own access, and nesting.
+- Custom cover thumbnails; Miro's cover image is a whole feature of its own.
+
+The owner widened v1 past this recommendation: spec 033 also takes personal flat folders, a 30-day trash with restore, and server-drawn previews with a grid view. Those previews come from the board content, not from a cover the person picks. On the demo, "Try the demo" still opens the welcome board first (spec decision 11).
 - Template gallery on the home. If templates come, show them inside the new empty board, as FigJam does.
 - Sort and view switches, archive, activity and presence, cross-board content search.

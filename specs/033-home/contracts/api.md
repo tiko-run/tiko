@@ -1,6 +1,6 @@
 # API: Home
 
-Each slice fixes its part before its code. Shapes not named here do not change. Every route below works in the workspace of the request, as spec 032 set; a board the person cannot open, or one in the trash, answers `404`.
+Each slice fixes its part before its code. Shapes not named here do not change. Every route below works in the workspace of the request, as spec 032 set; a board the person cannot open answers `404`. A board in the trash also answers `404` on every ordinary board route; only the trash routes reach it: `GET /api/trash`, `POST /api/boards/{id}/restore` and `DELETE /api/boards/{id}?forever=1`.
 
 ## `GET /api/boards` (`feat/home`)
 
