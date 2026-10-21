@@ -170,7 +170,7 @@ Details: [Security and privacy](https://docs.tiko.run/security/). Report vulnera
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome, and a new tracker provider is a good first contribution. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture overview](https://docs.tiko.run/architecture/). On your first pull request a bot asks you to sign the [CLA](CLA.md), once. Everyone follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+Bug reports, ideas and pull requests are welcome, and a new tracker provider is a good first contribution. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [architecture overview](https://docs.tiko.run/architecture/). On your first pull request a bot asks you to sign the [CLA](CLA.md) with one comment, once. Everyone follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 <a href="https://github.com/tiko-run/tiko/graphs/contributors"><img src="https://contrib.rocks/image?repo=tiko-run/tiko" alt="Contributors"></a>
 
