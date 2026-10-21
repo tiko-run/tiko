@@ -2,7 +2,7 @@
 
 ## Direction
 A quiet working canvas where only the tasks stand out: dense, precise, calm. The canvas is neutral; color is carried by card statuses and frames.
-Anti-references: heavy, colorful Miro with panels everywhere, the "toy-like" hand-drawn Excalidraw, marketing SaaS with gradients.
+Not this: heavy color and panels everywhere, a hand-drawn sketchy look, marketing gradients.
 
 ## References
 - Linear (linear.app) → density, thin borders, a calm gray scale, small type that doesn't shout.

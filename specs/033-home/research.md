@@ -183,7 +183,7 @@ Source: https://www.notion.com/help/navigate-with-the-sidebar
 ### Differentiators (not core)
 
 - Spaces or folders with their own permissions, nesting, sections and groups (Miro, Figma, Whimsical, Mural).
-- Thumbnails and grid view (Miro, Figma). tldraw and Excalidraw+ get by with a text list.
+- Thumbnails and grid view (Miro, Figma). tldraw and Excalidraw+ use a text list.
 - Template gallery on the home (Miro's template strip, Figma's "Templates and tools"). FigJam instead shows a picker *inside* the new empty board.
 - Who is working where right now (Excalidraw+), and an AI activity feed (Miro Space Overview).
 - Owner filter (Miro: "owned by you / not owned by you"), plus sort options and grid/list switches.
