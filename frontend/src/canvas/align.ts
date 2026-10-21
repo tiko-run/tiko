@@ -52,13 +52,17 @@ export function alignShifts(boxes: Box[], how: Alignment): Map<string, XYPositio
   return new Map(boxes.map((b) => [b.id, shift(b, target(b))]))
 }
 
-/** Equal gaps along one axis; the two outermost boxes stay where they are. */
+/** Equal gaps along one axis; the boxes at the outer edges stay where they are. */
 export function distributeShifts(boxes: Box[], axis: Distribution): Map<string, XYPosition> {
   const start = (b: Box) => (axis === 'horizontal' ? b.x : b.y)
   const length = (b: Box) => (axis === 'horizontal' ? b.width : b.height)
-  const sorted = boxes.toSorted((a, b) => start(a) + length(a) / 2 - (start(b) + length(b) / 2))
-  const first = sorted[0]
-  const last = sorted[sorted.length - 1]
+  const center = (b: Box) => start(b) + length(b) / 2
+  const first = boxes.reduce((a, b) => (start(b) < start(a) ? b : a))
+  const rest = boxes.filter((b) => b !== first)
+  // One box spanning the others keeps only its start fixed.
+  const last = rest.reduce((a, b) => (start(b) + length(b) > start(a) + length(a) ? b : a))
+  const middle = rest.filter((b) => b !== last).toSorted((a, b) => center(a) - center(b))
+  const sorted = [first, ...middle, last]
   const used = sorted.reduce((sum, b) => sum + length(b), 0)
   const gap = (start(last) + length(last) - start(first) - used) / (sorted.length - 1)
   let at = start(first)
