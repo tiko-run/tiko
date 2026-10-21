@@ -27,10 +27,10 @@ description: "Task list for Home"
 
 ## Phase 3: Slice `feat/stars-folders` (US3)
 
-- [ ] T012 Tables `board_stars`, `folders`, `folder_boards` with row-level security and cascades; repositories. Tests across people and workspaces
-- [ ] T013 Routes for stars, folders and moving a board; `starred` and `folder_id` in `BoardSummary`; the cleanup of rows whose person lost access. Contract first. Tests
-- [ ] T014 Home: the star on cards, "Starred", the folder list, new, rename, delete, move by menu and by drag. Tests
-- [ ] T015 `CHANGELOG.md`, the guide; `make check`, `/ui-review`
+- [x] T012 Tables `board_stars`, `folders`, `folder_boards` with row-level security and cascades; repositories. Tests across people and workspaces
+- [x] T013 Routes for stars, folders and moving a board; `starred` and `folder_id` in `BoardSummary`; the cleanup of rows whose person lost access. Contract first. Tests
+- [x] T014 Home: the star on cards, "Starred", the folder list, new, rename, delete, move by menu and by drag. Tests
+- [x] T015 `CHANGELOG.md`, the guide; `make check`, `/ui-review`
 
 ## Phase 4: Slice `feat/trash` (US4)
 
