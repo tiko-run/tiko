@@ -41,10 +41,26 @@ def test_every_kind_of_element_is_drawn_in_its_place():
     svg, root = parsed(
         board(
             [
-                node("f", "frame", {"title": "Sprint", "color": "blue"}, 100, 100),
+                node(
+                    "f",
+                    "frame",
+                    {"title": "Sprint", "color": "blue"},
+                    100,
+                    100,
+                    width=480,
+                    height=320,
+                ),
                 node("c", "task_card", {"key": "DEV-1"}, 20, 30, parentId="f"),
                 node("s", "sticky", {"text": "Ship it\non Friday", "color": "pink"}, 700, 100),
-                node("sh", "shape", {"shape": "hexagon", "text": "Idea"}, 700, 400),
+                node(
+                    "sh",
+                    "shape",
+                    {"shape": "hexagon", "text": "Idea"},
+                    700,
+                    400,
+                    width=160,
+                    height=100,
+                ),
                 node("t", "text", {"text": "Notes"}, 0, 600),
                 node("g", "module", {"kind": "gantt", "content": GANTT}, 0, 800),
                 node("x", "module", {"kind": "future_kind", "content": {}}, 1000, 800),
@@ -121,3 +137,17 @@ def test_a_note_without_a_size_takes_the_size_of_its_text():
     _, root = parsed(board([node("s", "sticky", {"text": "Idea 0", "color": "green"})]))
     note = next(el for el in root.iter(f"{SVG}rect"))
     assert (note.get("width"), note.get("height")) == ("58", "28")
+
+
+def test_a_frame_or_shape_without_a_size_is_not_drawn_as_on_the_board():
+    doc = board(
+        [
+            node("t", "text", {"text": "Kept"}),
+            node("f", "frame", {"title": "Ghost"}, 900, 900),
+            node("sh", "shape", {"shape": "ellipse", "text": "Mood"}, 300, 0),
+        ]
+    )
+    svg, root = parsed(doc)
+    assert texts(root) == ["Kept"] and "ellipse" not in svg
+    # Nor does it stretch the picture: the view box ends near the text.
+    assert int(root.get("viewBox").split()[2]) < 400

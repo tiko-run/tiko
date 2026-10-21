@@ -47,11 +47,10 @@ STICKY = {
 }
 FONT = "system-ui, sans-serif"
 SLANT, CAP = 0.2, 0.12
-# Sizes the web app gives an element that has none stored.
+# Sizes the web app gives an element that has none stored; a frame or shape without one is
+# drawn at zero size there, so here it is not drawn either.
 SIZE = {
     "task_card": (240, 72),
-    "frame": (480, 320),
-    "shape": (160, 100),
     "text": (240, 0),
     "module": (960, 320),
 }
@@ -264,7 +263,11 @@ def draw(doc: BoardDoc) -> str | None:
 
 
 def _draw(doc: BoardDoc, boxes: dict[str, Box], cap: int, text: bool) -> str | None:
-    shown = [n for n in doc.nodes if n.type not in ("anchor", "timer")]
+    shown = [
+        n
+        for n in doc.nodes
+        if n.type not in ("anchor", "timer") and boxes[n.id][2] > 0 and boxes[n.id][3] > 0
+    ]
     if len(shown) > cap:
         by_area = sorted(shown, key=lambda n: boxes[n.id][2] * boxes[n.id][3], reverse=True)
         keep = {n.id for n in by_area[:cap]}
