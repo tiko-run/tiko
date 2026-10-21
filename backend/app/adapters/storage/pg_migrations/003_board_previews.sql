@@ -1,8 +1,10 @@
--- Home's previews: the last drawing of each board, drawn again for a newer board version.
+-- Home's previews: the last drawing of each board, drawn again for a newer board version or a
+-- newer way of drawing.
 CREATE TABLE board_previews (
     workspace_id text NOT NULL,
     board_id text PRIMARY KEY,
     version integer NOT NULL,
+    drawing integer NOT NULL,
     svg text NOT NULL,
     -- A board that moves to another workspace takes its preview along.
     FOREIGN KEY (workspace_id, board_id) REFERENCES boards (workspace_id, id)

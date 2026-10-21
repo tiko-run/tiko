@@ -115,3 +115,9 @@ def test_a_heavy_board_drops_text_then_elements_to_fit():
     edges = [{"id": f"e{i}", "source": f"n{i}", "target": f"n{i + 1}"} for i in range(399)]
     svg = draw(board(nodes, edges))
     assert svg is not None and len(svg.encode()) <= 50_000
+
+
+def test_a_note_without_a_size_takes_the_size_of_its_text():
+    _, root = parsed(board([node("s", "sticky", {"text": "Idea 0", "color": "green"})]))
+    note = next(el for el in root.iter(f"{SVG}rect"))
+    assert (note.get("width"), note.get("height")) == ("58", "28")

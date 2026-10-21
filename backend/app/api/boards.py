@@ -118,17 +118,15 @@ def duplicate_board(
     return service.duplicate_board(person, board_id, boards, limit)
 
 
-def _seen_versions(header: str | None) -> set[int]:
-    # A proxy that compresses turns the tag weak, W/"42"; it still names the same version.
-    tags = (tag.strip().removeprefix("W/").strip('"') for tag in (header or "").split(","))
-    return {int(tag) for tag in tags if tag.isdigit()}
+def _seen_tags(header: str | None) -> set[str]:
+    # A proxy that compresses turns the tag weak, W/"42.1"; it still names the same picture.
+    return {tag.strip().removeprefix("W/").strip('"') for tag in (header or "").split(",")}
 
 
 @router.get("/{board_id}/preview")
 def get_preview(board_id: str, _: CanView, boards: Boards, request: Request) -> Response:
-    seen = _seen_versions(request.headers.get("if-none-match"))
-    version, svg = board_preview(board_id, boards, seen)
-    headers = {"ETag": f'"{version}"', **PREVIEW_HEADERS}
+    tag, svg = board_preview(board_id, boards, _seen_tags(request.headers.get("if-none-match")))
+    headers = {"ETag": f'"{tag}"', **PREVIEW_HEADERS}
     if svg is None:
         return Response(status_code=304, headers=headers)
     return Response(svg, media_type="image/svg+xml", headers=headers)

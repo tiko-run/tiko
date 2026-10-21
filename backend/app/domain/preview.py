@@ -22,6 +22,8 @@ from app.domain.errors import NotFound
 from app.domain.ports import BoardRepo
 
 WIDTH, HEIGHT = 320, 200
+# Raised whenever the picture changes for the same board, so kept and cached pictures are redrawn.
+DRAWING = 1
 # Board units around the content, so nothing touches the card's edge.
 MARGIN = 40
 # The largest elements win past this: a huge board stays small and quick to draw (SC-005).
@@ -48,7 +50,6 @@ SLANT, CAP = 0.2, 0.12
 # Sizes the web app gives an element that has none stored.
 SIZE = {
     "task_card": (240, 72),
-    "sticky": (200, 200),
     "frame": (480, 320),
     "shape": (160, 100),
     "text": (240, 0),
@@ -78,8 +79,17 @@ def _n(value: float) -> str:
     return str(round(value))
 
 
+def _fit(text: str) -> tuple[float, float]:
+    # What the board measures for a note with no size stored: it grows with its text.
+    lines = _lines(text) or [""]
+    return max(40, 7 * max(len(line) for line in lines) + 16), 20 * len(lines) + 8
+
+
 def _size(node: Node) -> tuple[float, float]:
     width, height = SIZE.get(node.type, (0, 0))
+    if isinstance(node, StickyNode) and not (node.width and node.height):
+        fit = _fit(node.data.text)
+        return node.width or fit[0], node.height or fit[1]
     width = node.width or width
     if node.height:
         return width, node.height
@@ -192,7 +202,7 @@ def _node(node: Node, box: Box, words: bool) -> list[str]:
         return [
             f"<rect x='{_n(x)}' y='{_n(y)}' width='{_n(w)}' height='{_n(h)}' rx='4'"
             f" fill='{color}'/>",
-            _lines_svg(_lines(node.data.text), x + 12, y + 10, 14, INK) if words else "",
+            _lines_svg(_lines(node.data.text), x + 8, y + 4, 13, INK) if words else "",
         ]
     if isinstance(node, ShapeNode):
         color = STICKY.get(node.data.color)
@@ -290,15 +300,19 @@ def _draw(doc: BoardDoc, boxes: dict[str, Box], cap: int, text: bool) -> str | N
     )
 
 
-def board_preview(board_id: str, boards: BoardRepo, seen: set[int]) -> tuple[int, str | None]:
-    """The version the board's preview follows and the preview, or no preview when the caller
-    has `seen` that version. Drawn here, not on save, so a save is never held up."""
-    found = boards.preview(board_id)
+def preview_tag(version: int) -> str:
+    return f"{version}.{DRAWING}"
+
+
+def board_preview(board_id: str, boards: BoardRepo, seen: set[str]) -> tuple[str, str | None]:
+    """The tag of the board's preview and the preview, or no preview when the caller has `seen`
+    that tag. Drawn here, not on save, so a save is never held up."""
+    found = boards.preview(board_id, DRAWING)
     if found is None:
         raise NotFound("board not found")
     version, svg = found
-    if version in seen:
-        return version, None
+    if preview_tag(version) in seen:
+        return preview_tag(version), None
     if svg is None:
         record = boards.get(board_id)
         if record is None:
@@ -307,5 +321,5 @@ def board_preview(board_id: str, boards: BoardRepo, seen: set[int]) -> tuple[int
         if svg is None:
             raise NotFound("board has nothing to preview")
         version = record.version
-        boards.keep_preview(board_id, version, svg)
-    return version, svg
+        boards.keep_preview(board_id, version, DRAWING, svg)
+    return preview_tag(version), svg

@@ -492,23 +492,25 @@ class PgBoardRepo(_Repo):
             raise NotFound("board not found")
         return row["version"]
 
-    def preview(self, board_id: str) -> tuple[int, str | None] | None:
+    def preview(self, board_id: str, drawing: int) -> tuple[int, str | None] | None:
         with self._tx() as conn:
             row = conn.execute(
                 "SELECT b.version, p.svg FROM boards b LEFT JOIN board_previews p"
-                " ON p.board_id = b.id AND p.version = b.version WHERE b.id = %s",
-                (board_id,),
+                " ON p.board_id = b.id AND p.version = b.version AND p.drawing = %s"
+                " WHERE b.id = %s",
+                (drawing, board_id),
             ).fetchone()
         return (row["version"], row["svg"]) if row else None
 
-    def keep_preview(self, board_id: str, version: int, svg: str) -> None:
+    def keep_preview(self, board_id: str, version: int, drawing: int, svg: str) -> None:
         with self._tx() as conn:
             conn.execute(
-                "INSERT INTO board_previews (workspace_id, board_id, version, svg)"
-                " VALUES (%s, %s, %s, %s) ON CONFLICT (board_id) DO UPDATE"
-                " SET version = excluded.version, svg = excluded.svg"
-                " WHERE board_previews.version < excluded.version",
-                (self._ws, board_id, version, svg),
+                "INSERT INTO board_previews (workspace_id, board_id, version, drawing, svg)"
+                " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (board_id) DO UPDATE"
+                " SET version = excluded.version, drawing = excluded.drawing, svg = excluded.svg"
+                " WHERE (board_previews.version, board_previews.drawing)"
+                " < (excluded.version, excluded.drawing)",
+                (self._ws, board_id, version, drawing, svg),
             )
 
     def keep_live_state(self, board_id: str, ydoc: bytes) -> None:
