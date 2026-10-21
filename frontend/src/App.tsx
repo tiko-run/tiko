@@ -96,7 +96,9 @@ export default function App() {
     : undefined
   // A board stays in the list while it is open; one that leaves it is gone for this person.
   const opened = useRef(new Set<string>())
-  if (current) opened.current.add(current.id)
+  useEffect(() => {
+    if (current) opened.current.add(current.id)
+  }, [current])
   const missing = !!boardId && !!boards.data && !current && !boards.isFetching
 
   useEffect(() => {
