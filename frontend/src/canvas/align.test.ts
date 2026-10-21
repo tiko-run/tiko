@@ -66,3 +66,10 @@ test('distribute keeps the outer ones and makes the gaps equal', () => {
   expect(c.x).toBe(400)
   expect(b.x - (a.x + a.width)).toBe(c.x - (b.x + b.width))
 })
+
+test('distribute keeps the leftmost box when a narrow one sits inside it', () => {
+  const nodes = [note('a', 0, 0, 300), note('b', 100, 0, 10), note('c', 400, 0, 100)]
+  const after = run(nodes, distributeShifts(boxesOf(movers(nodes), nodes), 'horizontal'))
+  expect(after.find((b) => b.id === 'a')?.x).toBe(0)
+  expect(after.find((b) => b.id === 'c')?.x).toBe(400)
+})
