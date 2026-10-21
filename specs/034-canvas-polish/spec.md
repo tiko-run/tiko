@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-22
 
-**Status**: Approved by the owner at G2 on 2026-10-22, with cards set close together.
+**Status**: Approved by the owner at G2 on 2026-10-22.
 
-**Input**: Owner's pick from the ideas list on 2026-10-22: four small canvas fixes that people meet every day, built quickly and without touching the live document format.
+**Input**: Four small canvas fixes that people meet every day, built without touching the board document or the live format.
 
 ## Why
 
@@ -20,7 +20,7 @@ Everyday moves on the board take more effort than they should:
 ## Decisions
 
 1. **Resize from any side.** Every element that resizes today (sticky note, shape, text, frame, module) also resizes from each of its four sides. A side changes only its own dimension. The grip is 8 screen pixels wide at any zoom, with an `ew-resize` or `ns-resize` cursor. Where an arrow dot sits on a side, the dot wins under the pointer, and the side is grabbed on either side of it. Minimum sizes stay as they are. A task card still does not resize.
-2. **New cards stack in columns of five.** Two or more cards added at once fill a column top to bottom, five per column, columns left to right: 16 cards make three columns of five and a fourth with one. Cards sit close (owner, 2026-10-22): 12px between cards in a column, 16px between columns, measured from each card's real size, since a card is 1 to 4 lines tall and up to 320px wide. They are placed on a first guess and closed up as soon as they are measured, within the same undo step. The block is centered on the same point as today. One card still cascades from the viewport center or lands where it was dropped.
+2. **New cards stack in columns of five.** Two or more cards added at once fill a column top to bottom, five per column, columns left to right: 16 cards make three columns of five and a fourth with one. Cards sit close: 12px between cards in a column, 16px between columns, measured from each card's real size, since a card is 1 to 4 lines tall and up to 320px wide. They are placed on a first guess and closed up as soon as they are measured, within the same undo step. The block is centered on the same point as today. One card still cascades from the viewport center or lands where it was dropped.
 3. **Align and distribute from the selection bar.** With two or more elements selected the bar gets an Align button. Its popover has six alignments (left, center, right, top, middle, bottom) and, from three elements up, two distributions (equal horizontal gaps, equal vertical gaps). Alignment uses the box around the selection, as in Figma. Distribution keeps the two outermost elements in place. An element whose frame is also selected moves with the frame and is not aligned on its own. Arrows follow the elements they are tied to. One pick is one undo step, and it reaches others like a drag.
 4. **A minimap at the bottom right**, above the zoom controls. It shows the board's elements as blocks (sticky notes and shapes in their fill, frames as outlines, cards and modules in a neutral token) and the visible area as a frame. A click moves the view there; dragging the frame pans. A button in the zoom controls hides and shows it, remembered per browser (`tiko.minimap`). It is shown by default, hidden on screens narrower than 640px, and works on view-only and public boards, since it only moves the view.
 
