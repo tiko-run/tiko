@@ -42,5 +42,11 @@ export function visibleBoards(
   })
   return sort === 'name'
     ? kept.toSorted((a, b) => byName.compare(a.name, b.name))
-    : kept.toSorted((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
+    : kept.toSorted(
+        (a, b) =>
+          Date.parse(b.updated_at) - Date.parse(a.updated_at) ||
+          // The server's tie-break: changes in the same second keep one order between reads.
+          Date.parse(b.created_at) - Date.parse(a.created_at) ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+      )
 }

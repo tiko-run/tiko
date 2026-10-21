@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDownWideNarrow,
   Copy,
@@ -42,6 +42,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { boardHref, goTo } from '@/lib/navigation'
 import { formatShortcut, useShortcut } from '@/lib/shortcuts'
 import { relativeTime } from '@/lib/time'
+import { useFlip } from '@/lib/useFlip'
 import { cn } from 'cn'
 import { useDuplicateBoard, useNewBoard } from './actions'
 import { readView, saveView, visibleBoards, type Filter, type Sort } from './list'
@@ -73,6 +74,8 @@ export function Home({ boards, others }: Props) {
   const [selected, setSelected] = useState(0)
   // The keyboard pick shows only while the search field drives it.
   const [searching, setSearching] = useState(false)
+  // An empty field picks nothing until an arrow key is pressed.
+  const [steering, setSteering] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [sharing, setSharing] = useState<BoardSummary | null>(null)
   const [deleting, setDeleting] = useState<BoardSummary | null>(null)
@@ -84,6 +87,15 @@ export function Home({ boards, others }: Props) {
   const duplicate = useDuplicateBoard()
 
   useShortcut('findBoard', () => search.current?.focus())
+
+  // Boards change while one is open, so Home reads the list again each time it shows.
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ['boards'] })
+  }, [queryClient])
+
+  const data = useMemo(() => ({ boards, others }), [boards, others])
+  useFlip(list, data, `${filter}|${query}|${sort}`)
 
   const options = { filter, query, sort, me: me?.id }
   const shown = visibleBoards(boards, options)
@@ -101,12 +113,15 @@ export function Home({ boards, others }: Props) {
     saveView({ sort: value })
   }
 
+  const picking = searching && (steering || query.trim() !== '')
+
   const onSearchKey = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       const step = event.key === 'ArrowDown' ? 1 : -1
-      setSelected(Math.max(0, Math.min(flat.length - 1, current + step)))
-    } else if (event.key === 'Enter' && flat[current]) {
+      setSelected(picking ? Math.max(0, Math.min(flat.length - 1, current + step)) : 0)
+      setSteering(true)
+    } else if (event.key === 'Enter' && picking && flat[current]) {
       goTo(flat[current].id)
     } else if (event.key === 'Escape' && query) {
       event.preventDefault()
@@ -136,7 +151,7 @@ export function Home({ boards, others }: Props) {
           board={board}
           own={board.owner?.id === me?.id}
           demo={demo}
-          selected={searching && offset + index === current}
+          selected={picking && offset + index === current}
           renaming={renaming === board.id}
           menu={menu}
         />
@@ -200,7 +215,10 @@ export function Home({ boards, others }: Props) {
                   }}
                   onKeyDown={onSearchKey}
                   onFocus={() => setSearching(true)}
-                  onBlur={() => setSearching(false)}
+                  onBlur={() => {
+                    setSearching(false)
+                    setSteering(false)
+                  }}
                   placeholder="Find a board"
                   className="h-8 pr-10 pl-8"
                   autoComplete="off"
@@ -321,6 +339,7 @@ const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, 
   const edited = relativeTime(board.updated_at)
   return (
     <li
+      data-flip={board.id}
       data-selected={selected}
       onContextMenu={() => menu.point(board)}
       className={cn(

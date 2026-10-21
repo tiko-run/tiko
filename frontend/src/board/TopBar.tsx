@@ -74,11 +74,13 @@ function BoardItem({ board }: { board: BoardSummary }) {
   const me = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me
   const foreign = me && board.owner && board.owner.id !== me.id
   return (
-    <DropdownMenuRadioItem value={board.id}>
-      <span className="truncate">{board.name}</span>
-      {board.public && <Globe className="text-muted-foreground size-3.5" strokeWidth={1.75} />}
+    <DropdownMenuRadioItem value={board.id} className="min-w-0">
+      <span className="min-w-0 truncate">{board.name}</span>
+      {board.public && (
+        <Globe className="text-muted-foreground size-3.5 shrink-0" strokeWidth={1.75} />
+      )}
       {foreign && (
-        <span className="text-muted-foreground ml-auto truncate pl-3 text-[12px]">
+        <span className="text-muted-foreground ml-auto max-w-24 shrink-0 truncate pl-3 text-[12px]">
           {board.owner?.name}
         </span>
       )}
@@ -372,11 +374,11 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
                 <ChevronDown strokeWidth={1.75} data-icon="inline-end" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" className="w-72">
               <DropdownMenuRadioGroup
                 value={current.id}
                 onValueChange={(id) => goTo(id)}
-                className="max-h-80 overflow-y-auto"
+                className="max-h-80 overflow-x-hidden overflow-y-auto"
               >
                 {boards.map((board) => (
                   <BoardItem key={board.id} board={board} />

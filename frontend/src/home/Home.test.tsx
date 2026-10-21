@@ -93,6 +93,10 @@ test('finds a board from the keyboard: slash, typing, arrows and Enter', async (
   fireEvent.keyDown(document, { key: '/', code: 'Slash' })
   const field = screen.getByLabelText('Find a board')
   expect(field).toHaveFocus()
+  // A field just focused picks nothing yet.
+  expect(document.querySelector('[data-selected="true"]')).toBeNull()
+  fireEvent.keyDown(field, { key: 'ArrowDown' })
+  expect(document.querySelector('[data-selected="true"]')).toHaveTextContent('Sprint 12')
   fireEvent.change(field, { target: { value: 'a' } })
   expect(names()).toEqual(['Roadmap Q4', 'Archive'])
   fireEvent.keyDown(field, { key: 'ArrowDown' })
@@ -180,4 +184,17 @@ test('Home lists all of 500 boards at once', async () => {
     </QueryClientProvider>,
   )
   expect(screen.getAllByRole('link')).toHaveLength(500)
+})
+
+test('boards changed in the same second keep one order', () => {
+  const same = { updated_at: '2026-10-21T09:00:00Z' }
+  const tied = [
+    board('b', 'Second', { ...same, created_at: '2026-10-01T09:00:00Z' }),
+    board('c', 'Third', { ...same, created_at: '2026-10-01T09:00:00Z' }),
+    board('a', 'First', { ...same, created_at: '2026-10-02T09:00:00Z' }),
+  ]
+  const order = (list: BoardSummary[]) =>
+    visibleBoards(list, { filter: 'all', query: '', sort: 'updated' }).map((b) => b.id)
+  expect(order(tied)).toEqual(['a', 'b', 'c'])
+  expect(order(tied.toReversed())).toEqual(['a', 'b', 'c'])
 })
