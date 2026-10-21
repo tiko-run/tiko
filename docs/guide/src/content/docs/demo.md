@@ -21,7 +21,7 @@ The switch does not touch the tracker. The instance can run on the demo tasks al
 - The welcome board and up to three boards in all.
 - The demo tasks: `DEMO-1` to `DEMO-12`, whatever tracker the instance is connected to.
 - Their own task statuses: a status one visitor changes stays as it was for everyone else.
-- [Planning](../gantt/#stages) turned on, with made-up stage types and people. They are the visitor's own copy: add a stage type, a person or time off, and nobody else sees it. Workload counts the visitor's own boards.
+- [Planning](../gantt/stages/) turned on, with made-up stage types and people. They are the visitor's own copy: add a stage type, a person or time off, and nobody else sees it. Workload counts the visitor's own boards.
 - Seven days. Each visit starts the count again; after seven days away the visitor is deleted with their workspace: boards, Planning lists and task statuses.
 
 A visitor cannot share a board, turn on a public link, change a name or a password, store a tracker token, or reach Settings → Security and My tracker. A visitor who signs out, or clears cookies, cannot open their boards again.

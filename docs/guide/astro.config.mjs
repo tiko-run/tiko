@@ -20,8 +20,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'tiko',
-      // Inline, not a separate file: ClientRouter applies a newly added stylesheet a frame late.
-      expressiveCode: { emitExternalStylesheet: false, styleOverrides: { codeFontSize: '0.875rem' } },
+      // MDX pages get code styles as a file, since inline styles break inside <Tabs>; Head.astro loads it before a page swap.
+      expressiveCode: { styleOverrides: { codeFontSize: '0.875rem' } },
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',
@@ -35,6 +35,8 @@ export default defineConfig({
         '@fontsource-variable/jetbrains-mono',
         './src/styles/tiko.css',
       ],
+      // Marks pages flagged experimental in the sidebar (src/routeData.ts).
+      routeMiddleware: './src/routeData.ts',
       components: {
         Head: './src/components/Head.astro',
         Header: './src/components/Header.astro',
@@ -56,7 +58,23 @@ export default defineConfig({
                 label: 'Features',
                 items: ['adding-tasks', 'what-you-can-add', 'working-together', 'search', 'keyboard-shortcuts'],
               },
-              { label: 'Modules', items: [{ slug: 'gantt', label: 'Gantt' }, 'focus-and-timers'] },
+              {
+                label: 'Modules',
+                items: [
+                  // A nested group folds open under its static section title.
+                  {
+                    label: 'Gantt',
+                    collapsed: true,
+                    items: [
+                      { slug: 'gantt', label: 'Overview' },
+                      'gantt/stages',
+                      'gantt/columns-and-filters',
+                      'gantt/working-time',
+                    ],
+                  },
+                  'focus-and-timers',
+                ],
+              },
               { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },
               {
                 label: 'Self-hosting',
