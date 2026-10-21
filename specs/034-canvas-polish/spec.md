@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft, waiting for the owner at G2.
+**Status**: Approved by the owner at G2 on 2026-10-22, with cards set close together.
 
 **Input**: Owner's pick from the ideas list on 2026-10-22: four small canvas fixes that people meet every day, built quickly and without touching the live document format.
 
@@ -20,7 +20,7 @@ Everyday moves on the board take more effort than they should:
 ## Decisions
 
 1. **Resize from any side.** Every element that resizes today (sticky note, shape, text, frame, module) also resizes from each of its four sides. A side changes only its own dimension. The grip is 8 screen pixels wide at any zoom, with an `ew-resize` or `ns-resize` cursor. Where an arrow dot sits on a side, the dot wins under the pointer, and the side is grabbed on either side of it. Minimum sizes stay as they are. A task card still does not resize.
-2. **New cards stack in columns of five.** Two or more cards added at once fill a column top to bottom, five per column, columns left to right: 16 cards make three columns of five and a fourth with one. The block is centered on the same point as today. One card still cascades from the viewport center or lands where it was dropped.
+2. **New cards stack in columns of five.** Two or more cards added at once fill a column top to bottom, five per column, columns left to right: 16 cards make three columns of five and a fourth with one. Cards sit close (owner, 2026-10-22): 12px between cards in a column, 16px between columns, measured from each card's real size, since a card is 1 to 4 lines tall and up to 320px wide. They are placed on a first guess and closed up as soon as they are measured, within the same undo step. The block is centered on the same point as today. One card still cascades from the viewport center or lands where it was dropped.
 3. **Align and distribute from the selection bar.** With two or more elements selected the bar gets an Align button. Its popover has six alignments (left, center, right, top, middle, bottom) and, from three elements up, two distributions (equal horizontal gaps, equal vertical gaps). Alignment uses the box around the selection, as in Figma. Distribution keeps the two outermost elements in place. An element whose frame is also selected moves with the frame and is not aligned on its own. Arrows follow the elements they are tied to. One pick is one undo step, and it reaches others like a drag.
 4. **A minimap at the bottom right**, above the zoom controls. It shows the board's elements as blocks (sticky notes and shapes in their fill, frames as outlines, cards and modules in a neutral token) and the visible area as a frame. A click moves the view there; dragging the frame pans. A button in the zoom controls hides and shows it, remembered per browser (`tiko.minimap`). It is shown by default, hidden on screens narrower than 640px, and works on view-only and public boards, since it only moves the view.
 
@@ -40,6 +40,8 @@ A person makes a frame taller without making it wider, then adds twelve tasks fr
 4. **Given** a selected task card, **Then** it shows no resize grips.
 5. **Given** 16 cards added at once, **Then** they form columns of 5, 5, 5 and 1, top to bottom, left to right, centered where the grid was centered before.
 6. **Given** a view-only board, **Then** no element shows grips.
+7. **Given** cards of one and of four lines in one column, **Then** each gap between them is 12px and none overlap; columns stand 16px apart from the widest card of the column before.
+8. **Given** a column of new cards, **When** Undo is pressed once, **Then** all of them are gone.
 
 ### User Story 2 - Align and distribute (Priority: P2)
 
@@ -73,7 +75,7 @@ A person deep in one corner of a large planning board looks at the minimap, clic
 ## Requirements *(mandatory)*
 
 - **FR-001**: Elements that resize MUST resize from each side, changing only that side's dimension, with a grip of 8 screen pixels at any zoom; arrow dots MUST keep priority.
-- **FR-002**: Two or more new cards MUST be placed in columns of up to five, filled top to bottom, centered on the same point as before.
+- **FR-002**: Two or more new cards MUST be placed in columns of up to five, filled top to bottom, 12px apart in a column and 16px between columns by their measured size, centered on the same point as before, in one undo step.
 - **FR-003**: The selection bar MUST offer six alignments for two or more elements and two distributions for three or more, in board coordinates, as one undo step that syncs like a drag.
 - **FR-004**: The board MUST offer a minimap that moves the view on click and drag, can be hidden per browser and is hidden below 640px.
 - **FR-005**: Nothing in this spec MAY change the board document, the API or the live contract.

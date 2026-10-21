@@ -11,7 +11,7 @@ description: "Task list for Canvas polish"
 ## Phase 1: Slice `feat/side-resize` (US1)
 
 - [ ] T001 Side grips: 8 screen pixels at any zoom, resize cursors, arrow dots keep priority, for every element with `NodeResizer`. Tests
-- [ ] T002 `canvas/layout.ts`: columns of up to five, top to bottom, same center. Tests in `layout.test.ts`
+- [ ] T002 `canvas/layout.ts`: columns of up to five, top to bottom, same center; a close-up by measured sizes (12px in a column, 16px between columns) run once the new cards are measured, inside the undo capture window. Tests in `layout.test.ts`, one undo step
 - [ ] T003 `CHANGELOG.md`, the guide; `make check`, screenshots of a side drag at 25% and 200% zoom
 
 ## Phase 2: Slice `feat/align` (US2)
