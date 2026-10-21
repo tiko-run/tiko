@@ -371,7 +371,8 @@ class PgBoardRepo(_Repo):
                 "SELECT b.id, b.name, b.created_at, b.updated_at, b.everyone_role,"
                 " m.role AS member_role,"
                 " o.user_id AS owner_id, u.name AS owner_name,"
-                " i.public_token IS NOT NULL AS public FROM boards b"
+                " i.public_token IS NOT NULL AS public,"
+                " CASE WHEN b.has_nodes THEN b.version END AS preview FROM boards b"
                 " JOIN board_index i ON i.board_id = b.id"
                 " LEFT JOIN board_members m ON m.board_id = b.id AND m.user_id = %s"
                 " LEFT JOIN board_members o ON o.board_id = b.id AND o.role = 'owner'"
@@ -490,6 +491,27 @@ class PgBoardRepo(_Repo):
         if row is None:
             raise NotFound("board not found")
         return row["version"]
+
+    def preview(self, board_id: str, drawing: int) -> tuple[int, str | None] | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                "SELECT b.version, p.svg FROM boards b LEFT JOIN board_previews p"
+                " ON p.board_id = b.id AND p.version = b.version AND p.drawing = %s"
+                " WHERE b.id = %s",
+                (drawing, board_id),
+            ).fetchone()
+        return (row["version"], row["svg"]) if row else None
+
+    def keep_preview(self, board_id: str, version: int, drawing: int, svg: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO board_previews (workspace_id, board_id, version, drawing, svg)"
+                " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (board_id) DO UPDATE"
+                " SET version = excluded.version, drawing = excluded.drawing, svg = excluded.svg"
+                " WHERE (board_previews.version, board_previews.drawing)"
+                " < (excluded.version, excluded.drawing)",
+                (self._ws, board_id, version, drawing, svg),
+            )
 
     def keep_live_state(self, board_id: str, ydoc: bytes) -> None:
         with self._tx() as conn:

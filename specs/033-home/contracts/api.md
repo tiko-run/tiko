@@ -29,7 +29,7 @@ Anyone who can open the board. `201` with the new `BoardSummary`: owned by the p
 
 ## `GET /api/boards/{id}/preview` (`feat/board-previews`)
 
-Anyone who can open the board. `200 image/svg+xml`, `ETag: "<version>"`; `304` on `If-None-Match` with the same version. `404` for a board with nothing on it.
+Anyone who can open the board. `200 image/svg+xml`, `ETag: "<version>.<drawing>"`, where the drawing number grows when the server starts drawing previews differently; `304` on `If-None-Match` with the same tag. `404` for a board with nothing on it.
 
 ## Stars and folders (`feat/stars-folders`)
 

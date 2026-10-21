@@ -16,7 +16,13 @@ const summarySchema = z.object({
   owner: z.object({ id: z.string(), name: z.string() }).nullable(),
   /** Anyone with the board's public link can view it. */
   public: z.boolean(),
+  /** The board version its preview follows; absent or null for a board with nothing on it. */
+  preview: z.number().int().nullish(),
 })
+
+/** The server-drawn picture of a board; the version in the address skips the image cache. */
+export const previewUrl = (board: { id: string; preview?: number | null }) =>
+  `/api/boards/${encodeURIComponent(board.id)}/preview?v=${board.preview}`
 
 export type BoardSummary = z.infer<typeof summarySchema>
 

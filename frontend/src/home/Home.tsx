@@ -4,6 +4,8 @@ import {
   Copy,
   Globe,
   LayoutDashboard,
+  LayoutGrid,
+  List,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -13,9 +15,18 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
-import { Fragment, memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  Fragment,
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react'
 import { getAuthStatus } from '@/api/auth'
-import { canEdit, type BoardSummary } from '@/api/boards'
+import { canEdit, previewUrl, type BoardSummary } from '@/api/boards'
 import { DeleteBoardDialog, RenameBoardForm } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
 import { Button } from '@/components/ui/button'
@@ -45,7 +56,7 @@ import { relativeTime } from '@/lib/time'
 import { useFlip } from '@/lib/useFlip'
 import { cn } from 'cn'
 import { useDuplicateBoard, useNewBoard } from './actions'
-import { readView, saveView, visibleBoards, type Filter, type Sort } from './list'
+import { readView, saveView, visibleBoards, type Filter, type Layout, type Sort } from './list'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -71,6 +82,7 @@ export function Home({ boards, others }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>(() => readView().sort)
+  const [layout, setLayout] = useState<Layout>(() => readView().layout)
   const [selected, setSelected] = useState(0)
   // The keyboard pick shows only while the search field drives it.
   const [searching, setSearching] = useState(false)
@@ -110,7 +122,12 @@ export function Home({ boards, others }: Props) {
 
   const changeSort = (value: Sort) => {
     setSort(value)
-    saveView({ sort: value })
+    saveView({ sort: value, layout })
+  }
+
+  const changeLayout = (value: Layout) => {
+    setLayout(value)
+    saveView({ sort, layout: value })
   }
 
   const picking = searching && (steering || query.trim() !== '')
@@ -143,10 +160,17 @@ export function Home({ boards, others }: Props) {
     [duplicateBoard],
   )
 
+  const Item = layout === 'grid' ? BoardCard : BoardRow
   const rows = (items: BoardSummary[], offset: number) => (
-    <ul className="divide-y rounded-lg border">
+    <ul
+      className={
+        layout === 'grid'
+          ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3'
+          : 'divide-y rounded-lg border'
+      }
+    >
       {items.map((board, index) => (
-        <BoardRow
+        <Item
           key={board.id}
           board={board}
           own={board.owner?.id === me?.id}
@@ -235,29 +259,46 @@ export function Home({ boards, others }: Props) {
                   {formatShortcut('findBoard')[0].join('')}
                 </Kbd>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-[13px] font-normal">
-                    <ArrowDownWideNarrow strokeWidth={1.75} />
-                    {SORTS.find((item) => item.value === sort)?.label}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
-                    Sort by
-                  </DropdownMenuLabel>
-                  <DropdownMenuRadioGroup
-                    value={sort}
-                    onValueChange={(value) => changeSort(value as Sort)}
-                  >
-                    {SORTS.map(({ value, label }) => (
-                      <DropdownMenuRadioItem key={value} value={value}>
-                        {label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="ml-auto flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-[13px] font-normal">
+                      <ArrowDownWideNarrow strokeWidth={1.75} />
+                      {SORTS.find((item) => item.value === sort)?.label}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
+                      Sort by
+                    </DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={sort}
+                      onValueChange={(value) => changeSort(value as Sort)}
+                    >
+                      {SORTS.map(({ value, label }) => (
+                        <DropdownMenuRadioItem key={value} value={value}>
+                          {label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  value={layout}
+                  onValueChange={(value) => value && changeLayout(value as Layout)}
+                  aria-label="Layout"
+                >
+                  <ToggleGroupItem value="grid" aria-label="Grid" className="px-2">
+                    <LayoutGrid strokeWidth={1.75} />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="list" aria-label="List" className="px-2">
+                    <List strokeWidth={1.75} />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
 
             <ContextMenu>
@@ -343,6 +384,127 @@ type RowProps = {
   menu: Menu
 }
 
+function openHere(event: MouseEvent<HTMLAnchorElement>, id: string) {
+  // A new tab or window keeps the browser's own way.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+  event.preventDefault()
+  goTo(id)
+}
+
+function BoardMenu({ board, demo, menu }: { board: BoardSummary; demo: boolean; menu: Menu }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 opacity-100 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 sm:opacity-0"
+          aria-label={`Actions for ${board.name}`}
+        >
+          <MoreHorizontal strokeWidth={1.75} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <MenuItems kind="dropdown" actions={actionsFor(board, demo, menu)} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function BoardName({ board }: { board: BoardSummary }) {
+  return (
+    <>
+      <span className="truncate font-medium">{board.name}</span>
+      {board.public && (
+        <Globe
+          className="text-muted-foreground size-3.5 shrink-0"
+          strokeWidth={1.75}
+          aria-label="Public link on"
+        />
+      )}
+      {board.my_role === 'viewer' && (
+        <span className="text-muted-foreground shrink-0 text-[12px]">View only</span>
+      )}
+    </>
+  )
+}
+
+function Preview({ board }: { board: BoardSummary }) {
+  // A board of only reminders or arrow ends has nothing to draw; the server then answers 404.
+  const [failed, setFailed] = useState(false)
+  if (board.preview == null || failed) {
+    return (
+      <span className="text-muted-foreground/50 flex size-full items-center justify-center text-[32px] font-semibold select-none">
+        {board.name.trim().charAt(0).toUpperCase()}
+      </span>
+    )
+  }
+  return (
+    <img
+      src={previewUrl(board)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(true)}
+      className="size-full object-contain"
+    />
+  )
+}
+
+const BoardCard = memo(function BoardCard({
+  board,
+  own,
+  demo,
+  selected,
+  renaming,
+  menu,
+}: RowProps) {
+  const edited = relativeTime(board.updated_at)
+  return (
+    <li
+      data-flip={board.id}
+      data-selected={selected}
+      onContextMenu={() => menu.point(board)}
+      className={cn(
+        'group bg-card hover:border-foreground/20 flex min-w-0 flex-col rounded-lg border transition-colors',
+        selected && 'ring-primary ring-2',
+      )}
+    >
+      {/* The whole picture opens the board too; the name below is the link for the keyboard. */}
+      <a
+        href={boardHref(board.id)}
+        onClick={(event) => openHere(event, board.id)}
+        tabIndex={-1}
+        aria-hidden
+        className="bg-muted/40 block aspect-[8/5] overflow-hidden rounded-t-lg border-b"
+      >
+        <Preview key={board.preview} board={board} />
+      </a>
+      <div className="flex items-center gap-1 py-2 pr-1.5 pl-3">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {renaming ? (
+            <RenameBoardForm board={board} onDone={menu.renamed} />
+          ) : (
+            <a
+              href={boardHref(board.id)}
+              onClick={(event) => openHere(event, board.id)}
+              className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
+            >
+              <BoardName board={board} />
+            </a>
+          )}
+          <span className="text-muted-foreground truncate text-[12px] tabular-nums">
+            <span>{own ? 'You' : board.owner?.name}</span>
+            {edited && ` · Edited ${edited}`}
+          </span>
+        </div>
+        <BoardMenu board={board} demo={demo} menu={menu} />
+      </div>
+    </li>
+  )
+})
+
 const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, menu }: RowProps) {
   const edited = relativeTime(board.updated_at)
   return (
@@ -360,26 +522,11 @@ const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, 
       ) : (
         <a
           href={boardHref(board.id)}
-          onClick={(event) => {
-            // A new tab or window keeps the browser's own way.
-            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
-            event.preventDefault()
-            goTo(board.id)
-          }}
+          onClick={(event) => openHere(event, board.id)}
           className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
         >
           <LayoutDashboard className="text-muted-foreground size-4 shrink-0" strokeWidth={1.75} />
-          <span className="truncate font-medium">{board.name}</span>
-          {board.public && (
-            <Globe
-              className="text-muted-foreground size-3.5 shrink-0"
-              strokeWidth={1.75}
-              aria-label="Public link on"
-            />
-          )}
-          {board.my_role === 'viewer' && (
-            <span className="text-muted-foreground shrink-0 text-[12px]">View only</span>
-          )}
+          <BoardName board={board} />
         </a>
       )}
       <span className="text-muted-foreground hidden truncate text-[13px] sm:block">
@@ -388,21 +535,7 @@ const BoardRow = memo(function BoardRow({ board, own, demo, selected, renaming, 
       <span className="text-muted-foreground hidden truncate text-[12px] whitespace-nowrap tabular-nums sm:block">
         {edited && `Edited ${edited}`}
       </span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 opacity-100 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 sm:opacity-0"
-            aria-label={`Actions for ${board.name}`}
-          >
-            <MoreHorizontal strokeWidth={1.75} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <MenuItems kind="dropdown" actions={actionsFor(board, demo, menu)} />
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <BoardMenu board={board} demo={demo} menu={menu} />
     </li>
   )
 })

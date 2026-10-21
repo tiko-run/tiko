@@ -3,15 +3,20 @@ import type { BoardSummary } from '@/api/boards'
 export type Filter = 'all' | 'mine' | 'shared'
 export type Sort = 'updated' | 'name'
 
-export type HomeView = { sort: Sort }
+export type Layout = 'grid' | 'list'
+
+export type HomeView = { sort: Sort; layout: Layout }
 
 const VIEW = 'tiko.home'
-const DEFAULT_VIEW: HomeView = { sort: 'updated' }
+const DEFAULT_VIEW: HomeView = { sort: 'updated', layout: 'grid' }
 
 export function readView(): HomeView {
   try {
     const stored = JSON.parse(localStorage.getItem(VIEW) ?? '{}') as Partial<HomeView>
-    return { sort: stored.sort === 'name' ? 'name' : DEFAULT_VIEW.sort }
+    return {
+      sort: stored.sort === 'name' ? 'name' : DEFAULT_VIEW.sort,
+      layout: stored.layout === 'list' ? 'list' : DEFAULT_VIEW.layout,
+    }
   } catch {
     return DEFAULT_VIEW
   }

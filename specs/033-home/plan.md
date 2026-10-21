@@ -71,7 +71,7 @@ backend/app/domain/boards.py           duplicate, trash, restore; BoardSummary f
 backend/app/domain/folders.py          stars and folders
 backend/app/api/boards.py              duplicate, preview, star, folder, restore, forever
 backend/app/api/folders.py             folders, trash
-backend/app/adapters/storage/pg_migrations/003_home.sql
+backend/app/adapters/storage/pg_migrations/003_board_previews.sql, then one file per later slice
 backend/app/adapters/storage/postgres.py
 frontend/src/home/                     Home page, cards, list, filters, search, menu, folders
 frontend/src/App.tsx                   navigation by history

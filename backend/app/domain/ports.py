@@ -92,6 +92,15 @@ class BoardRepo(Protocol):
         """The board with its CRDT state, for opening it live."""
         ...
 
+    def preview(self, board_id: str, drawing: int) -> tuple[int, str | None] | None:
+        """The board's version and its kept preview when that follows this version and way
+        of drawing."""
+        ...
+
+    def keep_preview(self, board_id: str, version: int, drawing: int, svg: str) -> None:
+        """Keeps a drawing unless one of a newer version is already kept."""
+        ...
+
     def save_live(self, board_id: str, doc: BoardDoc, ydoc: bytes) -> int:
         """Saves an open board whatever the stored version; raises NotFound, returns new version."""
         ...

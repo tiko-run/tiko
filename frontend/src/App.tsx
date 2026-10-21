@@ -83,6 +83,8 @@ export default function App() {
     queryKey: ['boards'],
     queryFn: listBoards,
     enabled: mounted && signedIn && !outside,
+    // Home shows other people's changes too: its previews follow a board within a minute.
+    refetchInterval: boardId ? false : 30_000,
   })
 
   useEffect(() => {
