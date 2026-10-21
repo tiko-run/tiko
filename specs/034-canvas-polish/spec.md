@@ -30,7 +30,7 @@ Everyday moves on the board take more effort than they should:
 
 A person makes a frame taller without making it wider, then adds twelve tasks from a query and reads them as three columns.
 
-**Independent Test**: on the compose stack drag the bottom side of a frame down: only its height changes. Add 12 cards with one query: three columns of 5, 5 and 2. Undo puts both back.
+**Independent Test**: on the compose stack drag the bottom side of a frame down: only its height changes. Add 12 cards with one query: three columns of 5, 5 and 2. The first Undo removes all 12 cards, the second restores the frame's height.
 
 **Acceptance Scenarios**:
 
@@ -78,12 +78,12 @@ A person deep in one corner of a large planning board looks at the minimap, clic
 - **FR-002**: Two or more new cards MUST be placed in columns of up to five, filled top to bottom, 12px apart in a column and 16px between columns by their measured size, centered on the same point as before, in one undo step.
 - **FR-003**: The selection bar MUST offer six alignments for two or more elements and two distributions for three or more, in board coordinates, as one undo step that syncs like a drag.
 - **FR-004**: The board MUST offer a minimap that moves the view on click and drag, can be hidden per browser and is hidden below 640px.
-- **FR-005**: Nothing in this spec MAY change the board document, the API or the live contract.
+- **FR-005**: Nothing in this spec MAY change the board document schema, the API contract or the live protocol; the changes above use the existing element fields and sync.
 
 ## Success Criteria
 
-- **SC-001**: Panning a 1000-element board with the minimap shown stays within the frame times measured for spec 021 on the same machine.
-- **SC-002**: Aligning 100 selected elements takes one undo step and shows within one frame for the other person.
+- **SC-001**: Panning a 1000-element board for 10 seconds with the minimap shown keeps the median frame time within 10% of the same pan with it hidden, in Chromium on the same machine. Method and numbers go into the slice's PR.
+- **SC-002**: After aligning 100 selected elements, one Undo puts all of them back, and a second tab on the same machine shows the new positions within 200 ms.
 
 ## Out of scope
 
