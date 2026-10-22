@@ -686,6 +686,30 @@ test('time off is removed from its popover', async () => {
   }
 })
 
+test('a second click on time off closes its popover', async () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  const bar = screen.getByRole('button', { name: /^Ivan is away/ })
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  const click = async (closeOnPress = false) => {
+    fireEvent.pointerDown(bar, { pointerId: 1, button: 0 })
+    // In a browser the press moves focus and the popover closes before the click;
+    // jsdom does not close on focus, Escape stands in for it.
+    if (closeOnPress) fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await tick()
+    fireEvent.pointerUp(bar, { pointerId: 1 })
+    fireEvent.click(bar)
+    await tick()
+  }
+  await click()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  await click(true)
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+  await click()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  await click()
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+})
+
 const FIELDS: PlanningState = {
   ...PLANNING,
   fields: [

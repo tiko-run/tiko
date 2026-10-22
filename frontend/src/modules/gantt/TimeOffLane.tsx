@@ -136,6 +136,7 @@ function AwayBar({
   const queryClient = useQueryClient()
   const [removing, setRemoving] = useState(false)
   const bar = useRef<HTMLButtonElement>(null)
+  const wasOpen = useRef(false)
   const box = barBox(item.span, axis)
   if (!box) return null
   const { person, off } = item
@@ -161,8 +162,12 @@ function AwayBar({
             ref={bar}
             type="button"
             aria-label={`${person.name} is away ${dates}`}
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => onOpen(!open)}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+              wasOpen.current = open
+            }}
+            // The press moves focus to the canvas node, which may close the popover before the click.
+            onClick={() => onOpen(!wasOpen.current)}
             className={cn(
               'peer border-muted-foreground text-foreground absolute flex h-5 items-center overflow-hidden rounded-[4px] border border-dashed px-1.5 text-[11px] leading-5 font-medium whitespace-nowrap',
               box.clippedStart && 'rounded-l-none',
