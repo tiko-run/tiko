@@ -3,26 +3,25 @@ title: Data, backups and upgrades
 description: Where tiko keeps its data, how to back it up and how to upgrade.
 ---
 
-tiko keeps boards, people and settings in Postgres 18. With the compose files it runs in the `db` container, and its data lives in the Docker volume `pgdata`, which survives rebuilds, upgrades and `docker compose down`. **`docker compose down -v` deletes that volume, and every board with it.** The `data/` folder next to the compose file keeps the rest: the generated admin password, the updater's token and backups.
+tiko keeps boards, people and settings in Postgres 18. With the compose files it runs in the `db` container, and its data lives in the Docker volume `pgdata`, which survives rebuilds, upgrades and `docker compose down`. **`docker compose down -v` deletes that volume, and every board with it, and so does Docker Desktop when you lower its disk limit or use Clean / Purge data or Reset to factory defaults.** The `data/` folder next to the compose file is a plain folder on your computer and survives all of that: it keeps the generated admin password, the updater's token and the backups below.
 
 The `db` service publishes no port; only the `api` container reaches it. Its password is `POSTGRES_PASSWORD` in `.env`, written by the installer. Postgres reads it once, when the volume is made, so changing it later locks tiko out of its data.
 
 ## Back up and restore
 
-- **Back up** while tiko runs, in the tiko folder. The dump is written inside the `db` container and copied out, so it stays intact in any shell, PowerShell too:
+- **Backups on their own:** the `backup` service saves a dump of the database to `data/backups/` every 2 hours. It keeps the newest 12 as `auto-<time>.dump`, the last day, and one a day for 14 days as `daily-<time>.dump`. Times are in UTC. Installs from before 2026.10.25 get the service when you run the installer again. On Railway and Render the platform's database is backed up by the platform.
+- **Back up by hand** while tiko runs, in the tiko folder, before you change Docker Desktop's settings or move to another computer. The dump lands in `data/backups/` as `manual-<time>.dump` and is never deleted on its own:
 
   ```bash
-  docker compose exec db pg_dump -U postgres -d tiko -Fc -f /tmp/tiko.dump
-  docker compose cp db:/tmp/tiko.dump ./tiko.dump
-  docker compose exec db rm /tmp/tiko.dump
+  docker compose exec backup tiko-dump
   ```
 
-  From a source checkout, `make backup` writes the same dump to `data/backups/` with a timestamp and keeps the newest 20; `make up` runs it before every rebuild.
-- **Restore:** stop the API, put the dump back, start it again:
+  From a source checkout, `make backup` writes a dump to `data/backups/` too and keeps the newest 20; `make up` runs it before every rebuild.
+- **Restore:** stop the API, put a dump from `data/backups/` back, start it again. Put the name of the dump in place of `daily-20261022-120000.dump`:
 
   ```bash
   docker compose stop api web
-  docker compose cp ./tiko.dump db:/tmp/tiko.dump
+  docker compose cp ./data/backups/daily-20261022-120000.dump db:/tmp/tiko.dump
   docker compose exec db psql -U postgres -d tiko -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION tiko_owner;"
   docker compose exec db pg_restore -U postgres -d tiko --exit-on-error /tmp/tiko.dump
   docker compose exec db rm /tmp/tiko.dump
@@ -59,7 +58,7 @@ CREATE DATABASE tiko OWNER tiko_owner;
 ALTER SCHEMA public OWNER TO tiko_owner;
 ```
 
-Then `DATABASE_URL=postgresql://tiko_owner:choose-a-password@db.example.com:5432/tiko`. The password goes into a URL, so use letters and digits. One-click updates need the `db` service to take their dump: with your own server, back it up yourself and update with the installer.
+Then `DATABASE_URL=postgresql://tiko_owner:choose-a-password@db.example.com:5432/tiko`. The password goes into a URL, so use letters and digits. One-click updates and the `backup` service dump only the `db` service: with your own server, back it up yourself and update with the installer.
 
 ## Updates
 

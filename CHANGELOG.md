@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+Requires: installer
+
+### Added
+
+- Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
+
 ## [2026.10.24] - 2026-10-22
 
 Requires: installer
