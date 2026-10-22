@@ -346,9 +346,14 @@ try:
 finally:
     call("PUT", f"{API}/api/demo/tasks/DEMO-1/status", {"status": "In Progress"})
     call("PUT", f"{API}/api/settings", {"provider": settings["provider"]})
-    for board_id in created:
-        call("DELETE", f"{API}/api/boards/{board_id}")
-        call("DELETE", f"{API}/api/boards/{board_id}?forever=true")
+    # Every board goes, even after a failure; 404 means it went earlier in the run.
+    left = [
+        board_id
+        for board_id in created
+        if call("DELETE", f"{API}/api/boards/{board_id}")[0] not in (204, 404)
+        or call("DELETE", f"{API}/api/boards/{board_id}?forever=true")[0] not in (204, 404)
+    ]
+check(not left, "no board left behind")
 
 status, body = call("GET", f"{API}/api/settings")
 check(
