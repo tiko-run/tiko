@@ -17,6 +17,7 @@ import * as music from './music'
 import { updateTimer, useFocus } from './store'
 import { describe, formatClock, pause, play, view, type Mode } from './timer'
 import { tone } from './tone'
+import { topOverlay } from '@/lib/overlays'
 
 const ICONS: Record<Mode, typeof Timer> = {
   idle: Timer,
@@ -62,6 +63,7 @@ export function FocusCapsule() {
     <Popover>
       <PopoverAnchor asChild>
         <section
+          ref={topOverlay}
           aria-label="Focus timer"
           data-tour="focus"
           className="focus-capsule bg-card absolute top-4 left-1/2 z-10 w-[264px] -translate-x-1/2 rounded-t-[26px] rounded-b-xl border shadow-md"

@@ -68,6 +68,7 @@ import { useTheme, type Theme } from '@/lib/theme'
 import { openSettings } from '@/settings/store'
 import { useNewBoard } from '@/home/actions'
 import { clearRename, goTo } from '@/lib/navigation'
+import { topOverlay } from '@/lib/overlays'
 
 // Boards owned by someone else name the owner, so shared ones stand apart from your own.
 function BoardItem({ board }: { board: BoardSummary }) {
@@ -244,7 +245,10 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
   ])
 
   return (
-    <div className="bg-card absolute top-4 left-4 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md">
+    <div
+      ref={topOverlay}
+      className="bg-card absolute top-4 left-4 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md"
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Main menu" data-tour="main-menu">

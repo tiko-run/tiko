@@ -34,6 +34,7 @@ Requires: installer
 
 ### Fixed
 
+- The selection bar no longer hides behind the focus timer when a selection reaches the top of the window: it moves below the timer, so every button stays clickable.
 - A second click on a time off bar in the Gantt closes its menu, instead of closing it and opening it again.
 
 ### Security

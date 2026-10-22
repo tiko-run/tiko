@@ -7,7 +7,7 @@
 - [x] T001 `frontend/real-ip.envsh` and the include in `nginx.conf.template`; checks of every value
 - [x] T002 `scripts/test-real-ip.sh` in `make check`
 - [x] T003 The two variables in both compose files, `.env.example` and the guide's Configuration table
-- [ ] T004 Guide: "The client's address" with Railway (checked on the demo) and Cloudflare
+- [x] T004 Guide: "The client's address" with Railway (checked on the demo) and Cloudflare
 
 ## Slice 2: the known browser (US1)
 
@@ -18,5 +18,5 @@
 
 ## Slice 3: release and the demo (US2)
 
-- [ ] T020 Release; the demo's ENV set as the guide says; six new demo visitors from one address, the sixth refused
-- [ ] T021 Cloudflare in front of the demo, the platform's own address of the service removed
+- [x] T020 Release; the demo's ENV set as the guide says; six new demo visitors from one address, the sixth refused
+- [x] T021 Cloudflare in front of the demo, the platform's own address of the service removed
