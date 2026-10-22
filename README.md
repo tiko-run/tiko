@@ -11,7 +11,7 @@
   <a href="https://tiko.run"><b>Website</b></a> •
   <a href="https://docs.tiko.run/"><b>Docs</b></a> •
   <a href="https://docs.tiko.run/quick-start/"><b>Quick start</b></a> •
-  <a href="https://docs.tiko.run/roadmap/"><b>Roadmap</b></a> •
+  <a href="https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM"><b>Roadmap</b></a> •
   <a href="https://github.com/tiko-run/tiko/discussions"><b>Discussions</b></a>
 </p>
 
@@ -152,13 +152,13 @@ Everything else lives at [docs.tiko.run](https://docs.tiko.run/).
 | Use tiko | [Adding tasks](https://docs.tiko.run/adding-tasks/) · [Working together](https://docs.tiko.run/working-together/) · [Search](https://docs.tiko.run/search/) · [Gantt](https://docs.tiko.run/gantt/) · [Timers and focus](https://docs.tiko.run/focus-and-timers/) · [Shortcuts](https://docs.tiko.run/keyboard-shortcuts/) |
 | Trackers | [Supported trackers](https://docs.tiko.run/trackers/) · [Connect Jira Data Center](https://docs.tiko.run/jira-data-center/) |
 | Self-host | [Configuration](https://docs.tiko.run/configuration/) · [Data, backups and upgrades](https://docs.tiko.run/data-and-upgrades/) · [Updates](https://docs.tiko.run/updates/) · [Security and privacy](https://docs.tiko.run/security/) |
-| Project | [Roadmap](https://docs.tiko.run/roadmap/) · [Architecture](https://docs.tiko.run/architecture/) · [Changelog](CHANGELOG.md) |
+| Project | [Roadmap](https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM) · [Architecture](https://docs.tiko.run/architecture/) · [Changelog](CHANGELOG.md) |
 
 ## Community
 
 - Ideas, questions and feature requests go to [Discussions](https://github.com/tiko-run/tiko/discussions).
 - Found a bug? Open an [issue](https://github.com/tiko-run/tiko/issues/new/choose).
-- What we build next is in the [roadmap](https://docs.tiko.run/roadmap/).
+- What we build next is in the [roadmap](https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM).
 
 ## Security
 

@@ -1,5 +1,7 @@
 export const DEMO = 'https://demo.tiko.run/demo'
 export const DOCS = 'https://docs.tiko.run'
+// The roadmap is a public, view-only board on the demo.
+export const ROADMAP = 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM'
 export const REPO = 'https://github.com/tiko-run/tiko'
 export const INSTALL_SH = 'curl -fsSL https://tiko.run/install.sh | sh'
 export const INSTALL_PS1 = 'irm https://tiko.run/install.ps1 | iex'
