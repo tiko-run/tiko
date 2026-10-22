@@ -39,6 +39,7 @@ Requires: installer
 
 - Cards no longer show tasks read with a Jira or GitHub token you have just replaced or removed.
 - A second click on a time off bar in the Gantt closes its menu, instead of closing it and opening it again.
+- Settings → People and Settings → Server → Accounts no longer say "Never signed in" for someone who joined by an invite link and uses tiko since.
 
 
 ### Security
