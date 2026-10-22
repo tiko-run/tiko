@@ -34,7 +34,7 @@ The welcome board teaches by example, but the features people miss are the ones 
 
 4. **Motion.** The highlight moves between anchors with driver.js's own transition (about 300 ms); the popover fades and scales in as other popovers do (100 ms). With `prefers-reduced-motion` the transition and the loops are off.
 
-5. **When the tour runs.** It starts once, by itself, the first time a person opens a board they can edit. Esc, the close button or Done ends it and marks it seen. While it runs, a click on the highlighted button or the dimmed board, board shortcuts and paste do nothing, so trying a button cannot break the tour.
+5. **When the tour runs.** It starts once, by itself, the first time a person opens a board they can edit, other than one they just made with "New board" on Home, whose name is still being typed (spec 033). Esc, the close button or Done ends it and marks it seen. While it runs, a click on the highlighted button or the dimmed board, board shortcuts and paste do nothing, so trying a button cannot break the tour.
 
 6. **Run it again from About.** The About popover gets two rows above the links: "Take the tour" and "Getting started". Settings does not change.
 

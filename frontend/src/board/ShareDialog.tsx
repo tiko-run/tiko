@@ -355,7 +355,7 @@ export function ShareDialog({
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="font-medium">Everyone in this workspace</span>
                   <span className="text-muted-foreground text-[12px]">
-                    Everyone who signs in here finds it in their list
+                    Everyone in this workspace finds it in their list
                   </span>
                 </div>
                 {manage ? (

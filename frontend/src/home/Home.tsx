@@ -36,6 +36,7 @@ import type { Folder } from '@/api/folders'
 import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
 import { restoreFocusForKeyboard } from '@/lib/input-modality'
+import { releaseTourHolds } from '@/onboarding/start'
 import { Button } from '@/components/ui/button'
 import {
   ContextMenu,
@@ -108,6 +109,8 @@ export function Home({ boards, others }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<Sort>(() => readView().sort)
+  // Back on Home, a board made earlier is no longer new: the tour may start on it.
+  useEffect(() => releaseTourHolds(), [])
   const [layout, setLayout] = useState<Layout>(() => readView().layout)
   const [selected, setSelected] = useState(0)
   // The keyboard pick shows only while the search field drives it.

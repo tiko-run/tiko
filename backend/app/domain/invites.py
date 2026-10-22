@@ -121,6 +121,8 @@ class Invites:
             # The link stays usable, so the person can pick another name.
             self._repo.unconsume(invite.id)
             raise
+        # The invite link proves who they are, so People shows them as signed in.
+        self._accounts.came_back(person.id)
         return self._sessions.start(person.id, now)
 
     def join(self, person: Person, token: str, now: float) -> None:
@@ -136,6 +138,8 @@ class Invites:
             # The link stays usable for someone who is not in a workspace yet.
             self._repo.unconsume(invite.id)
             raise InWorkspace(IN_WORKSPACE)
+        # The new workspace's People list shows them as here now, not at their old sign-in.
+        self._accounts.came_back(person.id)
 
     def pending(self, now: float) -> list[Invite]:
         return self._repo.pending(iso(now))
