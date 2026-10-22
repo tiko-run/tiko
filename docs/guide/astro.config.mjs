@@ -17,6 +17,8 @@ const releases = readdirSync(new URL('./src/content/docs/whats-new/', import.met
 
 export default defineConfig({
   site: 'https://docs.tiko.run',
+  // A fixed address for the newest release page, so links from the site never go stale.
+  redirects: { '/whats-new/latest': `/${releases[0].slug}/` },
   integrations: [
     starlight({
       title: 'tiko',

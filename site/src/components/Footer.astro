@@ -1,5 +1,5 @@
 ---
-import { DEMO, DOCS, REPO } from '../data/site'
+import { CONTACT, DEMO, DOCS, REPO } from '../data/site'
 import Brand from './Brand.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
 
@@ -11,7 +11,7 @@ const columns = [
       ['Features', '/#features'],
       ['Scenarios', '/#scenarios'],
       ['Roadmap', `${DOCS}/roadmap/`],
-      ['Changelog', `${REPO}/blob/main/CHANGELOG.md`],
+      ["What's new", `${DOCS}/whats-new/latest/`],
     ],
   },
   {
@@ -43,7 +43,6 @@ const columns = [
       ['Contributing', `${REPO}/blob/main/CONTRIBUTING.md`],
       ['License', `${REPO}/blob/main/LICENSE`],
       ['Privacy', '/privacy/'],
-      ['Contact', 'mailto:hi@tiko.run'],
     ],
   },
 ]
@@ -55,6 +54,7 @@ const columns = [
       <div class="about">
         <a href="/" aria-label="tiko, home"><Brand height={28} /></a>
         <p>Open-source infinite canvas for your tasks: live cards from your tracker, arranged the way you think.</p>
+        <p class="mail">Write to us: <a href={`mailto:${CONTACT}`}>{CONTACT}</a></p>
       </div>
       {
         columns.map(({ title, links }) => (
@@ -106,6 +106,11 @@ const columns = [
     margin-top: 1rem;
     font-size: 0.875rem;
     color: var(--muted-foreground);
+  }
+  .about .mail a {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   h2 {
     font-size: 0.875rem;
