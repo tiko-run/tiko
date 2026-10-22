@@ -62,13 +62,57 @@ services:
       - sh
     # Small, for a small server; see Configuration in the guide for more API processes.
     command: [postgres, -c, shared_buffers=32MB, -c, max_connections=100]
-    volumes: ["pgdata:/var/lib/postgresql"]
+    volumes: ["pgdata:/var/lib/postgresql", "pgsocket:/var/run/postgresql"]
     # Over TCP, which opens only after the first-start setup is done.
     healthcheck:
       test: [CMD, pg_isready, -q, -h, 127.0.0.1, -U, tiko_owner, -d, tiko]
       interval: 2s
       timeout: 3s
       retries: 60
+
+  # Dumps of the database in data/backups/: every 2 hours for the last day, one a day for 14 days.
+  # The volume pgdata alone does not survive a reset of Docker Desktop.
+  # By hand: docker compose exec backup tiko-dump
+  backup:
+    image: postgres:18
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db: { condition: service_healthy }
+    # The image's superuser through the socket of db: it alone reads past row-level security.
+    volumes: ["pgsocket:/var/run/postgresql", "./data/backups:/backups"]
+    entrypoint:
+      - sh
+      - -c
+      - |
+        cat >/usr/local/bin/tiko-dump <<'DUMP'
+        #!/bin/sh
+        set -eu
+        # A dump holds password hashes: nobody else on the host reads it, partial or done.
+        umask 077
+        chmod 700 /backups
+        kind=$${1:-manual}
+        name="$$kind-$$(date -u +%Y%m%d-%H%M%S).dump"
+        trap 'rm -f "/backups/$$name.partial"' EXIT
+        pg_dump -U postgres -d tiko -Fc -f "/backups/$$name.partial"
+        mv "/backups/$$name.partial" "/backups/$$name"
+        chmod 644 "/backups/$$name"
+        echo "data/backups/$$name"
+        if [ "$$kind" = auto ]; then
+          ls -1t /backups/auto-*.dump | tail -n +13 | xargs -r rm -f --
+          if [ -z "$$(find /backups -maxdepth 1 -name 'daily-*.dump' -mmin -1440)" ]; then
+            cp -p "/backups/$$name" "/backups/daily-$${name#auto-}"
+          fi
+          ls -1t /backups/daily-*.dump | tail -n +15 | xargs -r rm -f --
+        fi
+        DUMP
+        chmod 755 /usr/local/bin/tiko-dump
+        while :; do
+          if [ -z "$$(find /backups -maxdepth 1 -name 'auto-*.dump' -mmin -120)" ]; then
+            tiko-dump auto || echo "tiko: the scheduled dump failed" >&2
+          fi
+          sleep 600
+        done
 
   # One-click updates from About, on with COMPOSE_PROFILES=updater (the installers ask). The only
   # service with the Docker socket, so the API never gets it; no port outside the compose network.
@@ -84,3 +128,5 @@ services:
 
 volumes:
   pgdata:
+  # The socket of db, shared with backup.
+  pgsocket:

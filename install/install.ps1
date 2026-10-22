@@ -244,7 +244,7 @@ function Assert-OneStack {
 function Initialize-Folder {
   Assert-OneStack
   Step "Preparing $Dir"
-  New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'data') | Out-Null
+  New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'data\backups') | Out-Null
   $envFile = Join-Path $Dir '.env'
   if (-not $Upgrade) {
     $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
