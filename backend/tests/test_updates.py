@@ -54,6 +54,13 @@ def test_calver_compares_numerically():
     assert not is_newer("2026.10.7", "dev")
 
 
+def test_release_candidate_sits_between_releases():
+    assert is_newer("2026.10.24", "2026.10.24-rc.1")
+    assert is_newer("2026.10.24-rc.2", "2026.10.24-rc.1")
+    assert is_newer("2026.10.24-rc.1", "2026.10.23")
+    assert not is_newer("2026.10.23", "2026.10.24-rc.1")
+
+
 def test_reports_a_newer_release_and_caches_it():
     clock = Clock()
     feed = Feed(release("2026.11.1"), release("2026.12.1"))
