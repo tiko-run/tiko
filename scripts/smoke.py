@@ -336,6 +336,8 @@ try:
     check(
         other["id"] not in ids and board["id"] in ids, "deleted board leaves the list"
     )
+    status, _ = call("DELETE", f"{API}/api/boards/{other['id']}?forever=true")
+    check(status == 204, "delete board for good from the trash")
 
     # The session cookie belongs to the API host, so the answer through the UI is the gate's.
     status, body = call("GET", f"{WEB}/api/boards")
@@ -346,6 +348,7 @@ finally:
     call("PUT", f"{API}/api/settings", {"provider": settings["provider"]})
     for board_id in created:
         call("DELETE", f"{API}/api/boards/{board_id}")
+        call("DELETE", f"{API}/api/boards/{board_id}?forever=true")
 
 status, body = call("GET", f"{API}/api/settings")
 check(
