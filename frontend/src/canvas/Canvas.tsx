@@ -119,6 +119,7 @@ import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { useTheme } from '@/lib/theme'
 import { didOnboarding } from '@/onboarding/done'
+import { topOverlay } from '@/lib/overlays'
 
 const nodeTypes = {
   task_card: withPresence(TaskCardNode),
@@ -1038,7 +1039,9 @@ export function BoardCanvas({
             </SelectedByContext.Provider>
             {guest ? (
               // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-              <div className="absolute top-4 right-4 z-10">{indicator}</div>
+              <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                {indicator}
+              </div>
             ) : (
               <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
                 {indicator}
@@ -1117,7 +1120,7 @@ export default function Canvas({ boardId }: { boardId: string }) {
   return (
     <ReactFlowProvider>
       {accessChanged && viewer && (
-        <Alert className="absolute top-4 left-1/2 z-10 w-96 -translate-x-1/2">
+        <Alert ref={topOverlay} className="absolute top-4 left-1/2 z-10 w-96 -translate-x-1/2">
           <AlertDescription>You can only view this board now.</AlertDescription>
         </Alert>
       )}

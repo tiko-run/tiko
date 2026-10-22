@@ -34,6 +34,7 @@ Requires: installer
 
 ### Fixed
 
+- The selection bar no longer hides behind the focus timer when a selection reaches the top of the window: it moves below the timer, so every button stays clickable.
 - Cards no longer show tasks read with a Jira or GitHub token you have just replaced or removed.
 
 ### Security
