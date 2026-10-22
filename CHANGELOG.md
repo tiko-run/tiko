@@ -34,6 +34,7 @@ Requires: installer
 
 ### Fixed
 
+- The selection bar no longer hides behind the focus timer when a selection reaches the top of the window: it moves below the timer, so every button stays clickable.
 - On a board that mixes trackers, Gantt task titles get as much room as on a board with one tracker: the tracker logo sits where the drag grip was, and the grip shows on hover.
 
 ### Security

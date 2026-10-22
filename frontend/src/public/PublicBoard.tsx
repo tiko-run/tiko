@@ -15,6 +15,7 @@ import { FocusCapsule } from '@/focus/FocusCapsule'
 import { setFocusVisible, useFocusVisible } from '@/focus/store'
 import { useTheme } from '@/lib/theme'
 import { setSearchOpen } from '@/search/palette'
+import { topOverlay } from '@/lib/overlays'
 
 // Without the socket: how soon a guest sees a change, or that the link was turned off.
 const VERSION_POLL_MS = 5000
@@ -28,7 +29,10 @@ function PublicBar({ name }: { name: string }) {
   const focusVisible = useFocusVisible()
   const dark = resolved === 'dark'
   return (
-    <div className="bg-card absolute top-4 left-4 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md">
+    <div
+      ref={topOverlay}
+      className="bg-card absolute top-4 left-4 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md"
+    >
       <a
         href="https://tiko.run"
         target="_blank"
