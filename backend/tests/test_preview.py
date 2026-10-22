@@ -151,3 +151,16 @@ def test_a_frame_or_shape_without_a_size_is_not_drawn_as_on_the_board():
     assert texts(root) == ["Kept"] and "ellipse" not in svg
     # Nor does it stretch the picture: the view box ends near the text.
     assert int(root.get("viewBox").split()[2]) < 400
+
+
+def test_an_arrow_to_a_bare_end_stays_in_the_picture():
+    doc = board(
+        [
+            node("s", "sticky", {"text": "Go"}, width=100, height=100),
+            node("end", "anchor", {}, 900, 50),
+        ],
+        [{"id": "e", "source": "s", "target": "end"}],
+    )
+    _, root = parsed(doc)
+    x, _, width, _ = (int(v) for v in root.get("viewBox").split())
+    assert x + width >= 900 + 40

@@ -23,7 +23,7 @@ from app.domain.ports import BoardRepo
 
 WIDTH, HEIGHT = 320, 200
 # Raised whenever the picture changes for the same board, so kept and cached pictures are redrawn.
-DRAWING = 2
+DRAWING = 3
 # Board units around the content, so nothing touches the card's edge.
 MARGIN = 40
 # The largest elements win past this: a huge board stays small and quick to draw (SC-005).
@@ -274,23 +274,27 @@ def _draw(doc: BoardDoc, boxes: dict[str, Box], cap: int, text: bool) -> str | N
         shown = [n for n in shown if n.id in keep]
     if not shown:
         return None
-    left = min(boxes[n.id][0] for n in shown) - MARGIN
+    drawn = {n.id for n in shown} | {n.id for n in doc.nodes if n.type == "anchor"}
+    lines: list[Box] = []
+    for edge in doc.edges:
+        if len(lines) < cap and edge.source in drawn and edge.target in drawn:
+            (sx, sy, sw, sh), (tx, ty, tw, th) = boxes[edge.source], boxes[edge.target]
+            lines.append((sx + sw / 2, sy + sh / 2, tx + tw / 2, ty + th / 2))
+    edges = [
+        f"<line x1='{_n(x1)}' y1='{_n(y1)}' x2='{_n(x2)}' y2='{_n(y2)}'/>"
+        for x1, y1, x2, y2 in lines
+    ]
+
+    # An arrow may end on a bare anchor past every element, so its ends count too.
+    xs = [x for line in lines for x in (line[0], line[2])]
+    ys = [y for line in lines for y in (line[1], line[3])]
+    left = min([boxes[n.id][0] for n in shown] + xs) - MARGIN
     # A frame's title sits above it.
-    top = min(boxes[n.id][1] - (24 if n.type == "frame" else 0) for n in shown) - MARGIN
-    right = max(boxes[n.id][0] + boxes[n.id][2] for n in shown) + MARGIN
-    bottom = max(boxes[n.id][1] + boxes[n.id][3] for n in shown) + MARGIN
+    top = min([boxes[n.id][1] - (24 if n.type == "frame" else 0) for n in shown] + ys) - MARGIN
+    right = max([boxes[n.id][0] + boxes[n.id][2] for n in shown] + xs) + MARGIN
+    bottom = max([boxes[n.id][1] + boxes[n.id][3] for n in shown] + ys) + MARGIN
     scale = min(WIDTH / (right - left), HEIGHT / (bottom - top))
     words = text and 13 * scale >= MIN_TEXT_PX
-
-    drawn = {n.id for n in shown} | {n.id for n in doc.nodes if n.type == "anchor"}
-    edges = []
-    for edge in doc.edges:
-        if len(edges) < cap and edge.source in drawn and edge.target in drawn:
-            (sx, sy, sw, sh), (tx, ty, tw, th) = boxes[edge.source], boxes[edge.target]
-            edges.append(
-                f"<line x1='{_n(sx + sw / 2)}' y1='{_n(sy + sh / 2)}'"
-                f" x2='{_n(tx + tw / 2)}' y2='{_n(ty + th / 2)}'/>"
-            )
     frames = [part for n in shown if n.type == "frame" for part in _node(n, boxes[n.id], words)]
     rest = [part for n in shown if n.type != "frame" for part in _node(n, boxes[n.id], words)]
     edge_group = f"<g stroke='{LINE}' stroke-width='1.5'>{''.join(edges)}</g>" if edges else ""
