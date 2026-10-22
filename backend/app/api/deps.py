@@ -52,6 +52,11 @@ def settings(request: Request) -> SettingsService:
     return request.app.state.settings
 
 
+def token_stamps(request: Request) -> dict[str, str | None]:
+    """The person's tokens as they are before `providers` reads them."""
+    return request.app.state.settings.token_stamps(current_person(request).id)
+
+
 def providers(request: Request) -> dict[str, TaskProvider]:
     """Every tracker this request can read, by source id: the demo tasks and GitHub always,
     and Jira with the signed-in person's own token when the instance is set to it. GitHub is

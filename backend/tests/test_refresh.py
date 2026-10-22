@@ -1,5 +1,7 @@
 import pytest
+from pydantic import SecretStr
 
+from app.adapters.secrets.fernet import FernetSecretBox
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.domain.boards import BoardDoc
 from app.domain.errors import (
@@ -10,6 +12,7 @@ from app.domain.errors import (
     NotFound,
 )
 from app.domain.refresh import RefreshService
+from app.domain.settings import SettingsService
 from tests.conftest import add_person
 
 DOC = BoardDoc.model_validate(
@@ -230,3 +233,93 @@ def test_a_failing_tracker_leaves_the_others_alone(repos):
     )
     assert "demo:DEMO-1" in tasks and "jira:DEMO-1" not in tasks
     assert {status.id: status.state for status in statuses} == {"jira": "error", "demo": "ok"}
+
+
+class Racing(Flaky):
+    """Tracker whose poll lets a token change land before it answers."""
+
+    def __init__(self, source_id: str, during) -> None:
+        super().__init__()
+        self.source_id = source_id
+        self.during = during
+
+    def poll(self, keys):
+        self.during()
+        return super().poll(keys)
+
+
+class LateWrite:
+    """Task cache where a token change lands after the check, right before the write."""
+
+    def __init__(self, snapshots, change) -> None:
+        self.snapshots = snapshots
+        self.change = change
+
+    def put_many(self, tasks):
+        self.change()
+        self.snapshots.put_many(tasks)
+
+    def forget(self, source):
+        self.snapshots.forget(source)
+
+
+def token_settings(store, snapshots):
+    """Settings on the real token store, clearing the cache on a token change as main does."""
+    mod, db = store
+    repo = mod.SettingsRepo(db)
+    repo.set_many({"jira_base_url": "https://jira.example.com"})
+    return SettingsService(
+        repo,
+        mod.CredentialRepo(db),
+        FernetSecretBox("test key"),
+        secret_key_configured=True,
+        on_token_change=lambda _user, source: snapshots.forget(source),
+    )
+
+
+TOKEN_CHANGES = {
+    "jira replaced": ("jira", lambda s: s.set_token("owner", SecretStr("new"))),
+    "jira removed": ("jira", lambda s: s.remove_token("owner")),
+    "github replaced": ("github", lambda s: s.set_github_token("owner", SecretStr("new"))),
+    "github removed": ("github", lambda s: s.remove_github_token("owner")),
+}
+
+
+def refresh_with_tokens(repos, settings, cache, provider):
+    board_id, boards, _ = repos
+    return RefreshService().refresh(
+        board_id,
+        30,
+        boards,
+        cache,
+        {provider.source_id: provider},
+        provider.source_id,
+        "owner",
+        settings.token_stamps("owner"),
+        lambda: settings.token_stamps("owner"),
+    )
+
+
+@pytest.mark.parametrize("late", [False, True], ids=["during poll", "before write"])
+@pytest.mark.parametrize("change", TOKEN_CHANGES.values(), ids=TOKEN_CHANGES.keys())
+def test_a_poll_outlived_by_its_token_leaves_the_cache_empty(store, repos, change, late):
+    """Issue 227: what the old token read stays out of the cache its change cleared."""
+    _, _, snapshots = repos
+    source, swap = change
+    settings = token_settings(store, snapshots)
+    settings.set_token("owner", SecretStr("old"))
+    settings.set_github_token("owner", SecretStr("old"))
+    in_poll = (lambda: None) if late else (lambda: swap(settings))
+    cache = LateWrite(snapshots, lambda: swap(settings)) if late else snapshots
+    tasks, _ = refresh_with_tokens(repos, settings, cache, Racing(source, in_poll))
+    assert snapshots.get_many([f"{source}:DEMO-1", f"{source}:DEMO-2"]) == {}
+    assert tasks == {}
+
+
+def test_a_poll_with_the_same_token_fills_the_cache(store, repos):
+    _, _, snapshots = repos
+    settings = token_settings(store, snapshots)
+    settings.set_github_token("owner", SecretStr("old"))
+    refresh_with_tokens(repos, settings, snapshots, Racing("github", lambda: None))
+    refs = ["github:DEMO-1", "github:DEMO-2"]
+    assert set(snapshots.get_many(refs)) == set(refs)
