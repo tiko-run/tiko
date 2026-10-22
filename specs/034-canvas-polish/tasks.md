@@ -22,6 +22,6 @@ description: "Task list for Canvas polish"
 
 ## Phase 3: Slice `feat/minimap` (US3)
 
-- [ ] T007 Minimap: theme tokens for each element type, click and drag to move the view, hidden below 640px. Tests
-- [ ] T008 Show and hide button in the zoom controls, `tiko.minimap` in `localStorage`. Tests
-- [ ] T009 SC-001 on a 1000-element board; `DESIGN.md`, `CHANGELOG.md`, the guide; `make check`, `/ui-review`
+- [x] T007 Minimap: theme tokens for each element type, click and drag to move the view, hidden below 640px. Tests
+- [x] T008 Show and hide button in the zoom controls, `tiko.minimap` in `localStorage`. Tests
+- [x] T009 SC-001 on a 1000-element board; `DESIGN.md`, `CHANGELOG.md`, the guide; `make check`, `/ui-review`

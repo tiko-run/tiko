@@ -24,6 +24,7 @@ Click a card for assignee, priority, last update and a link to the task. Links o
 - **Shapes** (`S`): rectangle, rounded rectangle, ellipse, rhombus, triangle, parallelogram, hexagon and cylinder, for a flowchart next to the tasks. Pick one, then drag to set its size or click to place it. A shape holds a short text and takes a fill color.
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
 - **Pointers:** each creation tool shows its icon next to the crosshair, so you see which one is picked.
+- **Minimap:** the whole board in the bottom right corner, with the part you see framed. Click a spot to go there or drag the frame. The map button under the zoom buttons hides it, and your browser remembers that. Phones and narrow windows don't show it.
 - **Back:** after search or the timer list moves the board, press `B` or the arrow under the zoom buttons to return.
 - **Resize** from a corner, or from one side to change only the width or the height.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.

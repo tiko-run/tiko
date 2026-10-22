@@ -17,6 +17,7 @@ Requires: installer
 - Open an invite while you already have an account and sign in instead of making a new one.
 
 - Line up elements from the selection bar: align their left, right, top or bottom edges or their centers, and space three or more evenly. Elements in different frames line up on the board, arrows follow, and one Undo puts them back. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
+- Find your way on a big board with the minimap in the bottom right corner: click a spot to jump there, or drag the frame to look around. Hide it with the map button under the zoom buttons. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
 
 ### Changed
 
