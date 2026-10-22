@@ -7,6 +7,7 @@ import { finish, snooze } from './timer'
 import { TimerButton, TimerPanel } from './TimerList'
 import { TimerNotes } from './TimerNotes'
 import { useTimers } from './useTimers'
+import { topOverlay } from '@/lib/overlays'
 
 type Props = {
   nodes: AppNode[]
@@ -27,7 +28,7 @@ export function BoardTimers({ nodes, tasks, onOpen, onChange, children }: Props)
 
   return (
     <>
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      <div ref={topOverlay} className="absolute top-4 right-4 z-10 flex items-center gap-2">
         <TimerButton timers={timers} now={now} />
         {children}
       </div>
