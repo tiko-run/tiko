@@ -15,7 +15,6 @@ Requires: installer
 - Run tiko on a Postgres server of your own, managed or not, with `DATABASE_URL`. The Render blueprint now brings a Render Postgres database. See [Your own Postgres server](https://docs.tiko.run/data-and-upgrades/#your-own-postgres-server).
 - Remove someone from the workspace in Settings → People without deleting their account: their boards move to you with everyone else on them kept, and their tracker tokens go. They can still sign in, see that they are not in a workspace, and come back by opening an invite link with the same account. See [People](https://docs.tiko.run/security/#people).
 - Open an invite while you already have an account and sign in instead of making a new one.
-
 - Line up elements from the selection bar: align their left, right, top or bottom edges or their centers, and space three or more evenly. Elements in different frames line up on the board, arrows follow, and one Undo puts them back. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Find your way on a big board with the minimap in the bottom right corner: click a spot to jump there, or drag the frame to look around. Hide it with the map button under the zoom buttons. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
 
@@ -35,11 +34,10 @@ Requires: installer
 ### Fixed
 
 - The selection bar no longer hides behind the focus timer when a selection reaches the top of the window: it moves below the timer, so every button stays clickable.
-### Fixed
-
 - Cards no longer show tasks read with a Jira or GitHub token you have just replaced or removed.
 - A second click on a time off bar in the Gantt closes its menu, instead of closing it and opening it again.
-
+- On a board that mixes trackers, Gantt task titles get as much room as on a board with one tracker: the tracker logo sits where the drag grip was, and the grip shows on hover.
+- Settings → People and Settings → Server → Accounts no longer say "Never signed in" for someone who joined by an invite link and has used tiko since.
 
 ### Security
 

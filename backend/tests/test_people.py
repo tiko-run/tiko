@@ -58,7 +58,7 @@ def test_invite_link_makes_a_signed_in_member(app, admin):
     member = join(app, token)
     me = member.get("/api/auth/status").json()["me"]
     assert (me["username"], me["name"], me["role"]) == ("ann", "Ann Lee", "member")
-    assert people(admin)["ann"]["last_sign_in_at"] is None
+    assert people(admin)["ann"]["last_sign_in_at"] is not None
     assert admin.get("/api/people").json()["invites"] == []
 
 

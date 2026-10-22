@@ -195,6 +195,8 @@ def monkeypatch_module():
 
 def test_two_editors_see_each_other_and_the_board_is_saved(world):
     board_id = world.board([sticky("seed")])
+    # Read before the edits: the room may save them all before the tabs close.
+    before = world.stored(board_id)["version"]
     with world.tab("ann", board_id) as ann, world.tab("bob", board_id) as bob:
         assert ann.ids() == bob.ids() == {"seed"}
         ann.add(sticky("from-ann"))
@@ -204,7 +206,6 @@ def test_two_editors_see_each_other_and_the_board_is_saved(world):
         assert ann.ids() == bob.ids() == {"seed", "from-ann", "from-bob"}
         seed = ann.live.read()[0]["seed"]
         assert seed["place"]["x"] == 300 and seed["data"]["text"] == "hello"
-        before = world.stored(board_id)["version"]
 
     def saved():
         board = world.stored(board_id)
