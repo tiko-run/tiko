@@ -270,6 +270,14 @@ class SettingsService:
         self._on_token_change(user_id, "jira")
         self._on_change()
 
+    def token_stamps(self, user_id: str) -> dict[str, str | None]:
+        """The person's stored tokens by tracker, as stamps that change whenever a token does."""
+        # Encryption is salted, so even the same token entered again stores a new value.
+        return {
+            kind: stored[0] if (stored := self._credentials.get(user_id, kind)) else None
+            for kind in ("jira", "github")
+        }
+
     def github_token_state(self, user_id: str) -> TokenState:
         return self._token(user_id, GITHUB_API_URL, "github")[0]
 

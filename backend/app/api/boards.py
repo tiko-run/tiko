@@ -191,6 +191,8 @@ def refresh_board(
     snapshots: Snapshots,
     settings: Annotated[SettingsService, Depends(deps.settings)],
     tracker: Tracker,
+    # Resolved in order: the stamps must be read before the providers read the tokens.
+    tokens_before: Annotated[dict[str, str | None], Depends(deps.token_stamps)],
     providers: Annotated[dict[str, TaskProvider], Depends(deps.providers)],
     refresher: Annotated[RefreshService, Depends(deps.refresher)],
     owner: Annotated[str, Depends(deps.owner)],
@@ -203,6 +205,8 @@ def refresh_board(
         providers,
         tracker,
         owner,
+        tokens_before,
+        lambda: settings.token_stamps(owner),
     )
     return RefreshOut(tasks=tasks, fetched_at=now_iso(), sources=sources)
 

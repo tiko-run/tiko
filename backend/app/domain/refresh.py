@@ -72,10 +72,15 @@ class RefreshService:
         providers: dict[str, TaskProvider],
         default_source: str,
         owner: str = "",
+        tokens_before: dict[str, str | None] | None = None,
+        tokens_now: Callable[[], dict[str, str | None]] = dict,
     ) -> tuple[dict[str, Task], list[SourceStatus]]:
         """Polls each tracker of the board once with the providers of `owner`; each person's
         tracker errors and backoff are their own, since each uses their own token. A failing
-        tracker leaves the others alone. Tasks come back by ref."""
+        tracker leaves the others alone. Tasks come back by ref.
+
+        `tokens_before` stamps the tokens the providers were built with, `tokens_now` reads
+        them again: a tracker whose token changed meanwhile has its tasks dropped."""
         record = boards.get(board_id)
         if record is None:
             raise NotFound("board not found")
@@ -106,7 +111,19 @@ class RefreshService:
                         note=provider.source_note,
                     )
                 )
+        before = tokens_before or {}
+
+        def changed() -> set[str]:
+            now = tokens_now()
+            return {source for source, stamp in before.items() if now.get(source) != stamp}
+
+        # A token replaced or removed mid-poll cleared the cache; its tasks must not refill it.
+        stale = changed()
+        tasks = [task for task in tasks if task.source not in stale]
         snapshots.put_many(tasks)
+        # A change that lands between the check and the write may have cleared the cache first.
+        for source in changed() - stale:
+            snapshots.forget(source)
         return {task.ref: task for task in tasks}, statuses
 
     def _poll(
