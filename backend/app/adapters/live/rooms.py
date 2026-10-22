@@ -47,6 +47,18 @@ from app.observability import LIVE_CHECK, LIVE_NODES, LIVE_SAVE
 
 log = logging.getLogger(__name__)
 
+# One write that removes this many nodes is logged with its source, so a large deletion can be
+# traced to the tab or the request that made it.
+MASS_DELETE = 50
+
+
+def note_mass_delete(board_id: str, before: int, after: int, source: str) -> None:
+    if before - after >= MASS_DELETE:
+        log.warning(
+            "live board %s: %s removed %d of %d nodes", board_id, source, before - after, before
+        )
+
+
 QUEUE_SIZE = 512
 
 # pycrdt reports a transaction that changed nothing as this update.
@@ -223,10 +235,13 @@ class Room:
                     connection.push(reply)
             elif data[1] in _WRITES and connection.can_edit:
                 self._sender = connection
+                before = self.live.node_count()
                 try:
                     handle_sync_message(data[1:], self.live.doc)
                 finally:
                     self._sender = None
+                source = f"an update from user {connection.person.id}"
+                note_mass_delete(self.board_id, before, self.live.node_count(), source)
         elif data[0] == YMessageType.AWARENESS:
             # A browser sends back every presence change it hears, other people's included.
             # Only a tab's own state counts: otherwise one tab closing would take the others'
@@ -339,7 +354,9 @@ class Room:
         if version != self.version:
             raise VersionConflict("board was changed elsewhere; reload it")
         self.last = self.last.model_copy(update={"viewport": doc.viewport})
+        before = self.live.node_count()
         self.live.apply_json(doc)
+        note_mass_delete(self.board_id, before, self.live.node_count(), "a REST save")
         # A save even when nothing differs, so the caller gets a new version as it always did.
         self._dirty_since = self._dirty_since or asyncio.get_running_loop().time()
         self._state_only = False
@@ -482,8 +499,11 @@ class LiveRooms:
             if found is None:
                 raise NotFound("board not found")
             live = LiveDoc(found[1])
+            before = live.node_count()
             live.apply_json(doc)
-            return self.boards.save(board_id, version, doc, live.state())
+            saved = self.boards.save(board_id, version, doc, live.state())
+            note_mass_delete(board_id, before, live.node_count(), "a REST save")
+            return saved
 
     async def _put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         room = await self._room(board_id)
