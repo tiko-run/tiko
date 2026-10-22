@@ -37,7 +37,7 @@ Requires: installer
 - Cards no longer show tasks read with a Jira or GitHub token you have just replaced or removed.
 - A second click on a time off bar in the Gantt closes its menu, instead of closing it and opening it again.
 - On a board that mixes trackers, Gantt task titles get as much room as on a board with one tracker: the tracker logo sits where the drag grip was, and the grip shows on hover.
-- Settings → People and Settings → Server → Accounts no longer say "Never signed in" for someone who joined by an invite link and uses tiko since.
+- Settings → People and Settings → Server → Accounts no longer say "Never signed in" for someone who joined by an invite link and has used tiko since.
 
 ### Security
 
