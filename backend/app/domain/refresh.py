@@ -122,8 +122,10 @@ class RefreshService:
         tasks = [task for task in tasks if task.source not in stale]
         snapshots.put_many(tasks)
         # A change that lands between the check and the write may have cleared the cache first.
-        for source in changed() - stale:
+        late = changed() - stale
+        for source in late:
             snapshots.forget(source)
+        tasks = [task for task in tasks if task.source not in late]
         return {task.ref: task for task in tasks}, statuses
 
     def _poll(

@@ -313,7 +313,7 @@ def test_a_poll_outlived_by_its_token_leaves_the_cache_empty(store, repos, chang
     cache = LateWrite(snapshots, lambda: swap(settings)) if late else snapshots
     tasks, _ = refresh_with_tokens(repos, settings, cache, Racing(source, in_poll))
     assert snapshots.get_many([f"{source}:DEMO-1", f"{source}:DEMO-2"]) == {}
-    assert late or tasks == {}
+    assert tasks == {}
 
 
 def test_a_poll_with_the_same_token_fills_the_cache(store, repos):
