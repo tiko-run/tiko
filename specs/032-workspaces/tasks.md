@@ -33,7 +33,7 @@ Several pull requests on one slice; SQLite stays the default.
 - [x] T012 `copy_sqlite.py`: checkpoint, batches, counts, rename; the advisory lock between processes. Tests on a made-up `app.db` of every migration's shape, a failed copy, two processes
 - [x] T013 Roles and settings split during the copy: admins to memberships, the first admin to server admin, instance settings to `server_settings` and the default workspace
 - [x] T014 Compose files: the `db` service with no published port, volume, health check, memory settings, first-start creation of the three roles; `.env.example`, README
-- [ ] T015 [P] `install.sh` and `install.ps1`: `POSTGRES_PASSWORD` written only when missing; Windows checked on the stand
+- [x] T015 [P] `install.sh` and `install.ps1`: `POSTGRES_PASSWORD` written only when missing; Windows checked on the stand
 - [x] T016 [P] Updater: `pg_dump` and `pg_restore` through the `db` container, three kept; `UpdateBackups` for a dump. Tests
 - [x] T017 [P] `render.yaml` with a Postgres database, `make render-validate`; the public demo's Postgres prepared
 - [x] T018 Remove the SQLite adapter, its migrations and the double CI run; `reset_password.py` on Postgres
