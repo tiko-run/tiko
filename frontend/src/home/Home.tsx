@@ -35,6 +35,7 @@ import { canEdit, previewUrl, type BoardSummary } from '@/api/boards'
 import type { Folder } from '@/api/folders'
 import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
+import { restoreFocusForKeyboard } from '@/lib/input-modality'
 import { Button } from '@/components/ui/button'
 import {
   ContextMenu,
@@ -120,6 +121,8 @@ export function Home({ boards, others }: Props) {
   const [pointed, setPointed] = useState<BoardSummary | null>(null)
   const search = useRef<HTMLInputElement>(null)
   const list = useRef<HTMLDivElement>(null)
+  // A rename picked in a menu waits for the menu to close: its focus trap would take the field's focus.
+  const renameNext = useRef<string | null>(null)
   const newBoard = useNewBoard()
   const duplicate = useDuplicateBoard()
   const star = useStar()
@@ -184,7 +187,17 @@ export function Home({ boards, others }: Props) {
   const { mutate: moveBoard } = placeBoard
   const menu = useMemo<Menu>(
     () => ({
-      rename: setRenaming,
+      rename: (id) => {
+        renameNext.current = id
+      },
+      closed: (event) => {
+        const id = renameNext.current
+        if (id === null) return false
+        renameNext.current = null
+        event.preventDefault()
+        setRenaming(id)
+        return true
+      },
       renamed: () => setRenaming(null),
       duplicate: duplicateBoard,
       share: setSharing,
@@ -414,7 +427,7 @@ export function Home({ boards, others }: Props) {
                   </div>
                 </ContextMenuTrigger>
                 {pointed && (
-                  <ContextMenuContent className="w-44">
+                  <ContextMenuContent className="w-44" onCloseAutoFocus={menu.closed}>
                     <MenuItems kind="context" actions={actionsFor(pointed, demo, menu, folders)} />
                   </ContextMenuContent>
                 )}
@@ -449,6 +462,8 @@ type Action = {
 
 type Menu = {
   rename: (id: string) => void
+  /** A board menu's onCloseAutoFocus; true when it took the focus for a rename. */
+  closed: (event: Event) => boolean
   renamed: () => void
   duplicate: (board: BoardSummary) => void
   share: (board: BoardSummary) => void
@@ -563,7 +578,13 @@ function BoardMenu({ board, demo, menu, folders }: MenuProps) {
           <MoreHorizontal strokeWidth={1.75} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent
+        align="end"
+        className="w-44"
+        onCloseAutoFocus={(event) => {
+          if (!menu.closed(event)) restoreFocusForKeyboard(event)
+        }}
+      >
         <MenuItems kind="dropdown" actions={actionsFor(board, demo, menu, folders)} />
       </DropdownMenuContent>
     </DropdownMenu>
@@ -633,32 +654,26 @@ const BoardCard = memo(function BoardCard({
         selected && 'ring-primary ring-2',
       )}
     >
-      {/* The whole picture opens the board too; the name below is the link for the keyboard. */}
-      <a
-        href={boardHref(board.id)}
-        onClick={(event) => openHere(event, board.id)}
-        tabIndex={-1}
-        aria-hidden
-        draggable={false}
-        className="bg-muted/40 block aspect-[8/5] overflow-hidden rounded-t-lg border-b"
-      >
+      <div aria-hidden className="bg-muted/40 aspect-[8/5] overflow-hidden rounded-t-lg border-b">
         <Preview key={board.preview} board={board} />
-      </a>
+      </div>
       <StarButton
         board={board}
         menu={menu}
-        className="bg-background/80 hover:bg-background absolute top-2 right-2 size-7 border shadow-xs backdrop-blur-sm"
+        className="bg-background/80 hover:bg-background absolute top-2 right-2 z-10 size-7 border shadow-xs backdrop-blur-sm"
       />
       <div className="flex items-center gap-1 py-2 pr-1.5 pl-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {renaming ? (
             <RenameBoardForm board={board} onDone={menu.renamed} />
           ) : (
+            // The name's hit area stretches over the picture, so a click there opens the board
+            // with one link to focus and one name to read.
             <a
               href={boardHref(board.id)}
               onClick={(event) => openHere(event, board.id)}
               draggable={false}
-              className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none focus-visible:underline"
+              className="flex min-w-0 items-center gap-2 rounded-sm text-[14px] outline-none after:absolute after:inset-x-0 after:top-0 after:aspect-[8/5] after:rounded-t-lg focus-visible:underline"
             >
               <BoardName board={board} />
             </a>

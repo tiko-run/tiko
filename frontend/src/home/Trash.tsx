@@ -77,10 +77,13 @@ export function Trash({ me, admin }: Props) {
                     />
                     <span className="truncate font-medium">{board.name}</span>
                   </span>
-                  <span className="text-muted-foreground truncate pl-6 text-[12px] tabular-nums">
-                    Deleted {relativeTime(board.deleted_at)}
-                    {by && ` by ${by}`}
-                    <span className="sm:hidden"> · {left}</span>
+                  <span className="text-muted-foreground flex min-w-0 pl-6 text-[12px] tabular-nums">
+                    <span className="truncate">
+                      Deleted {relativeTime(board.deleted_at)}
+                      {by && ` by ${by}`}
+                    </span>
+                    {/* On a phone the time left is the row's point: who and when give way first. */}
+                    <span className="shrink-0 whitespace-pre sm:hidden"> · {left}</span>
                   </span>
                 </div>
                 <span className="text-muted-foreground hidden truncate text-[13px] sm:block">
