@@ -9,7 +9,7 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 
 ## Back up and restore
 
-- **Backups on their own:** the `backup` service saves a dump of the database to `data/backups/` every 2 hours. It keeps the newest 12 as `auto-<time>.dump`, the last day, and one a day for 14 days as `daily-<time>.dump`. Times are in UTC. Installs from before 2026.10.25 get the service when you run the installer again. On Railway and Render the platform's database is backed up by the platform.
+- **Backups on their own:** the `backup` service saves a dump of the database to `data/backups/` every 2 hours. It keeps the newest 12 as `auto-<time>.dump`, the last day, and one a day for 14 days as `daily-<time>.dump`. Times are in UTC. Installs from before 2026.10.25 get the service when you run the installer again. On Railway and Render there is no `backup` service: turn on backups of the platform's database (Render's free Postgres plan has none; on Railway enable them on the Postgres volume), or dump it yourself.
 - **Back up by hand** while tiko runs, in the tiko folder, before you change Docker Desktop's settings or move to another computer. The dump lands in `data/backups/` as `manual-<time>.dump` and is never deleted on its own:
 
   ```bash

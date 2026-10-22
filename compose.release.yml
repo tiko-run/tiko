@@ -88,6 +88,9 @@ services:
         cat >/usr/local/bin/tiko-dump <<'DUMP'
         #!/bin/sh
         set -eu
+        # A dump holds password hashes: nobody else on the host reads it, partial or done.
+        umask 077
+        chmod 700 /backups
         kind=$${1:-manual}
         name="$$kind-$$(date -u +%Y%m%d-%H%M%S).dump"
         trap 'rm -f "/backups/$$name.partial"' EXIT
