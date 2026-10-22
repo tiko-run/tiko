@@ -350,8 +350,13 @@ finally:
     left = [
         board_id
         for board_id in created
-        if call("DELETE", f"{API}/api/boards/{board_id}")[0] not in (204, 404)
-        or call("DELETE", f"{API}/api/boards/{board_id}?forever=true")[0] not in (204, 404)
+        if any(
+            status not in (204, 404)
+            for status in (
+                call("DELETE", f"{API}/api/boards/{board_id}")[0],
+                call("DELETE", f"{API}/api/boards/{board_id}?forever=true")[0],
+            )
+        )
     ]
 check(not left, "no board left behind")
 
