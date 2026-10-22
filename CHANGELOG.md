@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [2026.10.24] - 2026-10-22
+
 Requires: installer
 
 ### Added
