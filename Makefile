@@ -71,7 +71,7 @@ licenses:  ## fail on dependency licenses that block AGPL-3.0 and dual licensing
 	@echo "licenses ok"
 
 release:  ## cut the next CalVer release vYYYY.M.N from CHANGELOG.md Unreleased (DRY=1 to preview, RC=1 for a pre-release candidate, LEVEL=hotfix|breaking|security)
-	LEVEL=$(LEVEL) scripts/release.sh $(if $(DRY),--dry-run)$(if $(RC),--rc)
+	LEVEL=$(LEVEL) scripts/release.sh $(if $(DRY),--dry-run) $(if $(RC),--rc)
 
 clean-clone:  ## clone origin/main to a temp dir and run it by README
 	scripts/clean-clone-check.sh

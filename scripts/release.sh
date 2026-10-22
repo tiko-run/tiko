@@ -14,6 +14,8 @@
 # Usage: [LEVEL=security] scripts/release.sh [--dry-run | --rc]
 set -euo pipefail
 
+[ $# -le 1 ] || { echo "pass one of --dry-run or --rc"; exit 1; }
+
 level="${LEVEL:-feature}"
 case "$level" in
   feature) level_line="" ;;

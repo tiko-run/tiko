@@ -59,10 +59,10 @@ def needs_installer(notes: str) -> bool:
 
 def _calver(version: str) -> tuple[int, ...] | None:
     # A candidate 2026.10.24-rc.2 sorts after 2026.10.23 and before 2026.10.24.
-    base, _, rc = version.removeprefix("v").partition("-rc.")
+    base, candidate, rc = version.removeprefix("v").partition("-rc.")
     try:
         parts = tuple(int(part) for part in base.split("."))
-        return (*parts, int(rc)) if rc else (*parts, sys.maxsize)
+        return (*parts, int(rc)) if candidate else (*parts, sys.maxsize)
     except ValueError:
         return None
 
