@@ -18,7 +18,8 @@ const releases = readdirSync(new URL('./src/content/docs/whats-new/', import.met
 export default defineConfig({
   site: 'https://docs.tiko.run',
   // A fixed address for the newest release page, so links from the site never go stale.
-  redirects: { '/whats-new/latest': `/${releases[0].slug}/` },
+  // The roadmap moved to a public board; old links to the page land there.
+  redirects: { '/whats-new/latest': `/${releases[0].slug}/`, '/roadmap': 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM' },
   integrations: [
     starlight({
       title: 'tiko',
@@ -82,7 +83,7 @@ export default defineConfig({
                 label: 'Self-hosting',
                 items: ['configuration', 'data-and-upgrades', 'updates', 'security', 'privacy', 'monitoring', 'demo'],
               },
-              { label: 'Project', items: ['roadmap', 'architecture'] },
+              { label: 'Project', items: ['architecture'] },
             ],
           },
           {

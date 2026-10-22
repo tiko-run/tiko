@@ -5,6 +5,8 @@ import SocialIcons from 'virtual:starlight/components/SocialIcons'
 import ThemeSelect from 'virtual:starlight/components/ThemeSelect'
 
 const { topics } = Astro.locals.starlightSidebarTopics
+// The roadmap is a view-only tiko board, not a page of the guide.
+const ROADMAP = 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM'
 ---
 
 <div transition:persist="docs-header" class="tiko-header">
@@ -19,6 +21,7 @@ const { topics } = Astro.locals.starlightSidebarTopics
         </a>
       ))
     }
+    <a href={ROADMAP}>Roadmap</a>
   </nav>
   <div class="tiko-header-search print:hidden">
     <Search />
@@ -35,7 +38,7 @@ const { topics } = Astro.locals.starlightSidebarTopics
 <script>
   // The header persists across page loads, so the current tab follows the address bar here.
   document.addEventListener('astro:page-load', () => {
-    const tabs = [...document.querySelectorAll<HTMLAnchorElement>('.tiko-tabs a')]
+    const tabs = [...document.querySelectorAll<HTMLAnchorElement>('.tiko-tabs a')].filter((tab) => tab.host === location.host)
     // Docs sits at the root, so it is the tab of every page the other tabs do not claim.
     const current = tabs.find((tab) => tab.pathname !== '/' && location.pathname.startsWith(tab.pathname)) ?? tabs[0]
     for (const tab of tabs) {
