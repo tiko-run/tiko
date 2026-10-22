@@ -22,9 +22,9 @@ export function relativeTime(iso: string | null, now = Date.now()): string | nul
 
 const DAY_MS = 24 * 3600 * 1000
 
-/** "29 days left" until the board goes for good; the last day reads "Goes today". */
+/** "30 days left" until the board goes for good; its last 24 hours read "Goes today". */
 export function timeLeft(purgeAt: string, now = Date.now()): string {
-  const days = Math.floor((Date.parse(purgeAt) - now) / DAY_MS)
-  if (days < 1) return 'Goes today'
-  return days === 1 ? '1 day left' : `${days} days left`
+  // Counted in started days, so a board just deleted shows the 30 days its confirm promised.
+  const days = Math.ceil((Date.parse(purgeAt) - now) / DAY_MS)
+  return days <= 1 ? 'Goes today' : `${days} days left`
 }

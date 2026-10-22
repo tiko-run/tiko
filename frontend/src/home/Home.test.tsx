@@ -47,7 +47,7 @@ const trashed = [
     owner: ann,
     deleted_at: new Date(Date.now() - DAY).toISOString(),
     deleted_by: ann,
-    purge_at: new Date(Date.now() + 29 * DAY + 3600_000).toISOString(),
+    purge_at: new Date(Date.now() + 29 * DAY - 3600_000).toISOString(),
   },
   {
     id: 't2',
@@ -55,7 +55,7 @@ const trashed = [
     owner: bob,
     deleted_at: new Date(Date.now() - 2 * DAY).toISOString(),
     deleted_by: bob,
-    purge_at: new Date(Date.now() + 28 * DAY + 3600_000).toISOString(),
+    purge_at: new Date(Date.now() + 28 * DAY - 3600_000).toISOString(),
   },
 ]
 
@@ -142,6 +142,9 @@ test('the grid shows previews, a placeholder for an empty board, and the list lo
   ])
   expect(images[0]).toHaveAttribute('loading', 'lazy')
   expect(screen.getByText('E')).toBeInTheDocument()
+  // The picture is no link of its own: a hidden link would still take a click's focus.
+  expect(document.querySelectorAll('li a')).toHaveLength(2)
+  expect(document.querySelector('a[aria-hidden], [aria-hidden] a')).toBeNull()
   // A picture that fails to load gives way to the placeholder.
   fireEvent.error(images[0])
   expect(document.querySelector('img')).toBeNull()
@@ -216,10 +219,21 @@ test('the board menu duplicates, renames and asks before moving to the trash', a
   )
   fireEvent.click(within(await openMenu()).getByRole('menuitem', { name: 'Rename' }))
   expect(await screen.findByLabelText('Board name')).toHaveValue('Roadmap Q4')
+  // The closing menu hands its focus back to the trigger unless the field takes it.
+  await waitFor(() => expect(screen.getByLabelText('Board name')).toHaveFocus())
   fireEvent.keyDown(screen.getByLabelText('Board name'), { key: 'Escape' })
   fireEvent.click(within(await openMenu()).getByRole('menuitem', { name: 'Move to trash…' }))
   expect(await screen.findByText(/"Roadmap Q4" waits in the trash/)).toBeInTheDocument()
   expect(fetch).not.toHaveBeenCalledWith('/api/boards/b1', expect.anything())
+})
+
+test('rename from the right-click menu puts the focus in the name field', async () => {
+  mockFetch()
+  localStorage.setItem('tiko.home', JSON.stringify({ layout: 'list' }))
+  renderHome()
+  fireEvent.contextMenu(screen.getByRole('link', { name: /Roadmap Q4/ }))
+  fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Rename' }))
+  await waitFor(() => expect(screen.getByLabelText('Board name')).toHaveFocus())
 })
 
 test('a board shared with me has no delete, and a demo visitor has no share', async () => {
@@ -406,6 +420,10 @@ test('the trash lists deleted boards with the time left, restores and deletes fo
   expect(await screen.findByRole('heading', { name: 'Trash' })).toBeInTheDocument()
   const list = screen.getByRole('list', { name: 'Boards in the trash' })
   expect(within(list).getAllByText('29 days left').length).toBeGreaterThan(0)
+  // On a phone the time left never truncates; who and when give way instead.
+  const short = within(list).getByText('· 29 days left')
+  expect(short).toHaveClass('shrink-0')
+  expect(short.closest('.truncate')).toBeNull()
   expect(within(list).getByText(/Deleted yesterday$/)).toBeInTheDocument()
   expect(within(list).getByText(/by Bob/)).toBeInTheDocument()
   // Only the owner deletes for good; anyone who sees the board here restores it.
@@ -438,10 +456,13 @@ test('an empty trash says so', async () => {
   expect(await screen.findByText('The trash is empty.')).toBeInTheDocument()
 })
 
-test('the time left counts whole days and the last one reads Goes today', () => {
+test('the time left counts started days and the last one reads Goes today', () => {
   const now = Date.parse('2026-10-21T12:00:00Z')
-  expect(timeLeft('2026-11-20T12:00:00Z', now)).toBe('30 days left')
-  expect(timeLeft('2026-10-23T11:00:00Z', now)).toBe('1 day left')
+  // Just deleted: the 30 days the confirm promised, not 29.
+  expect(timeLeft('2026-11-20T11:59:59Z', now)).toBe('30 days left')
+  expect(timeLeft('2026-11-19T13:00:00Z', now)).toBe('30 days left')
+  expect(timeLeft('2026-11-19T11:00:00Z', now)).toBe('29 days left')
+  expect(timeLeft('2026-10-23T11:00:00Z', now)).toBe('2 days left')
   expect(timeLeft('2026-10-22T11:00:00Z', now)).toBe('Goes today')
   expect(timeLeft('2026-10-21T11:00:00Z', now)).toBe('Goes today')
 })
