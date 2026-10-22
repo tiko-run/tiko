@@ -501,8 +501,9 @@ class LiveRooms:
             live = LiveDoc(found[1])
             before = live.node_count()
             live.apply_json(doc)
+            saved = self.boards.save(board_id, version, doc, live.state())
             note_mass_delete(board_id, before, live.node_count(), "a REST save")
-            return self.boards.save(board_id, version, doc, live.state())
+            return saved
 
     async def _put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         room = await self._room(board_id)
