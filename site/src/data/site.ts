@@ -4,6 +4,7 @@ export const REPO = 'https://github.com/tiko-run/tiko'
 export const INSTALL_SH = 'curl -fsSL https://tiko.run/install.sh | sh'
 export const INSTALL_PS1 = 'irm https://tiko.run/install.ps1 | iex'
 export const PRIVACY = '/privacy/'
+export const CONTACT = 'hi@tiko.run'
 
 export const WAITLIST_URL = import.meta.env.PUBLIC_WAITLIST_URL || 'https://t.tiko.run/v1/waitlist'
 // Cloudflare's always-pass test key in `astro dev`; the real one only works on tiko.run.
@@ -20,7 +21,7 @@ export const FAQ = [
   },
   {
     q: 'Which trackers does tiko work with?',
-    a: 'Jira Data Center and Server, and GitHub issues and pull requests. Jira Cloud, Linear and Plane are planned. One board can mix tasks from several trackers.',
+    a: 'Jira Cloud, Jira Data Center and Server, and GitHub issues and pull requests. Linear and Plane are planned. One board can mix tasks from several trackers.',
   },
   {
     q: 'Does tiko replace my tracker?',
