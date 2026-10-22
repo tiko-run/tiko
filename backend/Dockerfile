@@ -8,6 +8,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 COPY app ./app
 EXPOSE 8000
-HEALTHCHECK --interval=5s --timeout=3s --retries=20 \
+# The first start after an upgrade copies an SQLite database before it serves: give it time.
+HEALTHCHECK --interval=5s --timeout=3s --retries=20 --start-period=600s \
   CMD [".venv/bin/python", "-m", "app.serve", "--healthy"]
 CMD ["uv", "run", "--no-dev", "--no-sync", "python", "-m", "app.serve"]
