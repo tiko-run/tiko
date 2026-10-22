@@ -710,6 +710,24 @@ test('a second click on time off closes its popover', async () => {
   expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
 })
 
+test('the keyboard opens and closes the time off popover', async () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  const bar = screen.getByRole('button', { name: /^Ivan is away/ })
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  // A mouse click first leaves its press behind; the keyboard must not reuse it.
+  fireEvent.pointerDown(bar, { pointerId: 1, button: 0 })
+  fireEvent.pointerUp(bar, { pointerId: 1 })
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+})
+
 const FIELDS: PlanningState = {
   ...PLANNING,
   fields: [
