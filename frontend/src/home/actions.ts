@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-q
 import { toast } from 'sonner'
 import { createBoard, duplicateBoard, type BoardList, type BoardSummary } from '@/api/boards'
 import { goTo } from '@/lib/navigation'
+import { holdTourOn } from '@/onboarding/start'
 import { toastError } from '@/lib/toast'
 
 export const UNTITLED = 'Untitled board'
@@ -21,6 +22,7 @@ export function useNewBoard() {
     mutationFn: () => createBoard(UNTITLED),
     onSuccess: (board) => {
       addToList(queryClient, board)
+      holdTourOn(board.id)
       goTo(board.id, { rename: true })
     },
     onError: toastError,

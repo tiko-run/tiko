@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { useAutoTour } from '@/onboarding/start'
+import { holdTourOn, useAutoTour } from '@/onboarding/start'
 import { driveSteps, runTour, STEPS } from '@/onboarding/tour'
 
 afterEach(() => {
@@ -9,6 +9,7 @@ afterEach(() => {
   vi.useRealTimers()
   document.querySelectorAll('.driver-popover, .driver-overlay').forEach((node) => node.remove())
   document.body.innerHTML = ''
+  window.history.replaceState(null, '', '/')
 })
 
 function words(html: string) {
@@ -91,6 +92,24 @@ test('does not start for a person who has seen it', async () => {
   await waitFor(() => expect(fetch).toHaveBeenCalled())
   await new Promise((resolve) => setTimeout(resolve, 1000))
   expect(screen.queryByText('Welcome to tiko')).toBeNull()
+})
+
+test('does not start on a board just made with New board, and starts on the next one', async () => {
+  holdTourOn('fresh')
+  window.history.replaceState(null, '', '/?board=fresh&rename=1')
+  const fetch = mount({ tour_seen: false, done: {}, hidden: false })
+  await waitFor(() => expect(fetch).toHaveBeenCalled())
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  expect(screen.queryByText('Welcome to tiko')).toBeNull()
+  // Dropping the rename mark from the address does not let the tour in over the name field.
+  window.history.replaceState(null, '', '/?board=fresh')
+  window.dispatchEvent(new Event('tiko:navigate'))
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  expect(screen.queryByText('Welcome to tiko')).toBeNull()
+  window.history.pushState(null, '', '/?board=welcome')
+  window.dispatchEvent(new Event('tiko:navigate'))
+  expect(await screen.findByText('Welcome to tiko', {}, { timeout: 3000 })).toBeInTheDocument()
+  screen.getByRole('button', { name: 'Close' }).click()
 })
 
 test('while the tour runs the board gets no keys, pastes or clicks on the highlighted button', async () => {
