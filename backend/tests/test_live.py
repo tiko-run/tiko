@@ -328,6 +328,32 @@ def test_put_goes_through_the_open_room(world):
     assert ann_rest.put(f"/api/boards/{without_room}", json=body).status_code == 409
 
 
+def test_a_mass_delete_is_logged_with_its_source(world, caplog):
+    many = [sticky(f"s{i}") for i in range(60)]
+    board_id = world.board(many)
+    with (
+        caplog.at_level("WARNING", logger="app.adapters.live.rooms"),
+        world.tab("bob", board_id) as bob,
+    ):
+        bob.edit(lambda nodes, _: [nodes.pop(f"s{i}") for i in range(10)])
+        bob.edit(lambda nodes, _: nodes.clear())
+        eventually(lambda: "removed 50 of 50 nodes" in caplog.text)
+        # The room saves the empty board on its own timer; the next save goes on top of it.
+        saved = eventually(
+            lambda: world.stored(board_id)["doc"]["nodes"] == [] and world.stored(board_id)
+        )
+        version = saved["version"]
+        body = {"version": version, "doc": {"nodes": many, "edges": []}}
+        assert world.clients["ann"].put(f"/api/boards/{board_id}", json=body).is_success
+        body = {"version": version + 1, "doc": {"nodes": [], "edges": []}}
+        assert world.clients["ann"].put(f"/api/boards/{board_id}", json=body).is_success
+    lines = [r.getMessage() for r in caplog.records if "removed" in r.getMessage()]
+    assert lines == [
+        f"live board {board_id}: an update from user {world.ids['bob']} removed 50 of 50 nodes",
+        f"live board {board_id}: a REST save removed 60 of 60 nodes",
+    ]
+
+
 def presence(client: int, clock: int, state: str) -> bytes:
     encoder = Encoder()
     for value in (1, client, clock):
