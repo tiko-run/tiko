@@ -16,12 +16,22 @@ export function holdTourOn(board: string) {
   madeHere.add(board)
 }
 
+/** The person moved on: a board made earlier is no longer new. */
+export function releaseTourHolds(except?: string | null) {
+  for (const board of madeHere) if (board !== except) madeHere.delete(board)
+}
+
 /** Loads the tour on demand and runs it. */
-export async function startTour(queryClient: QueryClient) {
+export async function startTour(queryClient: QueryClient, wanted: () => boolean = () => true) {
   if (running) return
   running = true
   try {
     const { runTour } = await import('@/onboarding/tour')
+    // The person may have left the board while the tour was loading.
+    if (!wanted()) {
+      running = false
+      return
+    }
     runTour(() => {
       running = false
       saveOnboarding(queryClient, { tour_seen: true })
@@ -39,8 +49,13 @@ export function useAutoTour() {
   const seen = useOnboarding().data?.tour_seen
   const board = useAddressBoard()
   useEffect(() => {
+    releaseTourHolds(board)
     if (seen !== false || (board && madeHere.has(board))) return
-    const timer = setTimeout(() => void startTour(queryClient), AUTO_START_DELAY_MS)
-    return () => clearTimeout(timer)
+    let left = false
+    const timer = setTimeout(() => void startTour(queryClient, () => !left), AUTO_START_DELAY_MS)
+    return () => {
+      left = true
+      clearTimeout(timer)
+    }
   }, [seen, board, queryClient])
 }

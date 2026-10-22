@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { holdTourOn, useAutoTour } from '@/onboarding/start'
+import { holdTourOn, releaseTourHolds, useAutoTour } from '@/onboarding/start'
 import { driveSteps, runTour, STEPS } from '@/onboarding/tour'
 
 afterEach(() => {
@@ -108,6 +108,15 @@ test('does not start on a board just made with New board, and starts on the next
   expect(screen.queryByText('Welcome to tiko')).toBeNull()
   window.history.pushState(null, '', '/?board=welcome')
   window.dispatchEvent(new Event('tiko:navigate'))
+  expect(await screen.findByText('Welcome to tiko', {}, { timeout: 3000 })).toBeInTheDocument()
+  screen.getByRole('button', { name: 'Close' }).click()
+})
+
+test('a board made earlier is no longer held once the person moved on', async () => {
+  holdTourOn('earlier')
+  releaseTourHolds('elsewhere')
+  window.history.replaceState(null, '', '/?board=earlier')
+  mount({ tour_seen: false, done: {}, hidden: false })
   expect(await screen.findByText('Welcome to tiko', {}, { timeout: 3000 })).toBeInTheDocument()
   screen.getByRole('button', { name: 'Close' }).click()
 })
