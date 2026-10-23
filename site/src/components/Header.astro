@@ -1,5 +1,5 @@
 ---
-import { DEMO, DOCS, REPO } from '../data/site'
+import { DEMO, DOCS, REPO, ROADMAP } from '../data/site'
 import Brand from './Brand.astro'
 import Mark from './Mark.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
@@ -13,7 +13,7 @@ import ThemeSwitch from './ThemeSwitch.astro'
       <a href="/#scenarios">Scenarios</a>
       <a href="/#self-host">Self-host</a>
       <a href={`${DOCS}/`}>Docs</a>
-      <a href={`${DOCS}/roadmap/`}>Roadmap</a>
+      <a href={ROADMAP}>Roadmap</a>
     </nav>
     <div class="side">
       <a class="github" href={REPO} aria-label="tiko on GitHub"><Mark tracker="github" size={18} /><span>GitHub</span></a>
