@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { expect, test, vi } from 'vitest'
+import { ReadOnlyContext } from '@/canvas/readonly'
 import { GanttLabel } from '@/modules/gantt/GanttLabel'
 import type { Row } from '@/modules/gantt/rows'
 import { BoardSourcesContext } from '@/sources/board-sources'
@@ -14,26 +15,29 @@ const row: Row = {
   end: '2026-10-09',
 }
 
-function renderLabel(mixed: boolean) {
+function renderLabel(mixed: boolean, readOnly = false) {
   const noop = vi.fn()
   render(
     <ReactFlowProvider>
-      <BoardSourcesContext.Provider value={{ mixed, defaultSource: 'jira' }}>
-        <GanttLabel
-          row={row}
-          depth={0}
-          hasChildren={false}
-          height={34}
-          onTitle={noop}
-          onRemove={noop}
-          onToggle={noop}
-          onIndent={noop}
-          onOutdent={noop}
-          onAddChild={noop}
-          onMove={noop}
-          onEject={noop}
-        />
-      </BoardSourcesContext.Provider>
+      <ReadOnlyContext.Provider value={readOnly}>
+        <BoardSourcesContext.Provider value={{ mixed, defaultSource: 'jira' }}>
+          <GanttLabel
+            row={row}
+            depth={0}
+            hasChildren={false}
+            url="https://tracker.example/DEMO-1"
+            height={34}
+            onTitle={noop}
+            onRemove={noop}
+            onToggle={noop}
+            onIndent={noop}
+            onOutdent={noop}
+            onAddChild={noop}
+            onMove={noop}
+            onEject={noop}
+          />
+        </BoardSourcesContext.Provider>
+      </ReadOnlyContext.Provider>
     </ReactFlowProvider>,
   )
   return document.querySelector('.group\\/label') as HTMLElement
@@ -55,4 +59,17 @@ test('on a board with one tracker the row keeps its grip and has no mark', () =>
   expect(screen.queryByRole('img')).toBeNull()
   expect(label.firstElementChild!.getAttribute('class')).toContain('lucide-grip-vertical')
   expect(label.firstElementChild!.getAttribute('class')).not.toContain('hidden')
+})
+
+test('a viewer opens the task from its key, an editor does not', () => {
+  renderLabel(false, true)
+  const key = screen.getByRole('link', { name: 'DEMO-1' })
+  expect(key.getAttribute('href')).toBe('https://tracker.example/DEMO-1')
+  // The module body ignores a viewer's pointer; the link must not.
+  expect(key.className).toContain('pointer-events-auto')
+})
+
+test('an editor keeps the key as text', () => {
+  renderLabel(false)
+  expect(screen.queryByRole('link', { name: 'DEMO-1' })).toBeNull()
 })

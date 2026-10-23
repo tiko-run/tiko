@@ -19,6 +19,7 @@ import { BoardSourcesContext } from '@/sources/board-sources'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
 import { useTaskLinkProps } from '@/lib/task-links'
+import { useReadOnly } from '@/canvas/readonly'
 
 // A press that moves further than this starts a row drag.
 const DRAG_SLOP = 4
@@ -66,6 +67,8 @@ export function GanttLabel({
   onEject,
 }: Props) {
   const getZoom = useZoom()
+  const readOnly = useReadOnly()
+  const linkProps = useTaskLinkProps()
   const { mixed } = useContext(BoardSourcesContext)
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null)
   const [editing, setEditing] = useState(Boolean(fresh))
@@ -167,9 +170,23 @@ export function GanttLabel({
           )}
         >
           {task && task.state !== 'private' && <TypeIcon typeName={task.type_name} />}
-          <span className={cn('shrink-0 font-medium', done && 'line-through')}>
-            {shortKey(task?.source ?? row.source, row.key)}
-          </span>
+          {/* A viewer has no hover actions, so the key itself opens the task. */}
+          {readOnly && url ? (
+            <a
+              href={url}
+              {...linkProps}
+              className={cn(
+                'pointer-events-auto shrink-0 font-medium hover:underline',
+                done && 'line-through',
+              )}
+            >
+              {shortKey(task?.source ?? row.source, row.key)}
+            </a>
+          ) : (
+            <span className={cn('shrink-0 font-medium', done && 'line-through')}>
+              {shortKey(task?.source ?? row.source, row.key)}
+            </span>
+          )}
           <span className="truncate" title={task?.summary}>
             {task?.state === 'not_found'
               ? 'not found'

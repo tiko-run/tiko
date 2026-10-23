@@ -10,6 +10,12 @@ Requires: installer
 
 - Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
 
+### Fixed
+
+- Task bars no longer show through the month header of an expanded Gantt while you scroll.
+- A view-only board no longer lets you draw arrows that vanish on refresh.
+- Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
+
 ## [2026.10.24] - 2026-10-22
 
 Requires: installer
