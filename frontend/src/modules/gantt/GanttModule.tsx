@@ -354,7 +354,7 @@ export function GanttModule({
           )}
         </div>
         <div data-gantt-body className="relative min-w-0 flex-1">
-          <div className={cn('border-b', stuck)} style={{ top: stickTop }}>
+          <div className={cn('border-b', stuck, expanded && 'bg-card')} style={{ top: stickTop }}>
             <HeaderRow cells={top} top />
             <HeaderRow cells={bottom} top={false} />
             {/* Expanded, the buttons ride in the header so they stay in view. */}
