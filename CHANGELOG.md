@@ -15,6 +15,7 @@ Requires: installer
 - Task bars no longer show through the month header of an expanded Gantt while you scroll.
 - A view-only board no longer lets you draw arrows that vanish on refresh.
 - Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
+- A large board zoomed out no longer stutters while someone else moves things on it.
 
 ## [2026.10.24] - 2026-10-22
 

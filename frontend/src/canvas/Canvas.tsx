@@ -18,7 +18,15 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ArrowLeft, Map as MapIcon } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 import { canEdit, getBoard, type Board } from '@/api/boards'
 import type { Task } from '@/api/tasks'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -709,6 +717,23 @@ export function BoardCanvas({
     setEdges((current) => current.map((e) => ({ ...e, selected: kind === 'edge' && e.id === id })))
   }
 
+  const openNodeMenu = (node: AppNode) => {
+    if (readOnly) return
+    if (!node.selected) selectOnly(node.id, 'node')
+    setMenuTarget({ kind: 'selection' })
+  }
+
+  // Node handlers keep one identity: a new one redraws every node on each frame of a remote drag.
+  const nodeEvents = useRef({ place, openNodeMenu })
+  useLayoutEffect(() => {
+    nodeEvents.current = { place, openNodeMenu }
+  })
+  const onNodeClick = useCallback((event: ReactMouseEvent) => nodeEvents.current.place(event), [])
+  const onNodeContextMenu = useCallback(
+    (_: ReactMouseEvent, node: AppNode) => nodeEvents.current.openNodeMenu(node),
+    [],
+  )
+
   const selectNodes = (ids: string[]) => {
     const picked = new Set(ids)
     setNodes((current) => current.map((n) => ({ ...n, selected: picked.has(n.id) })))
@@ -881,18 +906,14 @@ export function BoardCanvas({
           !readOnly &&
           setMenuTarget({ kind: 'pane', point: { x: event.clientX, y: event.clientY } })
         }
-        onNodeContextMenu={(_, node) => {
-          if (readOnly) return
-          if (!node.selected) selectOnly(node.id, 'node')
-          setMenuTarget({ kind: 'selection' })
-        }}
+        onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={(_, edge) => {
           if (readOnly) return
           if (!edge.selected) selectOnly(edge.id, 'edge')
           setMenuTarget({ kind: 'selection' })
         }}
         onSelectionContextMenu={() => !readOnly && setMenuTarget({ kind: 'selection' })}
-        onNodeClick={(event) => place(event)}
+        onNodeClick={onNodeClick}
         onMoveEnd={(_, viewport) => saveViewport(board.id, viewport)}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
