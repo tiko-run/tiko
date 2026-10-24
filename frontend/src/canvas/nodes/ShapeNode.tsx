@@ -1,4 +1,5 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
+import { type NodeProps } from '@xyflow/react'
+import { Resizer } from '@/canvas/nodes/Resizer'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -25,7 +26,7 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
             : 'var(--sticky-foreground)',
       }}
     >
-      <NodeResizer
+      <Resizer
         isVisible={selected && !readOnly}
         minWidth={SHAPE_MIN.width}
         minHeight={SHAPE_MIN.height}
