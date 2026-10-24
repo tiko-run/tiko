@@ -1,4 +1,5 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
+import { type NodeProps } from '@xyflow/react'
+import { Resizer } from '@/canvas/nodes/Resizer'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -21,7 +22,7 @@ function TextNodeView({ id, data, selected }: NodeProps<TextNodeType>) {
         color: data.opacity === undefined ? undefined : faded('var(--foreground)', data.opacity),
       }}
     >
-      <NodeResizer isVisible={selected && !readOnly} minWidth={40} minHeight={24} />
+      <Resizer isVisible={selected && !readOnly} minWidth={40} minHeight={24} />
       <EditableText
         nodeId={id}
         value={data.text}

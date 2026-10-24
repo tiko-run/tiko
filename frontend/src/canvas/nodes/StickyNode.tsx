@@ -1,4 +1,5 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
+import { type NodeProps } from '@xyflow/react'
+import { Resizer } from '@/canvas/nodes/Resizer'
 import { Ban } from 'lucide-react'
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canvas/fit'
@@ -62,7 +63,7 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
         if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
       }}
     >
-      <NodeResizer isVisible={selected && !readOnly} minWidth={80} minHeight={60} />
+      <Resizer isVisible={selected && !readOnly} minWidth={80} minHeight={60} />
       <EditableText
         nodeId={id}
         value={data.text}

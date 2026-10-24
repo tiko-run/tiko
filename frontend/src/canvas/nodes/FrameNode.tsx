@@ -1,4 +1,5 @@
-import { NodeResizer, type NodeProps } from '@xyflow/react'
+import { type NodeProps } from '@xyflow/react'
+import { Resizer } from '@/canvas/nodes/Resizer'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -29,7 +30,7 @@ function FrameNodeView({ id, data, selected }: NodeProps<FrameNodeType>) {
         )}
         style={{ background: tint, opacity }}
       />
-      <NodeResizer isVisible={selected && !readOnly} minWidth={160} minHeight={120} />
+      <Resizer isVisible={selected && !readOnly} minWidth={160} minHeight={120} />
       <div
         className="absolute bottom-full left-0 mb-1 max-w-full text-[13px] font-medium"
         style={{ opacity }}
