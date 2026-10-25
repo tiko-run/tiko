@@ -269,7 +269,13 @@ def create_app(
         workers.heard("end_session", app.state.sessions.uncache)
         workers.heard("end_person", app.state.sessions.uncache_person)
         workers.heard("recheck_person", app.state.sessions.uncache_person)
-    app.state.accounts = Accounts(users, app.state.sessions, attempts, storage.KnownBrowsers(db))
+    app.state.accounts = Accounts(
+        users,
+        app.state.sessions,
+        attempts,
+        storage.KnownBrowsers(db),
+        forget_first_password=partial(password_file.remove, settings.password_file),
+    )
     app.state.board_limit = settings.tiko_board_limit
     app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))

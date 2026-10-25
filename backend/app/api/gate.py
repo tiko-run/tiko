@@ -24,6 +24,8 @@ INVITES = "/api/invites/"
 # Boards shown by their public link; the routes there only read.
 PUBLIC = "/api/public/"
 METRICS = "/metrics"
+# All the first admin can do before replacing the password, besides the open paths.
+BEFORE_NEW_PASSWORD = {"/api/me/password", "/api/auth/logout-all"}
 
 
 def is_open(scope: Scope) -> bool:
@@ -68,11 +70,21 @@ class PasswordGate:
         scraper = self._scrapes(scope)
         if scraper:
             scope.setdefault("state", {})["scraper"] = True
-        if person is not None or scraper or is_open(scope):
+        held = (
+            person is not None
+            and person.must_change_password
+            and not is_open(scope)
+            and scope["path"] not in BEFORE_NEW_PASSWORD
+        )
+        if not held and (person is not None or scraper or is_open(scope)):
             await self.app(scope, receive, send)
             return
         if scope["type"] == "websocket":
             await send({"type": "websocket.close", "code": 1008})
             return
-        response = JSONResponse(error_body("auth_required", "sign in to tiko"), status_code=401)
+        if held:
+            body = error_body("password_change_required", "Set a new password first.")
+            response = JSONResponse(body, status_code=403)
+        else:
+            response = JSONResponse(error_body("auth_required", "sign in to tiko"), status_code=401)
         await response(scope, receive, send)

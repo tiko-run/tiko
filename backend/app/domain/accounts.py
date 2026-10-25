@@ -6,6 +6,7 @@ import math
 import re
 import secrets
 import uuid
+from collections.abc import Callable
 from functools import cache
 from typing import Literal
 
@@ -70,6 +71,8 @@ class Person(BaseModel):
     server_admin: bool = False
     # Set for a demo visitor only: when they are deleted unless they come back or sign up.
     demo_expires_at: str | None = None
+    # The first admin, until they replace the password that sat in a log line or a file.
+    must_change_password: bool = False
 
 
 class PersonRecord(Person):
@@ -178,9 +181,11 @@ class Accounts:
         sessions: Sessions,
         attempts: Attempts | None = None,
         browsers: KnownBrowsers | None = None,
+        forget_first_password: Callable[[], None] = lambda: None,
     ) -> None:
         self._users = users
         self._sessions = sessions
+        self._forget_first_password = forget_first_password
         self._browsers = browsers or MemoryBrowsers()
         attempts = attempts or MemoryAttempts()
         self._per_username = Limiter(
@@ -197,7 +202,13 @@ class Accounts:
         )
 
     def create(
-        self, username: str, name: str, password: str, role: Role, server_admin: bool = False
+        self,
+        username: str,
+        name: str,
+        password: str,
+        role: Role,
+        server_admin: bool = False,
+        must_change_password: bool = False,
     ) -> Person:
         person = Person(
             id=uuid.uuid4().hex,
@@ -205,6 +216,7 @@ class Accounts:
             name=check_name(name),
             role=role,
             server_admin=server_admin,
+            must_change_password=must_change_password,
         )
         self._users.add(person, hash_password(password))
         return person
@@ -335,14 +347,23 @@ class Accounts:
 
     def set_password(self, user_id: str, password: str) -> None:
         """Sets a password without the current one, as a reset link does; ends every session."""
+        found = self._users.get(user_id)
+        marked = found is not None and found.must_change_password
         self._users.set_password(user_id, hash_password(check_password(password)))
         self._sessions.end_all(user_id)
         self._browsers.forget(user_id)
+        if marked:
+            self._forget_first_password()
 
     def change_password(self, person: Person, current: str, new: str, keep_token: str) -> None:
+        """Also clears the first admin's mark; the generated password file goes with it."""
         found = self._users.find(person.username.lower())
         if not found or not verify_password(current, found[1]):
             raise InvalidCredentials("The current password is wrong.")
+        if verify_password(new, found[1]):
+            raise WeakPassword("Pick a password other than the current one.")
         self._users.set_password(person.id, hash_password(check_password(new)))
         self._sessions.end_all(person.id, keep_token=keep_token)
         self._browsers.forget(person.id)
+        if found[0].must_change_password:
+            self._forget_first_password()

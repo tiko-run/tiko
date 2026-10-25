@@ -146,7 +146,9 @@ def run_sql_on(db, statement: str, params: tuple = ()) -> None:
 
 
 def signed_in(app, username: str = "admin", password: str = PASSWORD) -> TestClient:
-    """A client with a session; by default the admin made from TIKO_PASSWORD."""
+    """A client with a session; by default the admin made from TIKO_PASSWORD, let past the
+    new password screen. Tests of that screen sign in by hand."""
+    run_sql(app, "UPDATE users SET must_change_password = false WHERE username = ?", (username,))
     client = TestClient(app)
     response = client.post("/api/auth/login", json={"username": username, "password": password})
     assert response.status_code == 204

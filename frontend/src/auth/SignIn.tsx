@@ -4,11 +4,14 @@ import { useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { signIn } from '@/api/auth'
 import { DemoStart } from '@/auth/DemoStart'
+import { rememberSignIn } from '@/auth/NewPassword'
 import { Emblem } from '@/components/Emblem'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { openFirstBoard } from '@/lib/navigation'
+
+const FIRST_PASSWORD_GUIDE = 'https://docs.tiko.run/security/#the-first-password'
 
 function message(error: Error) {
   if (!(error instanceof ApiError)) return error.message
@@ -22,7 +25,13 @@ function message(error: Error) {
 export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; demo?: boolean }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const login = useMutation({ mutationFn: signIn, onSuccess: onSignedIn })
+  const login = useMutation({
+    mutationFn: signIn,
+    onSuccess: (_, credentials) => {
+      rememberSignIn(credentials.password)
+      onSignedIn()
+    },
+  })
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (username && password) login.mutate({ username: username.trim(), password })
@@ -75,6 +84,15 @@ export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; d
         Sign in
       </Button>
       {login.isError && <p className="text-destructive text-sm">{message(login.error)}</p>}
+      {!demo && (
+        <p className="text-muted-foreground mt-2 text-center text-[13px]">
+          <Button asChild variant="link" className="h-auto p-0 text-[13px]">
+            <a href={FIRST_PASSWORD_GUIDE} target="_blank" rel="noreferrer">
+              First time here?
+            </a>
+          </Button>
+        </p>
+      )}
       {demo && (
         <p className="text-muted-foreground mt-2 text-center text-[13px]">
           Just looking?{' '}

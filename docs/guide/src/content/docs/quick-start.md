@@ -31,7 +31,7 @@ To sign in after the deploy:
 
 1. In the Railway project open the `web` service and click its public address.
 2. Open the `api` service, then the Variables tab, and reveal `TIKO_PASSWORD`.
-3. Sign in with the username `admin` and that password, then change it in Settings → Security.
+3. Sign in with the username `admin` and that password, then pick a password of your own on the screen that follows.
 
 ## On Render
 
@@ -45,13 +45,13 @@ To sign in after the deploy:
 
 1. Open the address of `tiko-web` from the Render dashboard.
 2. Open the `tiko-api` service, then Environment, and reveal `TIKO_PASSWORD`.
-3. Sign in with the username `admin` and that password, then change it in Settings → Security.
+3. Sign in with the username `admin` and that password, then pick a password of your own on the screen that follows.
 
 To upgrade, redeploy `api` and `web`: they pull the latest release.
 
 ## First look
 
-Open http://localhost:3000, or the Railway or Render URL, and sign in as `admin`. On your machine the installer printed the password and keeps it in `.env` in the tiko folder. From source it is in the log: `docker compose logs api | grep 'tiko password'`, with `Select-String` in place of `grep` in PowerShell. If you lost it, see [Lost the password](../install/#lost-the-password). On Railway and Render it is the `TIKO_PASSWORD` variable of the API service, as described above. A fresh install opens on [Home](../home/) with a sample board built from demo tasks; open it. Move things around, then add more with the card tool at the bottom: type `DEMO-5` for one task, or `project = DEMO` for all twelve. Delete the sample board when you are done with it.
+Open http://localhost:3000, or the Railway or Render URL, and sign in as `admin`. On your machine the installer printed the password and keeps it in `.env` in the tiko folder. From source it is in the log: `docker compose logs api | grep 'tiko password'`, with `Select-String` in place of `grep` in PowerShell. If you lost it, see [Lost the password](../install/#lost-the-password). On Railway and Render it is the `TIKO_PASSWORD` variable of the API service, as described above. tiko then asks you to pick a password of your own. A fresh install opens on [Home](../home/) with a sample board built from demo tasks; open it. Move things around, then add more with the card tool at the bottom: type `DEMO-5` for one task, or `project = DEMO` for all twelve. Delete the sample board when you are done with it.
 
 The first time you open a board you can edit, other than one you just made with New board, a short tour shows where adding tasks, search, reminders, the Gantt chart and the focus timer live. Close it at any step; About (the ⓘ button in the bottom left) → Take the tour runs it again.
 

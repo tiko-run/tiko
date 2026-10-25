@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
+import psycopg
 import pytest
 from pydantic import ValidationError
 from websockets.exceptions import ConnectionClosed
@@ -144,6 +145,9 @@ def instance(request, tmp_path_factory, pg_url):
     }
     try:
         process, found = _start(env, sockets)
+        # Past the new password screen: these tests are about the processes.
+        with psycopg.connect(pg_url, autocommit=True) as conn:
+            conn.execute("UPDATE users SET must_change_password = false")
         try:
             yield found
         finally:

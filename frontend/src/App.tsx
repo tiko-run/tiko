@@ -3,10 +3,11 @@ import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } fro
 import { toast } from 'sonner'
 import { getAuthStatus } from '@/api/auth'
 import { listBoards } from '@/api/boards'
-import { AUTH_REQUIRED_EVENT } from '@/api/client'
+import { AUTH_REQUIRED_EVENT, PASSWORD_CHANGE_EVENT } from '@/api/client'
 import { readPublicToken } from '@/api/public'
 import { AcceptInvite, readInviteLink } from '@/auth/AcceptInvite'
 import { NoWorkspace } from '@/auth/NoWorkspace'
+import { NewPassword } from '@/auth/NewPassword'
 import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
 import { AboutButton } from '@/board/AboutButton'
@@ -75,7 +76,9 @@ export default function App() {
     queryFn: getAuthStatus,
     enabled: mounted && !publicToken,
   })
-  const signedIn = auth.data?.signed_in === true
+  // The first admin sees only the new password screen until they set one.
+  const held = auth.data?.me?.must_change_password === true
+  const signedIn = auth.data?.signed_in === true && !held
   const serverAdmin = auth.data?.me?.server_admin ?? false
   // Removed from the workspace: the account still signs in, but has no boards to open.
   const outside = signedIn && !!auth.data?.me && !auth.data.me.workspace
@@ -125,8 +128,13 @@ export default function App() {
         signed_in: false,
         me: null,
       }))
+    const recheck = () => void queryClient.invalidateQueries({ queryKey: ['auth'] })
     window.addEventListener(AUTH_REQUIRED_EVENT, signedOut)
-    return () => window.removeEventListener(AUTH_REQUIRED_EVENT, signedOut)
+    window.addEventListener(PASSWORD_CHANGE_EVENT, recheck)
+    return () => {
+      window.removeEventListener(AUTH_REQUIRED_EVENT, signedOut)
+      window.removeEventListener(PASSWORD_CHANGE_EVENT, recheck)
+    }
   }, [queryClient])
 
   if (mounted && publicToken) {
@@ -154,6 +162,18 @@ export default function App() {
       <main className="bg-background relative h-dvh w-full overflow-hidden">
         <h1 className="sr-only">tiko</h1>
         <SignIn demo={auth.data.demo} onSignedIn={() => void queryClient.invalidateQueries()} />
+      </main>
+    )
+  }
+
+  if (held && auth.data?.me) {
+    return (
+      <main className="bg-background relative h-dvh w-full overflow-hidden">
+        <h1 className="sr-only">tiko</h1>
+        <NewPassword
+          username={auth.data.me.username}
+          onDone={() => void queryClient.invalidateQueries()}
+        />
       </main>
     )
   }

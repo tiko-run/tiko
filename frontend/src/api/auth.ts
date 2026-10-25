@@ -12,6 +12,8 @@ export const meSchema = z.object({
   workspace: z.object({ id: z.string(), name: z.string() }).nullable(),
   // Set for a demo visitor: when their boards are deleted unless they come back.
   demo_expires_at: z.string().nullish(),
+  // The first admin, until they replace the password from the log or a file.
+  must_change_password: z.boolean().optional(),
 })
 export type Me = z.infer<typeof meSchema>
 

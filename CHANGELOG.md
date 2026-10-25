@@ -8,6 +8,7 @@ Requires: installer
 
 ### Added
 
+- A new instance asks its first admin to pick a password of their own at the first sign-in, before anything else opens: the generated one sat in a log, a file or a hosting variable. tiko then deletes `data/password`. Instances that already have people are not affected. See [The first password](https://docs.tiko.run/security/#the-first-password).
 - Zoom with the mouse wheel and pan with a trackpad, as in most whiteboards: tiko tells them apart by itself. If your mouse pans instead of zooming, set Settings → Preferences → Mouse wheel to Always zoom. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
 

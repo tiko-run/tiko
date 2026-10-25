@@ -20,7 +20,7 @@ class SignInRequest(BaseModel):
 
 
 def me(request: Request, person: Person) -> dict:
-    fields = {"id", "username", "name", "role", "server_admin"}
+    fields = {"id", "username", "name", "role", "server_admin", "must_change_password"}
     # Only a demo instance tells who is a demo visitor.
     if request.app.state.visitors is not None:
         fields.add("demo_expires_at")

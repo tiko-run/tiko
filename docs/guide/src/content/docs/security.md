@@ -5,12 +5,16 @@ description: Sign-in, people, board sharing, and what tiko stores and talks to.
 
 Every page and API route except `/health` and `/ready` asks you to sign in with a username and password. `/metrics` is for the server admin and for a monitoring system that sends `TIKO_METRICS_TOKEN`; see [Monitoring](../monitoring/).
 
-## Signing in
+## The first password
 
 - The first account is `admin`. Its password is `TIKO_PASSWORD`; when that is empty, tiko generates one on first start, prints it once to the API log (`docker compose logs api | grep 'tiko password'`) and saves it to `data/password`.
 - The one-line installer generates the password itself and writes it as `TIKO_PASSWORD` into `.env` in the tiko folder, so the log does not have it. Commands for Windows, Linux and macOS are in [Lost the password](../install/#lost-the-password).
 - On Railway and Render the template generates it: see `TIKO_PASSWORD` in the `api` service's Variables on Railway, or the `tiko-api` service's Environment on Render.
-- Once the account exists, `TIKO_PASSWORD` and `data/password` are no longer read. Change your name and username in Settings → Profile and your password in Settings → Security.
+- That password sat in a log, a file or a hosting variable, so the first sign-in asks for a new one before anything else. Until you set it, the API answers every other request with 403 `password_change_required`; signing out is the only other way off that screen. Once it is set, tiko deletes `data/password`.
+- Once the account exists, `TIKO_PASSWORD` is no longer read. Change your name and username in Settings → Profile and your password in Settings → Security.
+
+## Signing in
+
 - A sign-in lasts 30 days in that browser. Changing your password signs out your other devices; "Sign out everywhere" in Settings → Security signs out all of them.
 - Passwords are stored as salted scrypt hashes, and sessions as hashes of their tokens.
 - After 10 wrong passwords for one username in 15 minutes, sign-in for that username pauses until the window passes.

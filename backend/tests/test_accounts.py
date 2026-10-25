@@ -189,8 +189,17 @@ def test_sign_in_sets_a_session_cookie(gated):
     status = gated.get("/api/auth/status").json()
     assert status["signed_in"] and status["me"]["username"] == "admin"
     assert status["me"]["role"] == "admin"
-    assert set(status["me"]) == {"id", "username", "name", "role", "server_admin", "workspace"}
-    assert gated.get("/api/boards").status_code == 200
+    assert set(status["me"]) == {
+        "id",
+        "username",
+        "name",
+        "role",
+        "server_admin",
+        "must_change_password",
+        "workspace",
+    }
+    # The admin made from TIKO_PASSWORD replaces it first; see test_first_password.
+    assert status["me"]["must_change_password"] is True
 
 
 def test_cookie_is_secure_behind_https(gated):
