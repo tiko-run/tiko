@@ -24,7 +24,7 @@
   <a href="https://docs.tiko.run/"><img src="https://img.shields.io/badge/docs-docs.tiko.run-8A2BE2" alt="Docs"></a>
 </p>
 
-![A tiko board: frames of live task cards with reminders, sticky notes, arrows, a Gantt release plan and the focus timer](docs/assets/board.png)
+[![A 25-second tour: tasks from a dozen tracker tabs land on one canvas, get arranged into frames, update their status on their own, fire a reminder, and the whole board folds into the tiko logo](https://media.tiko.run/readme/tiko-promo.webp)](https://media.tiko.run/readme/tiko-promo.mp4)
 
 ## Contents
 
