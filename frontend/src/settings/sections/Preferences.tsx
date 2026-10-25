@@ -37,12 +37,13 @@ export function Preferences() {
       </Group>
       <Group title="Mouse wheel">
         <RadioGroup value={wheel} onValueChange={(next) => writeWheel(next as Wheel)}>
-          <Choice value="scroll" id="wheel-scroll" label="Scroll" />
-          <Choice value="zoom" id="wheel-zoom" label="Zoom" />
+          <Choice value="auto" id="wheel-auto" label="Zoom with a mouse, scroll with a trackpad" />
+          <Choice value="zoom" id="wheel-zoom" label="Always zoom" />
+          <Choice value="scroll" id="wheel-scroll" label="Always scroll" />
         </RadioGroup>
         <p className="text-muted-foreground text-[13px]">
-          Ctrl + wheel and a trackpad pinch always zoom. With Zoom, Shift + wheel scrolls sideways,
-          and a two-finger swipe on a trackpad zooms too.
+          A pinch and Ctrl + wheel always zoom, Shift + wheel scrolls sideways. If your mouse
+          scrolls instead of zooming, pick Always zoom.
         </p>
       </Group>
       <Group title="Paste text as">
