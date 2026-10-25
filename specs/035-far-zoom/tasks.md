@@ -19,3 +19,7 @@ description: "Task list for Far zoom"
 ## Phase 2: Slice `feat/remote-drag-renders` (US1, SC-001 in Firefox)
 
 - [x] T006 One redraw per frame for another person's drag: drags come as a feed past the canvas state, the move is drawn on the next animation frame. Watcher fps before and after in both engines, renders per frame counted. Tests
+
+## Phase 3: Slice `feat/canvas-minimap` (US2, SC-002, SC-003)
+
+- [x] T007 Minimap on one canvas, redrawn at most every 200 ms when elements change, while panning and zooming only move the drawing and the frame. Same look in both themes, a click and a drag of the frame move the view as before. Pinch, pan and remote drag measured before and after in both engines. Tests

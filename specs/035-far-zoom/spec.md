@@ -89,6 +89,16 @@ Measured on the same machine, before and after. Met in Chromium: SC-001 (41 fram
 
 Another person's drag used to redraw the board two or three times per frame. Now it redraws once, on the next frame. SC-001 is met in Firefox, 31 to 32 frames per second (it was 19 to 20), and in Chromium it is 51 (it was 32 to 41). The longest SC-002 frame and SC-003 in Firefox are still not met: they come from zoom and pan, which this change does not touch. The minimap is the next lever there. It does work for every element on each update, and hiding it gives Firefox about 45 frames per second during a drag.
 
+### Result of the minimap slice
+
+The minimap paints every element on one canvas, at most five times a second and only when elements change. Panning and zooming move the drawing and the view frame. Before, every element had its own subscription and was checked on each frame. Measured before and after on the 2000-element board:
+
+- another person's drag, Firefox: 32 to 34 frames per second before, 41 to 44 after; Chromium holds 60;
+- fast pinch, longest frame: Chromium 117 to 150 ms before, 83 after, so SC-002 is met in Chromium; Firefox 172 to 194 ms before, 121 to 133 after, still above 100; Firefox runs at about 61 frames per second instead of 40;
+- pan in Firefox: median frame 25 ms before, 21 to 23 ms after, still short of 20.
+
+Still open: the longest pinch frame in Firefox and the Firefox pan median.
+
 ## Out of scope
 
 - Stages of detail below 20% (Miro's dots at 4%).
