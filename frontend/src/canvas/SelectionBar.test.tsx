@@ -71,7 +71,7 @@ test('one sticky note: its name, the fill and the actions', () => {
   expect(screen.queryByRole('button', { name: 'no fill' })).toBeNull()
   fireEvent.click(button('blue fill'))
   expect(on.onStyle).toHaveBeenCalledWith({ color: 'blue' })
-  fireEvent.click(button('Add timer'))
+  fireEvent.click(button('Add reminder'))
   fireEvent.click(button('Duplicate'))
   fireEvent.click(button('Delete'))
   expect(on.onAddTimer).toHaveBeenCalled()

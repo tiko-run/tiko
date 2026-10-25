@@ -19,7 +19,12 @@ export default defineConfig({
   site: 'https://docs.tiko.run',
   // A fixed address for the newest release page, so links from the site never go stale.
   // The roadmap moved to a public board; old links to the page land there.
-  redirects: { '/whats-new/latest': `/${releases[0].slug}/`, '/roadmap': 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM' },
+  // Board timers became reminders; links to the old page address keep working.
+  redirects: {
+    '/whats-new/latest': `/${releases[0].slug}/`,
+    '/roadmap': 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM',
+    '/focus-and-timers': '/focus-and-reminders/',
+  },
   integrations: [
     starlight({
       title: 'tiko',
@@ -75,7 +80,7 @@ export default defineConfig({
                       'gantt/working-time',
                     ],
                   },
-                  'focus-and-timers',
+                  'focus-and-reminders',
                 ],
               },
               { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },

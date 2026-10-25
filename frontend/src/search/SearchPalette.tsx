@@ -364,7 +364,7 @@ function PaletteBody({
           autoComplete="off"
           spellCheck={false}
           placeholder={
-            chips.length ? 'Add words or filters…' : 'Search notes, cards, frames, timers…'
+            chips.length ? 'Add words or filters…' : 'Search notes, cards, frames, reminders…'
           }
           className="placeholder:text-muted-foreground h-10 min-w-40 flex-1 bg-transparent text-[15px] outline-none"
           value={text}
@@ -464,7 +464,7 @@ function PaletteBody({
             ? `No ${FIELD_TITLES[suggestions.field].toLowerCase()} on this board matches.`
             : typed
               ? `Nothing on this board matches "${typed}".`
-              : 'Type to find sticky notes, cards, frames, timers and Gantt rows.'}
+              : 'Type to find sticky notes, cards, frames, reminders and Gantt rows.'}
         </p>
       )}
       {!typed && (

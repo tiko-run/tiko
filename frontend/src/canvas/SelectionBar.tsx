@@ -485,7 +485,7 @@ export function SelectionBar({
         </>
       )}
       <Divider />
-      {onAddTimer && <IconButton Icon={AlarmClock} label="Add timer" onClick={onAddTimer} />}
+      {onAddTimer && <IconButton Icon={AlarmClock} label="Add reminder" onClick={onAddTimer} />}
       <IconButton
         Icon={Copy}
         label="Duplicate"

@@ -32,7 +32,7 @@ test('groups timers by what the user should look at first', () => {
 
 test('the button counts running timers and names the next one', () => {
   render(<TimerButton timers={timers} now={NOW} />)
-  const button = screen.getByRole('button', { name: 'Timers: 3 running, 1 gone off' })
+  const button = screen.getByRole('button', { name: 'Reminders: 3 running, 1 gone off' })
   expect(button).toHaveAttribute('title', 'Next: Ping QA · in 28m')
   fireEvent.click(button)
   expect(button).toHaveAttribute('aria-pressed', 'true')
@@ -51,8 +51,8 @@ test('the panel stays open on a jump and closes with Esc', () => {
   expect(screen.getByText('in 2d · Fri, 09.10.2026, 11:00')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   expect(onDone).toHaveBeenCalledWith('a')
-  expect(screen.getByRole('dialog', { name: 'Timers' })).toBeInTheDocument()
+  expect(screen.getByRole('dialog', { name: 'Reminders' })).toBeInTheDocument()
 
   fireEvent.keyDown(window, { key: 'Escape' })
-  expect(screen.queryByRole('dialog', { name: 'Timers' })).toBeNull()
+  expect(screen.queryByRole('dialog', { name: 'Reminders' })).toBeNull()
 })

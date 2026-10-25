@@ -45,13 +45,13 @@ const PLANS: Record<Exclude<Item, 'tracker'>, Plan> = {
   },
   set_timer: {
     hints: [
-      { anchor: 'tool-timer', text: `Click the timer button, or press ${key('timer')}.` },
-      { text: 'Now click a card. The timer sits next to it.' },
+      { anchor: 'tool-timer', text: `Click the reminder button, or press ${key('timer')}.` },
+      { text: 'Now click a card. The reminder sits next to it.' },
     ],
   },
   timer_list: {
-    hints: [{ anchor: 'timer-list', text: 'Click here to see every timer on the board.' }],
-    fallback: { anchor: 'main-menu', text: 'Open the main menu and pick Timers.' },
+    hints: [{ anchor: 'timer-list', text: 'Click here to see every reminder on the board.' }],
+    fallback: { anchor: 'main-menu', text: 'Open the main menu and pick Reminders.' },
   },
   gantt_task: {
     hints: [

@@ -31,7 +31,7 @@ export const SHORTCUTS = {
   sticky: { keys: 'n', label: 'Sticky note', group: 'Tools' },
   text: { keys: 't', label: 'Text', group: 'Tools' },
   shape: { keys: 's', label: 'Shapes', group: 'Tools' },
-  timer: { keys: 'r', label: 'Timer', group: 'Tools' },
+  timer: { keys: 'r', label: 'Reminder', group: 'Tools' },
   card: { keys: 'c', label: 'Task card', group: 'Tools' },
   module: { keys: 'm', label: 'Modules', group: 'Tools' },
   cancel: { keys: 'escape', label: 'Back to Select', group: 'Tools' },

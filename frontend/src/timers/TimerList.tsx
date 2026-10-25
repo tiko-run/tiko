@@ -35,15 +35,15 @@ export function TimerButton({ timers, now }: ButtonProps) {
   const running = timers.filter((t) => ['running', 'soon', 'watching'].includes(t.state))
   const next = running.find((t) => t.at !== null)
   const title = next
-    ? `Next: ${next.note || 'Timer'} · in ${formatLeft(next.at! - now)}`
-    : 'Timers on this board'
+    ? `Next: ${next.note || 'Reminder'} · in ${formatLeft(next.at! - now)}`
+    : 'Reminders on this board'
   return (
     <div className="bg-card rounded-lg border p-1 shadow-md">
       <Button
         variant={open ? 'secondary' : 'ghost'}
         size="sm"
         className="font-normal"
-        aria-label={`Timers: ${running.length} running, ${fired} gone off`}
+        aria-label={`Reminders: ${running.length} running, ${fired} gone off`}
         aria-pressed={open}
         title={title}
         data-tour="timer-list"
@@ -93,11 +93,11 @@ export function TimerPanel({ timers, now, onOpen, onDone, onSnooze }: PanelProps
   return (
     <section
       role="dialog"
-      aria-label="Timers"
+      aria-label="Reminders"
       className="bg-card absolute top-16 right-4 z-10 flex max-h-[calc(100dvh-8rem)] w-80 flex-col rounded-lg border shadow-md"
     >
       <header className="flex items-center gap-2 border-b py-1 pr-1 pl-3">
-        <h2 className="flex-1 text-[14px] font-medium">Timers</h2>
+        <h2 className="flex-1 text-[14px] font-medium">Reminders</h2>
         <Button
           size="icon-sm"
           variant="ghost"
@@ -110,7 +110,7 @@ export function TimerPanel({ timers, now, onOpen, onDone, onSnooze }: PanelProps
       <div className="flex flex-col gap-2 overflow-y-auto p-2">
         {groups.length === 0 && (
           <p className="text-muted-foreground px-1 py-2 text-[13px]">
-            No timers on this board. Pick the Timer tool (R) and click an element.
+            No reminders on this board. Pick the Reminder tool (R) and click an element.
           </p>
         )}
         {groups.map((group) => (
@@ -141,7 +141,7 @@ export function TimerPanel({ timers, now, onOpen, onDone, onSnooze }: PanelProps
                             timer.state === 'done' && 'text-muted-foreground',
                           )}
                         >
-                          {timer.note || 'Timer'}
+                          {timer.note || 'Reminder'}
                         </span>
                         <span className="text-muted-foreground block truncate text-[12px] tabular-nums">
                           {[when(timer, now), timer.holder && `on ${timer.holder}`]

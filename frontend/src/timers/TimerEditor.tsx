@@ -223,7 +223,7 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
       </p>
       {blocked && (
         <p className="text-muted-foreground text-[12px]">
-          Notifications are off for this site, so only the board shows a timer that goes off.
+          Notifications are off for this site, so only the board shows a reminder that goes off.
         </p>
       )}
       <div className="flex items-center gap-1 border-t pt-2">
@@ -252,8 +252,8 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
         <Button
           size="icon-sm"
           variant="ghost"
-          aria-label="Delete timer"
-          title="Delete timer"
+          aria-label="Delete reminder"
+          title="Delete reminder"
           className="text-muted-foreground ml-auto"
           onClick={onDelete}
         >

@@ -80,7 +80,7 @@ function TimerNodeView({ id, data, parentId, selected, dragging }: NodeProps<Tim
           onClick={onClick}
           data-state={state}
           data-flash={flashing || undefined}
-          aria-label={`Timer${data.note ? `: ${data.note}` : ''}`}
+          aria-label={`Reminder${data.note ? `: ${data.note}` : ''}`}
           className={cn(
             'timer-cube group relative flex size-10 flex-col items-center justify-center gap-0.5 rounded-lg',
             selected && 'ring-primary ring-2 ring-offset-1',

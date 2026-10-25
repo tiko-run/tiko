@@ -135,10 +135,10 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
       ? [
           {
             id: 'app:timers',
-            title: 'Show timers',
+            title: 'Show reminders',
             group: 'Commands' as const,
             Icon: AlarmClock,
-            keywords: 'reminders',
+            keywords: 'timers alarms',
             run: () => setTimerPanelOpen(true),
           },
         ]
@@ -313,7 +313,7 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
           {current && (
             <DropdownMenuItem onSelect={() => setTimerPanelOpen(true)}>
               <AlarmClock strokeWidth={1.75} />
-              Timers
+              Reminders
             </DropdownMenuItem>
           )}
           <DropdownMenuCheckboxItem checked={focusVisible} onCheckedChange={setFocusVisible}>

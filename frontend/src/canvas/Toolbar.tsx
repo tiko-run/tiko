@@ -49,7 +49,7 @@ const PLACE_COMMANDS = [
   { tool: 'sticky', title: 'Add sticky note', Icon: StickyNote },
   { tool: 'text', title: 'Add text', Icon: Type },
   { tool: 'frame', title: 'Add frame', Icon: Frame },
-  { tool: 'timer', title: 'Add timer', Icon: AlarmClock },
+  { tool: 'timer', title: 'Add reminder', Icon: AlarmClock },
 ] as const
 
 // Input with a JQL operator that is not just keys and links is a query; a lone typo stays a key.

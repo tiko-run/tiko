@@ -10,7 +10,7 @@ afterEach(() => {
 
 function board() {
   document.body.innerHTML =
-    '<button data-tour="tool-timer" aria-pressed="false">Timer</button>' +
+    '<button data-tour="tool-timer" aria-pressed="false">Reminder</button>' +
     '<button data-tour="main-menu">Main menu</button>'
   return document.querySelector<HTMLElement>('[data-tour="tool-timer"]')!
 }
@@ -20,13 +20,13 @@ test('points at the control, leaves it usable and moves on once it is turned on'
   const clicked = vi.fn()
   button.addEventListener('click', clicked)
   render(<Coach item="set_timer" onClose={() => {}} />)
-  expect(screen.getByRole('status')).toHaveTextContent('Click the timer button')
+  expect(screen.getByRole('status')).toHaveTextContent('Click the reminder button')
   expect(button).toHaveClass('coach-target')
   fireEvent.click(button)
   expect(clicked).toHaveBeenCalled()
   act(() => button.setAttribute('aria-pressed', 'true'))
   expect(
-    await screen.findByText('Now click a card. The timer sits next to it.'),
+    await screen.findByText('Now click a card. The reminder sits next to it.'),
   ).toBeInTheDocument()
   expect(button).not.toHaveClass('coach-target')
 })
@@ -46,13 +46,13 @@ test('another item being done does not end it', () => {
   board()
   render(<Coach item="set_timer" onClose={() => {}} />)
   act(() => didOnboarding('focus'))
-  expect(screen.getByRole('status')).toHaveTextContent('Click the timer button')
+  expect(screen.getByRole('status')).toHaveTextContent('Click the reminder button')
 })
 
 test('without the timer list on screen it points at the main menu', () => {
   board()
   render(<Coach item="timer_list" onClose={() => {}} />)
-  expect(screen.getByRole('status')).toHaveTextContent('Open the main menu and pick Timers.')
+  expect(screen.getByRole('status')).toHaveTextContent('Open the main menu and pick Reminders.')
   expect(document.querySelector('[data-tour="main-menu"]')).toHaveClass('coach-target')
 })
 

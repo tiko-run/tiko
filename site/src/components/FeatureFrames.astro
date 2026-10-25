@@ -108,17 +108,19 @@ const stages = [
   </div>
 </FeatureFrame>
 
+<!-- Old /#timers links from before the rename still land here. -->
+<span id="timers" aria-hidden="true"></span>
 <FeatureFrame
-  id="timers"
-  label="Timers"
+  id="reminders"
+  label="Reminders"
   tone="orange"
   flip
-  heading="Timers on task cards"
-  lead="Put a timer next to a card and stop checking it. It goes off after a set time or when the task leaves its status, and its note says what to do next."
-  points={['Goes off on time or on a status change', 'Done, +10 min or +1 hour right from the note', 'Every timer of the board in one list']}
-  more={{ href: `${DOCS}/focus-and-timers/`, text: 'Timers and focus' }}
+  heading="Reminders on task cards"
+  lead="Put a reminder next to a card and stop checking it. It goes off after a set time or when the task leaves its status, and its note says what to do next."
+  points={['Goes off on time or on a status change', 'Done, +10 min or +1 hour right from the note', 'Every reminder of the board in one list']}
+  more={{ href: `${DOCS}/focus-and-reminders/`, text: 'Reminders and focus' }}
 >
-  <div class="d dots" data-loop role="img" aria-label="Two timers on task cards: one went off on time, one when its task moved to Done, each with a note offering Done, +10 min and +1 hour.">
+  <div class="d dots" data-loop role="img" aria-label="Two reminders on task cards: one went off on time, one when its task moved to Done, each with a note offering Done, +10 min and +1 hour.">
     <span class="n bar tlist" style="--x:300;--y:16"><Icon name="alarm-clock" size={16} />1<i class="pill">2</i></span>
     <span class="n bar tsync" style="--x:374;--y:16"><i></i>Synced just now</span>
     <span class="n cube a" style="--x:24;--y:262">
