@@ -183,6 +183,8 @@ Bug reports, ideas and pull requests are welcome, and a new tracker provider is 
   <a href="https://github.com/tiko-run/tiko/issues"><img src="https://img.shields.io/github/issues/tiko-run/tiko" alt="Open issues"></a>
 </p>
 
+If tiko is useful to you, star the repo. It helps other people find it.
+
 <a href="https://star-history.com/#tiko-run/tiko&Date"><img src="https://api.star-history.com/svg?repos=tiko-run/tiko&type=Date" alt="Star history" width="600"></a>
 
 ## License
