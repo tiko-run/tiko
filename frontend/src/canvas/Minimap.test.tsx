@@ -35,6 +35,8 @@ test('the minimap is shown until someone hides it, and stays hidden', () => {
   expect(readMinimapShown()).toBe(true)
 })
 
+const canvasContext = { clearRect: vi.fn(), fillRect: vi.fn(), strokeRect: vi.fn() }
+
 beforeAll(() => {
   // xyflow measures nodes; jsdom has no layout.
   globalThis.ResizeObserver ??= class {
@@ -43,8 +45,8 @@ beforeAll(() => {
     disconnect() {}
   }
   Element.prototype.setPointerCapture ??= () => {}
-  // jsdom has no 2D canvas; the minimap then draws only its frame.
-  HTMLCanvasElement.prototype.getContext = (() => null) as never
+  // jsdom has no 2D canvas.
+  HTMLCanvasElement.prototype.getContext = (() => canvasContext) as never
 })
 
 function Where() {
@@ -53,7 +55,15 @@ function Where() {
 }
 
 const board: AppNode[] = [
-  { id: 'a', type: 'default', position: { x: 0, y: 0 }, width: 400, height: 300, data: {} },
+  {
+    id: 'a',
+    type: 'task_card',
+    position: { x: 0, y: 0 },
+    width: 400,
+    height: 300,
+    data: { key: 'DEMO-1' },
+  },
+  { id: 'far', type: 'anchor', position: { x: 90000, y: 0 }, width: 1, height: 1, data: {} },
 ] as unknown as AppNode[]
 
 function Board() {
@@ -85,4 +95,13 @@ test('a click on the minimap moves the view there; a drag pans the board', async
   const [x0] = clicked!.split(' ').map(Number)
   const [x1] = screen.getByRole('status').textContent!.split(' ').map(Number)
   expect(x1).toBeLessThan(x0)
+})
+
+test('the minimap paints cards on its canvas and leaves out what draws nothing', async () => {
+  canvasContext.fillRect.mockClear()
+  render(<Board />)
+  await waitFor(() => expect(canvasContext.fillRect).toHaveBeenCalledTimes(1))
+  const canvas = document.querySelector('.canvas-minimap canvas') as HTMLCanvasElement
+  // The far anchor would make the drawing 90000 board units wide: the card alone fills it.
+  expect(canvas.width / canvas.height).toBeCloseTo(400 / 300, 1)
 })

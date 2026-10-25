@@ -91,11 +91,11 @@ Another person's drag used to redraw the board two or three times per frame. Now
 
 ### Result of the minimap slice
 
-The minimap paints every element on one canvas, at most five times a second and only when elements change. Panning and zooming move the drawing and the view frame. Before, every element had its own subscription and was checked on each frame. Measured before and after on the 2000-element board:
+The minimap paints every element on one canvas, at most five times a second and only when elements or the theme change. Panning and zooming move the drawing and the view frame. Before, every element had its own subscription and was checked on each frame. Measured before and after on the 2000-element board:
 
 - another person's drag, Firefox: 32 to 34 frames per second before, 41 to 44 after; Chromium holds 60;
 - fast pinch, longest frame: Chromium 117 to 150 ms before, 83 after, so SC-002 is met in Chromium; Firefox 172 to 194 ms before, 121 to 133 after, still above 100; Firefox runs at about 61 frames per second instead of 40;
-- pan in Firefox: median frame 25 ms before, 21 to 23 ms after, still short of 20.
+- pan in Firefox: median frame 25 ms before, 21 to 23 ms after; the goal of 20 ms is not met yet.
 
 Still open: the longest pinch frame in Firefox and the Firefox pan median.
 

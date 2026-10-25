@@ -87,8 +87,12 @@ function resolver(element: Element) {
 function paint(canvas: HTMLCanvasElement, nodes: Iterable<InternalNode<AppNode>>): Drawing | null {
   const items: { box: Rect; node: AppNode }[] = []
   for (const node of nodes) {
+    const user = node.internals.userNode
+    const look = minimapLook(user)
+    // What draws nothing must not stretch the map: an anchor far out would shrink the rest.
+    if (look.fill === 'transparent' && look.stroke === 'transparent') continue
     const box = boxOf(node)
-    if (box) items.push({ box, node: node.internals.userNode })
+    if (box) items.push({ box, node: user })
   }
   const bounds = boundsOf(items.map((item) => item.box))
   const context = canvas.getContext('2d')
@@ -179,11 +183,18 @@ export function Minimap() {
   })
   const frame = at(seen)
 
-  const press = useRef<{ x: number; y: number; view: View; moved: boolean } | null>(null)
+  // The scale is kept for the whole press: the map rescales as the view leaves the content.
+  const press = useRef<{
+    x: number
+    y: number
+    view: View
+    scale: number
+    moved: boolean
+  } | null>(null)
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
     event.currentTarget.setPointerCapture(event.pointerId)
-    press.current = { x: event.clientX, y: event.clientY, view, moved: false }
+    press.current = { x: event.clientX, y: event.clientY, view, scale: map.scale, moved: false }
   }
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const start = press.current
@@ -195,8 +206,8 @@ export function Minimap() {
     // The frame follows the pointer, so the board moves the other way.
     const { zoom } = start.view
     void flow.setViewport({
-      x: start.view.x - (dx / map.scale) * zoom,
-      y: start.view.y - (dy / map.scale) * zoom,
+      x: start.view.x - (dx / start.scale) * zoom,
+      y: start.view.y - (dy / start.scale) * zoom,
       zoom,
     })
   }
