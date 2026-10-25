@@ -132,6 +132,6 @@ A person opens the card tool and picks yesterday's query from the list instead o
 
 - A per-element "select by touch" setting, or lasso selection.
 - Detecting a mouse versus a trackpad to pick the wheel mode by itself.
-- Password rules beyond today's (common-password list, reserved usernames: idea 2.4), forced change for invited people, password expiry.
+- Password rules beyond today's (a common-password list, reserved usernames), forced change for invited people, password expiry.
 - Pushing other rows along links, pushing to the left, critical path.
-- A synced recent list, favourite queries (idea Д1.1).
+- A synced recent list, favourite queries.
