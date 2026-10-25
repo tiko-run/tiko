@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { readPasteAs, writePasteAs, type PasteAs } from '@/canvas/paste'
+import { useWheel, writeWheel, type Wheel } from '@/canvas/wheel'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { readOpenIn, writeOpenIn, type OpenIn } from '@/lib/task-links'
@@ -20,6 +21,7 @@ export function Preferences() {
   const { theme, setTheme } = useTheme()
   const [pasteAs, setPasteAs] = useState<PasteAs>(readPasteAs)
   const [openIn, setOpenIn] = useState<OpenIn>(readOpenIn)
+  const wheel = useWheel()
   return (
     <div className="flex flex-col gap-5">
       <SectionHeader
@@ -32,6 +34,16 @@ export function Preferences() {
           <Choice value="dark" id="theme-dark" label="Dark" />
           <Choice value="system" id="theme-system" label="Same as the system" />
         </RadioGroup>
+      </Group>
+      <Group title="Mouse wheel">
+        <RadioGroup value={wheel} onValueChange={(next) => writeWheel(next as Wheel)}>
+          <Choice value="scroll" id="wheel-scroll" label="Scroll" />
+          <Choice value="zoom" id="wheel-zoom" label="Zoom" />
+        </RadioGroup>
+        <p className="text-muted-foreground text-[13px]">
+          Ctrl + wheel and a trackpad pinch always zoom. With Zoom, Shift + wheel scrolls sideways,
+          and a two-finger swipe on a trackpad zooms too.
+        </p>
       </Group>
       <Group title="Paste text as">
         <RadioGroup

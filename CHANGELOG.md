@@ -8,6 +8,7 @@ Requires: installer
 
 ### Added
 
+- Zoom with the mouse wheel, like in Miro: set Settings → Preferences → Mouse wheel to Zoom, and Shift + wheel pans sideways. Scroll stays the default, so a trackpad works as before. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
 
 ### Changed

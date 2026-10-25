@@ -25,6 +25,7 @@ Click a card for assignee, priority, last update and a link to the task. Links o
 - **Text** (`T`) and **arrows** between any elements. An arrow can also point at an empty spot.
 - **Pointers:** each creation tool shows its icon next to the crosshair, so you see which one is picked.
 - **Minimap:** the whole board in the bottom right corner, with the part you see framed. Click a spot to go there or drag the frame. The map button under the zoom buttons hides it, and your browser remembers that. Phones and narrow windows don't show it.
+- **Mouse wheel:** pans the board, and Ctrl + wheel or a trackpad pinch zooms. To zoom with the wheel alone, like in Miro, set Settings → Preferences → Mouse wheel to Zoom; Shift + wheel then pans sideways. Keep Scroll on a trackpad: with Zoom a two-finger swipe zooms too.
 - **Back:** after search or the reminder list moves the board, press `B` or the arrow under the zoom buttons to return.
 - **Far out:** at 20% zoom and below, elements turn into blocks in their colors, with grey bars where the text was, and keep their arrows. A big board stays smooth to pan and zoom. Elements still select and move there; to edit text or draw a new arrow, zoom in. A double-click on an element zooms in on it.
 - **Resize** from a corner, or from one side to change only the width or the height.

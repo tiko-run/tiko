@@ -49,5 +49,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | Keys | Action |
 |---|---|
 | `Space` + drag | Pan |
+| `Ctrl` + wheel, pinch | Zoom |
+| `Shift` + wheel | Pan sideways when the wheel zooms |
 | `Alt` + drag | Move without snapping |
 | `B` | Back to where you were |
