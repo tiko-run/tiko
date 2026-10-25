@@ -12,6 +12,7 @@ Requires: installer
 
 ### Changed
 
+- Select several elements faster: a selection box takes everything it touches, not only what fits inside it whole. A frame is still selected only when the box covers all of it, so you can pick the notes inside without the frame. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad runs at about twice the frame rate it did. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Timers on the board are now called reminders, in the app, the guide and the site; the focus timer keeps its name. The guide page moved to [Reminders and focus](https://docs.tiko.run/focus-and-reminders/), old links still work.
 
