@@ -4,3 +4,6 @@ import { createContext, useContext } from 'react'
 export const ReadOnlyContext = createContext(false)
 
 export const useReadOnly = () => useContext(ReadOnlyContext)
+
+/** True when the board is zoomed so far out that elements are drawn as blocks. */
+export const FarContext = createContext(false)

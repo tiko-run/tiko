@@ -1,4 +1,5 @@
-import { NodeResizer, useReactFlow, type NodeProps } from '@xyflow/react'
+import { useReactFlow, type NodeProps } from '@xyflow/react'
+import { Resizer } from '@/canvas/nodes/Resizer'
 import { Maximize2, Puzzle } from 'lucide-react'
 import { memo, useCallback, useContext, useEffect } from 'react'
 import { MODULE_HEADER as HEADER } from '@/canvas/modules'
@@ -59,7 +60,7 @@ function ModuleNodeView({ id, data, selected, width, height }: NodeProps<ModuleN
         !view && 'border-dashed',
       )}
     >
-      <NodeResizer
+      <Resizer
         isVisible={selected && !readOnly}
         minWidth={def?.minSize.width ?? 160}
         minHeight={Math.max(def?.minSize.height ?? 80, minHeight)}

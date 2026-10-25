@@ -26,6 +26,7 @@ Click a card for assignee, priority, last update and a link to the task. Links o
 - **Pointers:** each creation tool shows its icon next to the crosshair, so you see which one is picked.
 - **Minimap:** the whole board in the bottom right corner, with the part you see framed. Click a spot to go there or drag the frame. The map button under the zoom buttons hides it, and your browser remembers that. Phones and narrow windows don't show it.
 - **Back:** after search or the timer list moves the board, press `B` or the arrow under the zoom buttons to return.
+- **Far out:** at 20% zoom and below, elements turn into blocks in their colors, with grey bars where the text was, and keep their arrows. A big board stays smooth to pan and zoom. Elements still select and move there; to edit text or draw a new arrow, zoom in. A double-click on an element zooms in on it.
 - **Resize** from a corner, or from one side to change only the width or the height.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors.
 

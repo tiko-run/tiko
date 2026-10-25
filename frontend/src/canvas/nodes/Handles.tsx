@@ -1,5 +1,6 @@
 import { Handle, Position } from '@xyflow/react'
-import { useReadOnly } from '@/canvas/readonly'
+import { useContext } from 'react'
+import { FarContext, useReadOnly } from '@/canvas/readonly'
 
 const SIDES = [
   { id: 't', position: Position.Top },
@@ -13,7 +14,9 @@ const SIDES = [
 export function Handles({ side = 0 }: { side?: number }) {
   // React Flow's nodesConnectable does not reach a Handle: a viewer could still draw arrows.
   const readOnly = useReadOnly()
-  const moved = side ? { l: { left: `${side}%` }, r: { left: `${100 - side}%` } } : undefined
+  // Far out arrows keep their ends from the node's own handles (canvas/handles.ts).
+  if (useContext(FarContext)) return null
+  const moved = side ? { l: { left: `${side}%` }, r: { right: `${side}%` } } : undefined
   return SIDES.map(({ id, position }) => (
     <Handle
       key={id}

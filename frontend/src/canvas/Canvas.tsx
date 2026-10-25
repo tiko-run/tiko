@@ -11,6 +11,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
   type Connection,
   type OnConnectEnd,
   type XYPosition,
@@ -74,6 +75,16 @@ import { useRefresh, type Guest } from '@/board/useRefresh'
 import { useDrawRect, type ScreenRect } from '@/canvas/useDrawRect'
 import { useGuides } from '@/canvas/useGuides'
 import { useRemoteMotion } from '@/live/motion'
+import { withHandles } from '@/canvas/handles'
+import {
+  FarCard,
+  FarFrame,
+  FarModule,
+  FarShape,
+  FarSticky,
+  FarText,
+  farView,
+} from '@/canvas/nodes/far'
 import { MAX_LIVE_DRAG, useBoardTravel } from '@/live/presence'
 import { SelectedByContext, withPresence } from '@/live/PresenceRing'
 import { PresenceLayer } from '@/live/PresenceLayer'
@@ -95,9 +106,8 @@ import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
 import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ShapeGhost } from '@/canvas/ShapeGhost'
-import { ZoomVar } from '@/canvas/ZoomVar'
 import { Minimap, readMinimapShown, saveMinimapShown } from '@/canvas/Minimap'
-import { ReadOnlyContext } from '@/canvas/readonly'
+import { FarContext, ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
@@ -130,12 +140,12 @@ import { didOnboarding } from '@/onboarding/done'
 import { topOverlay } from '@/lib/overlays'
 
 const nodeTypes = {
-  task_card: withPresence(TaskCardNode),
-  frame: withPresence(FrameNode),
-  sticky: withPresence(StickyNode),
-  shape: withPresence(ShapeNode),
-  text: withPresence(TextNode),
-  module: withPresence(ModuleNode),
+  task_card: withPresence(farView(TaskCardNode, FarCard)),
+  frame: withPresence(farView(FrameNode, FarFrame)),
+  sticky: withPresence(farView(StickyNode, FarSticky)),
+  shape: withPresence(farView(ShapeNode, FarShape)),
+  text: withPresence(farView(TextNode, FarText)),
+  module: withPresence(farView(ModuleNode, FarModule)),
   anchor: AnchorNode,
   timer: withPresence(TimerNode),
 }
@@ -158,6 +168,8 @@ const MIN_FRAME = { width: 160, height: 120 }
 const MIN_ARROW = 16
 
 // Leaves room for the top bar, the focus capsule and the toolbar over the board.
+// At 20% and below text is under 3 screen pixels: elements are drawn as blocks.
+const FAR_ZOOM = 0.2
 const FIT_NEW_BOARD = { padding: 0.16, maxZoom: 1 }
 const viewportCenter = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
 
@@ -283,13 +295,14 @@ export function BoardCanvas({
     [flow],
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
+  const far = useStore((state) => state.transform[2] <= FAR_ZOOM)
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
   // A style tried on the selection from the bar: drawn here only, never saved or sent.
   const [preview, setPreview] = useState<Style | null>(null)
   const shown = useMemo(() => {
     const painted =
       preview === null ? moving : moving.map((n) => (n.selected ? withStyle(n, preview) : n))
-    const raised = raiseAnchors(painted, edges)
+    const raised = raiseAnchors(painted.map(withHandles), edges)
     if (!flashId && !hits) return raised
     return {
       ...raised,
@@ -729,6 +742,20 @@ export function BoardCanvas({
     nodeEvents.current = { place, openNodeMenu }
   })
   const onNodeClick = useCallback((event: ReactMouseEvent) => nodeEvents.current.place(event), [])
+  // Far out an element has no editor: a double-click zooms in at that point, like on the empty board.
+  const onNodeDoubleClick = useCallback(
+    (event: ReactMouseEvent) => {
+      const { x, y, zoom } = flow.getViewport()
+      if (zoom > FAR_ZOOM) return
+      const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const next = zoom * 2
+      void flow.setViewport(
+        { x: x + at.x * (zoom - next), y: y + at.y * (zoom - next), zoom: next },
+        { duration: reducedMotion() ? 0 : 200 },
+      )
+    },
+    [flow],
+  )
   const onNodeContextMenu = useCallback(
     (_: ReactMouseEvent, node: AppNode) => nodeEvents.current.openNodeMenu(node),
     [],
@@ -914,6 +941,7 @@ export function BoardCanvas({
         }}
         onSelectionContextMenu={() => !readOnly && setMenuTarget({ kind: 'selection' })}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onMoveEnd={(_, viewport) => saveViewport(board.id, viewport)}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -947,7 +975,6 @@ export function BoardCanvas({
           .filter(Boolean)
           .join(' ')}
       >
-        <ZoomVar />
         <Background variant={BackgroundVariant.Dots} gap={16} color="var(--grid)" />
         {/* One column, so the minimap stays above the zoom buttons however many there are. */}
         <Panel position="bottom-right" className="canvas-corner">
@@ -1028,73 +1055,75 @@ export function BoardCanvas({
       <PlanningContext.Provider value={planning}>
         <BoardSourcesContext.Provider value={boardSources}>
           <ReadOnlyContext.Provider value={readOnly}>
-            <SelectedByContext.Provider value={live.selections}>
-              <ModuleHostContext.Provider value={moduleHost}>
-                <ExpandModuleContext.Provider value={setExpandedId}>
-                  {readOnly ? (
-                    surface
-                  ) : (
-                    <CanvasContextMenu
-                      target={menuTarget}
-                      onPlace={placeAt}
-                      onAddCards={addCards}
-                      onAddModule={addModule}
-                      onDelete={deleteSelection}
-                      cards={cardCounts}
-                      onCollapse={setCollapsed}
-                      onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                    >
-                      {surface}
-                    </CanvasContextMenu>
-                  )}
-                  {expandedNode && (
-                    <ModuleExpanded
-                      node={expandedNode}
-                      readOnly={readOnly}
-                      onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
-                      onClose={() => setExpandedId(null)}
-                    />
-                  )}
-                </ExpandModuleContext.Provider>
-              </ModuleHostContext.Provider>
-            </SelectedByContext.Provider>
-            {guest ? (
-              // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-              <div ref={topOverlay} className="absolute top-4 right-4 z-10">
-                {indicator}
-              </div>
-            ) : (
-              <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
-                {indicator}
-              </BoardTimers>
-            )}
-            <BoardSearch
-              boardId={board.id}
-              nodes={nodes}
-              tasks={tasks}
-              onJump={jumpTo}
-              onSelect={selectNodes}
-            />
-            {liveNotice && (
-              <Alert
-                variant={live.status === 'unsaved' ? 'destructive' : 'default'}
-                className="absolute top-16 right-4 z-10 w-80"
-              >
-                <AlertDescription>{liveNotice}</AlertDescription>
-              </Alert>
-            )}
-            {!readOnly && (
-              <Toolbar
-                tool={tool}
-                onTool={setTool}
-                onShape={(kind) => {
-                  setShapeKind(kind)
-                  setTool('shape')
-                }}
-                onAddCards={addCards}
-                onAddModule={(kind) => addModule(kind, viewportCenter())}
+            <FarContext.Provider value={far}>
+              <SelectedByContext.Provider value={live.selections}>
+                <ModuleHostContext.Provider value={moduleHost}>
+                  <ExpandModuleContext.Provider value={setExpandedId}>
+                    {readOnly ? (
+                      surface
+                    ) : (
+                      <CanvasContextMenu
+                        target={menuTarget}
+                        onPlace={placeAt}
+                        onAddCards={addCards}
+                        onAddModule={addModule}
+                        onDelete={deleteSelection}
+                        cards={cardCounts}
+                        onCollapse={setCollapsed}
+                        onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                      >
+                        {surface}
+                      </CanvasContextMenu>
+                    )}
+                    {expandedNode && (
+                      <ModuleExpanded
+                        node={expandedNode}
+                        readOnly={readOnly}
+                        onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
+                        onClose={() => setExpandedId(null)}
+                      />
+                    )}
+                  </ExpandModuleContext.Provider>
+                </ModuleHostContext.Provider>
+              </SelectedByContext.Provider>
+              {guest ? (
+                // Timers on the board are its people's reminders: a guest sees them, nothing rings.
+                <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                  {indicator}
+                </div>
+              ) : (
+                <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
+                  {indicator}
+                </BoardTimers>
+              )}
+              <BoardSearch
+                boardId={board.id}
+                nodes={nodes}
+                tasks={tasks}
+                onJump={jumpTo}
+                onSelect={selectNodes}
               />
-            )}
+              {liveNotice && (
+                <Alert
+                  variant={live.status === 'unsaved' ? 'destructive' : 'default'}
+                  className="absolute top-16 right-4 z-10 w-80"
+                >
+                  <AlertDescription>{liveNotice}</AlertDescription>
+                </Alert>
+              )}
+              {!readOnly && (
+                <Toolbar
+                  tool={tool}
+                  onTool={setTool}
+                  onShape={(kind) => {
+                    setShapeKind(kind)
+                    setTool('shape')
+                  }}
+                  onAddCards={addCards}
+                  onAddModule={(kind) => addModule(kind, viewportCenter())}
+                />
+              )}
+            </FarContext.Provider>
           </ReadOnlyContext.Provider>
         </BoardSourcesContext.Provider>
       </PlanningContext.Provider>

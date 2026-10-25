@@ -10,12 +10,17 @@ Requires: installer
 
 - Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
 
+### Changed
+
+- A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad runs at about twice the frame rate it did. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
+
 ### Fixed
 
 - Task bars no longer show through the month header of an expanded Gantt while you scroll.
 - A view-only board no longer lets you draw arrows that vanish on refresh.
 - Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
 - A large board zoomed out no longer stutters while someone else moves things on it.
+- Arrows to the right side of a triangle or a parallelogram now touch its outline.
 
 ## [2026.10.24] - 2026-10-22
 
