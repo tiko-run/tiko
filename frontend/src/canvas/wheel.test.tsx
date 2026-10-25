@@ -32,10 +32,11 @@ describe('wheel preference', () => {
     expect(localStorage.getItem('tiko.wheel')).toBe('zoom')
   })
 
-  test('Shift + wheel goes sideways from either axis, lines counted as pixels', () => {
+  test('Shift + wheel goes sideways from either axis, lines and pages counted as pixels', () => {
     expect(sidewaysDelta({ deltaX: 0, deltaY: 100, deltaMode: 0 })).toBe(50)
     expect(sidewaysDelta({ deltaX: -100, deltaY: 0, deltaMode: 0 })).toBe(-50)
     expect(sidewaysDelta({ deltaX: 0, deltaY: 3, deltaMode: 1 })).toBe(30)
+    expect(sidewaysDelta({ deltaX: 0, deltaY: 1, deltaMode: 2 })).toBe(window.innerWidth / 2)
   })
 })
 

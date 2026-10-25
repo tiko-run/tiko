@@ -61,8 +61,9 @@ const zoomFactor = (event: Delta) =>
 /** Sideways pixels for Shift + wheel: macOS turns it into deltaX, Windows and Linux keep deltaY. */
 export function sidewaysDelta(event: Delta) {
   const delta = event.deltaX !== 0 ? event.deltaX : event.deltaY
-  // Firefox counts lines, not pixels.
-  return delta * (event.deltaMode === 1 ? 20 : 1) * PAN_SPEED
+  // Firefox counts lines; Windows set to scroll a screen at a time counts pages.
+  const unit = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? window.innerWidth : 1
+  return delta * unit * PAN_SPEED
 }
 
 /** What this tiko code does with a wheel event before xyflow sees it; null leaves it to xyflow. */
