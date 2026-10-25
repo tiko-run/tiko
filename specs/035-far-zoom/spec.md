@@ -66,7 +66,7 @@ A person pinches out on a trackpad to see the whole board and back in on one clu
 ## Requirements *(mandatory)*
 
 - **FR-001**: At zoom 0.2 and below the board MUST draw elements in far view as listed in Decision 2; above 0.2 it MUST draw them as today.
-- **FR-002**: In far view elements MUST NOT render arrow grips, and every arrow MUST stay drawn at the same ends as in full view, including arrows of elements first shown in far view.
+- **FR-002**: In far view elements MUST NOT render arrow grips, and every arrow MUST stay drawn at the same ends as in full view, including arrows of elements first shown in far view. A task card has no size until it is drawn in full: one first shown in far view takes a placeholder block, its arrows end on that block, and they move to the card's edges once it is shown in full.
 - **FR-003**: Select, drag, delete, copy, undo and live moves MUST work in far view; text editing MUST NOT open there, and a double-click on an element MUST zoom in at that point.
 - **FR-006**: A zoom step MUST NOT restyle elements that do not depend on zoom.
 - **FR-004**: Far view MUST use theme tokens only and MUST be readable in both themes.

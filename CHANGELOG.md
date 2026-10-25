@@ -12,7 +12,7 @@ Requires: installer
 
 ### Changed
 
-- A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad no longer lags. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
+- A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad runs at about twice the frame rate it did. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 
 ### Fixed
 
