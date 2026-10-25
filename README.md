@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center"><b>Open-source infinite canvas for your tasks</b></p>
+<p align="center"><b>One canvas for all your work: live tasks from your tracker, arranged the way you think</b></p>
 
 <p align="center">
   <a href="https://tiko.run"><b>Website</b></a> •
@@ -24,7 +24,7 @@
   <a href="https://docs.tiko.run/"><img src="https://img.shields.io/badge/docs-docs.tiko.run-8A2BE2" alt="Docs"></a>
 </p>
 
-![A tiko board: frames of live task cards with timers, sticky notes, arrows, a Gantt release plan and the focus timer](docs/assets/board.png)
+![A tiko board: frames of live task cards with reminders, sticky notes, arrows, a Gantt release plan and the focus timer](docs/assets/board.png)
 
 ## Contents
 
@@ -79,9 +79,9 @@ Drop cards onto a Gantt to get bars with live status, stages, milestones and dep
 
 ### Wait without watching
 
-Put a timer next to a card. It goes off after a set time or when the task leaves its status. A focus timer with music sits at the top of the screen. [Timers and focus →](https://docs.tiko.run/focus-and-timers/)
+Put a reminder next to a card. It goes off after a set time or when the task leaves its status. A focus timer with music sits at the top of the screen. [Reminders and focus →](https://docs.tiko.run/focus-and-reminders/)
 
-[![A timer on a card goes off when the task leaves its status, then the focus timer starts](https://media.tiko.run/readme/readme-timers.webp)](https://media.tiko.run/readme/readme-timers.mp4)
+[![A reminder on a card goes off when the task leaves its status, then the focus timer starts](https://media.tiko.run/readme/readme-timers.webp)](https://media.tiko.run/readme/readme-timers.mp4)
 
 ### Find anything from the keyboard
 
@@ -149,7 +149,7 @@ Everything else lives at [docs.tiko.run](https://docs.tiko.run/).
 | | |
 |---|---|
 | Get started | [Install](https://docs.tiko.run/install/) · [Quick start](https://docs.tiko.run/quick-start/) |
-| Use tiko | [Adding tasks](https://docs.tiko.run/adding-tasks/) · [Working together](https://docs.tiko.run/working-together/) · [Search](https://docs.tiko.run/search/) · [Gantt](https://docs.tiko.run/gantt/) · [Timers and focus](https://docs.tiko.run/focus-and-timers/) · [Shortcuts](https://docs.tiko.run/keyboard-shortcuts/) |
+| Use tiko | [Adding tasks](https://docs.tiko.run/adding-tasks/) · [Working together](https://docs.tiko.run/working-together/) · [Search](https://docs.tiko.run/search/) · [Gantt](https://docs.tiko.run/gantt/) · [Reminders and focus](https://docs.tiko.run/focus-and-reminders/) · [Shortcuts](https://docs.tiko.run/keyboard-shortcuts/) |
 | Trackers | [Supported trackers](https://docs.tiko.run/trackers/) · [Connect Jira Data Center](https://docs.tiko.run/jira-data-center/) |
 | Self-host | [Configuration](https://docs.tiko.run/configuration/) · [Data, backups and upgrades](https://docs.tiko.run/data-and-upgrades/) · [Updates](https://docs.tiko.run/updates/) · [Security and privacy](https://docs.tiko.run/security/) |
 | Project | [Roadmap](https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM) · [Architecture](https://docs.tiko.run/architecture/) · [Changelog](CHANGELOG.md) |

@@ -16,7 +16,7 @@ tiko reads Jira Cloud sites like `https://example.atlassian.net`. Each person si
 4. Each person, the admin included, creates an API token at [id.atlassian.com → Security → API tokens](https://id.atlassian.com/manage-profile/security/api-tokens). Choose **Create API token**, not the one with scopes.
 5. In tiko, they open Settings → My tracker, enter their Atlassian e-mail and the token, save, and press "Test connection". It shows their Jira name.
 
-Cards, links, ranges of keys, JQL queries with suggestions, status timers, the Gantt and public links work as they do with [Jira Data Center](../jira-data-center/). Links copied from a Jira board, with `selectedIssue` in them, become cards too. See [What you can add](../what-you-can-add/).
+Cards, links, ranges of keys, JQL queries with suggestions, status reminders, the Gantt and public links work as they do with [Jira Data Center](../jira-data-center/). Links copied from a Jira board, with `selectedIssue` in them, become cards too. See [What you can add](../what-you-can-add/).
 
 ## Good to know
 

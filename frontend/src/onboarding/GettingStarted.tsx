@@ -20,7 +20,7 @@ const LABELS: Record<Item, string> = {
   paste_link: 'Paste a task link onto the board',
   search_filter: 'Search with a filter',
   set_timer: 'Set a reminder',
-  timer_list: 'Open the list of timers',
+  timer_list: 'Open the list of reminders',
   gantt_task: 'Put a task into a Gantt chart',
   focus: 'Start a focus session',
   tracker: 'Connect your tracker',

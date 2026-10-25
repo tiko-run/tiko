@@ -31,13 +31,13 @@ export const STEPS: Step[] = [
   {
     id: 'search',
     title: 'Find anything',
-    text: `${key('search')} searches cards, notes and timers. Narrow it with <code>status:</code>, <code>@name</code>, <code>type:</code>, <code>priority:</code> or <code>#frame</code>. ${key('commands')} runs commands.`,
+    text: `${key('search')} searches cards, notes and reminders. Narrow it with <code>status:</code>, <code>@name</code>, <code>type:</code>, <code>priority:</code> or <code>#frame</code>. ${key('commands')} runs commands.`,
   },
   {
     id: 'timer',
     anchor: 'tool-timer',
     title: 'Set a reminder',
-    text: `A timer by a card goes off later or on a status change. Find them all top right or in the main menu. ${key('timer')}`,
+    text: `A reminder by a card goes off later or on a status change. Find them all top right or in the main menu. ${key('timer')}`,
   },
   {
     id: 'gantt',

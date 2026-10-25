@@ -21,15 +21,15 @@ export function TimerNotes({ fired, missed, onDismissMissed, onOpen, onDone, onS
   const more = fired.length - SHOWN
   return (
     <section
-      aria-label="Timers that went off"
+      aria-label="Reminders that went off"
       className="absolute top-16 right-4 z-10 flex w-72 flex-col gap-2"
     >
       {missed > 0 && (
         <div className="bg-card flex items-center gap-2 rounded-lg border py-1 pr-1 pl-3 text-[13px] shadow-md">
           <span className="flex-1">
             {missed === 1
-              ? 'A timer went off while the board was closed.'
-              : `${missed} timers went off while the board was closed.`}
+              ? 'A reminder went off while the board was closed.'
+              : `${missed} reminders went off while the board was closed.`}
           </span>
           <Button size="icon-xs" variant="ghost" aria-label="Dismiss" onClick={onDismissMissed}>
             <X strokeWidth={1.75} />
@@ -53,7 +53,7 @@ export function TimerNotes({ fired, missed, onDismissMissed, onOpen, onDone, onS
               <BellRing className="size-3.5" strokeWidth={2} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{timer.note || 'Timer'}</span>
+              <span className="block truncate font-medium">{timer.note || 'Reminder'}</span>
               <span className="text-muted-foreground block truncate text-[12px]">
                 {[
                   timer.holder && `On ${timer.holder}`,
@@ -78,7 +78,7 @@ export function TimerNotes({ fired, missed, onDismissMissed, onOpen, onDone, onS
       ))}
       {more > 0 && (
         <p className="text-muted-foreground px-1 text-[12px]">
-          {more === 1 ? 'One more timer went off.' : `${more} more timers went off.`}
+          {more === 1 ? 'One more reminder went off.' : `${more} more reminders went off.`}
         </p>
       )}
     </section>

@@ -21,6 +21,6 @@ Several chips of the same field match any of them; different fields must all mat
 
 ## Commands and boards
 
-The same palette runs app commands: add a card, sticky note, frame, timer or module, switch the theme, open settings, create or rename a board. Each command shows its shortcut. Other boards whose name matches appear as "Go to board".
+The same palette runs app commands: add a card, sticky note, frame, reminder or module, switch the theme, open settings, create or rename a board. Each command shows its shortcut. Other boards whose name matches appear as "Go to board".
 
 Start the query with `>`, or press `⌘P` (`Ctrl+P`), to list only commands and boards.

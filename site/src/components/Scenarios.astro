@@ -77,7 +77,7 @@ const scenarios: { tag: string; title: string; text: string; items: Item[] }[] =
   {
     tag: 'On-call',
     title: 'Incident room',
-    text: 'One board per incident: the failing issues, who owns what, a timeline of notes and a timer for the next update.',
+    text: 'One board per incident: the failing issues, who owns what, a timeline of notes and a reminder for the next update.',
     items: [
       { t: 'frame', at: [10, 30, 186, 120], title: 'INC-42 · Checkout errors', tone: 'pink' },
       { t: 'card', at: [18, 42], k: 'PAY-301', s: 'progress', type: 'bug' },
@@ -173,7 +173,7 @@ const scenarios: { tag: string; title: string; text: string; items: Item[] }[] =
   {
     tag: 'Personal',
     title: 'Your own week',
-    text: 'Keep the tasks you own and the ones you wait on in two frames. A timer pings you when a review comes back.',
+    text: 'Keep the tasks you own and the ones you wait on in two frames. A reminder pings you when a review comes back.',
     items: [
       { t: 'focus', at: [130, 8], time: '24:10' },
       { t: 'frame', at: [10, 58, 184, 104], title: 'Mine' },

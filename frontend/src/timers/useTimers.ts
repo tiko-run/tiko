@@ -79,7 +79,7 @@ export function useTimers(nodes: AppNode[], { tasks, onOpen, onChange }: Options
         t.holder && `On ${t.holder}`,
         t.watch ? describeWatch(t.watch) : `Set for ${formatClock(t.at)}`,
       ]
-      notifyTimer(t.id, t.note || 'Timer', body.filter(Boolean).join(' · '), () =>
+      notifyTimer(t.id, t.note || 'Reminder', body.filter(Boolean).join(' · '), () =>
         onOpenRef.current(t.id),
       )
     }

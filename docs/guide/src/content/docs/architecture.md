@@ -62,7 +62,7 @@ frontend/src/
   canvas/     React Flow canvas, nodes, toolbar, context menu, clipboard, undo history
   live/       shared document and its WebSocket sync
   modules/    board modules, Gantt first
-  timers/     card timers
+  timers/     card reminders
   focus/      focus timer and player
   search/     the command palette
   settings/   settings sheets

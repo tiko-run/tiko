@@ -43,7 +43,7 @@ const PLACE: { tool: PlaceTool; label: string; Icon: typeof Frame }[] = [
   { tool: 'frame', label: 'Add frame', Icon: Frame },
   { tool: 'sticky', label: 'Add sticky note', Icon: StickyNote },
   { tool: 'text', label: 'Add text', Icon: Type },
-  { tool: 'timer', label: 'Add timer', Icon: AlarmClock },
+  { tool: 'timer', label: 'Add reminder', Icon: AlarmClock },
 ]
 
 const CANVAS_TARGETS =
@@ -127,7 +127,7 @@ export function CanvasContextMenu({
               {onAddTimer && (
                 <ContextMenuItem onSelect={later(onAddTimer)}>
                   <AlarmClock strokeWidth={1.75} />
-                  Add timer
+                  Add reminder
                 </ContextMenuItem>
               )}
               <ContextMenuItem variant="destructive" onSelect={later(onDelete)}>

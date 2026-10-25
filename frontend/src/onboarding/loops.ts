@@ -39,7 +39,7 @@ export const LOOPS: Record<StepId, string> = {
   </div>`,
 
   timer: `<div class="tl-art tl-wait">
-    <span class="tl-list">Timers <b>1</b></span>
+    <span class="tl-list">Reminders <b>1</b></span>
     <span class="tl-cube"><span class="tl-run">2m</span><span class="tl-fired">●</span></span>
     ${card('DEMO-18', `Billing cron${lozenge('progress', 'In review')}`, 'task', '', '--x:72px;--y:46px')}
     <div class="tl-went"><b>Ping QA about the cron</b><small>On DEMO-18 · Went off at 15:30</small></div>

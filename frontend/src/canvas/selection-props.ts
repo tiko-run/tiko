@@ -125,7 +125,7 @@ export const KIND_NAMES: Record<Kind, [one: string, many: string]> = {
   shape: ['Shape', 'Shapes'],
   text: ['Text', 'Texts'],
   module: ['Module', 'Modules'],
-  timer: ['Timer', 'Timers'],
+  timer: ['Reminder', 'Reminders'],
 }
 
 /** How many nodes of each type, in the order the types first appear. */
