@@ -125,6 +125,25 @@ export function shiftStages(row: Row, days: number): Row {
 }
 
 /**
+ * A stage dragged by its body or end to the right pushes the later stages of its row by the
+ * same days, gaps kept. Leftwards, by its start, or `alone` it stops at its neighbours.
+ */
+export function dragStage(row: Row, id: string, next: Span, grip: Grip, alone: boolean): Row {
+  const own = stageSpan(shownStages(row).find((s) => s.id === id)!)
+  const days = next.end - own.end
+  if (alone || grip === 'start' || days <= 0) {
+    return setStageSpan(row, id, clampStage(row, id, next, grip))
+  }
+  const start = grip === 'move' ? next.start : own.start
+  const moved = shownStages(row).map((s) => {
+    if (s.id === id) return { ...s, start: formatDay(start), end: formatDay(next.end) }
+    if (parseDay(s.start) <= own.end) return s
+    return { ...s, start: shift(s.start, days), end: shift(s.end, days) }
+  })
+  return withStages(row, real(moved))
+}
+
+/**
  * The row's bar dragged with Planning off: moving takes every stage along, an end stretches
  * the first or the last stage, never past its own other end.
  */

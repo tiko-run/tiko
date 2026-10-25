@@ -5,6 +5,7 @@ import {
   addChild,
   branchSpan,
   childrenSpan,
+  foldAll,
   resizeParent,
   indent,
   insertRow,
@@ -147,5 +148,21 @@ describe('tree', () => {
     ])
     expect(moveSubtree(deep, 'X', null, 5)).toBe(deep)
     expect(shape(addChild(deep, '4', row('Y')))).toBe(shape(deep))
+  })
+})
+
+describe('foldAll', () => {
+  const plan = content([row('a'), row('b', 'a'), row('c', 'b'), row('d')])
+
+  it('folds and unfolds every row with children, leaves alone the rest', () => {
+    const folded = foldAll(plan, true)
+    expect(folded.rows.map((r) => Boolean(r.collapsed))).toEqual([true, true, false, false])
+    expect(visibleRows(folded.rows).map((t) => t.row.id)).toEqual(['a', 'd'])
+    const open = foldAll(folded, false)
+    expect(visibleRows(open.rows).map((t) => t.row.id)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('returns the same content when nothing changes', () => {
+    expect(foldAll(plan, false)).toBe(plan)
   })
 })

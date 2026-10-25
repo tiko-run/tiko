@@ -7,6 +7,7 @@ import {
   BARE,
   fitLeaves,
   clampStage,
+  dragStage,
   fitStages,
   gapAt,
   nextType,
@@ -161,4 +162,109 @@ test('a row that stops being a parent takes its stages dates again', () => {
   expect([fitted.start, fitted.end]).toEqual(['2026-10-05', '2026-10-16'])
   const parent = { ...content, rows: [...content.rows, { ...bare, parent: 'r' }] }
   expect(fitLeaves(parent)).toBe(parent)
+})
+
+const spans = (row: Row) => row.stages!.map((s) => [s.start, s.end])
+
+test('a stage moved or stretched right pushes the later stages by the same days', () => {
+  const three = withPause()
+  const moved = dragStage(
+    three,
+    's1',
+    { start: d('2026-10-10'), end: d('2026-10-12') },
+    'move',
+    false,
+  )
+  expect(spans(moved)).toEqual([
+    ['2026-10-10', '2026-10-12'],
+    ['2026-10-17', '2026-10-21'],
+    ['2026-10-24', '2026-10-28'],
+  ])
+  expect(moved.end).toBe('2026-10-28')
+  const stretched = dragStage(
+    three,
+    's1',
+    { start: d('2026-10-05'), end: d('2026-10-09') },
+    'end',
+    false,
+  )
+  expect(spans(stretched)).toEqual([
+    ['2026-10-05', '2026-10-09'],
+    ['2026-10-14', '2026-10-18'],
+    ['2026-10-21', '2026-10-25'],
+  ])
+})
+
+test('a stage moved left, by its start or with Alt stops at its neighbours alone', () => {
+  const three = withPause()
+  const left = dragStage(
+    three,
+    's2',
+    { start: d('2026-10-01'), end: d('2026-10-05') },
+    'move',
+    false,
+  )
+  expect(spans(left)).toEqual([
+    ['2026-10-05', '2026-10-07'],
+    ['2026-10-08', '2026-10-12'],
+    ['2026-10-19', '2026-10-23'],
+  ])
+  const alone = dragStage(
+    three,
+    's1',
+    { start: d('2026-10-15'), end: d('2026-10-17') },
+    'move',
+    true,
+  )
+  expect(spans(alone)[0]).toEqual(['2026-10-09', '2026-10-11'])
+  expect(spans(alone).slice(1)).toEqual(spans(three).slice(1))
+  const start = dragStage(
+    three,
+    's2',
+    { start: d('2026-10-14'), end: d('2026-10-16') },
+    'start',
+    false,
+  )
+  expect(spans(start).slice(1)).toEqual([
+    ['2026-10-14', '2026-10-16'],
+    ['2026-10-19', '2026-10-23'],
+  ])
+})
+
+test('the last stage pushed right moves only itself', () => {
+  const three = withPause()
+  const last = dragStage(
+    three,
+    's3',
+    { start: d('2026-10-21'), end: d('2026-10-25') },
+    'move',
+    false,
+  )
+  expect(spans(last)[2]).toEqual(['2026-10-21', '2026-10-25'])
+  expect(spans(last).slice(0, 2)).toEqual(spans(three).slice(0, 2))
+})
+
+test('with weekends hidden a moved stage keeps the dates it was dragged to', () => {
+  // One shown day from Mon–Fri lands on Tue–Mon: the start moves one day, the end three.
+  const week: Row = {
+    id: 'w',
+    title: 'Week',
+    start: '2026-10-05',
+    end: '2026-10-16',
+    stages: [
+      { id: 'a', type: 't1', start: '2026-10-05', end: '2026-10-09', people: [] },
+      { id: 'b', type: 't2', start: '2026-10-14', end: '2026-10-16', people: [] },
+    ],
+  }
+  const moved = dragStage(
+    week,
+    'a',
+    { start: d('2026-10-06'), end: d('2026-10-12') },
+    'move',
+    false,
+  )
+  expect(spans(moved)).toEqual([
+    ['2026-10-06', '2026-10-12'],
+    ['2026-10-17', '2026-10-19'],
+  ])
 })
