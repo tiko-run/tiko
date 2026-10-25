@@ -31,7 +31,7 @@ To sign in after the deploy:
 
 1. In the Railway project open the `web` service and click its public address.
 2. Open the `api` service, then the Variables tab, and reveal `TIKO_PASSWORD`.
-3. Sign in with the username `admin` and that password, then change it in Settings → Security.
+3. Sign in with the username `admin` and that password, then pick a password of your own on the screen that follows.
 
 ## On Render
 
@@ -45,7 +45,7 @@ To sign in after the deploy:
 
 1. Open the address of `tiko-web` from the Render dashboard.
 2. Open the `tiko-api` service, then Environment, and reveal `TIKO_PASSWORD`.
-3. Sign in with the username `admin` and that password, then change it in Settings → Security.
+3. Sign in with the username `admin` and that password, then pick a password of your own on the screen that follows.
 
 To upgrade, redeploy `api` and `web`: they pull the latest release.
 

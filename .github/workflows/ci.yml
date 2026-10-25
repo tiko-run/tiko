@@ -27,7 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker compose up --build -d --wait
-      - run: make smoke
+      # A throwaway stack: smoke may change the first admin's password away and back.
+      - run: SMOKE_FIRST_PASSWORD=1 make smoke
       - run: docker build -q updater
       - if: failure()
         run: docker compose logs --tail=100

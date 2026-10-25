@@ -55,7 +55,7 @@ fmt:  ## auto-format
 check: lint test  ## gate before every merge to main
 
 smoke:  ## main scenario against a running stack (make up first)
-	docker compose exec -T api python - < scripts/smoke.py
+	docker compose exec -T -e SMOKE_PASSWORD -e SMOKE_FIRST_PASSWORD api python - < scripts/smoke.py
 
 # Permissive and weak-copyleft only, so the maintainer can still relicense the code under the CLA;
 # GPL-family, SSPL, BUSL, custom "see LICENSE" fail.

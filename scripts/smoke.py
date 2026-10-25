@@ -54,10 +54,13 @@ status, auth = call("GET", f"{API}/api/auth/status")
 check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
 
 if auth["me"]["must_change_password"]:
-    # A fresh stack: the first admin must replace the password before anything else. It ends
-    # as it was; the change deletes data/password, and the API log still has the password.
+    # A fresh stack: the first admin must replace the password before anything else.
     status, held = call("GET", f"{API}/api/boards")
     check(status == 403 and held["error"]["code"] == "password_change_required", "new password first")
+    # Changing it away and back leaves the startup password valid with no mark, so only a
+    # throwaway stack (CI) may do that; anywhere else the owner sets a password first.
+    if os.environ.get("SMOKE_FIRST_PASSWORD") != "1":
+        raise SystemExit("STOP sign in once and set a password, then pass it as SMOKE_PASSWORD")
     for current, new in ((PASSWORD, PASSWORD + "-smoke"), (PASSWORD + "-smoke", PASSWORD)):
         status, _ = call("PUT", f"{API}/api/me/password", {"current": current, "new": new})
         check(status == 204, "change the first password")
