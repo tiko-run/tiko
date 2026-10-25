@@ -51,7 +51,19 @@ export async function startErrorReports() {
     tunnel: '/api/privacy/errors',
     release: page.version,
     environment: 'self-hosted',
-    sendDefaultPii: false,
+    // Since SDK 11 an unset dataCollection collects user info, cookies, headers and bodies.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+    },
     defaultIntegrations: false,
     integrations: [
       Sentry.globalHandlersIntegration(),
