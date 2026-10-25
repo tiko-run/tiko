@@ -4,10 +4,12 @@ Base path `/api`. Errors use `{"error": {"code": "...", "message": "..."}}`. Wit
 
 Open routes: `/health`, `/ready`, `GET /auth/status`, `POST /auth/login`, `POST /auth/logout`, `GET /invites/{token}`, `POST /invites/{token}/accept`.
 
+The first admin, made from `TIKO_PASSWORD` or the generated password (spec 036), carries `must_change_password: true` until `PUT /me/password` succeeds. Until then every route other than the open ones, `PUT /me/password` and `POST /auth/logout-all` answers 403 `password_change_required`, and the live socket closes with 1008.
+
 ## Types
 
 ```text
-Me = {id, username, name, role: "admin" | "member"}
+Me = {id, username, name, role: "admin" | "member", must_change_password: bool}
 Person = {id, username, name, role, disabled: bool, last_sign_in_at: string|null, created_at}
 Invite = {id, kind: "invite" | "reset", role: string|null, username: string|null, expires_at, created_at}
 BoardSummary = {id, name, updated_at, my_role: "owner" | "editor" | "viewer", owner: {id, name}}
@@ -29,7 +31,7 @@ Task.state gains "forbidden" (token cannot see it) and "no_token" (person has no
 | Method, path | Request | Response | Errors |
 |---|---|---|---|
 | `PATCH /me` | `{name?, username?}` | `Me` | 409 `username_taken`, 422 |
-| `PUT /me/password` | `{current, new}` | 204, other sessions end | 401 `invalid_credentials`, 422 `weak_password` |
+| `PUT /me/password` | `{current, new}` | 204, other sessions end, the first admin's mark clears | 401 `invalid_credentials`, 422 `weak_password` (also when `new` is the current password) |
 | `GET /me/tracker` | – | `{provider, token_state: "none" | "set" | "unreadable"}` | |
 | `PUT /me/tracker` | `{token}` | `{token_state}` | 400 `secret_key_missing`, 422 |
 | `DELETE /me/tracker` | – | 204 | |

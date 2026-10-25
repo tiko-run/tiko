@@ -1148,7 +1148,10 @@ class PgUsageCounts:
 
 
 # The role is the person's in the request's workspace; %s there is the workspace id.
-_PERSON = "u.id, u.username, u.name, m.role, u.disabled_at, u.server_admin, u.demo_expires_at"
+_PERSON = (
+    "u.id, u.username, u.name, m.role, u.disabled_at, u.server_admin, u.demo_expires_at,"
+    " u.must_change_password"
+)
 _PERSON_FROM = "users u LEFT JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
 # Only the workspace's members: an account elsewhere is not found here, so no admin reaches it.
 _MEMBER_FROM = "users u JOIN memberships m ON m.user_id = u.id AND m.workspace_id = %s"
@@ -1176,6 +1179,7 @@ def _person(row: dict) -> Person:
         disabled=row["disabled_at"] is not None,
         server_admin=row["server_admin"],
         demo_expires_at=row["demo_expires_at"],
+        must_change_password=row["must_change_password"],
     )
 
 
@@ -1238,7 +1242,8 @@ class PgUserRepo(_Repo):
             with self._tx() as conn:
                 conn.execute(
                     "INSERT INTO users (id, username, name, password_hash, created_at,"
-                    " demo_expires_at, server_admin) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    " demo_expires_at, server_admin, must_change_password)"
+                    " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                     (
                         person.id,
                         person.username,
@@ -1247,6 +1252,7 @@ class PgUserRepo(_Repo):
                         now_iso(),
                         person.demo_expires_at,
                         person.server_admin,
+                        person.must_change_password,
                     ),
                 )
                 conn.execute(
@@ -1305,7 +1311,8 @@ class PgUserRepo(_Repo):
     def set_password(self, user_id: str, password_hash: str) -> None:
         with self._tx() as conn:
             conn.execute(
-                "UPDATE users SET password_hash = %s WHERE id = %s", (password_hash, user_id)
+                "UPDATE users SET password_hash = %s, must_change_password = false WHERE id = %s",
+                (password_hash, user_id),
             )
 
     def onboarding(self, user_id: str) -> Onboarding:

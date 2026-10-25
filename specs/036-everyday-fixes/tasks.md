@@ -18,10 +18,10 @@ description: "Task list for Everyday fixes"
 
 ## Phase 3: Slice `feat/first-password` (US3, SC-002)
 
-- [ ] T003 Contract: `must_change_password` on the person and the `password_change_required` 403 in `specs/008-accounts/contracts/api.md`
-- [ ] T004 Column on people (false for existing rows), set by `bootstrap_admin`, cleared by a password change; the generated password file deleted then. Domain tests
-- [ ] T005 Guard: every route except sign-out, `/api/auth/me` and the password change answers 403 for a marked person; the live socket refuses that person too. API test over every router and the socket (SC-002)
-- [ ] T006 Web: the new password screen in place of the app for a marked person; "First time here?" link on sign-in; guide section about the first password. Tests; `make smoke`
+- [x] T003 Contract: `must_change_password` on the person and the `password_change_required` 403 in `specs/008-accounts/contracts/api.md`
+- [x] T004 Column on people (false for existing rows), set by `bootstrap_admin`, cleared by a password change; the generated password file deleted then. Domain tests
+- [x] T005 Guard: every route except sign-out, `GET /auth/status` and the password change answers 403 for a marked person; the live socket refuses that person too. API test over every router and the socket (SC-002)
+- [x] T006 Web: the new password screen in place of the app for a marked person; "First time here?" link on sign-in; guide section about the first password. Tests; `make smoke`
 
 ## Phase 4: Slice `feat/gantt-push` (US4, SC-003)
 

@@ -66,7 +66,7 @@ The owner deploys tiko to a public host, signs in with the password from the log
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh instance, **When** the admin signs in, **Then** only the new password screen is shown, and every API call other than the password change, sign-out and `/api/auth/me` answers 403 with a code the web app knows.
+1. **Given** a fresh instance, **When** the admin signs in, **Then** only the new password screen is shown, and every API call other than the password change, sign-out and `GET /auth/status` answers 403 with a code the web app knows.
 2. **Given** the new password screen, **When** the same password as the current one is entered, **Then** it is refused.
 3. **Given** the password changed, **Then** the mark is gone, other sessions of that person are signed out as with any password change, and `data/password` is deleted.
 4. **Given** an instance upgraded from an earlier release, **Then** no admin is asked.
@@ -120,7 +120,7 @@ A person opens the card tool and picks yesterday's query from the list instead o
 - **FR-004**: Dragging a stage right MUST push the later stages of its row by the same days unless Alt is held; "Expand all" and "Collapse all" MUST fold every row with children in one undo step.
 - **FR-005**: Every scrolling area MUST use overlay bars that take no space and fade at rest.
 - **FR-006**: The card tool MUST keep the last five distinct inputs that added a card, in the browser only.
-- **FR-007**: Only story 3 MAY change the API contract or the database: one field in the person returned by `/api/auth/me` and `/api/me`, one error code, one column on people. The board document and the live protocol MUST NOT change.
+- **FR-007**: Only story 3 MAY change the API contract or the database: one field in the person returned by `GET /auth/status`, one error code, one column on people. The board document and the live protocol MUST NOT change.
 
 ## Success Criteria
 

@@ -748,6 +748,7 @@ def test_sign_up_keeps_the_person_their_boards_and_the_session(app):
         "server_admin": False,
         "workspace": me(ann)["workspace"],
         "demo_expires_at": None,
+        "must_change_password": False,
     }
     assert me(ann)["demo_expires_at"] is None
     after = [ann.get(f"/api/boards/{board}").json() for board in (first, second)]

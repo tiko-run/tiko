@@ -18,3 +18,8 @@ def load_or_create(path: str) -> tuple[str, bool]:
     with os.fdopen(fd, "w") as handle:
         handle.write(password + "\n")
     return password, True
+
+
+def remove(path: str) -> None:
+    """Deletes the generated password once the first admin has replaced it."""
+    Path(path).unlink(missing_ok=True)

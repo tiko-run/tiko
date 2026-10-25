@@ -8,11 +8,14 @@ ADMIN = "admin"
 
 
 def bootstrap_admin(accounts: Accounts, users: UserRepo, password: Callable[[], str]) -> bool:
-    """Turns the instance password into the first admin's; True when it created them."""
+    """Turns the instance password into the first admin's; True when it created them. That
+    password was in a log line, a file or a hosting variable, so the admin must replace it."""
     if users.count():
         return False
     try:
-        accounts.create(ADMIN, "Admin", password(), "admin", server_admin=True)
+        accounts.create(
+            ADMIN, "Admin", password(), "admin", server_admin=True, must_change_password=True
+        )
     except UsernameTaken:
         # Another worker created the admin first.
         return False

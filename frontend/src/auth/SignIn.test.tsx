@@ -31,6 +31,14 @@ test('an ordinary instance opens on the sign-in form', () => {
   expect(screen.queryByText('Try the demo')).toBeNull()
 })
 
+test('the sign-in form links to where the first password is', () => {
+  show(false)
+  expect(screen.getByRole('link', { name: 'First time here?' })).toHaveAttribute(
+    'href',
+    'https://docs.tiko.run/security/#the-first-password',
+  )
+})
+
 test('an ordinary instance has no demo page', () => {
   show(false, undefined, '/demo')
   expect(screen.getByLabelText('Username')).toBeInTheDocument()
