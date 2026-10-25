@@ -9,15 +9,17 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { useRef, useState, type PointerEvent } from 'react'
+import { useContext, useRef, useState, type PointerEvent } from 'react'
 import type { Task } from '@/api/tasks'
 import { TypeIcon } from '@/canvas/nodes/TaskBits'
 import type { Row } from '@/modules/gantt/rows'
 import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
+import { BoardSourcesContext } from '@/sources/board-sources'
 import { shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
 import { useTaskLinkProps } from '@/lib/task-links'
+import { useReadOnly } from '@/canvas/readonly'
 
 // A press that moves further than this starts a row drag.
 const DRAG_SLOP = 4
@@ -65,6 +67,9 @@ export function GanttLabel({
   onEject,
 }: Props) {
   const getZoom = useZoom()
+  const readOnly = useReadOnly()
+  const linkProps = useTaskLinkProps()
+  const { mixed } = useContext(BoardSourcesContext)
   const [offset, setOffset] = useState<{ x: number; y: number } | null>(null)
   const [editing, setEditing] = useState(Boolean(fresh))
   const press = useRef<{ x: number; y: number; zoom: number } | null>(null)
@@ -127,7 +132,18 @@ export function GanttLabel({
         transform: offset !== null ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
       }}
     >
-      <GripVertical className="text-muted-foreground/60 size-3.5 shrink-0" />
+      {/* The mark takes the grip's place until hover, so the title keeps its room. */}
+      {mixed && row.key && (
+        <span className="flex shrink-0 group-hover/label:hidden">
+          <BoardSourceMark source={task?.source ?? row.source} />
+        </span>
+      )}
+      <GripVertical
+        className={cn(
+          'text-muted-foreground/60 size-3.5 shrink-0',
+          mixed && row.key && 'hidden group-hover/label:block',
+        )}
+      />
       {hasChildren ? (
         <button
           type="button"
@@ -153,11 +169,24 @@ export function GanttLabel({
             hasChildren && 'font-semibold',
           )}
         >
-          <BoardSourceMark source={task?.source ?? row.source} />
           {task && task.state !== 'private' && <TypeIcon typeName={task.type_name} />}
-          <span className={cn('shrink-0 font-medium', done && 'line-through')}>
-            {shortKey(task?.source ?? row.source, row.key)}
-          </span>
+          {/* A viewer has no hover actions, so the key itself opens the task. */}
+          {readOnly && url ? (
+            <a
+              href={url}
+              {...linkProps}
+              className={cn(
+                'pointer-events-auto shrink-0 font-medium hover:underline',
+                done && 'line-through',
+              )}
+            >
+              {shortKey(task?.source ?? row.source, row.key)}
+            </a>
+          ) : (
+            <span className={cn('shrink-0 font-medium', done && 'line-through')}>
+              {shortKey(task?.source ?? row.source, row.key)}
+            </span>
+          )}
           <span className="truncate" title={task?.summary}>
             {task?.state === 'not_found'
               ? 'not found'

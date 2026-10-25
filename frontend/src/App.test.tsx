@@ -31,13 +31,103 @@ function mockFetch(status: number, body: unknown, auth: Partial<Record<string, R
   return fetch
 }
 
-afterEach(() => vi.unstubAllGlobals())
+// The canvas needs a real browser; these tests only follow which board is open.
+vi.mock('@/canvas/Canvas', () => ({
+  default: ({ boardId }: { boardId: string }) => <p>Canvas of {boardId}</p>,
+}))
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  window.history.replaceState(null, '', '/')
+})
 
 test('offers to create the first board', async () => {
   mockFetch(200, { boards: [], all: [] })
   renderApp()
-  expect(await screen.findByText(/Create a board/)).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /New board/ })).toBeDisabled()
+  expect(await screen.findByText(/No boards yet/)).toBeInTheDocument()
+  expect(screen.getAllByRole('button', { name: /New board/ })[0]).toBeEnabled()
+})
+
+const me = {
+  id: 'u1',
+  username: 'ann',
+  name: 'Ann',
+  role: 'member',
+  server_admin: false,
+  workspace: { id: 'w1', name: 'Default' },
+}
+const summary = (id: string, name: string) => ({
+  id,
+  name,
+  created_at: '2026-10-01T09:00:00Z',
+  updated_at: '2026-10-20T09:00:00Z',
+  my_role: 'owner',
+  owner: { id: 'u1', name: 'Ann' },
+  public: false,
+})
+const signedIn = { '/api/auth/status': { status: 200, body: { signed_in: true, me } } }
+const address = () => new URL(window.location.href).searchParams.get('board')
+
+test('lands on Home without a board in the address, and Back and Forward move between them', async () => {
+  window.history.replaceState(null, '', '/')
+  mockFetch(200, { boards: [summary('b1', 'Roadmap'), summary('b2', 'Sprint')], all: [] }, signedIn)
+  renderApp()
+  fireEvent.click(await screen.findByRole('link', { name: /Sprint/ }))
+  expect(address()).toBe('b2')
+  expect(await screen.findByText('Canvas of b2')).toBeInTheDocument()
+  await act(async () => {
+    window.history.back()
+    await new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+  })
+  expect(address()).toBeNull()
+  expect(await screen.findByRole('heading', { name: 'Boards' })).toBeInTheDocument()
+  await act(async () => {
+    window.history.forward()
+    await new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+  })
+  expect(await screen.findByText('Canvas of b2')).toBeInTheDocument()
+})
+
+test('a board link opens the board without Home in between', async () => {
+  window.history.replaceState(null, '', '/?board=b1')
+  mockFetch(200, { boards: [summary('b1', 'Roadmap')], all: [] }, signedIn)
+  renderApp()
+  expect(await screen.findByText('Canvas of b1')).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Boards' })).toBeNull()
+})
+
+test('Try the demo opens the welcome board, with Home one step back', async () => {
+  window.history.replaceState(null, '', '/demo')
+  let started = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string) => {
+      if (path === '/api/auth/demo') {
+        started = true
+        return new Response(null, { status: 204 })
+      }
+      if (path === '/api/auth/status')
+        return Response.json({ signed_in: started, me: started ? me : null, demo: true })
+      return Response.json({ boards: [summary('w1', 'Welcome to tiko')], all: [] })
+    }),
+  )
+  renderApp()
+  fireEvent.click(await screen.findByRole('button', { name: /Try the demo/ }))
+  expect(await screen.findByText('Canvas of w1')).toBeInTheDocument()
+  await act(async () => {
+    window.history.back()
+    await new Promise((resolve) => window.addEventListener('popstate', resolve, { once: true }))
+  })
+  expect(await screen.findByRole('heading', { name: 'Boards' })).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/')
+})
+
+test('a link to a board that is gone lands on Home and says so', async () => {
+  window.history.replaceState(null, '', '/?board=gone')
+  mockFetch(200, { boards: [summary('b1', 'Roadmap')], all: [] }, signedIn)
+  renderApp()
+  expect(await screen.findByRole('heading', { name: 'Boards' })).toBeInTheDocument()
+  expect(address()).toBeNull()
 })
 
 test('shows the unified API error message', async () => {
@@ -73,7 +163,7 @@ test('asks for username and password and opens the boards after signing in', asy
   fireEvent.change(screen.getByLabelText('Username'), { target: { value: ' admin ' } })
   fireEvent.change(password, { target: { value: 'pw' } })
   fireEvent.click(screen.getByRole('button', { name: /Sign in/ }))
-  expect(await screen.findByText(/Create a board/)).toBeInTheDocument()
+  expect(await screen.findByText(/No boards yet/)).toBeInTheDocument()
 })
 
 test('names wrong credentials', async () => {
@@ -98,7 +188,7 @@ test('names wrong credentials', async () => {
 test('drops back to the sign-in screen when the session is gone', async () => {
   mockFetch(200, { boards: [], all: [] })
   renderApp()
-  await screen.findByText(/Create a board/)
+  await screen.findByText(/No boards yet/)
   act(() => {
     window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT))
   })
@@ -112,7 +202,7 @@ test('keeps the way into the demo when a visitor is signed out', async () => {
     { '/api/auth/status': { status: 200, body: { signed_in: true, me: null, demo: true } } },
   )
   renderApp()
-  await screen.findByText(/Create a board/)
+  await screen.findByText(/No boards yet/)
   act(() => {
     window.dispatchEvent(new Event(AUTH_REQUIRED_EVENT))
   })

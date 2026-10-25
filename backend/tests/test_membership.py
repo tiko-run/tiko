@@ -10,7 +10,7 @@ from app.config import Settings
 from app.domain.accounts import Person, hash_password
 from app.domain.tasks import Task, now_iso
 from app.main import create_app
-from tests.conftest import PASSWORD, signed_in
+from tests.conftest import PASSWORD, run_sql, signed_in
 from tests.test_live import Tab, closed_with
 from tests.test_people import LONG, invite, join, people
 
@@ -181,9 +181,12 @@ def test_a_removed_person_joins_back_by_invite(app, admin):
     remove(admin, "ann")
     ann = sign_in(app)
     token = invite(admin, "admin")
+    ann_id = ann.get("/api/auth/status").json()["me"]["id"]
+    run_sql(app, "UPDATE users SET last_sign_in_at = NULL WHERE id = ?", (ann_id,))
 
     assert ann.get(f"/api/invites/{token}").json()["kind"] == "invite"
     assert ann.post(f"/api/invites/{token}/join").status_code == 204
+    assert people(admin)["ann"]["last_sign_in_at"] is not None
     me = ann.get("/api/auth/status").json()["me"]
     assert (me["role"], me["workspace"]["name"]) == ("admin", "Default")
     assert ann.get("/api/boards").is_success

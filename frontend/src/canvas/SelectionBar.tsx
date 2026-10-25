@@ -2,6 +2,14 @@ import { useStore } from '@xyflow/react'
 import {
   ALargeSmall,
   AlarmClock,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalSpaceBetween,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalSpaceBetween,
   Bold,
   ChevronDown,
   Copy,
@@ -33,10 +41,12 @@ import {
   type Kind,
   type Style,
 } from '@/canvas/selection-props'
+import type { Alignment, Distribution } from '@/canvas/align'
 import { STROKES, TEXT_SIZES, type AppNode } from '@/canvas/types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
+import { topOverlayRects, useTopOverlays } from '@/lib/overlays'
 import { withShortcut } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
 
@@ -52,8 +62,7 @@ const KIND_ICONS: Record<Kind, LucideIcon> = {
 
 const GAP = 12
 const EDGE = 8
-// The top bar and the toolbar keep their strips of the window.
-const TOP_CLEAR = 64
+// The toolbar keeps its strip of the window; panels at the top are measured instead.
 const BOTTOM_CLEAR = 64
 
 type Box = {
@@ -99,6 +108,25 @@ function useScreenBox(ids: string[]): Box | null {
   return { left, top, right, bottom, width, height }
 }
 
+type Overlay = { left: number; right: number; bottom: number }
+
+/** Where the bar goes: above the selection when it fits under the top panels it spans, else below. */
+export function placeBar(box: Box, size: { width: number; height: number }, overlays: Overlay[]) {
+  const laidOut = box.width > 0 && box.height > 0
+  const half = size.width / 2
+  const center = (box.left + box.right) / 2
+  const left = laidOut ? Math.max(EDGE + half, Math.min(center, box.width - EDGE - half)) : center
+  // Only the panels over the bar's own span push it down: a corner menu leaves the middle free.
+  const clear = overlays
+    .filter((o) => o.left < left + half && o.right > left - half)
+    .reduce((most, o) => Math.max(most, o.bottom + EDGE), EDGE)
+  const above = box.top - GAP - size.height >= clear
+  const top = above
+    ? box.top - GAP - size.height
+    : Math.max(clear, Math.min(box.bottom + GAP, box.height - BOTTOM_CLEAR - size.height))
+  return { left, top, above }
+}
+
 const swatch = (fill: Fill) => ({ background: fill === 'none' ? NO_FILL : fillCss(fill) })
 const Divider = () => <span aria-hidden className="bg-border mx-0.5 h-5 w-px" />
 
@@ -110,6 +138,9 @@ type Props = {
   onPreview: (style: Style | null) => void
   onNarrow: (kind: Kind) => void
   onCollapse: (collapsed: boolean) => void
+  /** How many selected elements move on their own; align needs two, distribute three. */
+  movable: number
+  onAlign: (how: Alignment | Distribution) => void
   /** Set when the selection is one element a timer can attach to. */
   onAddTimer?: () => void
   onDuplicate: () => void
@@ -125,6 +156,8 @@ export function SelectionBar({
   onPreview,
   onNarrow,
   onCollapse,
+  movable,
+  onAlign,
   onAddTimer,
   onDuplicate,
   onDelete,
@@ -136,6 +169,8 @@ export function SelectionBar({
   const bar = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 40 })
   const [open, setOpen] = useState<Menu | null>(null)
+  const [overlays, setOverlays] = useState<Overlay[]>([])
+  const overlaysChanged = useTopOverlays()
 
   const mounted = box !== null && !selecting
   // Its own size places it: the bar grows and shrinks with what the selection shares.
@@ -153,6 +188,14 @@ export function SelectionBar({
     observer.observe(el)
     return () => observer.disconnect()
   }, [mounted])
+  // A resized window moves the top panels; the canvas size follows it.
+  const canvasSize = box && `${box.width} ${box.height}`
+  useLayoutEffect(() => {
+    const origin = bar.current?.offsetParent
+    if (!origin) return
+    const next = topOverlayRects(origin)
+    setOverlays((was) => (JSON.stringify(was) === JSON.stringify(next) ? was : next))
+  }, [mounted, overlaysChanged, canvasSize])
   useEffect(() => () => onPreview(null), [onPreview])
 
   if (!mounted) return null
@@ -161,13 +204,7 @@ export function SelectionBar({
   if (laidOut && (box.right < 0 || box.bottom < 0 || box.left > box.width || box.top > box.height))
     return null
 
-  const above = box.top - GAP - size.height >= TOP_CLEAR
-  const top = above
-    ? box.top - GAP - size.height
-    : Math.max(TOP_CLEAR, Math.min(box.bottom + GAP, box.height - BOTTOM_CLEAR - size.height))
-  const half = size.width / 2
-  const center = (box.left + box.right) / 2
-  const left = laidOut ? Math.max(EDGE + half, Math.min(center, box.width - EDGE - half)) : center
+  const { left, top, above } = placeBar(box, size, overlays)
 
   const kinds = kindCounts(nodes)
   const choices = fillChoices(nodes)
@@ -407,6 +444,36 @@ export function SelectionBar({
           <Bold className="size-[18px]" strokeWidth={only(bold, true) ? 2.5 : 1.75} />
         </Button>
       )}
+      {movable >= 2 && (
+        <>
+          <Divider />
+          <Popover {...popover('align')}>
+            <PopoverTrigger asChild>
+              <Button
+                variant={open === 'align' ? 'secondary' : 'ghost'}
+                size="icon"
+                aria-label="Align"
+                title="Align"
+              >
+                <AlignStartVertical className="size-[18px]" strokeWidth={1.75} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side={side} sideOffset={8} className="w-auto flex-row gap-0.5 p-1">
+              {ALIGNMENTS.map(({ how, label, Icon }) => (
+                <IconButton key={how} Icon={Icon} label={label} onClick={() => onAlign(how)} />
+              ))}
+              {movable >= 3 && (
+                <>
+                  <Divider />
+                  {DISTRIBUTIONS.map(({ how, label, Icon }) => (
+                    <IconButton key={how} Icon={Icon} label={label} onClick={() => onAlign(how)} />
+                  ))}
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
+        </>
+      )}
       {cards.length === nodes.length && (
         <>
           <Divider />
@@ -432,7 +499,21 @@ export function SelectionBar({
 
 const SIZE_NAMES = { small: 'Small', medium: 'Medium', large: 'Large' } as const
 
-type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size'
+type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size' | 'align'
+
+const ALIGNMENTS: { how: Alignment; label: string; Icon: LucideIcon }[] = [
+  { how: 'left', label: 'Align left', Icon: AlignStartVertical },
+  { how: 'center', label: 'Align center', Icon: AlignCenterVertical },
+  { how: 'right', label: 'Align right', Icon: AlignEndVertical },
+  { how: 'top', label: 'Align top', Icon: AlignStartHorizontal },
+  { how: 'middle', label: 'Align middle', Icon: AlignCenterHorizontal },
+  { how: 'bottom', label: 'Align bottom', Icon: AlignEndHorizontal },
+]
+
+const DISTRIBUTIONS: { how: Distribution; label: string; Icon: LucideIcon }[] = [
+  { how: 'horizontal', label: 'Distribute horizontally', Icon: AlignHorizontalSpaceBetween },
+  { how: 'vertical', label: 'Distribute vertically', Icon: AlignVerticalSpaceBetween },
+]
 
 // The slider moves the selection for this person only; letting go saves it as one undo step.
 function OpacitySlider({

@@ -245,6 +245,9 @@ class LiveDoc:
     def state(self) -> bytes:
         return self.doc.get_update()
 
+    def node_count(self) -> int:
+        return len(self._nodes)
+
     @staticmethod
     def _plain_node(node: Any) -> Any:
         shaped = isinstance(node, Map) and isinstance(node.get("data"), Map)

@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -57,8 +58,11 @@ def needs_installer(notes: str) -> bool:
 
 
 def _calver(version: str) -> tuple[int, ...] | None:
+    # A candidate 2026.10.24-rc.2 sorts after 2026.10.23 and before 2026.10.24.
+    base, candidate, rc = version.removeprefix("v").partition("-rc.")
     try:
-        return tuple(int(part) for part in version.removeprefix("v").split("."))
+        parts = tuple(int(part) for part in base.split("."))
+        return (*parts, int(rc)) if candidate else (*parts, sys.maxsize)
     except ValueError:
         return None
 

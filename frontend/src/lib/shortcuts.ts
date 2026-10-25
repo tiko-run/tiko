@@ -16,6 +16,13 @@ export const SHORTCUTS = {
   search: { keys: 'mod+k, mod+f', label: 'Search the board', group: 'General' },
   commands: { keys: 'mod+p, mod+shift+p', label: 'Commands', group: 'General' },
   settings: { keys: 'mod+comma', label: 'Settings', group: 'General' },
+  // On Home, where no board takes the search keys.
+  findBoard: {
+    keys: 'slash, mod+k',
+    display: '/',
+    label: 'Find a board on Home',
+    group: 'General',
+  },
   // Handled by the search palette; listed so the help dialog and the palette show it.
   selectMatches: { keys: 'mod+enter', label: 'Select all search results', group: 'General' },
   select: { keys: 'v', label: 'Select', group: 'Tools' },

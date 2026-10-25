@@ -60,7 +60,7 @@ The owner of a board can show it to anyone, with no account: in "Share", turn on
 - A guest does not see who is on the board, and nobody sees the guest.
 - Tasks from your tracker show a guest only their key, as a link to the tracker. Titles, statuses and assignees are fetched with each person's own token and are never published. Demo tasks are shown in full.
 - The focus timer and its music work for a guest: they live in the guest's browser. Timers on the board are shown, but they ring only for the people on it.
-- Turning the link off stops it at once, and it never works again: turning it on later makes a new link. Deleting the board stops it too.
+- Turning the link off stops it at once, and it never works again: turning it on later makes a new link. Moving the board to the trash stops it too, and restoring the board brings the same link back.
 - A board with a link has a "Public" mark in the top bar and a globe in the board menu, for everyone on it. Only the owner (and an admin) sees the link itself.
 - An admin can switch public links off for the whole tiko in Settings → Sharing. Every link stops while it is off.
 
@@ -71,6 +71,6 @@ A link is the access: anyone it is forwarded to can open the board. Pages opened
 - **A blip.** You keep working. "Reconnecting…" shows at the top right, and when the connection is back your changes and everyone else's merge, with nothing doubled and nothing lost.
 - **Down for a while.** After 30 seconds without a connection, if you have changed something, the notice turns into "Not saved yet. Changes are kept in this tab." and the browser asks before you close the tab. Keep the tab open until it connects.
 - **Never connected.** A board is editable once its live connection is up, which normally takes a moment. If it cannot be made, the board opens view-only with "Live connection unavailable. Viewing the last saved version." and keeps trying. On a self-hosted instance behind your own reverse proxy this usually means the proxy does not pass WebSockets; see [Configuration](../configuration/#behind-your-own-reverse-proxy).
-- **Access changed.** If your role on the board changes while it is open, the board follows at once: view-only when you become a viewer, editable again when you become an editor. If you lose access, tiko moves you to another board and says "You no longer have access to this board." Signing out everywhere, a password change or a disabled account closes the board and asks you to sign in.
+- **Access changed.** If your role on the board changes while it is open, the board follows at once: view-only when you become a viewer, editable again when you become an editor. If you lose access, tiko takes you to [Home](../home/) and says "You no longer have access to this board." Signing out everywhere, a password change or a disabled account closes the board and asks you to sign in.
 
 Up to 30 browser tabs can have one board open at the same time; the next one opens view-only with "This board is full right now." and gets in when a place frees up.

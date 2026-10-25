@@ -11,6 +11,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 |---|---|
 | `?` | Keyboard shortcuts |
 | `⌘K`, `⌘F` | Search the board |
+| `/`, `⌘K` | Find a board on [Home](../home/#find-a-board) |
 | `⌘P`, `⌘⇧P` | Commands |
 | `⌘Enter` | Select all search results |
 

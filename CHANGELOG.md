@@ -8,9 +8,35 @@ Requires: installer
 
 ### Added
 
+- Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
+
+### Changed
+
+- A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad runs at about twice the frame rate it did. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
+
+### Fixed
+
+- Task bars no longer show through the month header of an expanded Gantt while you scroll.
+- A view-only board no longer lets you draw arrows that vanish on refresh.
+- Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
+- A large board zoomed out no longer stutters while someone else moves things on it.
+- Arrows to the right side of a triangle or a parallelogram now touch its outline.
+
+## [2026.10.24] - 2026-10-22
+
+Requires: installer
+
+### Added
+
+- Land on Home, a page with every board you can open, the latest change first. Split your own boards from shared ones, sort by name, find a board from the keyboard with `/`, and open, rename, duplicate, share or move it to the trash from its menu. "New board" opens a board at once with its name ready to type, and Back moves between Home and your boards. A link to a board still opens the board. See [Home](https://docs.tiko.run/home/).
+- Tell boards apart before opening them: Home shows each board as a small picture of its sticky notes, frames, cards, shapes and Gantts, kept current within a minute of a change. Task titles stay out of it. Switch to the compact list with the button next to the sort menu. See [Home](https://docs.tiko.run/home/#grid-and-list).
+- Keep your boards in order on Home: star the ones you use daily to keep them on top, and sort the rest into folders of your own from the board menu or by dragging a board onto a folder. Stars and folders are yours alone, so teammates' Home stays as it was, and deleting a folder keeps its boards. See [Home](https://docs.tiko.run/home/#stars-and-folders).
+- Get a deleted board back: deleting now moves a board to your trash on Home for 30 days, with an Undo right after. Restore it with everyone it was shared with, their roles and its public link, or delete it for good. A workspace admin sees and restores the whole workspace's trash. See [Home](https://docs.tiko.run/home/#trash).
 - Run tiko on a Postgres server of your own, managed or not, with `DATABASE_URL`. The Render blueprint now brings a Render Postgres database. See [Your own Postgres server](https://docs.tiko.run/data-and-upgrades/#your-own-postgres-server).
 - Remove someone from the workspace in Settings → People without deleting their account: their boards move to you with everyone else on them kept, and their tracker tokens go. They can still sign in, see that they are not in a workspace, and come back by opening an invite link with the same account. See [People](https://docs.tiko.run/security/#people).
 - Open an invite while you already have an account and sign in instead of making a new one.
+- Line up elements from the selection bar: align their left, right, top or bottom edges or their centers, and space three or more evenly. Elements in different frames line up on the board, arrows follow, and one Undo puts them back. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
+- Find your way on a big board with the minimap in the bottom right corner: click a spot to jump there, or drag the frame to look around. Hide it with the map button under the zoom buttons. See [Adding tasks](https://docs.tiko.run/adding-tasks/#around-the-cards).
 
 ### Changed
 
@@ -18,8 +44,24 @@ Requires: installer
 - One-click updates save a dump of the database to `data/backups/` before they start and put it back if the new version does not come up. `make backup` writes a dump too.
 - Settings come in three groups: Account, Workspace and Server. A workspace admin sets the tracker, sharing and Planning and manages people; only the server admin, the first account, sees Privacy, updates tiko and manages accounts. On a server you run alone nothing else changes. See [People](https://docs.tiko.run/security/#people).
 - Disable an account or make a password reset link in Settings → Server → Accounts, which lists everyone who can sign in. Settings → People keeps inviting people and choosing who is admin.
+- Resize a sticky note, shape, text, frame or Gantt from any side to change just its width or height. The side is easy to grab at any zoom, and the arrow dot in its middle still starts an arrow.
+- Several cards added at once line up close together in columns of five, so a list from a query reads top to bottom.
 - Share's role for the whole team now reads "Everyone in this workspace".
+- Plan on the demo in your own space: add stage types, people and time off, and see their workload. Each visitor gets a workspace of their own with a copy of the sample lists, kept when they sign up. See [The demo](https://docs.tiko.run/demo/).
 - The guide wears tiko's own colors in light and dark, with Docs and What's new as tabs in the top bar and a "Try the demo" button. Copy any page as Markdown, or open it in ChatGPT or Claude to ask about it.
+- Guide pages are easier to scan: tables in a frame, Install with one tab per system that the whole page follows, callouts for what to watch out for, and Gantt split into a short overview and a page per planning topic. Old links to Gantt sections still land on the right page.
+
+### Fixed
+
+- The selection bar no longer hides behind the focus timer when a selection reaches the top of the window: it moves below the timer, so every button stays clickable.
+- Cards no longer show tasks read with a Jira or GitHub token you have just replaced or removed.
+- A second click on a time off bar in the Gantt closes its menu, instead of closing it and opening it again.
+- On a board that mixes trackers, Gantt task titles get as much room as on a board with one tracker: the tracker logo sits where the drag grip was, and the grip shows on hover.
+- Settings → People and Settings → Server → Accounts no longer say "Never signed in" for someone who joined by an invite link and has used tiko since.
+
+### Security
+
+- tiko no longer trusts the emSign ECC Root CA - G3 certificate, under which several intermediate keys were compromised, when it connects to your tracker, GitHub or the update server ([GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)).
 
 ## [2026.10.23] - 2026-10-20
 

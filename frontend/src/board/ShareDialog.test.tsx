@@ -50,6 +50,7 @@ function show(myRole: BoardRole, link: string | null = null, allowed = true, dem
   const board = {
     id: 'b1',
     name: 'Sprint',
+    created_at: '',
     updated_at: '',
     my_role: myRole,
     owner: { id: 'u1', name: 'Ann' },

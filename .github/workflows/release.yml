@@ -34,7 +34,8 @@ jobs:
           images: ghcr.io/${{ github.repository }}-${{ matrix.service }}
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest
+            # A release candidate (v…-rc.N) never becomes latest.
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-rc.') }}
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}
@@ -51,11 +52,16 @@ jobs:
       - name: Notes from CHANGELOG.md
         run: |
           version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
-          test -s notes.md || { echo "no CHANGELOG.md section for $version"; exit 1; }
+          # A release candidate carries what Unreleased says at its commit.
+          case "$version" in *-rc.*) section=Unreleased ;; *) section="$version" ;; esac
+          awk -v v="$section" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && /^## \[/ {exit} on' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "no CHANGELOG.md section for $section"; exit 1; }
       # install.sh downloads this asset; TAG defaults to this release instead of latest.
       - name: Compose file pinned to this release
         run: mkdir pinned && sed "s/\${TAG:-latest}/\${TAG:-${GITHUB_REF_NAME#v}}/" compose.release.yml > pinned/compose.release.yml && grep -q "${GITHUB_REF_NAME#v}" pinned/compose.release.yml
-      - run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag --discussion-category Announcements pinned/compose.release.yml
+      # A candidate is a GitHub pre-release: releases/latest, About and the updater skip it.
+      - run: |
+          if [[ "$GITHUB_REF_NAME" == *-rc.* ]]; then extra=(--prerelease); else extra=(--discussion-category Announcements); fi
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag "${extra[@]}" pinned/compose.release.yml
         env:
           GH_TOKEN: ${{ github.token }}

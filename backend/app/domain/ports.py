@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
-    from app.domain.boards import BoardDoc, BoardRecord, BoardRow
+    from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow
+    from app.domain.folders import Folder
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
     from app.domain.members import BoardRole, Member, ShareRole
@@ -92,6 +93,15 @@ class BoardRepo(Protocol):
         """The board with its CRDT state, for opening it live."""
         ...
 
+    def preview(self, board_id: str, drawing: int) -> tuple[int, str | None] | None:
+        """The board's version and its kept preview when that follows this version and way
+        of drawing."""
+        ...
+
+    def keep_preview(self, board_id: str, version: int, drawing: int, svg: str) -> None:
+        """Keeps a drawing unless one of a newer version is already kept."""
+        ...
+
     def save_live(self, board_id: str, doc: BoardDoc, ydoc: bytes) -> int:
         """Saves an open board whatever the stored version; raises NotFound, returns new version."""
         ...
@@ -104,8 +114,24 @@ class BoardRepo(Protocol):
         """Leaves the doc version alone so open tabs keep saving; raises NotFound."""
         ...
 
-    def delete(self, board_id: str) -> None:
-        """Raises NotFound."""
+    def delete(self, board_id: str, by_id: str) -> None:
+        """Moves the board to the trash; NotFound when it is missing or already there."""
+        ...
+
+    def trash(self, owner_id: str | None, board_id: str | None = None) -> list[TrashRow]:
+        """Trashed boards, newest first: of `owner_id`, or the workspace's for None."""
+        ...
+
+    def restore(self, board_id: str) -> bool:
+        """Takes the board out of the trash; False when it is not there."""
+        ...
+
+    def purge(self, board_id: str) -> bool:
+        """Deletes a trashed board for good with every row of it."""
+        ...
+
+    def purge_trashed(self, before: str, batch: int = 500) -> int:
+        """Deletes, in every workspace, boards trashed at `before` or earlier; returns how many."""
         ...
 
     def public_token(self, board_id: str) -> str | None: ...
@@ -121,6 +147,37 @@ class BoardRepo(Protocol):
 
     def by_public_token(self, token: str) -> tuple[str, int, str] | None:
         """The id, version and last change time of the board with this public link."""
+        ...
+
+
+class FolderRepo(Protocol):
+    """A person's stars and folders in the workspace; nobody else reads them."""
+
+    def star(self, user_id: str, board_id: str, starred: bool) -> None: ...
+
+    def folders(self, user_id: str) -> list[Folder]:
+        """By position."""
+        ...
+
+    def add(self, user_id: str, name: str, limit: int) -> Folder | None:
+        """A folder after the others; None when the person already keeps `limit`."""
+        ...
+
+    def change(
+        self, user_id: str, folder_id: str, name: str | None, position: int | None
+    ) -> Folder | None:
+        """Renames and moves to `position`, the others shifting; None for no such folder."""
+        ...
+
+    def remove(self, user_id: str, folder_id: str) -> bool: ...
+
+    def place(self, user_id: str, board_id: str, folder_id: str | None) -> bool:
+        """False when `folder_id` is not one of the person's folders."""
+        ...
+
+    def forget_unreachable(self) -> int:
+        """Deletes, in every workspace, stars and folder places on boards their person can no
+        longer open, and folders of people who left the workspace; returns how many went."""
         ...
 
 
@@ -192,8 +249,9 @@ class LiveBoards(Protocol):
         sockets are closed."""
         ...
 
-    def planning_changed(self) -> None:
-        """People on every open board are told to read `/api/planning` again."""
+    def planning_changed(self, workspace: str | None = None) -> None:
+        """People on the open boards of the workspace, or of every one, are told to read
+        `/api/planning` again."""
         ...
 
     def put(self, board_id: str, version: int, doc: BoardDoc) -> int:
@@ -401,6 +459,10 @@ class UserRepo(Protocol):
         """Raises UsernameTaken."""
         ...
 
+    def add_visitor(self, person: Person, password_hash: str) -> str:
+        """Adds a demo visitor with a workspace of their own; returns its id."""
+        ...
+
     def find(self, username: str) -> tuple[Person, str] | None:
         """The person and their password hash, matching the username without regard to case."""
         ...
@@ -455,16 +517,17 @@ class UserRepo(Protocol):
         ...
 
     def delete_unused_members(self, before: str) -> tuple[list[str], list[str]]:
-        """Deletes everyone but admins and demo visitors who last signed in before this time,
-        with their boards; returns the ids of the people and of the boards that went."""
+        """Deletes everyone in one workspace who is not its admin, is no demo visitor and last
+        signed in before this time, with their boards and demo workspace; returns the ids of
+        the people and of the boards that went."""
         ...
 
     def demo_alive(self, now: str) -> int: ...
 
     def delete_expired_demo(self, now: str, untouched: str) -> tuple[list[str], list[str]]:
         """Deletes demo visitors whose expiry is before `now`, or before `untouched` when they
-        changed nothing, with their boards, sessions, statuses and cache in one step; returns
-        the ids of the people and of the boards that went."""
+        changed nothing, with their workspaces and sessions in one step; returns the ids of the
+        people and of the boards that went."""
         ...
 
     def evict_untouched_demo(self) -> tuple[list[str], list[str]]:

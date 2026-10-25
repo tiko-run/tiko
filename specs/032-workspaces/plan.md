@@ -116,9 +116,12 @@ Each of these runs without a request and gets its workspace explicitly or uses `
 
 ### Demo
 
-- A visitor gets a workspace at start; `demo_statuses` and the visitor's boards live in it. Eviction is `DELETE FROM workspaces WHERE id = ...`, the cascades remove the rest.
-- The sample lists are copied into the visitor's workspace at its creation with fresh ids; the welcome board points at them. The daily rewrite of spec 031 goes away.
-- "One demo visitor at a time" moves from the file lock to `pg_try_advisory_lock`. Rate limits stay in `attempts` with `INSERT ... ON CONFLICT`.
+- A visitor gets a workspace (`kind = 'demo'`, `owner_id` the visitor) at start, as a member of it; `demo_statuses` and the visitor's boards live in it. Eviction deletes the workspaces the gone people own in one statement, the cascades remove the rest. The expiry stays on the account, so `expires_at` of the workspace is not used, and sign-up keeps the workspace by clearing the account's.
+- The sample lists are copied into the visitor's workspace at its creation. Ids stay the fixed `demo-*` ones, unique per workspace, so the welcome board needs no mapping. The daily rewrite of spec 031 goes away; time off is dated from the day the visitor came.
+- "One demo visitor at a time" moves from the file lock to `pg_advisory_lock` on a connection of its own, behind a thread lock, so a waiting process holds one connection and none of the pools. Rate limits stay in `attempts` with `INSERT ... ON CONFLICT`.
+- The cleanup runs as `tiko_jobs`: its "changed nothing" check reads visitors' boards across workspaces. Unused accounts are looked for in the default workspace and in demo ones kept after sign-up, never in a regular one.
+- A demo that ran before this slice has its visitors and the people who signed up in the default workspace. At the first start on a demo, once (a mark in `server_settings`), everyone there who is not its admin moves into a demo workspace of their own with the boards they own, their personal rows and a copy of the default's Planning lists; strangers lose boards shared with them. It moves nobody when the default workspace has no visitor, so a team that turns the demo on stays together.
+- The directory loses its demo rule (a whole username, 20 searches a minute): a visitor's workspace holds only them, and the default one of a demo only its admins and the people they invite.
 
 ## Structure
 

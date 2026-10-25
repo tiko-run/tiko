@@ -5,6 +5,7 @@ from app.api import (
     auth,
     boards,
     demo,
+    folders,
     invites,
     jql,
     live,
@@ -26,6 +27,7 @@ router.include_router(accounts.router)
 router.include_router(planning.router)
 router.include_router(invites.router)
 router.include_router(boards.router)
+router.include_router(folders.router)
 router.include_router(public.router)
 router.include_router(live.router)
 router.include_router(tasks.router)

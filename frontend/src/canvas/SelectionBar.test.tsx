@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
 import type { ReactNode } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
-import { SelectionBar } from '@/canvas/SelectionBar'
+import { placeBar, SelectionBar } from '@/canvas/SelectionBar'
 import type { AppNode } from '@/canvas/types'
 
 beforeAll(() => {
@@ -37,8 +37,10 @@ function renderBar(
   nodes: AppNode[],
   withTimer = false,
   controls?: (side: 'top' | 'bottom') => ReactNode,
+  movable = nodes.length,
 ) {
   const on = {
+    onAlign: vi.fn(),
     onStyle: vi.fn(),
     onPreview: vi.fn(),
     onNarrow: vi.fn(),
@@ -51,7 +53,7 @@ function renderBar(
     <ReactFlowProvider>
       <div style={{ width: 800, height: 600 }}>
         <ReactFlow nodes={nodes} />
-        <SelectionBar nodes={nodes} {...on} controls={controls} />
+        <SelectionBar nodes={nodes} movable={movable} {...on} controls={controls} />
       </div>
     </ReactFlowProvider>,
   )
@@ -122,7 +124,7 @@ test('cards alone get Collapse, cards with notes only the actions', () => {
 
 test('cards with a note: no fill, no collapse', () => {
   renderBar([card('a', false), sticky('s', 'yellow')])
-  expect(names()).toEqual(['Filter 2 objects', 'Duplicate', 'Delete'])
+  expect(names()).toEqual(['Filter 2 objects', 'Align', 'Duplicate', 'Delete'])
 })
 
 test('collapsed cards offer Expand', () => {
@@ -178,4 +180,59 @@ test('a module brings its own controls into the bar', () => {
   // No room above a module at the top of the canvas: the bar and its popovers go below.
   expect(within(bar).getByRole('button', { name: 'Weeks bottom' })).toBeTruthy()
   expect(within(bar).getByRole('button', { name: 'Delete' })).toBeTruthy()
+})
+
+test('two elements get the six alignments and no distribution', () => {
+  const on = renderBar([sticky('a', 'yellow'), sticky('b', 'blue')])
+  fireEvent.click(button('Align'))
+  expect(screen.queryByRole('button', { name: 'Distribute horizontally' })).toBeNull()
+  fireEvent.click(button('Align top'))
+  expect(on.onAlign).toHaveBeenCalledWith('top')
+})
+
+test('three elements can be distributed', () => {
+  const on = renderBar([sticky('a', 'yellow'), sticky('b', 'blue'), sticky('c', 'pink')])
+  fireEvent.click(button('Align'))
+  fireEvent.click(button('Distribute vertically'))
+  expect(on.onAlign).toHaveBeenCalledWith('vertical')
+})
+
+test('one element on its own offers no align', () => {
+  renderBar([sticky('a', 'yellow'), sticky('b', 'blue')], false, undefined, 1)
+  expect(screen.queryByRole('button', { name: 'Align' })).toBeNull()
+})
+
+// A 1200x800 canvas, the focus timer at the top center and the menu in the top left corner.
+const timer = { left: 468, right: 732, bottom: 110 }
+const menu = { left: 16, right: 300, bottom: 58 }
+const bar = { width: 400, height: 40 }
+const selection = (left: number, top: number, right: number, bottom: number) => ({
+  left,
+  top,
+  right,
+  bottom,
+  width: 1200,
+  height: 800,
+})
+
+test('a selection near the top puts the bar below the focus timer, not under it', () => {
+  const place = placeBar(selection(200, 100, 1000, 700), bar, [timer, menu])
+  expect(place.above).toBe(false)
+  expect(place.top).toBeGreaterThanOrEqual(timer.bottom + 8)
+})
+
+test('the bar goes above the selection once it fits under the focus timer', () => {
+  const place = placeBar(selection(200, 200, 1000, 700), bar, [timer, menu])
+  expect(place).toEqual({ left: 600, top: 148, above: true })
+})
+
+test('without the focus timer the bar keeps close to the top', () => {
+  const place = placeBar(selection(200, 100, 1000, 700), bar, [menu])
+  expect(place).toEqual({ left: 600, top: 48, above: true })
+})
+
+test('only panels over the bar push it down', () => {
+  // A bar on the right side spans neither the timer nor the menu.
+  const place = placeBar(selection(900, 70, 1100, 300), bar, [timer, menu])
+  expect(place).toEqual({ left: 992, top: 18, above: true })
 })

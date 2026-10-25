@@ -277,6 +277,32 @@
   --xy-resize-background-color: var(--primary);
 }
 
+/* The minimap and the zoom buttons stack in one corner column. */
+.canvas-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.canvas-corner > .react-flow__panel {
+  position: static;
+  margin: 0;
+}
+.canvas-minimap {
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --xy-minimap-mask-stroke-color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* Same shadow as the zoom buttons under it. */
+  box-shadow: var(--xy-controls-box-shadow, var(--xy-controls-box-shadow-default));
+  overflow: hidden;
+}
+.canvas-minimap .react-flow__minimap-mask {
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
 /* Handles show on hover and selection only, so the board stays quiet. */
 .react-flow__handle {
   width: 8px;
@@ -288,6 +314,35 @@
 .react-flow__node.selected .react-flow__handle,
 .react-flow.connecting .react-flow__handle {
   opacity: 1;
+}
+
+/* A side grip is 8 screen pixels wide at any zoom; the visible line stays 1px. */
+.react-flow__resize-control {
+  z-index: 1;
+}
+.react-flow__resize-control.line::before {
+  content: '';
+  position: absolute;
+}
+.react-flow__resize-control.line.left::before,
+.react-flow__resize-control.line.right::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: calc(8px / var(--zoom, 1));
+  translate: -50% 0;
+}
+.react-flow__resize-control.line.top::before,
+.react-flow__resize-control.line.bottom::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: calc(8px / var(--zoom, 1));
+  translate: 0 -50%;
+}
+/* An arrow dot sits on the middle of a side and wins over the grip under it. */
+.react-flow__node .react-flow__handle {
+  z-index: 2;
 }
 
 /* An anchor's handles only hold the arrow tip at its center; the anchor itself is the grip. */

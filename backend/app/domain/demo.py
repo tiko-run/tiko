@@ -2,7 +2,9 @@ import secrets
 import threading
 import uuid
 from contextlib import AbstractContextManager
+from datetime import UTC, datetime
 
+from app.domain import planning_sample as sample
 from app.domain.accounts import (
     Limiter,
     Person,
@@ -14,8 +16,10 @@ from app.domain.accounts import (
 )
 from app.domain.attempts import MemoryAttempts
 from app.domain.errors import DemoFull, NotFound
+from app.domain.planning import Planning
 from app.domain.ports import Attempts, LiveBoards, UserRepo
 from app.domain.sessions import Sessions, iso
+from app.domain.workspaces import in_workspace
 
 VISITOR_TTL_S = 7 * 24 * 3600
 # An account that changed nothing is what a bot leaves behind; it does not get the week.
@@ -27,9 +31,6 @@ PER_ADDRESS_WINDOW_S = 3600.0
 MAX_ALIVE = 500
 MAX_BOARDS = 3
 CLEANUP_EVERY_S = 600
-# Enough to share a board with a team, too few to go through usernames by guessing.
-LOOKUPS = 20
-LOOKUPS_WINDOW_S = 60.0
 VISITOR_NAME = "Demo visitor"
 # No password hashes to this, so a demo visitor cannot sign in by password.
 NO_PASSWORD = "!"
@@ -49,13 +50,15 @@ def board_limit(person: Person, member_limit: int | None) -> int | None:
 
 
 class DemoVisitors:
-    """Temporary people of a demo instance: made in one click, deleted when they stay away."""
+    """Temporary people of a demo instance: made in one click, each in a workspace of their
+    own, deleted with it when they stay away."""
 
     def __init__(
         self,
         users: UserRepo,
         sessions: Sessions,
         live: LiveBoards,
+        planning: Planning,
         max_alive: int = MAX_ALIVE,
         attempts: Attempts | None = None,
         creating: AbstractContextManager | None = None,
@@ -63,6 +66,7 @@ class DemoVisitors:
         self._users = users
         self._sessions = sessions
         self._live = live
+        self._planning = planning
         self.max_alive = max_alive
         attempts = attempts or MemoryAttempts()
         self._per_address = Limiter(
@@ -71,9 +75,6 @@ class DemoVisitors:
             PER_ADDRESS_WINDOW_S,
             "Too many demos from this address, try again later.",
             attempts,
-        )
-        self._lookups = Limiter(
-            "lookups", LOOKUPS, LOOKUPS_WINDOW_S, "Too many searches, try again later.", attempts
         )
         # Held across the processes of the instance when it runs several.
         self._creating = creating or threading.Lock()
@@ -98,18 +99,16 @@ class DemoVisitors:
                 role="member",
                 demo_expires_at=iso(now + VISITOR_TTL_S),
             )
-            self._users.add(person, NO_PASSWORD)
+            workspace = self._users.add_visitor(person, NO_PASSWORD)
             self._per_address.fail(key, now)
+        # Their own copy, so they change it as they like; time off is dated from today.
+        with in_workspace(workspace):
+            today = datetime.fromtimestamp(now, UTC).date()
+            self._planning.write_sample(sample.TYPES, sample.people(today))
         return self._sessions.start(person.id, now)
 
-    def looked_up(self, person: Person, now: float) -> None:
-        """Counts a search of the people directory against the person who asks."""
-        # A visitor finds nobody, so there is nothing to count, and no entry outlives them.
-        if person.demo_expires_at is None:
-            self._lookups.spend(person.id, now)
-
     def sign_up(self, person: Person, name: str, username: str, password: str) -> Person:
-        """Makes a demo visitor a regular member: same person, same boards, same session."""
+        """Makes a demo visitor a regular member: same person, workspace, boards and session."""
         changed = person.model_copy(
             update={
                 "name": check_name(name),

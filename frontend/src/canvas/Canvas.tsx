@@ -6,18 +6,28 @@ import {
   ConnectionMode,
   ControlButton,
   Controls,
+  Panel,
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
   type Connection,
   type OnConnectEnd,
   type XYPosition,
   type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowLeft } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Map as MapIcon } from 'lucide-react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 import { canEdit, getBoard, type Board } from '@/api/boards'
 import type { Task } from '@/api/tasks'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -36,7 +46,16 @@ import {
 import { markFresh } from '@/canvas/editing'
 import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/frames'
 import { Guides } from '@/canvas/Guides'
-import { gridPositions } from '@/canvas/layout'
+import { CARD_GUESS, columnPositions } from '@/canvas/layout'
+import {
+  alignShifts,
+  applyShifts,
+  boxesOf,
+  distributeShifts,
+  movers,
+  type Alignment,
+  type Distribution,
+} from '@/canvas/align'
 import { absorbCards } from '@/canvas/modules'
 import { moduleControls } from '@/canvas/module-controls'
 import { ModuleExpanded } from '@/canvas/ModuleExpanded'
@@ -56,6 +75,16 @@ import { useRefresh, type Guest } from '@/board/useRefresh'
 import { useDrawRect, type ScreenRect } from '@/canvas/useDrawRect'
 import { useGuides } from '@/canvas/useGuides'
 import { useRemoteMotion } from '@/live/motion'
+import { withHandles } from '@/canvas/handles'
+import {
+  FarCard,
+  FarFrame,
+  FarModule,
+  FarShape,
+  FarSticky,
+  FarText,
+  farView,
+} from '@/canvas/nodes/far'
 import { MAX_LIVE_DRAG, useBoardTravel } from '@/live/presence'
 import { SelectedByContext, withPresence } from '@/live/PresenceRing'
 import { PresenceLayer } from '@/live/PresenceLayer'
@@ -77,7 +106,8 @@ import { STICKY_MAX_CHARS } from '@/canvas/fit'
 import { SHAPE_MIN, SHAPE_SIZE, type ShapeKind } from '@/canvas/shapes'
 import { ShapeNode } from '@/canvas/nodes/ShapeNode'
 import { ShapeGhost } from '@/canvas/ShapeGhost'
-import { ReadOnlyContext } from '@/canvas/readonly'
+import { Minimap, readMinimapShown, saveMinimapShown } from '@/canvas/Minimap'
+import { FarContext, ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
@@ -107,14 +137,15 @@ import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { useTheme } from '@/lib/theme'
 import { didOnboarding } from '@/onboarding/done'
+import { topOverlay } from '@/lib/overlays'
 
 const nodeTypes = {
-  task_card: withPresence(TaskCardNode),
-  frame: withPresence(FrameNode),
-  sticky: withPresence(StickyNode),
-  shape: withPresence(ShapeNode),
-  text: withPresence(TextNode),
-  module: withPresence(ModuleNode),
+  task_card: withPresence(farView(TaskCardNode, FarCard)),
+  frame: withPresence(farView(FrameNode, FarFrame)),
+  sticky: withPresence(farView(StickyNode, FarSticky)),
+  shape: withPresence(farView(ShapeNode, FarShape)),
+  text: withPresence(farView(TextNode, FarText)),
+  module: withPresence(farView(ModuleNode, FarModule)),
   anchor: AnchorNode,
   timer: withPresence(TimerNode),
 }
@@ -123,6 +154,8 @@ const defaultEdgeOptions = { markerEnd: { type: MarkerType.ArrowClosed } }
 // New cards step down by about one card height so several adds in a row stay readable.
 const CASCADE_X = 16
 const CASCADE_Y = 96
+// Under the 300 ms undo capture, so the close-up joins the add in one undo step.
+const CLOSE_UP_MS = 250
 // Duplicates land next to the original; a drag shorter than this places a default-size frame.
 const DUPLICATE_OFFSET = 24
 const MIN_DRAW = 8
@@ -135,6 +168,8 @@ const MIN_FRAME = { width: 160, height: 120 }
 const MIN_ARROW = 16
 
 // Leaves room for the top bar, the focus capsule and the toolbar over the board.
+// At 20% and below text is under 3 screen pixels: elements are drawn as blocks.
+const FAR_ZOOM = 0.2
 const FIT_NEW_BOARD = { padding: 0.16, maxZoom: 1 }
 const viewportCenter = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
 
@@ -184,7 +219,6 @@ export function BoardCanvas({
             fields: guestPlanning?.fields ?? [],
             views: [],
             daysOff: guestPlanning?.daysOff ?? [],
-            sample: false,
           }
         : {
             enabled: planningData?.enabled ?? false,
@@ -193,7 +227,6 @@ export function BoardCanvas({
             fields: planningData?.fields ?? [],
             views: planningData?.views ?? [],
             daysOff: planningData?.daysOff ?? [],
-            sample: planningData?.sample ?? false,
           },
     [guest, guestPlanning, planningData],
   )
@@ -214,6 +247,11 @@ export function BoardCanvas({
   const [lastView] = useState(() => readViewport(board.id))
   const [added, setAdded] = useState<Record<string, Task>>({})
   const [tool, setTool] = useState<Tool>('select')
+  const [minimapShown, setMinimapShown] = useState(readMinimapShown)
+  const toggleMinimap = () => {
+    saveMinimapShown(!minimapShown)
+    setMinimapShown(!minimapShown)
+  }
   const [connecting, setConnecting] = useState(false)
   const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -257,13 +295,14 @@ export function BoardCanvas({
     [flow],
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
+  const far = useStore((state) => state.transform[2] <= FAR_ZOOM)
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
   // A style tried on the selection from the bar: drawn here only, never saved or sent.
   const [preview, setPreview] = useState<Style | null>(null)
   const shown = useMemo(() => {
     const painted =
       preview === null ? moving : moving.map((n) => (n.selected ? withStyle(n, preview) : n))
-    const raised = raiseAnchors(painted, edges)
+    const raised = raiseAnchors(painted.map(withHandles), edges)
     if (!flashId && !hits) return raised
     return {
       ...raised,
@@ -310,7 +349,47 @@ export function BoardCanvas({
   useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
   useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
 
-  // One card goes to the point or cascades from the viewport center; several form a grid there.
+  // Cards placed on a guess, closed up once measured; quick enough to stay one undo step.
+  const closeUp = useRef<{
+    ids: string[]
+    center: XYPosition
+    at: XYPosition[]
+    since: number
+  } | null>(null)
+  useEffect(() => {
+    const pending = closeUp.current
+    if (!pending) return
+    if (performance.now() - pending.since > CLOSE_UP_MS) {
+      closeUp.current = null
+      return
+    }
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    const sizes = pending.ids.map((id) => byId.get(id)?.measured)
+    if (sizes.some((s) => !s?.width || !s?.height)) return
+    closeUp.current = null
+    const target = columnPositions(
+      sizes.map((s) => ({ width: s?.width ?? 0, height: s?.height ?? 0 })),
+      pending.center,
+    )
+    const shift = new Map(
+      pending.ids.map((id, i) => [
+        id,
+        { x: target[i].x - pending.at[i].x, y: target[i].y - pending.at[i].y },
+      ]),
+    )
+    // A shift, not a position: a card may already sit in a frame, relative to it.
+    setNodes((current) =>
+      reparent(
+        current.map((n) => {
+          const d = shift.get(n.id)
+          return d ? { ...n, position: { x: n.position.x + d.x, y: n.position.y + d.y } } : n
+        }),
+        pending.ids,
+      ),
+    )
+  }, [nodes, setNodes])
+
+  // One card goes to the point or cascades from the viewport center; several form columns there.
   const addCards = useCallback(
     (list: Task[], at?: XYPosition) => {
       didOnboarding('add_card')
@@ -318,27 +397,31 @@ export function BoardCanvas({
         ...current,
         ...Object.fromEntries(list.map((t) => [taskRef(t), t])),
       }))
+      const center = screenToFlowPosition(at ?? viewportCenter())
+      // Ids and the close-up are set out here: React may run the updater twice.
+      const ids = list.map(() => newId())
+      const guess = columnPositions(
+        list.map(() => CARD_GUESS),
+        center,
+      )
+      if (list.length > 1) closeUp.current = { ids, center, at: guess, since: performance.now() }
       setNodes((current) => {
-        const center = screenToFlowPosition(at ?? viewportCenter())
         const step = current.length % 5
         const positions =
           list.length > 1
-            ? gridPositions(list.length, center)
+            ? guess
             : [
                 at
                   ? center
                   : { x: center.x - 128 + step * CASCADE_X, y: center.y - 200 + step * CASCADE_Y },
               ]
         const fresh: AppNode[] = list.map((task, i) => ({
-          id: newId(),
+          id: ids[i],
           type: 'task_card',
           position: positions[i],
           data: { key: task.key, source: task.source, collapsed: false },
         }))
-        return reparent(
-          [...current, ...fresh],
-          fresh.map((n) => n.id),
-        )
+        return reparent([...current, ...fresh], ids)
       })
     },
     [screenToFlowPosition, setNodes],
@@ -647,6 +730,37 @@ export function BoardCanvas({
     setEdges((current) => current.map((e) => ({ ...e, selected: kind === 'edge' && e.id === id })))
   }
 
+  const openNodeMenu = (node: AppNode) => {
+    if (readOnly) return
+    if (!node.selected) selectOnly(node.id, 'node')
+    setMenuTarget({ kind: 'selection' })
+  }
+
+  // Node handlers keep one identity: a new one redraws every node on each frame of a remote drag.
+  const nodeEvents = useRef({ place, openNodeMenu })
+  useLayoutEffect(() => {
+    nodeEvents.current = { place, openNodeMenu }
+  })
+  const onNodeClick = useCallback((event: ReactMouseEvent) => nodeEvents.current.place(event), [])
+  // Far out an element has no editor: a double-click zooms in at that point, like on the empty board.
+  const onNodeDoubleClick = useCallback(
+    (event: ReactMouseEvent) => {
+      const { x, y, zoom } = flow.getViewport()
+      if (zoom > FAR_ZOOM) return
+      const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const next = zoom * 2
+      void flow.setViewport(
+        { x: x + at.x * (zoom - next), y: y + at.y * (zoom - next), zoom: next },
+        { duration: reducedMotion() ? 0 : 200 },
+      )
+    },
+    [flow],
+  )
+  const onNodeContextMenu = useCallback(
+    (_: ReactMouseEvent, node: AppNode) => nodeEvents.current.openNodeMenu(node),
+    [],
+  )
+
   const selectNodes = (ids: string[]) => {
     const picked = new Set(ids)
     setNodes((current) => current.map((n) => ({ ...n, selected: picked.has(n.id) })))
@@ -676,6 +790,21 @@ export function BoardCanvas({
   // One call, so a style on many elements is one undo step.
   const setStyle = (style: Style) =>
     setNodes((current) => current.map((n) => (n.selected ? withStyle(n, style) : n)))
+  const align = (how: Alignment | Distribution) =>
+    setNodes((current) => {
+      const moving = movers(current)
+      if (moving.length < 2) return current
+      const boxes = boxesOf(moving, current)
+      const shifts =
+        how === 'horizontal' || how === 'vertical'
+          ? distributeShifts(boxes, how)
+          : alignShifts(boxes, how)
+      // Like a drop: an element that lands in a frame or leaves one changes frame.
+      return reparent(
+        applyShifts(current, shifts),
+        moving.map((n) => n.id),
+      )
+    })
   const narrowTo = (kind: Kind) => {
     setNodes((current) =>
       current.map((n) => (n.selected && n.type !== kind ? { ...n, selected: false } : n)),
@@ -804,18 +933,15 @@ export function BoardCanvas({
           !readOnly &&
           setMenuTarget({ kind: 'pane', point: { x: event.clientX, y: event.clientY } })
         }
-        onNodeContextMenu={(_, node) => {
-          if (readOnly) return
-          if (!node.selected) selectOnly(node.id, 'node')
-          setMenuTarget({ kind: 'selection' })
-        }}
+        onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={(_, edge) => {
           if (readOnly) return
           if (!edge.selected) selectOnly(edge.id, 'edge')
           setMenuTarget({ kind: 'selection' })
         }}
         onSelectionContextMenu={() => !readOnly && setMenuTarget({ kind: 'selection' })}
-        onNodeClick={(event) => place(event)}
+        onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onMoveEnd={(_, viewport) => saveViewport(board.id, viewport)}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -850,17 +976,31 @@ export function BoardCanvas({
           .join(' ')}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} color="var(--grid)" />
-        <Controls showInteractive={false} position="bottom-right">
-          {canGoBack && (
+        {/* One column, so the minimap stays above the zoom buttons however many there are. */}
+        <Panel position="bottom-right" className="canvas-corner">
+          {minimapShown && <Minimap />}
+          <Controls showInteractive={false}>
+            {canGoBack && (
+              <ControlButton
+                onClick={goBack}
+                title="Back to where you were (B)"
+                aria-label="Back to where you were"
+              >
+                <ArrowLeft />
+              </ControlButton>
+            )}
             <ControlButton
-              onClick={goBack}
-              title="Back to where you were (B)"
-              aria-label="Back to where you were"
+              className="max-sm:hidden"
+              onClick={toggleMinimap}
+              title={minimapShown ? 'Hide minimap' : 'Show minimap'}
+              aria-label={minimapShown ? 'Hide minimap' : 'Show minimap'}
+              aria-pressed={minimapShown}
             >
-              <ArrowLeft />
+              {/* xyflow fills control icons; a closed outline must stay an outline. */}
+              <MapIcon style={{ fill: 'none' }} />
             </ControlButton>
-          )}
-        </Controls>
+          </Controls>
+        </Panel>
         <Guides guides={guides.guides} />
         <PresenceLayer />
       </ReactFlow>
@@ -871,6 +1011,8 @@ export function BoardCanvas({
           onPreview={setPreview}
           onNarrow={narrowTo}
           onCollapse={setCollapsed}
+          movable={movers(nodes).length}
+          onAlign={align}
           onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
           onDuplicate={duplicate}
           onDelete={deleteSelection}
@@ -913,71 +1055,75 @@ export function BoardCanvas({
       <PlanningContext.Provider value={planning}>
         <BoardSourcesContext.Provider value={boardSources}>
           <ReadOnlyContext.Provider value={readOnly}>
-            <SelectedByContext.Provider value={live.selections}>
-              <ModuleHostContext.Provider value={moduleHost}>
-                <ExpandModuleContext.Provider value={setExpandedId}>
-                  {readOnly ? (
-                    surface
-                  ) : (
-                    <CanvasContextMenu
-                      target={menuTarget}
-                      onPlace={placeAt}
-                      onAddCards={addCards}
-                      onAddModule={addModule}
-                      onDelete={deleteSelection}
-                      cards={cardCounts}
-                      onCollapse={setCollapsed}
-                      onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                    >
-                      {surface}
-                    </CanvasContextMenu>
-                  )}
-                  {expandedNode && (
-                    <ModuleExpanded
-                      node={expandedNode}
-                      readOnly={readOnly}
-                      onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
-                      onClose={() => setExpandedId(null)}
-                    />
-                  )}
-                </ExpandModuleContext.Provider>
-              </ModuleHostContext.Provider>
-            </SelectedByContext.Provider>
-            {guest ? (
-              // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-              <div className="absolute top-4 right-4 z-10">{indicator}</div>
-            ) : (
-              <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
-                {indicator}
-              </BoardTimers>
-            )}
-            <BoardSearch
-              boardId={board.id}
-              nodes={nodes}
-              tasks={tasks}
-              onJump={jumpTo}
-              onSelect={selectNodes}
-            />
-            {liveNotice && (
-              <Alert
-                variant={live.status === 'unsaved' ? 'destructive' : 'default'}
-                className="absolute top-16 right-4 z-10 w-80"
-              >
-                <AlertDescription>{liveNotice}</AlertDescription>
-              </Alert>
-            )}
-            {!readOnly && (
-              <Toolbar
-                tool={tool}
-                onTool={setTool}
-                onShape={(kind) => {
-                  setShapeKind(kind)
-                  setTool('shape')
-                }}
-                onAddCards={addCards}
-                onAddModule={(kind) => addModule(kind, viewportCenter())}
+            <FarContext.Provider value={far}>
+              <SelectedByContext.Provider value={live.selections}>
+                <ModuleHostContext.Provider value={moduleHost}>
+                  <ExpandModuleContext.Provider value={setExpandedId}>
+                    {readOnly ? (
+                      surface
+                    ) : (
+                      <CanvasContextMenu
+                        target={menuTarget}
+                        onPlace={placeAt}
+                        onAddCards={addCards}
+                        onAddModule={addModule}
+                        onDelete={deleteSelection}
+                        cards={cardCounts}
+                        onCollapse={setCollapsed}
+                        onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                      >
+                        {surface}
+                      </CanvasContextMenu>
+                    )}
+                    {expandedNode && (
+                      <ModuleExpanded
+                        node={expandedNode}
+                        readOnly={readOnly}
+                        onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
+                        onClose={() => setExpandedId(null)}
+                      />
+                    )}
+                  </ExpandModuleContext.Provider>
+                </ModuleHostContext.Provider>
+              </SelectedByContext.Provider>
+              {guest ? (
+                // Timers on the board are its people's reminders: a guest sees them, nothing rings.
+                <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                  {indicator}
+                </div>
+              ) : (
+                <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
+                  {indicator}
+                </BoardTimers>
+              )}
+              <BoardSearch
+                boardId={board.id}
+                nodes={nodes}
+                tasks={tasks}
+                onJump={jumpTo}
+                onSelect={selectNodes}
               />
-            )}
+              {liveNotice && (
+                <Alert
+                  variant={live.status === 'unsaved' ? 'destructive' : 'default'}
+                  className="absolute top-16 right-4 z-10 w-80"
+                >
+                  <AlertDescription>{liveNotice}</AlertDescription>
+                </Alert>
+              )}
+              {!readOnly && (
+                <Toolbar
+                  tool={tool}
+                  onTool={setTool}
+                  onShape={(kind) => {
+                    setShapeKind(kind)
+                    setTool('shape')
+                  }}
+                  onAddCards={addCards}
+                  onAddModule={(kind) => addModule(kind, viewportCenter())}
+                />
+              )}
+            </FarContext.Provider>
           </ReadOnlyContext.Provider>
         </BoardSourcesContext.Provider>
       </PlanningContext.Provider>
@@ -1024,7 +1170,7 @@ export default function Canvas({ boardId }: { boardId: string }) {
   return (
     <ReactFlowProvider>
       {accessChanged && viewer && (
-        <Alert className="absolute top-4 left-1/2 z-10 w-96 -translate-x-1/2">
+        <Alert ref={topOverlay} className="absolute top-4 left-1/2 z-10 w-96 -translate-x-1/2">
           <AlertDescription>You can only view this board now.</AlertDescription>
         </Alert>
       )}

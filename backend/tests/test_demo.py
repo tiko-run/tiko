@@ -1,19 +1,22 @@
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from app.adapters.storage import postgres
+from app.adapters.storage import demo_split, postgres
 from app.api.gate import COOKIE
 from app.config import Settings
 from app.domain import boards as board_service
 from app.domain import demo
 from app.domain import planning_sample as sample
+from app.domain.accounts import hash_password
 from app.domain.errors import BoardLimit
+from app.domain.welcome import welcome_doc
+from app.domain.workspaces import in_workspace
 from app.main import create_app
 from tests.conftest import all_rows, run_sql, signed_in
 from tests.jira_fake import FakeJira
@@ -43,6 +46,11 @@ def visitor(app, address: str = "203.0.113.1") -> TestClient:
 
 def me(client: TestClient) -> dict:
     return client.get("/api/auth/status").json()["me"]
+
+
+def own(client: TestClient):
+    """Calls into the app's services in the person's workspace, as their requests run."""
+    return in_workspace(me(client)["workspace"]["id"])
 
 
 def welcome(client: TestClient) -> str:
@@ -245,15 +253,13 @@ def test_nobody_is_shown_a_demo_visitor(app):
     board_id = welcome(ann)
     admin = signed_in(app)
     assert [p["username"] for p in admin.get("/api/people").json()["people"]] == ["admin"]
-    # On a demo instance the picker answers a whole username and nothing else.
-    assert admin.get("/api/people/directory").json() == {"people": []}
-    assert admin.get("/api/people/directory?q=adm").json() == {"people": []}
-    found = admin.get("/api/people/directory?q=Admin").json()["people"]
+    # The picker lists the admin's workspace, where no visitor is.
+    found = admin.get("/api/people/directory").json()["people"]
     assert [p["username"] for p in found] == ["admin"]
     listed = admin.get("/api/boards").json()
     assert board_id not in [b["id"] for b in listed["boards"] + listed["all"]]
-    # By its address the board still opens for an admin.
-    assert admin.get(f"/api/boards/{board_id}").status_code == 200
+    # The board is in the visitor's own workspace: its address opens nothing elsewhere.
+    assert admin.get(f"/api/boards/{board_id}").status_code == 404
     change = admin.patch(f"/api/people/{me(ann)['id']}", json={"role": "admin"})
     assert change.status_code == 404
 
@@ -298,19 +304,26 @@ def test_a_board_shared_with_everyone_before_the_demo_stays_closed_to_visitors(a
     ann = visitor(app)
     assert board_id not in [b["id"] for b in ann.get("/api/boards").json()["boards"]]
     assert ann.get(f"/api/boards/{board_id}").status_code == 404
+    # Signed up, Ann stays in her own workspace.
     assert sign_up(ann).status_code == 200
-    assert ann.get(f"/api/boards/{board_id}").status_code == 200
+    assert ann.get(f"/api/boards/{board_id}").status_code == 404
 
 
 def test_boards_made_at_once_stay_within_the_limit(app):
     ann = visitor(app)
-    person = app.state.accounts.get(me(ann)["id"])
     boards = app.state.boards
-    made = together(
-        8, lambda index: board_service.create_board(person, f"Board {index}", boards, 3)
-    )
+
+    def make(index: int):
+        # A thread of its own starts outside the workspace.
+        with own(ann):
+            return board_service.create_board(person, f"Board {index}", boards, 3)
+
+    with own(ann):
+        person = app.state.accounts.get(me(ann)["id"])
+    made = together(8, make)
     assert sum(isinstance(result, BoardLimit) for result in made) == 5
-    assert boards.owned(person.id) == 3
+    with own(ann):
+        assert boards.owned(person.id) == 3
 
 
 def test_three_boards_with_the_welcome_board(app):
@@ -331,9 +344,12 @@ def test_the_board_limit_of_the_instance_holds_members_and_not_admins():
     ann = visitor(app)
     sign_up(ann)
     welcome(ann)
-    assert ann.post("/api/boards", json={"name": "Second"}).status_code == 201
+    second = ann.post("/api/boards", json={"name": "Second"})
+    assert second.status_code == 201
     response = ann.post("/api/boards", json={"name": "Third"})
     assert response.json()["error"]["code"] == "board_limit"
+    copy = ann.post(f"/api/boards/{second.json()['id']}/duplicate")
+    assert copy.json()["error"]["code"] == "board_limit"
     # A visitor keeps the three of the demo whatever the instance allows its people.
     bob = visitor(app, "203.0.113.2")
     welcome(bob)
@@ -342,8 +358,22 @@ def test_the_board_limit_of_the_instance_holds_members_and_not_admins():
     assert bob.post("/api/boards", json={"name": "Fourth"}).status_code == 409
     admin = signed_in(app)
     for name in ("One", "Two", "Three"):
-        board_id = admin.post("/api/boards", json={"name": name}).json()["id"]
-    # A board handed over would be a third for Ann.
+        assert admin.post("/api/boards", json={"name": name}).status_code == 201
+
+
+def test_a_board_handed_over_counts_against_the_limit():
+    app = create_app(Settings(db_path=":memory:", tiko_board_limit=2))
+    admin = signed_in(app)
+    url = admin.post("/api/invites", json={"role": "member"}).json()["url"]
+    ann = TestClient(app)
+    joined = ann.post(
+        f"/api/invites/{url.split('=', 1)[1]}/accept",
+        json={"username": "ann", "name": "Ann", "password": LONG},
+    )
+    assert joined.status_code == 204
+    for name in ("One", "Two"):
+        assert ann.post("/api/boards", json={"name": name}).status_code == 201
+    board_id = admin.post("/api/boards", json={"name": "Three"}).json()["id"]
     transfer = admin.post(f"/api/boards/{board_id}/transfer", json={"user_id": me(ann)["id"]})
     assert transfer.json()["error"]["code"] == "board_limit"
 
@@ -439,6 +469,8 @@ def test_a_full_demo_gives_the_place_of_one_who_changed_nothing(app, monkeypatch
 def test_the_cleanup_takes_everything_of_a_visitor_who_stayed_away(app):
     ann, bob = visitor(app), visitor(app, "203.0.113.2")
     ann_id, board_id = me(ann)["id"], welcome(ann)
+    workspace = me(ann)["workspace"]["id"]
+    zoe = ann.post("/api/planning/people", json={"name": "Zoe"}).json()["id"]
     edit(ann, board_id)
     ann.put("/api/demo/tasks/DEMO-1/status", json={"status": "Done"})
     ann.post(f"/api/boards/{board_id}/refresh")
@@ -454,7 +486,8 @@ def test_the_cleanup_takes_everything_of_a_visitor_who_stayed_away(app):
 
     assert ann.get("/api/boards").status_code == 401
     left = rows(app)
-    assert ann_id not in left and board_id not in left
+    for gone in (ann_id, board_id, workspace, zoe):
+        assert gone not in left
     assert bob.get("/api/boards").status_code == 200
 
 
@@ -480,10 +513,12 @@ def test_a_visitor_who_only_opened_the_board_changed_nothing(app):
         ) as socket:
             socket.receive_bytes()
             deadline = time.time() + 5
-            while boards.load(board_id)[1] is None and time.time() < deadline:
-                time.sleep(0.01)
-    assert boards.load(board_id)[1] is not None
-    assert boards.get(board_id).version == 1
+            with own(idle):
+                while boards.load(board_id)[1] is None and time.time() < deadline:
+                    time.sleep(0.01)
+    with own(idle):
+        assert boards.load(board_id)[1] is not None
+        assert boards.get(board_id).version == 1
     assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 1
     assert idle.get("/api/boards").status_code == 401
 
@@ -555,6 +590,15 @@ def test_a_visitor_deleted_between_the_read_and_the_touch_is_signed_out(app, mon
 
     monkeypatch.setattr(sessions, "_touch_demo", late)
     assert sessions.resolve(ann.cookies[COOKIE], time.time() + 120) is None
+
+
+def test_the_cleanup_takes_the_visitors_trash(app):
+    ann = visitor(app)
+    board_id = ann.post("/api/boards", json={"name": "Scratch"}).json()["id"]
+    assert ann.delete(f"/api/boards/{board_id}").status_code == 204
+    assert ann.get("/api/trash").json()["boards"][0]["id"] == board_id
+    assert app.state.visitors.cleanup(time.time() + 8 * DAY) == 1
+    assert board_id not in rows(app)
 
 
 def test_an_expired_visitor_is_refused_before_the_cleanup(app, monkeypatch):
@@ -740,17 +784,16 @@ def test_sign_up_is_for_demo_visitors_only(app, client):
     assert sign_up(TestClient(client.app)).status_code == 404
 
 
-def test_after_sign_up_sharing_and_the_public_link_work_and_the_three_boards_go(app):
+def test_after_sign_up_the_public_link_works_and_the_three_boards_go(app):
     ann, bob = visitor(app), visitor(app, "203.0.113.2")
     sign_up(ann)
     sign_up(bob, "bob")
     board_id = welcome(ann)
-    found = ann.get("/api/people/directory?q=bob").json()["people"]
-    assert [p["username"] for p in found] == ["bob"]
-    assert ann.get("/api/people/directory?q=bo").json() == {"people": []}
-    share = ann.put(f"/api/boards/{board_id}/members/{found[0]['id']}", json={"role": "viewer"})
-    assert share.status_code == 200
-    assert board_id in [b["id"] for b in bob.get("/api/boards").json()["boards"]]
+    # Each keeps a workspace of their own, with nobody else in it.
+    assert ann.get("/api/people/directory?q=bob").json() == {"people": []}
+    bob_id = me(bob)["id"]
+    share = ann.put(f"/api/boards/{board_id}/members/{bob_id}", json={"role": "viewer"})
+    assert share.status_code == 404
     link = ann.put(f"/api/boards/{board_id}/public", json={"public": True}).json()
     assert TestClient(app).get(f"/api/public/{link['public_token']}").status_code == 200
     assert ann.put("/api/me/password", json={"current": LONG, "new": LONG + "!"}).is_success
@@ -768,15 +811,21 @@ def test_the_cleanup_leaves_a_signed_up_person_until_90_days_without_a_sign_in(a
     admin = signed_in(app)
     visitors = app.state.visitors
 
+    zoe = ann.post("/api/planning/people", json={"name": "Zoe"}).json()["id"]
+    workspace = me(ann)["workspace"]["id"]
+
     assert visitors.cleanup(time.time() + 8 * DAY) == 0
     assert visitors.cleanup(time.time() + 89 * DAY) == 0
     assert ann.get("/api/boards").status_code == 200
+    assert me(ann)["workspace"]["id"] == workspace
+    assert zoe in {p["id"] for p in ann.get("/api/planning").json()["people"]}
 
     assert visitors.cleanup(time.time() + 91 * DAY) == 1
     assert ann.get("/api/boards").status_code == 401
     assert TestClient(app).get(f"/api/public/{token}").status_code == 404
     left = rows(app)
-    assert ann_id not in left and board_id not in left
+    for gone in (ann_id, board_id, workspace, zoe):
+        assert gone not in left
     # Admins stay whatever their last sign-in.
     assert admin.get("/api/boards").status_code == 200
 
@@ -790,7 +839,8 @@ def test_sign_up_wins_a_race_with_a_touch_and_loses_one_with_the_cleanup(app):
     assert me(ann)["demo_expires_at"] is None
 
     bob = visitor(app, "203.0.113.2")
-    person = app.state.accounts.get(me(bob)["id"])
+    with own(bob):
+        person = app.state.accounts.get(me(bob)["id"])
     app.state.visitors.cleanup(time.time() + 8 * DAY)
     with pytest.raises(demo.NotFound):
         app.state.visitors.sign_up(person, "Bob", "bob", LONG)
@@ -829,25 +879,7 @@ def test_a_reset_link_counts_as_a_sign_in_for_the_90_days(app):
     assert fresh.get("/api/boards").status_code == 200
 
 
-def test_the_directory_takes_so_many_searches_a_minute(app):
-    ann = visitor(app)
-    sign_up(ann)
-    for _ in range(demo.LOOKUPS):
-        assert ann.get("/api/people/directory?q=bob").status_code == 200
-    busy = ann.get("/api/people/directory?q=bob")
-    assert busy.status_code == 429 and busy.headers["retry-after"]
-    # An empty search finds nobody and costs nothing; another person is not held up.
-    assert ann.get("/api/people/directory").status_code == 200
-    assert signed_in(app).get("/api/people/directory?q=ann").json()["people"]
-
-
-def test_an_ordinary_instance_does_not_count_searches(client):
-    for _ in range(demo.LOOKUPS + 5):
-        assert client.get("/api/people/directory?q=adm").status_code == 200
-
-
 def test_a_public_demo_board_names_the_sample_people(app):
-    app.state.planning.write_sample(sample.TYPES, sample.people(datetime.now(UTC).date()))
     ann = visitor(app)
     board_id = welcome(ann)
     assert sign_up(ann).status_code == 200
@@ -860,3 +892,139 @@ def test_a_public_demo_board_names_the_sample_people(app):
         sample.BUILD,
         sample.REVIEW,
     }
+
+
+def test_each_visitor_plans_in_a_workspace_of_their_own(app):
+    ann, bob = visitor(app), visitor(app, "203.0.113.2")
+    view = ann.get("/api/planning").json()
+    assert view["enabled"] is True and "sample" not in view
+    assert [t["id"] for t in view["types"]] == [t.id for t in sample.TYPES]
+    assert {p["name"] for p in view["people"]} == {"Anna", "Ben", "Chloe", "Dev", "Elif"}
+
+    assert ann.post("/api/planning/types", json={"name": "QA", "hue": 200}).status_code == 200
+    renamed = ann.patch(f"/api/planning/types/{sample.BUILD}", json={"name": "Code"})
+    assert renamed.status_code == 200
+    zoe = ann.post("/api/planning/people", json={"name": "Zoe"}).json()
+    week = {"start": "2026-11-02", "end": "2026-11-06"}
+    assert ann.post(f"/api/planning/people/{zoe['id']}/off", json=week).status_code == 200
+    assert ann.put("/api/planning/days-off", json={"dates": ["2026-11-04"]}).status_code == 200
+
+    theirs = bob.get("/api/planning").json()
+    assert {t["name"] for t in theirs["types"]} == {t.name for t in sample.TYPES}
+    assert "Zoe" not in {p["name"] for p in theirs["people"]}
+    assert theirs["daysOff"] == []
+    # Only a workspace's admin turns Planning off; a visitor is a member of theirs.
+    assert ann.patch("/api/planning", json={"enabled": False}).status_code == 403
+
+
+def test_the_workload_counts_the_visitors_own_boards(app):
+    ann, bob = visitor(app), visitor(app, "203.0.113.2")
+    for who in (ann, bob):
+        board_id = welcome(who)
+        load = who.get(f"/api/planning/people/{sample.ANNA}/workload")
+        assert load.status_code == 200
+        assert {s["board"] for s in load.json()["stages"]} == {board_id}
+
+
+def test_a_visitor_from_before_workspaces_goes_from_the_default_one(app):
+    # Visitors made before workspaces live in the default one until they go.
+    person = demo.Person(
+        id="visitor-before-workspaces",
+        username="~before",
+        name=demo.VISITOR_NAME,
+        role="member",
+        demo_expires_at=demo.iso(time.time() + DAY),
+    )
+    app.state.accounts._users.add(person, demo.NO_PASSWORD)
+    board_id = app.state.boards.create("Old", board_service.BoardDoc(), person.id)
+    assert app.state.visitors.cleanup(time.time() + 2 * DAY) == 1
+    left = rows(app)
+    assert board_id not in left and person.id not in left
+
+
+def test_people_of_a_demo_from_before_workspaces_each_get_one(app):
+    admin = signed_in(app)
+    users, boards, db = app.state.accounts._users, app.state.boards, app.state.boards._db
+    # As a demo copied from SQLite has them: everyone in the default workspace, one sample.
+    app.state.planning.write_sample(sample.TYPES, sample.people(date.today()))
+    visitor = demo.Person(
+        id="visitor-before",
+        username="~before",
+        name=demo.VISITOR_NAME,
+        role="member",
+        demo_expires_at=demo.iso(time.time() + DAY),
+    )
+    users.add(visitor, demo.NO_PASSWORD)
+    bob = demo.Person(id="bob-before", username="bob", name="Bob", role="member")
+    users.add(bob, hash_password(LONG))
+    planned = boards.create(
+        "Plan",
+        board_service.BoardDoc.model_validate(welcome_doc(datetime.now(UTC), True)),
+        visitor.id,
+    )
+    bobs = boards.create("Bob's", board_service.BoardDoc(), bob.id)
+    run_sql(
+        app,
+        "INSERT INTO board_members (workspace_id, board_id, user_id, role)"
+        " VALUES (?, ?, ?, 'editor')",
+        (db.default_workspace, bobs, visitor.id),
+    )
+    ops = admin.post("/api/boards", json={"name": "Ops"}).json()["id"]
+    # The app made at the start of the test found nobody to move and left its mark.
+    with db.jobs() as conn:
+        conn.execute("DELETE FROM server_settings WHERE key = %s", (demo_split.MARK,))
+
+    assert demo_split.move_once(db) == 2
+    assert demo_split.move_once(db) == 0
+
+    old = TestClient(app)
+    old.cookies.set(COOKIE, app.state.sessions.start(visitor.id, time.time()))
+    bob_client = signed_in(app, "bob", LONG)
+    spaces = {me(c)["workspace"]["id"] for c in (old, bob_client, admin)}
+    assert len(spaces) == 3
+    assert [b["id"] for b in old.get("/api/boards").json()["boards"]] == [planned]
+    assert [b["id"] for b in bob_client.get("/api/boards").json()["boards"]] == [bobs]
+    assert old.get(f"/api/boards/{bobs}").status_code == 404
+    assert admin.get(f"/api/boards/{planned}").status_code == 404
+    assert ops in [b["id"] for b in admin.get("/api/boards").json()["boards"]]
+    assert [p["username"] for p in admin.get("/api/people").json()["people"]] == ["admin"]
+
+    # Each has the lists the boards name, to change on their own.
+    for who in (old, bob_client):
+        view = who.get("/api/planning").json()
+        assert view["enabled"] and [t["id"] for t in view["types"]] == [t.id for t in sample.TYPES]
+    assert old.post("/api/planning/people", json={"name": "Zoe"}).status_code == 200
+    assert "Zoe" not in {p["name"] for p in bob_client.get("/api/planning").json()["people"]}
+    load = old.get(f"/api/planning/people/{sample.ANNA}/workload").json()
+    assert {stage["board"] for stage in load["stages"]} == {planned}
+
+    # The visitor still goes when their time is up, with the workspace.
+    assert app.state.visitors.cleanup(time.time() + 8 * DAY) == 1
+    assert visitor.id not in rows(app)
+
+
+def test_a_team_that_turns_the_demo_on_stays_together():
+    team = create_app(Settings(db_path=":memory:"))
+    admin = signed_in(team)
+    url = admin.post("/api/invites", json={"role": "member"}).json()["url"]
+    TestClient(team).post(
+        f"/api/invites/{url.split('=', 1)[1]}/accept",
+        json={"username": "ann", "name": "Ann", "password": LONG},
+    )
+    db = team.state.boards._db
+    with db.jobs() as conn:
+        conn.execute("DELETE FROM server_settings WHERE key = %s", (demo_split.MARK,))
+    assert demo_split.move_once(db) == 0
+    assert {p["username"] for p in admin.get("/api/people").json()["people"]} == {"admin", "ann"}
+
+
+def test_a_visitor_who_only_changed_planning_is_kept(app):
+    planner, idle = visitor(app), visitor(app, "203.0.113.2")
+    for who in (planner, idle):
+        welcome(who)
+    # A rename keeps the sample's id, so only the mark tells it from the copy as it was made.
+    renamed = planner.patch(f"/api/planning/types/{sample.BUILD}", json={"name": "Code"})
+    assert renamed.status_code == 200
+    assert app.state.visitors.cleanup(time.time() + 2 * 3600) == 1
+    assert planner.get("/api/boards").status_code == 200
+    assert idle.get("/api/boards").status_code == 401

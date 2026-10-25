@@ -1,12 +1,11 @@
 import time
 from typing import Literal
 
-from fastapi import APIRouter, Query, Request, Response
+from fastapi import APIRouter, Query, Response
 from pydantic import BaseModel
 
 from app.api.deps import AccountsDep, CurrentPerson, InvitesDep, MembershipsDep, WorkspaceAdmin
 from app.domain.accounts import PersonRecord
-from app.domain.demo import DemoVisitors
 from app.domain.invites import Invite
 
 router = APIRouter(tags=["people"])
@@ -79,27 +78,15 @@ class Directory(BaseModel):
 
 @router.get("/people/directory")
 def directory(
-    person: CurrentPerson,
+    _: CurrentPerson,
     accounts: AccountsDep,
-    request: Request,
     q: str = Query(default="", max_length=64),
 ) -> Directory:
-    """Active people for the share picker; open to everyone signed in."""
+    """Active people of the workspace for the share picker; open to everyone signed in."""
     needle = q.strip().lower()
-    visitors: DemoVisitors | None = request.app.state.visitors
-    demo = visitors is not None
-    if visitors and needle:
-        visitors.looked_up(person, time.time())
-
-    def matches(name: str, username: str) -> bool:
-        # Strangers share a demo instance: a person is found by their whole username only.
-        if demo:
-            return needle == username and not person.demo_expires_at
-        return needle in name or needle in username
-
     found = [
         DirectoryEntry(id=p.id, username=p.username, name=p.name)
         for p in accounts.people()
-        if not p.disabled and matches(p.name.lower(), p.username.lower())
+        if not p.disabled and (needle in p.name.lower() or needle in p.username.lower())
     ]
     return Directory(people=found[:20])

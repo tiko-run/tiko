@@ -10,12 +10,22 @@ export type ShareRole = z.infer<typeof shareRoleSchema>
 const summarySchema = z.object({
   id: z.string(),
   name: z.string(),
+  created_at: z.string(),
   updated_at: z.string(),
   my_role: boardRoleSchema,
   owner: z.object({ id: z.string(), name: z.string() }).nullable(),
   /** Anyone with the board's public link can view it. */
   public: z.boolean(),
+  /** The board version its preview follows; absent or null for a board with nothing on it. */
+  preview: z.number().int().nullish(),
+  /** The person's own star and folder. */
+  starred: z.boolean().optional(),
+  folder_id: z.string().nullish(),
 })
+
+/** The server-drawn picture of a board; the version in the address skips the image cache. */
+export const previewUrl = (board: { id: string; preview?: number | null }) =>
+  `/api/boards/${encodeURIComponent(board.id)}/preview?v=${board.preview}`
 
 export type BoardSummary = z.infer<typeof summarySchema>
 
@@ -52,7 +62,8 @@ export const docSchema = z.object({
 export type BoardDoc = z.infer<typeof docSchema>
 export type DocNode = z.infer<typeof docNodeSchema>
 
-const boardSchema = summarySchema.extend({
+// The canvas has no use for when the board was made; a public board does not say it.
+const boardSchema = summarySchema.omit({ created_at: true }).extend({
   version: z.number(),
   doc: docSchema,
   // By ref, `source:key`.
@@ -141,6 +152,11 @@ export function createBoard(name: string) {
   })
 }
 
+/** A copy of the board's content, owned by the person, with no members or public link. */
+export function duplicateBoard(id: string) {
+  return fetchJson(`/api/boards/${id}/duplicate`, summarySchema, { method: 'POST' })
+}
+
 export function renameBoard(id: string, name: string) {
   return fetchJson(`/api/boards/${id}`, summarySchema, {
     method: 'PATCH',
@@ -150,6 +166,18 @@ export function renameBoard(id: string, name: string) {
 
 export function deleteBoard(id: string) {
   return fetchJson(`/api/boards/${id}`, z.null(), { method: 'DELETE' })
+}
+
+export function starBoard(id: string, starred: boolean) {
+  return fetchJson(`/api/boards/${id}/star`, z.null(), { method: starred ? 'PUT' : 'DELETE' })
+}
+
+/** Moves the board into one of the person's folders, or out of any with null. */
+export function placeBoard(id: string, folderId: string | null) {
+  return fetchJson(`/api/boards/${id}/folder`, z.null(), {
+    method: 'PUT',
+    body: JSON.stringify({ folder_id: folderId }),
+  })
 }
 
 export function getBoard(id: string) {

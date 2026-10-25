@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 import { getAuthStatus, type Me } from '@/api/auth'
-import { usePlanningQuery } from '@/api/planning'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -47,7 +46,7 @@ type Entry = {
   need?: 'admin' | 'server'
 }
 
-const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker', 'planning'])
+const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker'])
 // A tracker token and everything of the Workspace group live in a workspace.
 const WORKSPACE_ONLY = new Set<Section>(['tracker', 'task-source', 'people', 'sharing', 'planning'])
 
@@ -183,8 +182,6 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
   // On a narrow screen the window shows the list first, then one section with a Back button;
   // a link to another section opens it directly.
   const [listShown, setListShown] = useState(narrow && section === 'profile')
-  // The demo's Planning lists are a fixed sample: nothing there to change.
-  const sample = usePlanningQuery(!!me.workspace).data?.sample ?? false
   const groups = GROUPS.map((group) => ({
     ...group,
     // A demo visitor has no name, password or tracker of their own until they sign up.
@@ -192,8 +189,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
       (item) =>
         allowed(item, me) &&
         (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
-        (!!me.workspace || !WORKSPACE_ONLY.has(item.id)) &&
-        !(sample && item.id === 'planning'),
+        (!!me.workspace || !WORKSPACE_ONLY.has(item.id)),
     ),
   })).filter((group) => group.entries.length > 0)
   const entries = groups.flatMap((group) => group.entries)

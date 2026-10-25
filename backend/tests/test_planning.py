@@ -31,7 +31,6 @@ def test_off_by_default(client: TestClient) -> None:
         "fields": [],
         "views": [],
         "daysOff": [],
-        "sample": False,
     }
 
 
@@ -94,38 +93,6 @@ def test_signed_out_is_refused() -> None:
     app = create_app(Settings(db_path=":memory:"))
     signed_in(app)
     assert TestClient(app).get("/api/planning").status_code == 401
-
-
-def test_a_demo_instance_reads_the_sample_and_changes_nothing() -> None:
-    app = create_app(Settings(db_path=":memory:", tiko_demo=True))
-    admin = signed_in(app)
-    assert admin.get("/api/planning").json()["enabled"] is False
-    app.state.planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
-    view = admin.get("/api/planning").json()
-    assert view["enabled"] is True and view["sample"] is True
-    assert [t["id"] for t in view["types"]] == [t.id for t in sample.TYPES]
-    assert {p["name"] for p in view["people"]} == {"Anna", "Ben", "Chloe", "Dev", "Elif"}
-    assert admin.patch("/api/planning", json={"enabled": False}).status_code == 403
-    assert admin.post("/api/planning/people", json={"name": "Ivan"}).status_code == 403
-    assert admin.patch(f"/api/planning/types/{sample.BUILD}", json={"name": "X"}).status_code == 403
-    assert admin.post("/api/planning/fields", json={"name": "Quarter"}).status_code == 403
-    assert admin.put("/api/planning/days-off", json={"dates": []}).status_code == 403
-    workload = admin.get(f"/api/planning/people/{sample.ANNA}/workload")
-    assert workload.status_code == 403
-
-
-def test_the_sample_is_rewritten_with_time_off_around_today() -> None:
-    app = create_app(Settings(db_path=":memory:", tiko_demo=True))
-    admin = signed_in(app)
-    planning = app.state.planning
-    planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
-    planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 26)))
-    people = {p["id"]: p for p in admin.get("/api/planning").json()["people"]}
-    assert len(people) == 5
-    # Eleven working days after Monday Oct 26, and one range only after two writes.
-    assert people[sample.CHLOE]["off"] == [
-        {"id": "demo-chloe-off", "start": "2026-11-10", "end": "2026-11-12"}
-    ]
 
 
 def test_workday_skips_weekends() -> None:
@@ -258,13 +225,6 @@ def test_renaming_a_person_keeps_their_time_off(client: TestClient) -> None:
     assert len(client.get("/api/planning").json()["people"][0]["off"]) == 1
 
 
-def test_no_time_off_on_a_demo_instance() -> None:
-    admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
-    week = {"start": "2026-10-05", "end": "2026-10-09"}
-    assert admin.post("/api/planning/people/p1/off", json=week).status_code == 403
-    assert admin.delete("/api/planning/people/p1/off/o1").status_code == 403
-
-
 def test_the_standard_fields_are_there_from_the_start(client: TestClient) -> None:
     fields = client.patch("/api/planning", json={"enabled": True}).json()["fields"]
     assert [(f["id"], f["name"], f["standard"]) for f in fields] == [
@@ -332,13 +292,6 @@ def test_view_rules(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr("app.domain.planning.MAX_VIEWS", 2)
     assert client.post(views, json=web | {"name": "Core"}).status_code == 200
     assert client.post(views, json=web | {"name": "Ops"}).status_code == 422
-
-
-def test_no_views_on_a_demo_instance() -> None:
-    admin = signed_in(create_app(Settings(db_path=":memory:", tiko_demo=True)))
-    web = {"name": "Web", "filters": {"team": ["Web"]}}
-    assert admin.post("/api/planning/views", json=web).status_code == 403
-    assert admin.delete("/api/planning/views/v1").status_code == 403
 
 
 def test_the_view_name_holds_at_the_store(store) -> None:
@@ -459,21 +412,3 @@ def test_workload_rules(client: TestClient) -> None:
     assert len(client.get(path).json()["weeks"]) == 12
     assert client.get(f"{path}?weeks=27").status_code == 422
     assert TestClient(client.app).get(path).status_code == 401
-
-
-def test_a_demo_on_an_old_database_shows_only_the_sample(tmp_path) -> None:
-    db = str(tmp_path / "app.db")
-    team = signed_in(create_app(Settings(db_path=db)))
-    team.patch("/api/planning", json={"enabled": True})
-    team.post("/api/planning/people", json={"name": "Petra"})
-    team.post("/api/planning/fields", json={"name": "Quarter"})
-    team.post("/api/planning/views", json={"name": "Web", "filters": {"team": ["Web"]}})
-    team.put("/api/planning/days-off", json={"dates": ["2026-11-04"]})
-
-    app = create_app(Settings(db_path=db, tiko_demo=True))
-    app.state.planning.write_sample(sample.TYPES, sample.people(date(2026, 10, 19)))
-    view = signed_in(app).get("/api/planning").json()
-    assert {t["id"] for t in view["types"]} == {t.id for t in sample.TYPES}
-    assert "Petra" not in {p["name"] for p in view["people"]}
-    assert [f["id"] for f in view["fields"]] == ["priority", "size", "team"]
-    assert view["views"] == [] and view["daysOff"] == []

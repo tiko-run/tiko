@@ -1,0 +1,153 @@
+---
+title: '2026.10.24'
+description: Home for all your boards, Jira Cloud, a full-screen Gantt, and Postgres under the hood.
+date: '2026-10-22'
+cover: /casts/home-overview.jpg
+prev: false
+next: false
+---
+
+import Feature from '../../../components/Feature.astro'
+import Details from '../../../components/Details.astro'
+import Detail from '../../../components/Detail.astro'
+
+2026.10.23 went out without a page of its own, so this one covers both releases.
+
+## ✨ New
+
+<Feature area="Home" title="Home" href="/home/" video="/casts/home-overview.mp4" poster="/casts/home-overview.jpg">
+  All your boards in one place, each with a live preview. Star the ones you use daily, sort the rest into folders, and jump to any board with `/`.
+
+  <Details layout="three">
+    <Detail title="Grid or list" video="/casts/home-list.mp4" poster="/casts/home-list.jpg">
+      Previews, or a compact list when you have many boards.
+    </Detail>
+    <Detail title="Trash with Undo" video="/casts/home-trash.mp4" poster="/casts/home-trash.jpg">
+      A deleted board waits 30 days and comes back with its sharing intact.
+    </Detail>
+    <Detail title="Shared with you" image="/casts/home-shared.webp">
+      Boards from teammates, apart from your own.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Board" title="Line things up" href="/adding-tasks/#around-the-cards" video="/casts/align.mp4" poster="/casts/align.jpg">
+  Align and space out elements from the selection bar. Arrows follow, and one Undo puts it all back.
+
+  <Details layout="three">
+    <Detail title="Resize from any side" video="/casts/board-resize.mp4" poster="/casts/board-resize.jpg">
+      Change just the width or just the height.
+    </Detail>
+    <Detail title="Cut with ⌘X (Ctrl+X)" video="/casts/tool-cut.mp4" poster="/casts/tool-cut.jpg">
+      Move things across the board in two keystrokes.
+    </Detail>
+    <Detail title="You see the tool you hold" video="/casts/tool-pointers.mp4" poster="/casts/tool-pointers.jpg">
+      Each creation tool has its own pointer.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Board" title="Minimap" href="/adding-tasks/#around-the-cards" video="/casts/minimap.mp4" poster="/casts/minimap.jpg">
+  Never lose your way on a big board. Click the map to jump, drag it to look around.
+</Feature>
+
+<Feature area="Trackers" title="Jira Cloud" href="/jira-cloud/">
+  Jira Cloud tasks on your board, live like Data Center ones. Everyone connects with their own token, so cards show only what they may see.
+
+  <Details>
+    <Detail title="Connect in a minute" image="/casts/jira-cloud.webp">
+      Your Atlassian e-mail and an API token in My tracker.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Full-screen Gantt" href="/gantt/#expand" video="/casts/gantt-expand.mp4" poster="/casts/gantt-expand.jpg">
+  Work on a long plan at full size, day by day, without zooming the board. Esc brings you back.
+</Feature>
+
+<Feature area="Timers" title="Timers that finish your sentence" href="/focus-and-timers/#timers" video="/casts/timer-suggest.mp4" poster="/casts/timer-suggest.jpg">
+  Type `3` for minutes, hours or days, or `tu` for Tuesday, and pick a suggestion. No more spelling out times.
+</Feature>
+
+<Feature area="Board" title="A whole range at once" href="/what-you-can-add/" video="/casts/board-columns.mp4" poster="/casts/board-columns.jpg">
+  Add `APP-1 - APP-20` in one go, up to 50 tasks. They land in tidy columns, ready to arrange.
+</Feature>
+
+<Feature area="Search" title="Jump back" href="/search/" video="/casts/jump-back.mp4" poster="/casts/jump-back.jpg">
+  Search took you across the board? Press `B` to return where you were.
+</Feature>
+
+<Feature area="Settings" title="Workspace and server, apart" href="/security/#people">
+  Settings now split into Account, Workspace and Server, so a team admin manages the team and only whoever runs tiko touches the server.
+
+  <Details layout="three">
+    <Detail title="Who sets what" image="/casts/settings-groups.webp">
+      Three groups instead of one long list.
+    </Detail>
+    <Detail title="Remove without deleting" image="/casts/settings-remove.webp">
+      They keep their account and can come back by invite.
+    </Detail>
+    <Detail title="Every account in one place" image="/casts/settings-accounts.webp">
+      Disable an account or make a password reset link.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Sharing" title="Clear sharing" href="/working-together/#three-ways-to-share-a-board">
+  Share now says plainly who gets the board: your workspace, chosen people, or anyone with a public link.
+
+  <Details>
+    <Detail title="No guessing" image="/casts/share-ways.webp">
+      Each option explains itself.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Updates" title="Updates that need the installer" href="/updates/#when-a-release-needs-the-installer">
+  When a release can't be installed with one click, About gives you the installer command instead.
+
+  <Details>
+    <Detail title="Ready to copy" image="/casts/about-installer.webp">
+      For Linux, macOS and Windows.
+    </Detail>
+  </Details>
+</Feature>
+
+## 💎 Improvements
+
+- **Sharing:** Open an invite and sign in with the account you already have.
+- **Demo:** The demo gives each visitor a sandbox of their own, Planning included, kept when they sign up.
+- **Board:** The card tool shows what it accepts, with examples a click away.
+- **Board:** Cleaner highlight when you select several lines of text.
+- **Gantt:** Columns and timeline are easier to tell apart, and **+** extends the timeline by one step instead of a quarter.
+- **Settings:** Choose whether task links open in a new tab.
+- **Sign-in:** Someone guessing your password elsewhere no longer locks you out.
+- **Guide:** A fresh look that's easier to scan. Copy any page as Markdown or ask ChatGPT or Claude about it.
+- **Site:** A refreshed, more interactive tiko.run. Leave your e-mail to hear when tiko Cloud opens.
+
+## 🐞 Fixes
+
+- **Board:** Fixed the selection bar hiding behind the focus timer.
+- **Board:** Fixed a stray focus ring in the welcome tour.
+- **Trackers:** Fixed cards showing tasks from a token you had just replaced.
+- **Trackers:** Fixed closed GitHub issues showing "Closed" instead of their status label.
+- **Gantt:** Fixed a second click reopening a stage or time off menu instead of closing it.
+- **Gantt:** Fixed month lines falling between weeks.
+- **Gantt:** Fixed cramped task titles on boards that mix trackers.
+- **Sharing:** Fixed Copy link doing nothing over plain HTTP.
+- **Sharing:** Fixed GitHub cards on public boards losing their link.
+- **Settings:** Fixed "Never signed in" for people who joined by invite.
+- **Timers:** Fixed the focus timer flashing while the page loads.
+- **Updates:** Fixed the backup taken before an upgrade not restoring the previous version.
+
+<details>
+<summary>🔧 Under the hood</summary>
+
+- **Server:** tiko now runs on Postgres in a container of its own, so a busy team never waits on the database. The installer moves your data over. See [Coming from an SQLite release](/data-and-upgrades/#coming-from-an-sqlite-release).
+- **Server:** Bring your own Postgres with `DATABASE_URL`. The Render blueprint includes one.
+- **Server:** One-click updates back up the database first and roll back if something goes wrong.
+- **Server:** Correct visitor addresses behind Railway, Cloudflare or nginx, so sign-in limits hit only the one who misbehaves. See [The client's address](/configuration/#the-clients-address).
+- **Server:** Usage counts now include boards changed per week and the install OS. Still nothing personal.
+- **Server:** tiko no longer trusts the compromised emSign ECC Root CA - G3 certificate.
+
+</details>

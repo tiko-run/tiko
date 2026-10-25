@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -20,12 +21,21 @@ from app.domain.demo import board_limit
 from app.domain.errors import BoardLimit
 from app.domain.members import Member, ShareRole
 from app.domain.ports import BoardRepo, LiveBoards, SnapshotRepo, TaskProvider
+from app.domain.preview import board_preview
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService, SourceStatus
 from app.domain.settings import SettingsService
 from app.domain.tasks import Task, now_iso
 
 router = APIRouter(prefix="/boards", tags=["boards"])
+
+ENTITY_TAG = re.compile(r'(?:W/)?"([^"]*)"')
+PREVIEW_HEADERS = {
+    "Cache-Control": "private, max-age=0, must-revalidate",
+    # Shown through <img>; this keeps a script out even if the file is opened on its own.
+    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+    "X-Content-Type-Options": "nosniff",
+}
 
 Boards = Annotated[BoardRepo, Depends(deps.boards)]
 Snapshots = Annotated[SnapshotRepo, Depends(deps.snapshots)]
@@ -102,6 +112,29 @@ def create_board(
     return service.create_board(person, body.name, boards, limit)
 
 
+@router.post("/{board_id}/duplicate", status_code=201)
+def duplicate_board(
+    board_id: str, _: CanView, person: CurrentPerson, boards: Boards, request: Request
+) -> BoardSummary:
+    limit = board_limit(person, request.app.state.board_limit)
+    return service.duplicate_board(person, board_id, boards, limit)
+
+
+def _seen_tags(header: str | None) -> set[str]:
+    # Whole quoted tags, which may hold a comma; a proxy that compresses makes them weak,
+    # W/"42.1", and they still name the same picture.
+    return set(ENTITY_TAG.findall(header or ""))
+
+
+@router.get("/{board_id}/preview")
+def get_preview(board_id: str, _: CanView, boards: Boards, request: Request) -> Response:
+    tag, svg = board_preview(board_id, boards, _seen_tags(request.headers.get("if-none-match")))
+    headers = {"ETag": f'"{tag}"', **PREVIEW_HEADERS}
+    if svg is None:
+        return Response(status_code=304, headers=headers)
+    return Response(svg, media_type="image/svg+xml", headers=headers)
+
+
 @router.get("/{board_id}")
 def get_board(
     board_id: str,
@@ -127,8 +160,26 @@ def rename_board(
 
 
 @router.delete("/{board_id}", status_code=204)
-def delete_board(board_id: str, _: IsOwner, boards: Boards, live: Live) -> Response:
-    service.delete_board(board_id, boards, live)
+def delete_board(
+    board_id: str,
+    person: CurrentPerson,
+    members: MembersDep,
+    boards: Boards,
+    live: Live,
+    forever: bool = False,
+) -> Response:
+    # A board in the trash answers 404 to the role check, so `forever` checks on its own.
+    if forever:
+        service.delete_forever(person, board_id, boards)
+    else:
+        members.require(person, board_id, "owner")
+        service.delete_board(person, board_id, boards, live)
+    return Response(status_code=204)
+
+
+@router.post("/{board_id}/restore", status_code=204)
+def restore_board(board_id: str, person: CurrentPerson, boards: Boards) -> Response:
+    service.restore_board(person, board_id, boards)
     return Response(status_code=204)
 
 
@@ -140,6 +191,8 @@ def refresh_board(
     snapshots: Snapshots,
     settings: Annotated[SettingsService, Depends(deps.settings)],
     tracker: Tracker,
+    # Resolved in order: the stamps must be read before the providers read the tokens.
+    tokens_before: Annotated[dict[str, str | None], Depends(deps.token_stamps)],
     providers: Annotated[dict[str, TaskProvider], Depends(deps.providers)],
     refresher: Annotated[RefreshService, Depends(deps.refresher)],
     owner: Annotated[str, Depends(deps.owner)],
@@ -152,6 +205,8 @@ def refresh_board(
         providers,
         tracker,
         owner,
+        tokens_before,
+        lambda: settings.token_stamps(owner),
     )
     return RefreshOut(tasks=tasks, fetched_at=now_iso(), sources=sources)
 

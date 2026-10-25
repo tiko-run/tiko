@@ -85,14 +85,16 @@ About a tenth less CPU in both containers, and the ranges touch. The socket ship
 
 Dropped on 2026-10-13 by the owner's decision, see "The order after R3" in the spec: of 643 to 650 messages a second a room sent in 019, about 45 were edits.
 
-- [ ] T040 `adapters/live/rooms.py`: updates of a tick merged and sent once, the first at once. Tests: one frame per recipient for a burst, the tabs converge
-- [ ] T041 `specs/009-realtime/contracts/live.md`: the timing of edits
+- T040 dropped with R4: `adapters/live/rooms.py`: updates of a tick merged and sent once, the first at once. Tests: one frame per recipient for a burst, the tabs converge
+- T041 dropped with R4: `specs/009-realtime/contracts/live.md`: the timing of edits
 
 ## Phase 5: Slice `perf2-incremental-save` (R5), only if Phase 7 asks for it
 
-- [ ] T050 Plan: the format, the migration, what reads a board from the database (REST save, export, the copy before a migration)
-- [ ] T051 Updates appended, a snapshot when the room is quiet or on a timer. Tests: restore equals live, a restart in the middle
-- [ ] T052 Local number: `tiko_live_save_seconds` on a 1000-element board
+Not built: Phase 7 found the wait in SQLite, not in the save, and the answer was the move to Postgres in [spec 032](../032-workspaces/spec.md).
+
+- T050 dropped: Plan: the format, the migration, what reads a board from the database (REST save, export, the copy before a migration)
+- T051 dropped: Updates appended, a snapshot when the room is quiet or on a timer. Tests: restore equals live, a restart in the middle
+- T052 dropped: Local number: `tiko_live_save_seconds` on a 1000-element board
 
 ## Phase 6: Slice `perf2-presence-rate` (R6), built before Phase 5
 

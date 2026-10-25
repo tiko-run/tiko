@@ -64,6 +64,12 @@ jobs:
           password=$(sed -n 's/^TIKO_PASSWORD=//p' "$TIKO_DIR/.env")
           curl -fsS -o /dev/null -H 'content-type: application/json' \
             -d "{\"username\":\"admin\",\"password\":\"$password\"}" http://127.0.0.1:3100/api/auth/login
+      - name: Backups land in data/backups
+        run: |
+          for _ in $(seq 60); do ls "$TIKO_DIR"/data/backups/auto-*.dump >/dev/null 2>&1 && break; sleep 2; done
+          ls "$TIKO_DIR"/data/backups/auto-*.dump "$TIKO_DIR"/data/backups/daily-*.dump
+          docker compose -f "$TIKO_DIR/compose.yaml" exec -T backup tiko-dump
+          docker compose -f "$TIKO_DIR/compose.yaml" exec -T backup sh -c 'pg_restore -l /backups/manual-*.dump' | grep -q 'TABLE DATA public users'
       - run: cp "$TIKO_DIR/.env" env.before && sh install/install.sh --yes && cmp env.before "$TIKO_DIR/.env"
       - if: failure()
         run: docker compose -f "$TIKO_DIR/compose.yaml" logs --tail=100

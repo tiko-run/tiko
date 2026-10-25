@@ -10,6 +10,20 @@ import Topics from 'starlight-sidebar-topics/components/Sidebar.astro'
 </div>
 <Default><slot /></Default>
 
+<script>
+  // Section titles (Features, Modules) are headings, not toggles; only groups nested under them fold.
+  const TOP = '.sidebar-content .top-level > li > details'
+  const pin = () =>
+    document.querySelectorAll<HTMLDetailsElement>(TOP).forEach((group) => {
+      group.open = true
+      group.querySelector('summary')?.setAttribute('tabindex', '-1')
+    })
+  document.addEventListener('astro:page-load', pin)
+  document.addEventListener('click', (event) => {
+    if ((event.target as Element).closest?.(`${TOP} > summary`)) event.preventDefault()
+  })
+</script>
+
 <style>
   .tiko-demo-mobile {
     display: block;

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { toast } from 'sonner'
 import { getAuthStatus } from '@/api/auth'
 import { listBoards } from '@/api/boards'
 import { AUTH_REQUIRED_EVENT } from '@/api/client'
@@ -8,7 +9,6 @@ import { AcceptInvite, readInviteLink } from '@/auth/AcceptInvite'
 import { NoWorkspace } from '@/auth/NoWorkspace'
 import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
-import { NewBoardForm } from '@/board/NewBoardForm'
 import { AboutButton } from '@/board/AboutButton'
 import { GettingStarted } from '@/onboarding/GettingStarted'
 import { UpdateBanner } from '@/board/UpdateBanner'
@@ -18,6 +18,9 @@ import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Home } from '@/home/Home'
+import { goTo, takeFirstBoard, useAddressBoard, useRenameOnOpen } from '@/lib/navigation'
+import { ERROR_MS } from '@/lib/toast'
 import { startErrorReports } from '@/lib/errorReports'
 
 const RELOADED = 'tiko.reloadedForChunk'
@@ -51,23 +54,8 @@ const Canvas = lazy(() =>
 // Loaded with the canvas, for the same reason.
 const PublicBoard = lazy(() => import('@/public/PublicBoard'))
 
-const LAST_BOARD = 'tiko.lastBoard'
-
 // Server snapshot is false, client snapshot is true: tells prerender and hydration apart.
 const subscribeNever = () => () => {}
-
-function readBoardId(): string | null {
-  return (
-    new URLSearchParams(window.location.search).get('board') ?? localStorage.getItem(LAST_BOARD)
-  )
-}
-
-function rememberBoard(id: string) {
-  const url = new URL(window.location.href)
-  url.searchParams.set('board', id)
-  window.history.replaceState(null, '', url)
-  localStorage.setItem(LAST_BOARD, id)
-}
 
 export default function App() {
   const mounted = useSyncExternalStore(
@@ -75,9 +63,8 @@ export default function App() {
     () => true,
     () => false,
   )
-  const [boardId, setBoardId] = useState<string | null>(() =>
-    typeof window === 'undefined' ? null : readBoardId(),
-  )
+  const boardId = useAddressBoard()
+  const renameOnOpen = useRenameOnOpen()
   const focusVisible = useFocusVisible()
   const [inviteLink] = useState(readInviteLink)
   // A public link is a page of its own: no sign-in, no boards of the person who opened it.
@@ -96,6 +83,8 @@ export default function App() {
     queryKey: ['boards'],
     queryFn: listBoards,
     enabled: mounted && signedIn && !outside,
+    // Home shows other people's changes too: its previews follow a board within a minute.
+    refetchInterval: boardId ? false : 30_000,
   })
 
   useEffect(() => {
@@ -103,12 +92,30 @@ export default function App() {
   }, [signedIn])
 
   const mine = boards.data?.boards
-  const known = [...(mine ?? []), ...(boards.data?.all ?? [])].find((b) => b.id === boardId)
-  const current = known ?? mine?.[0]
+  const others = boards.data?.all
+  const current = boardId
+    ? [...(mine ?? []), ...(others ?? [])].find((b) => b.id === boardId)
+    : undefined
+  // A board stays in the list while it is open; one that leaves it is gone for this person.
+  const opened = useRef(new Set<string>())
+  useEffect(() => {
+    if (current) opened.current.add(current.id)
+  }, [current])
+  const missing = !!boardId && !!boards.data && !current && !boards.isFetching
 
   useEffect(() => {
-    if (current) rememberBoard(current.id)
-  }, [current])
+    if (!missing || !boardId) return
+    const text = opened.current.has(boardId)
+      ? 'You no longer have access to this board.'
+      : 'This board is not available.'
+    // The canvas says the same with this id when it finds out first.
+    toast(text, { id: 'board-lost', duration: ERROR_MS })
+    goTo(null, { replace: true })
+  }, [missing, boardId])
+
+  useEffect(() => {
+    if (mine?.length && takeFirstBoard()) goTo(mine[0].id)
+  }, [mine])
 
   useEffect(() => {
     // Keeps what the answer says about the instance, like the demo switch.
@@ -175,24 +182,14 @@ export default function App() {
           <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       )}
-      {mine?.length === 0 && !current && (
-        <div className="absolute top-1/2 left-1/2 flex w-96 -translate-x-1/2 -translate-y-1/2 flex-col gap-3">
-          <p className="text-[14px]">Create a board to start placing tasks on it.</p>
-          <NewBoardForm onCreated={setBoardId} autoFocus />
-        </div>
-      )}
       {current && (
         <Suspense fallback={<Skeleton className="absolute inset-0 rounded-none" />}>
           <Canvas key={current.id} boardId={current.id} />
         </Suspense>
       )}
-      {boards.data && (
-        <TopBar
-          boards={boards.data.boards}
-          others={boards.data.all}
-          current={current}
-          onSelect={setBoardId}
-        />
+      {mine && others && !boardId && <Home boards={mine} others={others} />}
+      {mine && others && (!boardId || current) && (
+        <TopBar boards={mine} others={others} current={current} renameOnOpen={renameOnOpen} />
       )}
       {signedIn && focusVisible && <FocusCapsule />}
       {signedIn && (

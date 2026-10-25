@@ -235,7 +235,7 @@ check_other_stack() {
 prepare_dir() {
   check_other_stack
   step "Preparing $DIR"
-  mkdir -p "$DIR/data" 2>/dev/null || as_root sh -c "mkdir -p '$DIR/data' && chown -R $(id -u):$(id -g) '$DIR'"
+  mkdir -p "$DIR/data/backups" 2>/dev/null || as_root sh -c "mkdir -p '$DIR/data/backups' && chown -R $(id -u):$(id -g) '$DIR'"
   cd "$DIR"
   if [ "$UPGRADE" = 0 ]; then
     PASSWORD=$(random_password)

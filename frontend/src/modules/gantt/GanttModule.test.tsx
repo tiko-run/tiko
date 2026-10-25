@@ -91,7 +91,6 @@ const OFF: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
-  sample: false,
 }
 
 function renderGantt(
@@ -328,7 +327,6 @@ const PLANNING: PlanningState = {
   fields: [],
   views: [],
   daysOff: [],
-  sample: false,
 }
 const press = (el: Element, from: number, to = from) => {
   fireEvent.pointerDown(el, { clientX: from, pointerId: 1, button: 0 })
@@ -670,25 +668,6 @@ test('a drag across the lane marks the picked person away', async () => {
   }
 })
 
-test('the demo sample is picked from, never added to', () => {
-  renderGantt({}, staged([]), { ...AWAY, fields: FIELDS.fields, sample: true })
-  press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500)
-  expect(screen.queryByRole('button', { name: 'New type' })).toBeNull()
-  fireEvent.change(screen.getByLabelText('Add a person'), { target: { value: 'Petra' } })
-  expect(screen.queryByRole('option')).toBeNull()
-})
-
-test('the demo sample keeps its time off and fields as they are', () => {
-  renderGantt({}, staged(['p1']), { ...AWAY, fields: FIELDS.fields, sample: true })
-  fireEvent.click(screen.getByRole('button', { name: /^Ivan is away/ }))
-  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
-  fireEvent.keyDown(document.body, { key: 'Escape' })
-  press(document.querySelector('[data-gantt-timeoff]') as HTMLElement, 600)
-  expect(screen.queryByText('Who is away?')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'Columns', hidden: true }))
-  expect(screen.queryByLabelText('New field')).toBeNull()
-})
-
 test('time off is removed from its popover', async () => {
   const fetchMock = vi.fn(async () => Response.json({ ...AWAY.people[0], off: [] }))
   vi.stubGlobal('fetch', fetchMock)
@@ -705,6 +684,48 @@ test('time off is removed from its popover', async () => {
   } finally {
     vi.unstubAllGlobals()
   }
+})
+
+test('a second click on time off closes its popover', async () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  const bar = screen.getByRole('button', { name: /^Ivan is away/ })
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  const click = async (closeOnPress = false) => {
+    fireEvent.pointerDown(bar, { pointerId: 1, button: 0 })
+    // In a browser the press moves focus and the popover closes before the click;
+    // jsdom does not close on focus, Escape stands in for it.
+    if (closeOnPress) fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    await tick()
+    fireEvent.pointerUp(bar, { pointerId: 1 })
+    fireEvent.click(bar)
+    await tick()
+  }
+  await click()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  await click(true)
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+  await click()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  await click()
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+})
+
+test('the keyboard opens and closes the time off popover', async () => {
+  renderGantt({}, staged(['p1']), AWAY)
+  const bar = screen.getByRole('button', { name: /^Ivan is away/ })
+  const tick = () => act(() => new Promise((done) => setTimeout(done, 0)))
+  // A mouse click first leaves its press behind; the keyboard must not reuse it.
+  fireEvent.pointerDown(bar, { pointerId: 1, button: 0 })
+  fireEvent.pointerUp(bar, { pointerId: 1 })
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.queryByRole('button', { name: 'Remove time off' })).toBeNull()
+  fireEvent.click(bar)
+  await tick()
+  expect(screen.getByRole('button', { name: 'Remove time off' })).toBeTruthy()
 })
 
 const FIELDS: PlanningState = {
