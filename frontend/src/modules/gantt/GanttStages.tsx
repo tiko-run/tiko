@@ -20,11 +20,10 @@ import { awayDuring, awayLine } from '@/modules/gantt/timeoff'
 import {
   addStage,
   BARE,
-  clampStage,
+  dragStage,
   gapAt,
   nextType,
   removeStage,
-  setStageSpan,
   shownStages,
   stageSpan,
   updateStage,
@@ -68,6 +67,11 @@ const MOVE_PX = 3
 // The `px-1.5` of the bar and the `px-0.5` of the line under it, both sides.
 const BAR_PADDING = 12
 const BELOW_PADDING = 4
+
+const sameDates = (a: Row, b: Row) =>
+  a.start === b.start &&
+  a.end === b.end &&
+  (a.stages ?? []).every((s, i) => s.start === b.stages?.[i]?.start && s.end === b.stages?.[i]?.end)
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
 export function GanttStages({ row, axis, types, people, assignees, below, label, onRow }: Props) {
@@ -205,6 +209,8 @@ function StageBar({
     zoom: number
     grip: Grip
     span: Span
+    // The row at the press, so dragging back within one drag brings pushed stages back.
+    row: Row
     moved: boolean
     wasOpen: boolean
   } | null>(null)
@@ -232,7 +238,15 @@ function StageBar({
     if (event.button !== 0) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
-    drag.current = { x: event.clientX, zoom: getZoom(), grip, span, moved: false, wasOpen: open }
+    drag.current = {
+      x: event.clientX,
+      zoom: getZoom(),
+      grip,
+      span,
+      row,
+      moved: false,
+      wasOpen: open,
+    }
   }
   const move = (event: PointerEvent) => {
     const current = drag.current
@@ -242,13 +256,12 @@ function StageBar({
     setDragging(true)
     const steps = Math.round((event.clientX - current.x) / current.zoom / axis.px)
     const wanted = dragOnAxis(axis, current.span, current.grip, steps)
-    const next = stage.id === BARE ? wanted : clampStage(row, stage.id, wanted, current.grip)
-    if (next.start === span.start && next.end === span.end) return
-    onRow(
+    const next =
       stage.id === BARE
-        ? { ...row, start: formatDay(next.start), end: formatDay(next.end) }
-        : setStageSpan(row, stage.id, next),
-    )
+        ? { ...row, start: formatDay(wanted.start), end: formatDay(wanted.end) }
+        : dragStage(current.row, stage.id, wanted, current.grip, event.altKey)
+    if (sameDates(next, row)) return
+    onRow(next)
   }
   const stop = () => {
     const current = drag.current

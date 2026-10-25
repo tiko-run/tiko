@@ -1,7 +1,25 @@
 import type { XYPosition } from '@xyflow/react'
-import { CalendarRange, ChevronDown, Diamond, Ellipsis, Plus, Users } from 'lucide-react'
-import { useContext, useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import {
+  CalendarRange,
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Diamond,
+  Ellipsis,
+  Plus,
+  Users,
+} from 'lucide-react'
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import type { Task } from '@/api/tasks'
+import { useReadOnly } from '@/canvas/readonly'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
 import { Button } from '@/components/ui/button'
 import {
@@ -60,6 +78,7 @@ import {
   addChild,
   indent,
   liftRemove,
+  foldAll,
   moveSubtree,
   outdent,
   shiftBranch,
@@ -152,6 +171,7 @@ export function GanttModule({
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const todayLine = useRef<HTMLDivElement>(null)
   const opened = useRef(false)
+  const readOnly = useReadOnly()
   const span = range(content)
   const { start, end } = span
   const axis = axisOf(content, width, planning, expanded)
@@ -181,6 +201,7 @@ export function GanttModule({
   const full = content.rows.length >= MAX_ROWS
   const visible = shownRows(content, planning)
   const filtered = activeFilters(content, planning.enabled) !== null
+  const nested = !readOnly && content.rows.some((r) => r.parent)
   const indexOf = new Map(content.rows.map((r, i) => [r.id, i]))
   const barSpan = (row: Row) => branchSpan(content.rows, indexOf.get(row.id)!)
   const bars = new Map<string, BarPlace>()
@@ -294,7 +315,19 @@ export function GanttModule({
               )}
               style={{ height: HEADER, top: stickTop }}
             >
-              {formatRange(content.start, content.end)}
+              <span className="min-w-0 flex-1 truncate">
+                {formatRange(content.start, content.end)}
+              </span>
+              {nested && (
+                <>
+                  <FoldAll label="Expand all" onClick={() => onChange(foldAll(content, false))}>
+                    <ChevronsUpDown className="size-3.5" />
+                  </FoldAll>
+                  <FoldAll label="Collapse all" onClick={() => onChange(foldAll(content, true))}>
+                    <ChevronsDownUp className="size-3.5" />
+                  </FoldAll>
+                </>
+              )}
             </div>
             {lane > 0 && (
               <div
@@ -549,6 +582,29 @@ function ExtendButton({
       )}
     >
       <Plus className="size-3.5" />
+    </Button>
+  )
+}
+
+function FoldAll({
+  label,
+  onClick,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="nodrag text-muted-foreground size-6 shrink-0"
+    >
+      {children}
     </Button>
   )
 }

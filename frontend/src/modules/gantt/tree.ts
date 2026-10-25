@@ -193,3 +193,15 @@ export function shiftBranch(content: GanttContent, id: string, days: number): Ga
     ),
   }
 }
+
+/** Folds or unfolds every row with children; the same content when nothing changes. */
+export function foldAll(content: GanttContent, collapsed: boolean): GanttContent {
+  const parents = new Set(content.rows.map((r) => r.parent))
+  let changed = false
+  const rows = content.rows.map((r) => {
+    if (!parents.has(r.id) || Boolean(r.collapsed) === collapsed) return r
+    changed = true
+    return { ...r, collapsed }
+  })
+  return changed ? { ...content, rows } : content
+}

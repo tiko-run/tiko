@@ -9,11 +9,13 @@ Requires: installer
 ### Added
 
 - A new instance asks its first admin to pick a password of their own at the first sign-in, before anything else opens: the generated one sat in a log, a file or a hosting variable. tiko then deletes `data/password`. Instances that already have people are not affected. See [The first password](https://docs.tiko.run/security/#the-first-password).
+- Fold a big plan down to its top rows and open it again with one click: Collapse all and Expand all sit at the top of the Gantt's task column. See [Gantt](https://docs.tiko.run/gantt/).
 - Zoom with the mouse wheel and pan with a trackpad, as in most whiteboards: tiko tells them apart by itself. If your mouse pans instead of zooming, set Settings → Preferences → Mouse wheel to Always zoom. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Your boards survive a reset of Docker Desktop and a broken database: tiko saves a copy of its database to `data/backups/` every 2 hours, keeps the last day of them and one a day for 14 days. Make one by hand with `docker compose exec backup tiko-dump`. Run the installer to get it. See [Back up and restore](https://docs.tiko.run/data-and-upgrades/#back-up-and-restore).
 
 ### Changed
 
+- Shift a plan in one drag: a stage moved or stretched to the right in Planning pushes the later stages of its row along, gaps kept. Hold Alt to move one stage alone. See [Stages](https://docs.tiko.run/gantt/stages/#stages).
 - Select several elements faster: a selection box takes everything it touches, not only what fits inside it whole. A frame is still selected only when the box covers all of it, so you can pick the notes inside without the frame. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - A big board stays smooth when you zoom far out: at 20% and below elements turn into colored blocks that keep their arrows, like a map, and a fast pinch on a trackpad runs at about twice the frame rate it did. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Timers on the board are now called reminders, in the app, the guide and the site; the focus timer keeps its name. The guide page moved to [Reminders and focus](https://docs.tiko.run/focus-and-reminders/), old links still work.

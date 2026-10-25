@@ -5,11 +5,13 @@ import { useLayoutEffect } from 'react'
 import { beforeAll, expect, test, vi } from 'vitest'
 import type { Task } from '@/api/tasks'
 import { moduleControls } from '@/canvas/module-controls'
+import { ReadOnlyContext } from '@/canvas/readonly'
 import { ModuleNode } from '@/canvas/nodes/ModuleNode'
 import { TasksContext } from '@/canvas/tasks-context'
 import type { AppNode, ModuleNode as ModuleNodeType } from '@/canvas/types'
 import { ModuleHostContext } from '@/modules/host-context'
 import type { GanttContent } from '@/modules/gantt/schema'
+import { parseDay } from '@/modules/gantt/timeline'
 import type { ModuleHost } from '@/modules/types'
 import { PlanningContext, type PlanningState } from '@/planning/context'
 
@@ -98,20 +100,23 @@ function renderGantt(
   start = content,
   planning = OFF,
   tasks: Record<string, Task> = { 'DEMO-1': task },
+  readOnly = false,
 ) {
   const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
   render(
     <div style={{ width: 1200, height: 800 }}>
       <QueryClientProvider client={new QueryClient()}>
-        <ReactFlowProvider>
-          <TasksContext.Provider value={tasks}>
-            <ModuleHostContext.Provider value={full}>
-              <PlanningContext.Provider value={planning}>
-                <Board start={start} />
-              </PlanningContext.Provider>
-            </ModuleHostContext.Provider>
-          </TasksContext.Provider>
-        </ReactFlowProvider>
+        <ReadOnlyContext.Provider value={readOnly}>
+          <ReactFlowProvider>
+            <TasksContext.Provider value={tasks}>
+              <ModuleHostContext.Provider value={full}>
+                <PlanningContext.Provider value={planning}>
+                  <Board start={start} />
+                </PlanningContext.Provider>
+              </ModuleHostContext.Provider>
+            </TasksContext.Provider>
+          </ReactFlowProvider>
+        </ReadOnlyContext.Provider>
       </QueryClientProvider>
     </div>,
   )
@@ -382,6 +387,72 @@ test('a stage dragged into its neighbour stops at it', () => {
   press(screen.getByRole('slider', { name: 'Build stage of Payment API' }), 500, 0)
   expect(rows()[0].stages![1]).toMatchObject({ start: '2026-10-08', end: '2026-10-12' })
   expect(rows()[0].end).toBe('2026-10-12')
+})
+
+const pushable: GanttContent = {
+  ...content,
+  rows: [
+    {
+      id: 'a',
+      title: 'Payment API',
+      start: '2026-10-05',
+      end: '2026-10-23',
+      stages: [
+        { id: 's1', type: 't1', start: '2026-10-05', end: '2026-10-07', people: [] },
+        { id: 's2', type: 't3', start: '2026-10-12', end: '2026-10-16', people: [] },
+        { id: 's3', type: 't1', start: '2026-10-19', end: '2026-10-23', people: [] },
+      ],
+    },
+  ],
+}
+const starts = () => rows()[0].stages!.map((s) => parseDay(s.start))
+
+test('a stage dragged right pushes the later ones; with Alt it stops at the next', () => {
+  renderGantt({}, pushable, PLANNING)
+  const bar = screen.getAllByRole('slider', { name: 'Discovery stage of Payment API' })[0]
+  const before = starts()
+  press(bar, 100, 150)
+  const days = starts()[0] - before[0]
+  expect(days).toBeGreaterThan(0)
+  expect(starts()).toEqual(before.map((d) => d + days))
+
+  fireEvent.pointerDown(bar, { clientX: 150, pointerId: 1, button: 0 })
+  fireEvent.pointerMove(bar, { clientX: 400, pointerId: 1, altKey: true })
+  fireEvent.pointerUp(bar, { clientX: 400, pointerId: 1 })
+  const [s1, s2, s3] = rows()[0].stages!
+  expect(parseDay(s1.end)).toBe(parseDay(s2.start) - 1)
+  expect([s2.start, s3.start].map(parseDay)).toEqual([before[1] + days, before[2] + days])
+})
+
+test('Collapse all and Expand all fold every parent in one change, hidden for viewers', () => {
+  const nested: GanttContent = {
+    ...content,
+    rows: [
+      { id: 'p', title: 'Launch', start: '2026-10-05', end: '2026-10-14' },
+      { id: 'c', title: 'Design review', parent: 'p', start: '2026-10-12', end: '2026-10-14' },
+      { id: 'g', title: 'Copy', parent: 'c', start: '2026-10-12', end: '2026-10-13' },
+    ],
+  }
+  renderGantt({}, nested)
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+  expect(rows().map((r) => Boolean(r.collapsed))).toEqual([true, true, false])
+  expect(screen.queryByRole('slider', { name: 'Design review dates' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all' }))
+  expect(rows().map((r) => Boolean(r.collapsed))).toEqual([false, false, false])
+  expect(screen.getByRole('slider', { name: 'Copy dates' })).toBeTruthy()
+})
+
+test('a viewer gets no fold-all buttons', () => {
+  renderGantt(
+    {},
+    { ...content, rows: [content.rows[0], { ...content.rows[1], parent: 'a' }] },
+    OFF,
+    {
+      'DEMO-1': task,
+    },
+    true,
+  )
+  expect(screen.queryByRole('button', { name: 'Collapse all' })).toBeNull()
 })
 
 test('each stage has a tooltip of its own', () => {
