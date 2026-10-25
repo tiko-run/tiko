@@ -134,9 +134,9 @@ export function dragStage(row: Row, id: string, next: Span, grip: Grip, alone: b
   if (alone || grip === 'start' || days <= 0) {
     return setStageSpan(row, id, clampStage(row, id, next, grip))
   }
-  const start = grip === 'move' ? own.start + days : own.start
+  const start = grip === 'move' ? next.start : own.start
   const moved = shownStages(row).map((s) => {
-    if (s.id === id) return { ...s, start: formatDay(start), end: formatDay(own.end + days) }
+    if (s.id === id) return { ...s, start: formatDay(start), end: formatDay(next.end) }
     if (parseDay(s.start) <= own.end) return s
     return { ...s, start: shift(s.start, days), end: shift(s.end, days) }
   })

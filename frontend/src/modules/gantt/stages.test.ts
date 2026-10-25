@@ -243,3 +243,28 @@ test('the last stage pushed right moves only itself', () => {
   expect(spans(last)[2]).toEqual(['2026-10-21', '2026-10-25'])
   expect(spans(last).slice(0, 2)).toEqual(spans(three).slice(0, 2))
 })
+
+test('with weekends hidden a moved stage keeps the dates it was dragged to', () => {
+  // One shown day from Mon–Fri lands on Tue–Mon: the start moves one day, the end three.
+  const week: Row = {
+    id: 'w',
+    title: 'Week',
+    start: '2026-10-05',
+    end: '2026-10-16',
+    stages: [
+      { id: 'a', type: 't1', start: '2026-10-05', end: '2026-10-09', people: [] },
+      { id: 'b', type: 't2', start: '2026-10-14', end: '2026-10-16', people: [] },
+    ],
+  }
+  const moved = dragStage(
+    week,
+    'a',
+    { start: d('2026-10-06'), end: d('2026-10-12') },
+    'move',
+    false,
+  )
+  expect(spans(moved)).toEqual([
+    ['2026-10-06', '2026-10-12'],
+    ['2026-10-17', '2026-10-19'],
+  ])
+})
