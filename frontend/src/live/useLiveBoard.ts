@@ -8,7 +8,7 @@ import { AUTH_REQUIRED_EVENT } from '@/api/client'
 import { PLANNING_CHANGED_EVENT } from '@/api/planning'
 import type { AppEdge, AppNode } from '@/canvas/types'
 import { LOCAL, LiveBinding } from '@/live/binding'
-import { remoteDrags } from '@/live/drags'
+import { dragFeed, remoteDrags } from '@/live/drags'
 import {
   colorOf,
   parsePeers,
@@ -82,10 +82,10 @@ export function useLiveBoard(
   const binding = useRef<LiveBinding | null>(null)
   const history = useRef<Y.UndoManager | null>(null)
   const synced = useRef(false)
-  // What others have selected and what they drag change rarely; their cursors, which change
-  // all the time, go past this hook straight to the cursor layer.
+  // What others have selected changes rarely. What they drag goes to the motion through a feed,
+  // and their cursors straight to the cursor layer: both change on every frame.
   const [selections, setSelections] = useState(NO_SELECTIONS)
-  const [drags, setDrags] = useState(NO_DRAGS)
+  const [drags] = useState(dragFeed)
   // Nodes someone else just moved or resized: drawn with a short glide.
   const [glide, setGlide] = useState(NO_GLIDE)
   const latest = useRef(nodes)
@@ -181,7 +181,7 @@ export function useLiveBoard(
         drags: JSON.stringify(next.map((peer) => peer.drag)),
       }
       if (texts.selections !== shown.selections) setSelections(selectedBy(next))
-      if (texts.drags !== shown.drags) setDrags(remoteDrags(next))
+      if (texts.drags !== shown.drags) drags.set(remoteDrags(next))
       shown = texts
     }
     awareness.on('change', onPresence)
@@ -263,13 +263,13 @@ export function useLiveBoard(
       setBoardPeers([], meId)
       setBoardTravel(TRAVEL_MS)
       setSelections(NO_SELECTIONS)
-      setDrags(NO_DRAGS)
+      drags.set(NO_DRAGS)
       synced.current = false
       binding.current = history.current = null
       provider.destroy()
       doc.destroy()
     }
-  }, [board.id, readOnly, setNodes, setEdges, meId, meName, guest])
+  }, [board.id, readOnly, setNodes, setEdges, meId, meName, guest, drags])
 
   // A layout effect: nothing can arrive between a change on the canvas and its write.
   useLayoutEffect(() => {
