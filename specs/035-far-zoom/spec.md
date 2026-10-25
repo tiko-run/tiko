@@ -85,6 +85,10 @@ SC-001 to SC-003 hold in headless Chromium and in headless Firefox: a fast pinch
 
 Measured on the same machine, before and after. Met in Chromium: SC-001 (41 frames per second), the SC-002 median, SC-003 (median 17 ms) and SC-004 (all 200 arrows). Not met yet: SC-001 in Firefox (20 frames per second), the SC-002 longest frame (about 120 ms in Chromium and 180 ms in Firefox) and SC-003 in Firefox (median 32 ms). The rest waits for a follow-up on how often the board redraws while someone else drags.
 
+### Result of the follow-up
+
+Another person's drag used to redraw the board two or three times per frame. Now it redraws once, on the next frame. SC-001 is met in Firefox, 31 to 32 frames per second (it was 19 to 20), and in Chromium it is 51 (it was 32 to 41). The longest SC-002 frame and SC-003 in Firefox are still not met: they come from zoom and pan, which this change does not touch. The minimap is the next lever there. It does work for every element on each update, and hiding it gives Firefox about 45 frames per second during a drag.
+
 ## Out of scope
 
 - Stages of detail below 20% (Miro's dots at 4%).

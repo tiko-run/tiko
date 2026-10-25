@@ -1,6 +1,8 @@
-import { expect, test } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, expect, test, vi } from 'vitest'
 import type { AppNode } from '@/canvas/types'
-import { at, plan, show, type Motion } from '@/live/motion'
+import { dragFeed } from '@/live/drags'
+import { at, plan, show, useRemoteMotion, type Motion } from '@/live/motion'
 
 const node = (id: string, x = 0, extra: Partial<AppNode> = {}): AppNode =>
   ({
@@ -90,4 +92,48 @@ test('a resize by someone else glides too, and reduced motion jumps', () => {
   expect(at(motion.get('a')!, 150).width).toBe(300)
   const instant = plan([after], NO_DRAGS, new Set(['a']), STILL, was(before), 0, noOrigin, true)
   expect(show([after], instant, 0)[0].width).toBe(300)
+})
+
+const frames = (count: number) =>
+  act(async () => {
+    for (let i = 0; i < count; i++) await new Promise((done) => requestAnimationFrame(done))
+  })
+
+test('a drag from the feed moves the node on the next frames without a render in between', async () => {
+  const drags = dragFeed()
+  const nodes = [node('a', 0)]
+  let renders = 0
+  const { result } = renderHook(() => {
+    renders++
+    return useRemoteMotion(nodes, drags, NOBODY, noOrigin, 0)
+  })
+  const before = renders
+  act(() => drags.set(new Map([['a', { x: 40, y: 0 }]])))
+  expect(renders).toBe(before)
+  for (let i = 0; i < 3; i++) {
+    const was = renders
+    await frames(1)
+    expect(renders - was).toBeLessThanOrEqual(1)
+  }
+  expect(result.current[0].position.x).toBe(40)
+  act(() => drags.set(NO_DRAGS))
+  await frames(3)
+  expect(result.current[0].position.x).toBe(0)
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+test('a slow frame past the end of a move still draws the node where the move ends', () => {
+  const queued: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => queued.push(callback))
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+  const step = (moment: number) => act(() => queued.splice(0).forEach((run) => run(moment)))
+  const drags = dragFeed()
+  const { result } = renderHook(() => useRemoteMotion([node('a', 0)], drags, NOBODY, noOrigin, 80))
+  act(() => drags.set(new Map([['a', { x: 80, y: 0 }]])))
+  step(1000)
+  step(1070)
+  expect(result.current[0].position.x).toBe(70)
+  step(1105)
+  expect(result.current[0].position.x).toBe(80)
 })

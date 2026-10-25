@@ -1,6 +1,7 @@
 import type { XYPosition } from '@xyflow/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { AppNode } from '@/canvas/types'
+import type { DragFeed } from '@/live/drags'
 import { TRAVEL_MS } from '@/live/presence'
 
 /**
@@ -118,49 +119,92 @@ const reducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
-/** The canvas nodes with other people's moves in progress applied, frame by frame. */
+/**
+ * The canvas nodes with other people's moves in progress applied, frame by frame.
+ *
+ * At most one new set of nodes per animation frame: a drag that comes in is planned at once but
+ * drawn on the next frame, because every new set costs a pass over the whole board.
+ */
 export function useRemoteMotion(
   nodes: AppNode[],
-  drags: ReadonlyMap<string, XYPosition>,
+  drags: DragFeed,
   arrived: ReadonlySet<string>,
   originOf: (parentId: string) => XYPosition | undefined,
   dragMs = TRAVEL_MS,
 ): AppNode[] {
-  const [motion, setMotion] = useState<Motion>(STILL)
-  const [now, setNow] = useState(0)
+  const [frame, setFrame] = useState<{ motion: Motion; now: number }>({ motion: STILL, now: 0 })
+  const motion = useRef<Motion>(STILL)
   // Where every node was last meant to be: where a glide starts from.
   const previous = useRef<Map<string, Box>>(new Map())
+  const latest = useRef({ nodes, arrived, originOf, dragMs })
+  const stale = useRef(false)
+  const request = useRef(0)
+
+  const replan = useCallback(
+    (moment: number) => {
+      const { nodes, arrived, originOf, dragMs } = latest.current
+      const held = drags.now()
+      stale.current = false
+      const next = plan(
+        nodes,
+        held,
+        arrived,
+        motion.current,
+        previous.current,
+        moment,
+        originOf,
+        reducedMotion(),
+        dragMs,
+      )
+      previous.current = new Map(nodes.map((node) => [node.id, target(node, held, originOf)]))
+      return next
+    },
+    [drags],
+  )
+
+  const drawnAt = useRef(0)
+  const draw = useCallback((next: Motion, moment: number) => {
+    motion.current = next
+    drawnAt.current = moment
+    setFrame({ motion: next, now: moment })
+  }, [])
+
+  const tick = useCallback(
+    function tick(moment: number) {
+      request.current = 0
+      const next = stale.current ? replan(moment) : motion.current
+      // Until a frame is drawn past each tween's end: a slow frame must not leave a node short.
+      const running = [...next.values()].some((tween) => drawnAt.current < tween.start + tween.ms)
+      if (next !== motion.current || running) draw(next, moment)
+      if (next.size > 0) request.current = requestAnimationFrame(tick)
+    },
+    [replan, draw],
+  )
+
+  const wake = useCallback(() => {
+    if (!request.current) request.current = requestAnimationFrame(tick)
+  }, [tick])
+
+  useEffect(() => {
+    const stop = drags.listen(() => {
+      stale.current = true
+      wake()
+    })
+    return () => {
+      stop()
+      cancelAnimationFrame(request.current)
+      request.current = 0
+    }
+  }, [drags, wake])
 
   // Before the browser paints, so a node never shows at its new place and then jumps back.
   useLayoutEffect(() => {
+    latest.current = { nodes, arrived, originOf, dragMs }
     const moment = performance.now()
-    const next = plan(
-      nodes,
-      drags,
-      arrived,
-      motion,
-      previous.current,
-      moment,
-      originOf,
-      reducedMotion(),
-      dragMs,
-    )
-    previous.current = new Map(nodes.map((node) => [node.id, target(node, drags, originOf)]))
-    if (next !== motion) {
-      setMotion(next)
-      setNow(moment)
-    }
-  }, [nodes, drags, arrived, motion, originOf, dragMs])
+    const next = replan(moment)
+    if (next !== motion.current) draw(next, moment)
+    if (next.size > 0) wake()
+  }, [nodes, arrived, originOf, dragMs, replan, draw, wake])
 
-  useEffect(() => {
-    if (motion.size === 0) return
-    let frame = requestAnimationFrame(function step(moment) {
-      const running = [...motion.values()].some((tween) => moment < tween.start + tween.ms + 20)
-      if (running) setNow(moment)
-      frame = requestAnimationFrame(step)
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [motion])
-
-  return useMemo(() => show(nodes, motion, now), [nodes, motion, now])
+  return useMemo(() => show(nodes, frame.motion, frame.now), [nodes, frame])
 }
