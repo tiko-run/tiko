@@ -66,7 +66,7 @@ The owner deploys tiko to a public host, signs in with the password from the log
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh instance, **When** the admin signs in, **Then** only the new password screen is shown, and every API call other than the password change and sign-out answers 403 with a code the web app knows.
+1. **Given** a fresh instance, **When** the admin signs in, **Then** only the new password screen is shown, and every API call other than the password change, sign-out and `/api/auth/me` answers 403 with a code the web app knows.
 2. **Given** the new password screen, **When** the same password as the current one is entered, **Then** it is refused.
 3. **Given** the password changed, **Then** the mark is gone, other sessions of that person are signed out as with any password change, and `data/password` is deleted.
 4. **Given** an instance upgraded from an earlier release, **Then** no admin is asked.

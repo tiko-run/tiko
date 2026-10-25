@@ -8,7 +8,7 @@ import {
   type OnNodesChange,
   type XYPosition,
 } from '@xyflow/react'
-import { useCallback, useRef, type PointerEvent } from 'react'
+import { useCallback, useEffect, useRef, type PointerEvent } from 'react'
 import type { Box } from '@/canvas/snap'
 import type { AppEdge, AppNode } from '@/canvas/types'
 
@@ -128,37 +128,43 @@ export function useTouchSelect() {
   )
 
   // Capture runs before xyflow reads the same move, so both see one box.
-  const onPointerMoveCapture = useCallback(
-    (event: PointerEvent) => {
-      pointer.current = { x: event.clientX, y: event.clientY }
-      const box = currentBox()
-      if (!box) return
-      const { nodeLookup, edges: all, triggerNodeChanges, triggerEdgeChanges } = store.getState()
-      const flips = frameFlips(nodeLookup, box, boxed.current)
-      if (flips.length === 0) return
-      for (const f of flips) {
-        if (f.selected) boxed.current.add(f.id)
-        else boxed.current.delete(f.id)
-      }
-      triggerNodeChanges(flips.map((f) => ({ type: 'select', id: f.id, selected: f.selected })))
-      const flipped = new Map(flips.map((f) => [f.id, f.selected]))
-      const picked = (id: string) => {
-        const node = nodeLookup.get(id)
-        return flipped.get(id) ?? (!!node && picks(node, box))
-      }
-      const edgeChanges = all
-        .filter((e) => flipped.has(e.source) || flipped.has(e.target))
-        .map((e) => ({
-          id: e.id,
-          selected: picked(e.source) || picked(e.target),
-          was: !!e.selected,
-        }))
-        .filter((e) => e.selected !== e.was)
-      if (edgeChanges.length)
-        triggerEdgeChanges(
-          edgeChanges.map(({ id, selected }) => ({ type: 'select', id, selected })),
-        )
-    },
+  const onPointerMoveCapture = useCallback((event: PointerEvent) => {
+    pointer.current = { x: event.clientX, y: event.clientY }
+  }, [])
+
+  // xyflow stores the box after its own changes, on a pointer move and on auto-pan alike.
+  useEffect(
+    () =>
+      store.subscribe((state, prev) => {
+        if (state.userSelectionRect === prev.userSelectionRect) return
+        const box = currentBox()
+        if (!box) return
+        const { nodeLookup, edges: all, triggerNodeChanges, triggerEdgeChanges } = state
+        const flips = frameFlips(nodeLookup, box, boxed.current)
+        if (flips.length === 0) return
+        for (const f of flips) {
+          if (f.selected) boxed.current.add(f.id)
+          else boxed.current.delete(f.id)
+        }
+        triggerNodeChanges(flips.map((f) => ({ type: 'select', id: f.id, selected: f.selected })))
+        const flipped = new Map(flips.map((f) => [f.id, f.selected]))
+        const picked = (id: string) => {
+          const node = nodeLookup.get(id)
+          return flipped.get(id) ?? (!!node && picks(node, box))
+        }
+        const edgeChanges = all
+          .filter((e) => flipped.has(e.source) || flipped.has(e.target))
+          .map((e) => ({
+            id: e.id,
+            selected: picked(e.source) || picked(e.target),
+            was: !!e.selected,
+          }))
+          .filter((e) => e.selected !== e.was)
+        if (edgeChanges.length)
+          triggerEdgeChanges(
+            edgeChanges.map(({ id, selected }) => ({ type: 'select', id, selected })),
+          )
+      }),
     [currentBox, store],
   )
 
