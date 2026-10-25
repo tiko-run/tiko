@@ -21,6 +21,7 @@ Requires: installer
 - A view-only board no longer lets you draw arrows that vanish on refresh.
 - Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
 - A large board no longer stutters while someone else moves things on it, in Firefox too.
+- The minimap no longer slows down a big board while you pan, zoom or watch others move things.
 - Arrows to the right side of a triangle or a parallelogram now touch its outline.
 
 ## [2026.10.24] - 2026-10-22
