@@ -162,8 +162,10 @@ export function useRemoteMotion(
     [drags],
   )
 
+  const drawnAt = useRef(0)
   const draw = useCallback((next: Motion, moment: number) => {
     motion.current = next
+    drawnAt.current = moment
     setFrame({ motion: next, now: moment })
   }, [])
 
@@ -171,7 +173,8 @@ export function useRemoteMotion(
     function tick(moment: number) {
       request.current = 0
       const next = stale.current ? replan(moment) : motion.current
-      const running = [...next.values()].some((tween) => moment < tween.start + tween.ms + 20)
+      // Until a frame is drawn past each tween's end: a slow frame must not leave a node short.
+      const running = [...next.values()].some((tween) => drawnAt.current < tween.start + tween.ms)
       if (next !== motion.current || running) draw(next, moment)
       if (next.size > 0) request.current = requestAnimationFrame(tick)
     },
