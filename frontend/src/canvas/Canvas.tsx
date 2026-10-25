@@ -59,6 +59,7 @@ import {
 } from '@/canvas/align'
 import { absorbCards } from '@/canvas/modules'
 import { useTouchSelect } from '@/canvas/touch-select'
+import { useWheel, useWheelMode } from '@/canvas/wheel'
 import { moduleControls } from '@/canvas/module-controls'
 import { ModuleExpanded } from '@/canvas/ModuleExpanded'
 import { AnchorNode } from '@/canvas/nodes/AnchorNode'
@@ -349,6 +350,10 @@ export function BoardCanvas({
   }, [presence, nodes, flow])
   const guides = useGuides(onNodesChange)
   const touch = useTouchSelect()
+  const wheel = useWheel()
+  // State, not a ref: the surface mounts after the first render, once the board loads.
+  const [surfaceEl, setSurfaceEl] = useState<HTMLDivElement | null>(null)
+  useWheelMode(surfaceEl, wheel)
   const { nodes: touchNodes, edges: touchEdges } = touch
   const onNodesChangeShown = useMemo(
     () => touchNodes(guides.onNodesChange),
@@ -912,6 +917,7 @@ export function BoardCanvas({
 
   const surface = (
     <div
+      ref={setSurfaceEl}
       className="absolute inset-0"
       onPointerMove={(event) => {
         pointer.current = { x: event.clientX, y: event.clientY }
@@ -973,7 +979,7 @@ export function BoardCanvas({
         selectionOnDrag={tool === 'select'}
         selectionMode={SelectionMode.Partial}
         panOnDrag={tool === 'hand' ? true : [1]}
-        panOnScroll
+        panOnScroll={wheel !== 'zoom'}
         elementsSelectable={!placing}
         nodesDraggable={!placing && !readOnly}
         nodesConnectable={!readOnly}

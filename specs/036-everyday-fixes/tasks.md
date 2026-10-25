@@ -14,7 +14,7 @@ description: "Task list for Everyday fixes"
 
 ## Phase 2: Slice `feat/wheel-zoom` (US2)
 
-- [ ] T002 "Mouse wheel" in Preferences (`tiko.wheel`), the canvas switches between pan and zoom on scroll, Shift + wheel pans sideways in zoom mode, `nowheel` areas untouched. Tests; guide and `CHANGELOG.md`
+- [x] T002 "Mouse wheel" in Preferences (`tiko.wheel`): by default a mouse wheel zooms and a trackpad swipe pans, told apart by the wheel events; "Always zoom" and "Always scroll" force one; Shift + wheel pans sideways, `nowheel` areas untouched. Tests; guide and `CHANGELOG.md`
 
 ## Phase 3: Slice `feat/first-password` (US3, SC-002)
 

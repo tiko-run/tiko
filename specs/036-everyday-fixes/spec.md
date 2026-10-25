@@ -20,7 +20,7 @@
 ## Decisions
 
 1. **Select by touch.** The selection box selects every element it touches, not only the ones fully inside it. A frame is the exception: it is selected only when the box covers it whole, so a box that crosses into a frame picks its notes and leaves the frame alone. A box starts on empty board, as today; a drag that starts on a frame still moves the frame. An element the box does not touch is never selected, even one not yet measured.
-2. **Mouse wheel: scroll or zoom.** Settings → Preferences gets "Mouse wheel" with two options, "Scroll" (today, the default) and "Zoom". It is kept per browser (`tiko.wheel`). With "Zoom" the wheel zooms around the pointer and Shift + wheel scrolls sideways; Ctrl + wheel and a trackpad pinch zoom in both modes. The default stays "Scroll", because with "Zoom" a two-finger swipe on a trackpad would zoom too. In "Scroll" the trackpad works exactly as today: a two-finger swipe pans, a pinch zooms; a test pins both. Text fields, open modules and lists inside elements keep their own scrolling.
+2. **Mouse wheel: zoom with a mouse, scroll with a trackpad.** By default the board tells a mouse wheel from a trackpad by the wheel events themselves, as Miro does: a mouse wheel zooms around the pointer, a two-finger swipe pans, a pinch zooms. Settings → Preferences gets "Mouse wheel" with three options: that default, "Always zoom" and "Always scroll", kept per browser (`tiko.wheel`). The forced options are for mice the detection takes for a trackpad, such as free-spinning or touch wheels. In every mode Ctrl + wheel and a pinch zoom, Shift + wheel pans sideways, and dragging with the wheel held pans. Text fields, open modules and lists inside elements keep their own scrolling.
 3. **The first admin replaces the password.** The admin that tiko creates on the first start, from `TIKO_PASSWORD` or the generated file, is marked as needing a new password. After signing in, that person sees one screen: a new password twice, with the same rules as today's password change, and no way past it except signing out. The mark clears once the password is changed, and the generated `data/password` file is deleted then. Admins of existing instances are not marked. The sign-in screen gets a small "First time here?" link to the guide section that says where the first password is (`TIKO_PASSWORD`, `data/password`, the API log); the screen itself shows nothing about the instance.
 4. **Gantt: stages push, rows fold all at once.**
    - Dragging a stage by its body or stretching its end to the right pushes the later stages of the same row by the same number of days, keeping their gaps. Dragging to the left moves only that stage, down to the end of the previous one, as today. Alt while dragging moves the stage alone, also to the right, stopping at the next stage as today. Links between rows do not push other rows.
@@ -45,18 +45,18 @@ A person drags a box across the top halves of four sticky notes and gets all fou
 
 ### User Story 2 - Zoom with the wheel (Priority: P1)
 
-A person with a mouse sets "Mouse wheel: Zoom" and zooms the board like in Miro.
+A person with a mouse zooms the board with the wheel and pans it with a trackpad swipe, like in Miro, without touching a setting.
 
-**Independent Test**: set "Zoom" in Preferences, roll the wheel over a note: the board zooms around it. Reload: the setting holds. Switch back to "Scroll": the wheel pans.
+**Independent Test**: in a new browser roll a mouse wheel over a note: the board zooms around it. Swipe two fingers on a trackpad: the board pans. Set "Always scroll": the mouse wheel pans; reload: the setting holds.
 
 **Acceptance Scenarios**:
 
-1. **Given** a new browser, **Then** "Mouse wheel" is "Scroll" and the wheel pans.
-2. **Given** "Zoom", **When** the wheel rolls, **Then** the board zooms around the pointer within the zoom limits.
-3. **Given** "Zoom", **When** Shift + wheel rolls, **Then** the board scrolls sideways.
-4. **Given** "Zoom" and an open module, **When** the wheel rolls inside it, **Then** the module scrolls and the board stays.
-5. **Given** either mode, **When** Ctrl + wheel or a pinch is used, **Then** the board zooms.
-6. **Given** "Scroll", **When** two fingers swipe on a trackpad, **Then** the board pans, as before this slice.
+1. **Given** a new browser, **When** a mouse wheel rolls, **Then** the board zooms around the pointer within the zoom limits.
+2. **Given** a new browser, **When** two fingers swipe on a trackpad, **Then** the board pans, as before this slice.
+3. **Given** any mode, **When** Shift + wheel rolls, **Then** the board scrolls sideways.
+4. **Given** any mode and an open module, **When** the wheel rolls inside it, **Then** the module scrolls and the board stays.
+5. **Given** any mode, **When** Ctrl + wheel or a pinch is used, **Then** the board zooms.
+6. **Given** "Always zoom", **When** a trackpad swipe or a mouse wheel rolls, **Then** the board zooms; **given** "Always scroll", **Then** both pan.
 
 ### User Story 3 - The first admin replaces the password (Priority: P1)
 
@@ -115,7 +115,7 @@ A person opens the card tool and picks yesterday's query from the list instead o
 ## Requirements *(mandatory)*
 
 - **FR-001**: The selection box MUST select every element it touches, except frames, which it MUST select only when it covers them whole.
-- **FR-002**: Preferences MUST offer "Mouse wheel: Scroll / Zoom", per browser, default "Scroll"; Ctrl + wheel and pinch MUST zoom in both modes.
+- **FR-002**: By default a mouse wheel MUST zoom and a trackpad swipe MUST pan; Preferences MUST offer "Always zoom" and "Always scroll", per browser; Ctrl + wheel and pinch MUST zoom in every mode.
 - **FR-003**: The admin created on the first start MUST change the password before any other API call succeeds; the mark MUST NOT apply to admins that exist before the upgrade, and the generated password file MUST be deleted once changed.
 - **FR-004**: Dragging a stage right MUST push the later stages of its row by the same days unless Alt is held; "Expand all" and "Collapse all" MUST fold every row with children in one undo step.
 - **FR-005**: Every scrolling area MUST use overlay bars that take no space and fade at rest.
@@ -131,7 +131,6 @@ A person opens the card tool and picks yesterday's query from the list instead o
 ## Out of scope
 
 - A per-element "select by touch" setting, or lasso selection.
-- Detecting a mouse versus a trackpad to pick the wheel mode by itself.
 - Password rules beyond today's (a common-password list, reserved usernames), forced change for invited people, password expiry.
 - Pushing other rows along links, pushing to the left, critical path.
 - A synced recent list, favourite queries.
