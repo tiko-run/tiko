@@ -10,6 +10,7 @@ import {
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   useStore,
   type Connection,
@@ -57,6 +58,7 @@ import {
   type Distribution,
 } from '@/canvas/align'
 import { absorbCards } from '@/canvas/modules'
+import { useTouchSelect } from '@/canvas/touch-select'
 import { moduleControls } from '@/canvas/module-controls'
 import { ModuleExpanded } from '@/canvas/ModuleExpanded'
 import { AnchorNode } from '@/canvas/nodes/AnchorNode'
@@ -346,6 +348,13 @@ export function BoardCanvas({
     )
   }, [presence, nodes, flow])
   const guides = useGuides(onNodesChange)
+  const touch = useTouchSelect()
+  const { nodes: touchNodes, edges: touchEdges } = touch
+  const onNodesChangeShown = useMemo(
+    () => touchNodes(guides.onNodesChange),
+    [touchNodes, guides.onNodesChange],
+  )
+  const onEdgesChangeShown = useMemo(() => touchEdges(onEdgesChange), [touchEdges, onEdgesChange])
   useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
   useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
 
@@ -913,12 +922,14 @@ export function BoardCanvas({
         presence.cursor(null)
       }}
       onPointerDownCapture={draw.onPointerDownCapture}
+      onPointerMoveCapture={touch.onPointerMoveCapture}
     >
       <ReactFlow
         nodes={shown.nodes}
         edges={shown.edges}
-        onNodesChange={guides.onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={onNodesChangeShown}
+        onEdgesChange={onEdgesChangeShown}
+        onSelectionEnd={touch.onSelectionEnd}
         onConnect={onConnect}
         onConnectStart={(event) => {
           setConnecting(true)
@@ -960,6 +971,7 @@ export function BoardCanvas({
         deleteKeyCode={readOnly || expandedNode ? null : ['Backspace', 'Delete']}
         multiSelectionKeyCode="Shift"
         selectionOnDrag={tool === 'select'}
+        selectionMode={SelectionMode.Partial}
         panOnDrag={tool === 'hand' ? true : [1]}
         panOnScroll
         elementsSelectable={!placing}

@@ -19,7 +19,7 @@
 
 ## Decisions
 
-1. **Select by touch.** The selection box selects every element it touches, not only the ones fully inside it. A frame is the exception: it is selected only when the box covers it whole, so a box drawn inside a frame picks its notes and leaves the frame alone. An expanded module is treated like a frame. Shift + box adds to the selection as today.
+1. **Select by touch.** The selection box selects every element it touches, not only the ones fully inside it. A frame is the exception: it is selected only when the box covers it whole, so a box that crosses into a frame picks its notes and leaves the frame alone. A box starts on empty board, as today; a drag that starts on a frame still moves the frame. An element the box does not touch is never selected, even one not yet measured.
 2. **Mouse wheel: scroll or zoom.** Settings → Preferences gets "Mouse wheel" with two options, "Scroll" (today, the default) and "Zoom". It is kept per browser (`tiko.wheel`). With "Zoom" the wheel zooms around the pointer and Shift + wheel scrolls sideways; Ctrl + wheel and a trackpad pinch zoom in both modes. The default stays "Scroll", because with "Zoom" a two-finger swipe on a trackpad would zoom too. In "Scroll" the trackpad works exactly as today: a two-finger swipe pans, a pinch zooms; a test pins both. Text fields, open modules and lists inside elements keep their own scrolling.
 3. **The first admin replaces the password.** The admin that tiko creates on the first start, from `TIKO_PASSWORD` or the generated file, is marked as needing a new password. After signing in, that person sees one screen: a new password twice, with the same rules as today's password change, and no way past it except signing out. The mark clears once the password is changed, and the generated `data/password` file is deleted then. Admins of existing instances are not marked. The sign-in screen gets a small "First time here?" link to the guide section that says where the first password is (`TIKO_PASSWORD`, `data/password`, the API log); the screen itself shows nothing about the instance.
 4. **Gantt: stages push, rows fold all at once.**
@@ -34,15 +34,14 @@
 
 A person drags a box across the top halves of four sticky notes and gets all four.
 
-**Independent Test**: on the compose stack draw a box that crosses half of each of three notes: all three are selected. Draw a box inside a frame over two of its notes: the notes are selected, the frame is not.
+**Independent Test**: on the compose stack draw a box that crosses half of each of three notes: all three are selected. Draw a box from outside a frame over two of its notes: the notes are selected, the frame is not.
 
 **Acceptance Scenarios**:
 
 1. **Given** a note half inside the box, **Then** it is selected.
-2. **Given** a box drawn inside a frame, **Then** the frame is not selected and the notes it touches are.
-3. **Given** a box that covers a whole frame, **Then** the frame is selected.
-4. **Given** an arrow the box crosses, **Then** it is selected as today.
-5. **Given** a selection, **When** Shift is held and another box is drawn, **Then** the touched elements are added.
+2. **Given** a box that crosses part of a frame, **Then** the frame is not selected and the notes it touches are.
+3. **Given** a box that covers a whole frame, **Then** the frame is selected; **When** the box shrinks off part of it before release, **Then** the frame is no longer selected.
+4. **Given** an arrow tied to a picked element, **Then** it is selected as today; an arrow tied only to a frame left out is not.
 
 ### User Story 2 - Zoom with the wheel (Priority: P1)
 
@@ -115,7 +114,7 @@ A person opens the card tool and picks yesterday's query from the list instead o
 
 ## Requirements *(mandatory)*
 
-- **FR-001**: The selection box MUST select every element it touches, except frames and expanded modules, which it MUST select only when it covers them whole.
+- **FR-001**: The selection box MUST select every element it touches, except frames, which it MUST select only when it covers them whole.
 - **FR-002**: Preferences MUST offer "Mouse wheel: Scroll / Zoom", per browser, default "Scroll"; Ctrl + wheel and pinch MUST zoom in both modes.
 - **FR-003**: The admin created on the first start MUST change the password before any other API call succeeds; the mark MUST NOT apply to admins that exist before the upgrade, and the generated password file MUST be deleted once changed.
 - **FR-004**: Dragging a stage right MUST push the later stages of its row by the same days unless Alt is held; "Expand all" and "Collapse all" MUST fold every row with children in one undo step.

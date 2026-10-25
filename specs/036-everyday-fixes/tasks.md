@@ -10,7 +10,7 @@ description: "Task list for Everyday fixes"
 
 ## Phase 1: Slice `feat/touch-select` (US1, SC-001)
 
-- [ ] T001 Partial selection in React Flow, with frames and expanded modules kept only when fully inside the box. Tests for notes, arrows, frames, Shift + box; SC-001 measured
+- [ ] T001 Partial selection in React Flow, with frames kept only when fully inside the box. Tests for notes, arrows, frames, a box that grows and shrinks; SC-001 measured
 
 ## Phase 2: Slice `feat/wheel-zoom` (US2)
 
