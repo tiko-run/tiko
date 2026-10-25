@@ -54,16 +54,13 @@ status, auth = call("GET", f"{API}/api/auth/status")
 check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
 
 if auth["me"]["must_change_password"]:
-    # A fresh stack: the first admin must replace the password before anything else.
+    # A fresh stack: the first admin must replace the password before anything else. It ends
+    # as it was; the change deletes data/password, and the API log still has the password.
     status, held = call("GET", f"{API}/api/boards")
     check(status == 403 and held["error"]["code"] == "password_change_required", "new password first")
     for current, new in ((PASSWORD, PASSWORD + "-smoke"), (PASSWORD + "-smoke", PASSWORD)):
         status, _ = call("PUT", f"{API}/api/me/password", {"current": current, "new": new})
         check(status == 204, "change the first password")
-    if not PASSWORD_FILE.exists() and not os.environ.get("TIKO_PASSWORD"):
-        # The change deleted the generated file; the owner still needs it to sign in.
-        PASSWORD_FILE.write_text(PASSWORD + "\n")
-        PASSWORD_FILE.chmod(0o600)
 
 status, version = call("GET", f"{API}/api/version")
 check(status == 200 and {"level", "newer", "update_check"} <= set(version), "version with levels")
