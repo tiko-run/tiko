@@ -23,7 +23,7 @@
 2. **Mouse wheel: zoom with a mouse, scroll with a trackpad.** By default the board tells a mouse wheel from a trackpad by the wheel events themselves, as Miro does: a mouse wheel zooms around the pointer, a two-finger swipe pans, a pinch zooms. Settings → Preferences gets "Mouse wheel" with three options: that default, "Always zoom" and "Always scroll", kept per browser (`tiko.wheel`). The forced options are for mice the detection takes for a trackpad, such as free-spinning or touch wheels. In every mode Ctrl + wheel and a pinch zoom, Shift + wheel pans sideways, and dragging with the wheel held pans. Text fields, open modules and lists inside elements keep their own scrolling.
 3. **The first admin replaces the password.** The admin that tiko creates on the first start, from `TIKO_PASSWORD` or the generated file, is marked as needing a new password. After signing in, that person sees one screen: a new password twice, with the same rules as today's password change, and no way past it except signing out. The mark clears once the password is changed, and the generated `data/password` file is deleted then. Admins of existing instances are not marked. The sign-in screen gets a small "First time here?" link to the guide section that says where the first password is (`TIKO_PASSWORD`, `data/password`, the API log); the screen itself shows nothing about the instance.
 4. **Gantt: stages push, rows fold all at once.**
-   - Dragging a stage by its body or stretching its end to the right pushes the later stages of the same row by the same number of days, keeping their gaps. Dragging to the left moves only that stage, down to the end of the previous one, as today. Alt while dragging moves the stage alone, also to the right, stopping at the next stage as today. Links between rows do not push other rows.
+   - Alt while dragging a stage by its body or stretching its end to the right pushes the later stages of the same row by the same number of days, keeping their gaps. Without Alt the stage moves alone and stops at the next stage, as before. Dragging to the left moves only that stage, down to the end of the previous one, as today. Links between rows do not push other rows.
    - The header of the task column gets two buttons, "Expand all" and "Collapse all". They change every row with children at once, in one undo step, and the change reaches others like a single fold does today.
 5. **Overlay scroll bars everywhere (#214).** Every scrolling area in the app uses the thin bars over the content that the expanded Gantt already has: they show while it scrolls or while a thumb is held, fade a second after, and take no space. One wrapper around the existing `OverlayScrollbars` replaces the browser bars in each area; wheel, trackpad, keyboard and thumb dragging scroll as before.
 6. **Recent card inputs (#83).** The card tool keeps the last five distinct inputs that added at least one card, per browser (`tiko.card.recent`). An empty input shows them; arrow keys and Enter pick one, Escape closes the list. Nothing is sent to the server.
@@ -76,14 +76,14 @@ The owner deploys tiko to a public host, signs in with the password from the log
 
 A planner moves the first stage of a row a week to the right and the two stages after it follow. Then they collapse the whole plan to its top rows.
 
-**Independent Test**: in Planning drag the first of three stages five days right: all three move five days, gaps kept. Alt + drag it back: only it moves. Click "Collapse all": only top rows remain; one Undo brings back the previous folding.
+**Independent Test**: in Planning Alt + drag the first of three stages five days right: all three move five days, gaps kept. Drag it back without Alt: only it moves. Click "Collapse all": only top rows remain; one Undo brings back the previous folding.
 
 **Acceptance Scenarios**:
 
-1. **Given** stages 1, 2, 3 in a row, **When** stage 1 is dragged right, **Then** 2 and 3 move by the same days.
-2. **Given** stage 1 stretched by its end to the right, **Then** 2 and 3 move by the same days.
+1. **Given** stages 1, 2, 3 in a row, **When** stage 1 is dragged right with Alt, **Then** 2 and 3 move by the same days.
+2. **Given** stage 1 stretched by its end to the right with Alt, **Then** 2 and 3 move by the same days.
 3. **Given** stage 2 dragged left, **Then** only stage 2 moves and stops at the end of stage 1.
-4. **Given** Alt held while dragging stage 1 right, **Then** it stops at stage 2, as today.
+4. **Given** stage 1 dragged right without Alt, **Then** it stops at stage 2, as today.
 5. **Given** a plan with nested rows, **When** "Collapse all" is clicked, **Then** every row with children is folded; "Expand all" unfolds them; each is one undo step and a second browser sees the same.
 6. **Given** a view-only board, **Then** the buttons fold for nobody and are not shown, as today's toggle.
 
@@ -117,7 +117,7 @@ A person opens the card tool and picks yesterday's query from the list instead o
 - **FR-001**: The selection box MUST select every element it touches, except frames, which it MUST select only when it covers them whole.
 - **FR-002**: By default a mouse wheel MUST zoom and a trackpad swipe MUST pan; Preferences MUST offer "Always zoom" and "Always scroll", per browser; Ctrl + wheel and pinch MUST zoom in every mode.
 - **FR-003**: The admin created on the first start MUST change the password before any other API call succeeds; the mark MUST NOT apply to admins that exist before the upgrade, and the generated password file MUST be deleted once changed.
-- **FR-004**: Dragging a stage right MUST push the later stages of its row by the same days unless Alt is held; "Expand all" and "Collapse all" MUST fold every row with children in one undo step.
+- **FR-004**: Dragging a stage right MUST push the later stages of its row by the same days while Alt is held; "Expand all" and "Collapse all" MUST fold every row with children in one undo step.
 - **FR-005**: Every scrolling area MUST use overlay bars that take no space and fade at rest.
 - **FR-006**: The card tool MUST keep the last five distinct inputs that added a card, in the browser only.
 - **FR-007**: Only story 3 MAY change the API contract or the database: one field in the person returned by `GET /auth/status`, one error code, one column on people. The board document and the live protocol MUST NOT change.

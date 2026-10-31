@@ -61,6 +61,8 @@ export function clampStage(row: Row, id: string, next: Span, grip: Grip): Span {
     if (span.start > own.end) hi = Math.min(hi, span.start - 1)
   }
   if (grip === 'move') {
+    // With weekends hidden a move changes the calendar length; keep it while it fits.
+    if (next.start >= lo && next.end <= hi) return next
     const length = own.end - own.start
     const start = Math.min(Math.max(next.start, lo), hi - length)
     return { start, end: start + length }
@@ -125,13 +127,13 @@ export function shiftStages(row: Row, days: number): Row {
 }
 
 /**
- * A stage dragged by its body or end to the right pushes the later stages of its row by the
- * same days, gaps kept. Leftwards, by its start, or `alone` it stops at its neighbours.
+ * A stage dragged with `push` by its body or end to the right pushes the later stages of its
+ * row by the same days, gaps kept. Otherwise, leftwards or by its start it stops at its neighbours.
  */
-export function dragStage(row: Row, id: string, next: Span, grip: Grip, alone: boolean): Row {
+export function dragStage(row: Row, id: string, next: Span, grip: Grip, push: boolean): Row {
   const own = stageSpan(shownStages(row).find((s) => s.id === id)!)
   const days = next.end - own.end
-  if (alone || grip === 'start' || days <= 0) {
+  if (!push || grip === 'start' || days <= 0) {
     return setStageSpan(row, id, clampStage(row, id, next, grip))
   }
   const start = grip === 'move' ? next.start : own.start

@@ -407,18 +407,18 @@ const pushable: GanttContent = {
 }
 const starts = () => rows()[0].stages!.map((s) => parseDay(s.start))
 
-test('a stage dragged right pushes the later ones; with Alt it stops at the next', () => {
+test('a stage dragged right with Alt pushes the later ones; without Alt it stops at the next', () => {
   renderGantt({}, pushable, PLANNING)
   const bar = screen.getAllByRole('slider', { name: 'Discovery stage of Payment API' })[0]
   const before = starts()
-  press(bar, 100, 150)
+  fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1, button: 0 })
+  fireEvent.pointerMove(bar, { clientX: 150, pointerId: 1, altKey: true })
+  fireEvent.pointerUp(bar, { clientX: 150, pointerId: 1 })
   const days = starts()[0] - before[0]
   expect(days).toBeGreaterThan(0)
   expect(starts()).toEqual(before.map((d) => d + days))
 
-  fireEvent.pointerDown(bar, { clientX: 150, pointerId: 1, button: 0 })
-  fireEvent.pointerMove(bar, { clientX: 400, pointerId: 1, altKey: true })
-  fireEvent.pointerUp(bar, { clientX: 400, pointerId: 1 })
+  press(bar, 150, 400)
   const [s1, s2, s3] = rows()[0].stages!
   expect(parseDay(s1.end)).toBe(parseDay(s2.start) - 1)
   expect([s2.start, s3.start].map(parseDay)).toEqual([before[1] + days, before[2] + days])

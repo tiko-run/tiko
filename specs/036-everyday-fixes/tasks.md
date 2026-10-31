@@ -25,7 +25,7 @@ description: "Task list for Everyday fixes"
 
 ## Phase 4: Slice `feat/gantt-push` (US4, SC-003)
 
-- [x] T007 Stages push the later ones of their row on a drag or stretch to the right, Alt moves one alone. Tests in `stages.test.ts`
+- [x] T007 Alt + drag or stretch to the right pushes the later stages of the row; without Alt a stage moves alone, as before. Tests in `stages.test.ts`
 - [x] T008 "Expand all" / "Collapse all" in the task column header, one undo step, hidden for viewers. Tests; SC-003 measured
 
 ## Phase 5: Slice `feat/overlay-scrollbars` (US5, #214)
