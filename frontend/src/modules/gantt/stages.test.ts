@@ -193,6 +193,14 @@ test('a stage moved or stretched right with Alt pushes the later stages by the s
     ['2026-10-14', '2026-10-18'],
     ['2026-10-21', '2026-10-25'],
   ])
+  const alone = dragStage(
+    three,
+    's1',
+    { start: d('2026-10-05'), end: d('2026-10-09') },
+    'end',
+    false,
+  )
+  expect(spans(alone).slice(1)).toEqual(spans(three).slice(1))
 })
 
 test('a stage moved left, by its start or without Alt stops at its neighbours alone', () => {
@@ -261,4 +269,23 @@ test('with weekends hidden a moved stage keeps the dates it was dragged to', () 
     ['2026-10-06', '2026-10-12'],
     ['2026-10-17', '2026-10-19'],
   ])
+  const alone = dragStage(
+    week,
+    'a',
+    { start: d('2026-10-06'), end: d('2026-10-12') },
+    'move',
+    false,
+  )
+  expect(spans(alone)).toEqual([
+    ['2026-10-06', '2026-10-12'],
+    ['2026-10-14', '2026-10-16'],
+  ])
+  const blocked = dragStage(
+    week,
+    'a',
+    { start: d('2026-10-08'), end: d('2026-10-14') },
+    'move',
+    false,
+  )
+  expect(spans(blocked)[0]).toEqual(['2026-10-08', '2026-10-12'])
 })

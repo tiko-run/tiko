@@ -61,6 +61,8 @@ export function clampStage(row: Row, id: string, next: Span, grip: Grip): Span {
     if (span.start > own.end) hi = Math.min(hi, span.start - 1)
   }
   if (grip === 'move') {
+    // With weekends hidden a move changes the calendar length; keep it while it fits.
+    if (next.start >= lo && next.end <= hi) return next
     const length = own.end - own.start
     const start = Math.min(Math.max(next.start, lo), hi - length)
     return { start, end: start + length }
