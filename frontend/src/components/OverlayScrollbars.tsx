@@ -48,7 +48,7 @@ export function OverlayScrollbars({ target, insetLeft = 0 }: Props) {
     read()
     const observer = new ResizeObserver(read)
     observer.observe(target)
-    if (target.firstElementChild) observer.observe(target.firstElementChild)
+    for (const child of target.children) observer.observe(child)
     target.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       observer.disconnect()

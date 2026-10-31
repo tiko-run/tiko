@@ -12,6 +12,7 @@ import { getJqlValues, getJqlVocabulary, searchTasks, type JqlVocabulary } from 
 import { Textarea } from '@/components/ui/textarea'
 import { applySuggestion, jqlContext, rank, type JqlContext } from '@/lib/jql'
 import { cn } from '@/lib/utils'
+import { Scroller } from '@/components/Scroller'
 
 const VALUE_DELAY_MS = 150
 const COUNT_DELAY_MS = 400
@@ -207,37 +208,38 @@ export function JqlInput({ value, onValueChange, className, ...props }: Props) {
         onFocus={() => setDismissed(false)}
       />
       {open && (
-        <ul
-          id="jql-suggestions"
-          role="listbox"
-          className="bg-popover text-popover-foreground absolute right-0 bottom-full left-0 z-10 mb-1 max-h-64 overflow-y-auto rounded-md border p-1 shadow-md"
+        <Scroller
+          className="bg-popover text-popover-foreground absolute right-0 bottom-full left-0 z-10 mb-1 rounded-md border shadow-md"
+          viewportClassName="max-h-64 p-1"
         >
-          {items.map((item, i) => (
-            <li
-              key={`${item.insert}-${i}`}
-              id={`jql-suggestion-${i}`}
-              role="option"
-              aria-selected={i === active}
-              className={cn(
-                'flex cursor-default items-baseline justify-between gap-2 rounded-sm px-2 py-1 text-[13px]',
-                i === active && 'bg-accent',
-              )}
-              // Keep focus in the input so typing can go on after a click.
-              onMouseDown={(event) => {
-                event.preventDefault()
-                apply(item)
-              }}
-              onMouseMove={() => setHighlight(i)}
-            >
-              <span className="truncate">{item.label}</span>
-              {item.insert.replace(/^"|"$/g, '') !== item.label && (
-                <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                  {item.insert}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+          <ul id="jql-suggestions" role="listbox">
+            {items.map((item, i) => (
+              <li
+                key={`${item.insert}-${i}`}
+                id={`jql-suggestion-${i}`}
+                role="option"
+                aria-selected={i === active}
+                className={cn(
+                  'flex cursor-default items-baseline justify-between gap-2 rounded-sm px-2 py-1 text-[13px]',
+                  i === active && 'bg-accent',
+                )}
+                // Keep focus in the input so typing can go on after a click.
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  apply(item)
+                }}
+                onMouseMove={() => setHighlight(i)}
+              >
+                <span className="truncate">{item.label}</span>
+                {item.insert.replace(/^"|"$/g, '') !== item.label && (
+                  <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                    {item.insert}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Scroller>
       )}
     </div>
   )

@@ -7,6 +7,7 @@ import type * as library from './library'
 import * as music from './music'
 import { updateSettings, updateTimer, useFocus } from './store'
 import { LIMITS, reset, skip, type TimerSettings } from './timer'
+import { Scroller } from '@/components/Scroller'
 
 type Length = keyof typeof LIMITS
 
@@ -149,46 +150,44 @@ function MusicTab() {
   }, [player.index, player.tracks.length])
   return (
     <div className="flex flex-col gap-2 text-[13px]">
-      <ol
-        ref={list}
-        className="-mx-1 flex max-h-[196px] flex-col gap-px overflow-y-auto"
-        aria-label="Tracks"
-      >
-        {player.tracks.map((track, i) => (
-          <li key={music.trackKey(track)} className="group/track relative">
-            <button
-              type="button"
-              aria-current={i === player.index || undefined}
-              onClick={() => music.pick(i)}
-              className="hover:bg-muted aria-current:bg-muted flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-[12px] aria-current:font-semibold"
-            >
-              <span className="text-muted-foreground w-4 font-mono tabular-nums">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate">
-                {track.title}{' '}
-                <span className="text-muted-foreground font-normal">
-                  · {track.author}
-                  {track.unsaved && ', this tab only'}
-                </span>
-              </span>
-              {track.duration !== undefined && (
-                <span className="text-muted-foreground font-mono font-normal tabular-nums">
-                  {music.formatDuration(track.duration)}
-                </span>
-              )}
-            </button>
-            {track.id && (
+      <Scroller className="-mx-1" viewportClassName="max-h-[196px]">
+        <ol ref={list} className="flex flex-col gap-px" aria-label="Tracks">
+          {player.tracks.map((track, i) => (
+            <li key={music.trackKey(track)} className="group/track relative">
               <button
                 type="button"
-                aria-label={`Remove ${track.title}`}
-                onClick={() => music.removeOwnTrack(track.id!)}
-                className="text-muted-foreground bg-muted hover:text-foreground absolute top-1/2 right-1 grid h-5 w-8 justify-items-end pr-0.5 -translate-y-1/2 place-items-center rounded opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100"
+                aria-current={i === player.index || undefined}
+                onClick={() => music.pick(i)}
+                className="hover:bg-muted aria-current:bg-muted flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-[12px] aria-current:font-semibold"
               >
-                <X className="size-3" strokeWidth={1.75} />
+                <span className="text-muted-foreground w-4 font-mono tabular-nums">{i + 1}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {track.title}{' '}
+                  <span className="text-muted-foreground font-normal">
+                    · {track.author}
+                    {track.unsaved && ', this tab only'}
+                  </span>
+                </span>
+                {track.duration !== undefined && (
+                  <span className="text-muted-foreground font-mono font-normal tabular-nums">
+                    {music.formatDuration(track.duration)}
+                  </span>
+                )}
               </button>
-            )}
-          </li>
-        ))}
-      </ol>
+              {track.id && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${track.title}`}
+                  onClick={() => music.removeOwnTrack(track.id!)}
+                  className="text-muted-foreground bg-muted hover:text-foreground absolute top-1/2 right-1 grid h-5 w-8 justify-items-end pr-0.5 -translate-y-1/2 place-items-center rounded opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100"
+                >
+                  <X className="size-3" strokeWidth={1.75} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      </Scroller>
       <Button
         variant="ghost"
         size="sm"

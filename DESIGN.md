@@ -23,7 +23,7 @@ Light theme (default; Light, Dark or System from the main menu, stored in the br
 - Sticky note and frame colors: 6 muted hues with the same lightness `L 0.94`, `C 0.05`
 - Paste: copied tiko elements first, then task keys and links (cards in the add-several grid), then plain text (text element by default, sticky note by the Settings choice). Keys that fail show one error toast "Not added" with a line per key.
 - Text selection: one opaque fill, `--primary` at 25% over the background, so two selected lines never overlap into a darker band.
-- Scrollbars: thin everywhere, thumb `--muted-foreground` at 35%, 60% on hover, transparent track; never the browser's default bars.
+- Scrollbars: drawn over the content with no room kept for them (`Scroller` around `OverlayScrollbars`): 6px round thumbs in `--muted-foreground` at 35%, 60% on hover, 2px from the edges, shown while the area scrolls or a thumb is held and faded 1s after. Text fields and anything outside a `Scroller` keep thin native bars in the same colors; never the browser's default bars.
 - Sticky text: 14px, shrinking with no lower bound so the whole text always fits the note, never scrolled or cut, like Miro. At 2000 characters input stops and a lucide `Ban` sign at 60% of the note, in `--sticky-foreground`, fades out over 0.9 s.
 - Timers: `--timer` `oklch(0.82 0.16 75)` with `--timer-foreground` `oklch(0.3 0.07 60)`, the only saturated fill on the canvas, so waiting spots stand out; `--timer-fired` `oklch(0.66 0.19 30)` with near-white text; the same in both themes
 

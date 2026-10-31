@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toastError } from '@/lib/toast'
 import { Group, SectionHeader } from '@/settings/sections/Section'
+import { Scroller } from '@/components/Scroller'
 
 const USAGE_STATS_GUIDE = 'https://docs.tiko.run/privacy/'
 
@@ -57,12 +58,11 @@ export function Privacy() {
           </Button>
         </div>
         {shown && privacy.data && (
-          <pre
-            aria-label="Next ping"
-            className="bg-muted overflow-x-auto rounded-md p-3 font-mono text-[12px]"
-          >
-            {JSON.stringify(privacy.data.next_ping, null, 2)}
-          </pre>
+          <Scroller className="bg-muted rounded-md">
+            <pre aria-label="Next ping" className="p-3 font-mono text-[12px]">
+              {JSON.stringify(privacy.data.next_ping, null, 2)}
+            </pre>
+          </Scroller>
         )}
       </Group>
       {privacy.data?.error_reports_available && (
