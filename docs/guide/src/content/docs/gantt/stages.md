@@ -9,7 +9,7 @@ With Planning on, a row is cut into stages: discovery, design, build, a pause, o
 
 - Drag across free days of a row to add a stage. A click adds one week.
 - Click a stage to pick its type or delete it. A bar that has no stages yet reads "No stage" until you pick one.
-- Drag a stage to move it, or its ends to change its dates. Moved or stretched to the right, it pushes the later stages of its row by the same days, gaps kept, so a plan shifts by a week in one drag. Hold Alt to move it alone: it then stops at the next stage. To the left it stops at the previous one, so stages never overlap.
+- Drag a stage to move it, or its ends to change its dates. On its own a stage stops at its neighbours, so stages never overlap. Hold Alt while moving or stretching it to the right, and it pushes the later stages of its row by the same days, gaps kept, so a plan shifts by a week in one drag.
 - A new stage takes the type that follows the previous one.
 
 Stage types belong to the whole tiko: add one from a stage with **New type**, rename, recolor or archive it in **Settings → Stages and people**. An archived type stays on the stages that use it, and new stages cannot pick it. A task card dropped into the Gantt becomes a row with one bar, as before.
