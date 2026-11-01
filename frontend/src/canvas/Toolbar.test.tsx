@@ -213,3 +213,28 @@ test('an empty field offers the recent inputs, and a pick adds its cards', async
   await waitFor(() => expect(onAddCards).toHaveBeenCalledWith([{ ...task, key: 'DEMO-2' }]))
   expect(JSON.parse(localStorage.getItem('tiko.card.recent')!)).toEqual(['DEMO-2', 'DEMO-3'])
 })
+
+test('an add that leaves the form open shows itself in the list at once', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      const ref = init?.body ? JSON.parse(init.body as string).ref : undefined
+      if (ref === 'NOPE') {
+        return new Response(
+          JSON.stringify({ error: { code: 'invalid_ref', message: 'Not a Jira key or link' } }),
+          { status: 422 },
+        )
+      }
+      return new Response(JSON.stringify({ task: { ...task, key: ref } }), { status: 200 })
+    }),
+  )
+  renderToolbar()
+  fireEvent.click(screen.getByRole('button', { name: 'Task card' }))
+  const field = await screen.findByLabelText('Issue keys, links or JQL')
+  fireEvent.change(field, { target: { value: 'DEMO-1, NOPE' } })
+  fireEvent.submit(field)
+  await waitFor(() => expect(field).toHaveValue('NOPE'))
+  fireEvent.change(field, { target: { value: '' } })
+  const list = screen.getByRole('listbox', { name: 'Recent inputs' })
+  expect(within(list).getByRole('option')).toHaveTextContent('DEMO-1, NOPE')
+})

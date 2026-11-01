@@ -83,13 +83,14 @@ export function AddCardForm({
   onDone: () => void
 }) {
   const [input, setInput] = useState('')
-  const [recent] = useState(readRecentInputs)
+  const [recent, setRecent] = useState(readRecentInputs)
   const resolve = useMutation({
     mutationFn: addFromInput,
     onSuccess: ({ tasks, failed, total }, sent) => {
       if (tasks.length > 0) {
         onAdd(tasks)
         rememberInput(sent)
+        setRecent(readRecentInputs())
       }
       // A query that found nothing or more than fits stays open to be narrowed.
       if (total !== undefined && (tasks.length === 0 || total > tasks.length)) return

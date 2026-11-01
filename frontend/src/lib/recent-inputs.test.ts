@@ -17,3 +17,8 @@ test('a broken value reads as an empty list', () => {
   rememberInput('')
   expect(localStorage.getItem('tiko.card.recent')).toBe('{oops')
 })
+
+test('blank, repeated and odd entries are left out', () => {
+  localStorage.setItem('tiko.card.recent', JSON.stringify([' DEMO-1', '', 'DEMO-1', 7]))
+  expect(readRecentInputs()).toEqual(['DEMO-1'])
+})

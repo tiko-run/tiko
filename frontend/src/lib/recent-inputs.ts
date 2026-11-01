@@ -5,9 +5,12 @@ const LIMIT = 5
 export function readRecentInputs(): string[] {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]')
-    return Array.isArray(stored)
-      ? stored.filter((item): item is string => typeof item === 'string').slice(0, LIMIT)
-      : []
+    if (!Array.isArray(stored)) return []
+    const texts = stored
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item !== '')
+    return [...new Set(texts)].slice(0, LIMIT)
   } catch {
     return []
   }
