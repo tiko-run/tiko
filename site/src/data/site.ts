@@ -1,5 +1,7 @@
 export const DEMO = 'https://demo.tiko.run/demo'
 export const DOCS = 'https://docs.tiko.run'
+// Screencasts for the site pages, cut to the app window.
+export const MEDIA = 'https://media.tiko.run/site'
 // The roadmap is a public, view-only board on the demo.
 export const ROADMAP = 'https://demo.tiko.run/p/IGoVOBKKIi7IE-kGjrckETccZclVnrCM'
 export const REPO = 'https://github.com/tiko-run/tiko'

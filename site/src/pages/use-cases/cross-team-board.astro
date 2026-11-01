@@ -2,7 +2,7 @@
 // Use case: one board for the work of several teams and projects. Every key, name and note in
 // the drawings is made up.
 import type { Item } from '../../data/board'
-import { brand, DEMO, DOCS } from '../../data/site'
+import { brand, DEMO, DOCS, MEDIA } from '../../data/site'
 import Cta from '../../components/Cta.astro'
 import Clip from '../../components/Clip.astro'
 import Faq from '../../components/Faq.astro'
@@ -202,7 +202,7 @@ const related = [
       more={{ href: `${DOCS}/adding-tasks/`, text: 'Adding tasks' }}
       tone="blue"
     >
-      <Clip><MiniBoard items={pull} live /></Clip>
+      <Clip src={`${MEDIA}/site-add.mp4`} poster={`${MEDIA}/site-add.jpg`} width={1280} height={718} label="A task card added by its key, more cards from a query, and a status that updates from the tracker"><MiniBoard items={pull} live /></Clip>
     </FeatureFrame>
 
     <FeatureFrame
@@ -252,7 +252,7 @@ const related = [
       more={{ href: `${DOCS}/search/`, text: 'Search and filters' }}
       tone="pink"
     >
-      <Clip><MiniBoard items={find} live /></Clip>
+      <Clip src={`${MEDIA}/site-palette.mp4`} poster={`${MEDIA}/site-palette.jpg`} width={1280} height={718} label="The command palette filters cards by assignee and jumps to one"><MiniBoard items={find} live /></Clip>
     </FeatureFrame>
 
     <FeatureFrame
@@ -265,7 +265,7 @@ const related = [
       tone="violet"
       flip
     >
-      <Clip><MiniBoard items={together} live /></Clip>
+      <Clip src={`${MEDIA}/site-together.mp4`} poster={`${MEDIA}/site-together.jpg`} width={1280} height={718} label="A second person's cursor, card drag and sticky note appear live on the board"><MiniBoard items={together} live /></Clip>
     </FeatureFrame>
 
     <section class="section stays">
