@@ -1,0 +1,491 @@
+---
+// A small board in the look of the real one. One unit is a pixel of a `w`×`h` board, scaled to
+// the container. A card with `to` loops between two statuses, an arrow with `draw` draws itself
+// and a cursor with `to` glides there and back; all of it runs only while the board is in view
+// (page.ts adds `.in` to `.reveal`) and stands still under reduced motion.
+// Every key, name and note on it is made up.
+import Icon from './Icon.astro'
+import Mark from './Mark.astro'
+import type { Item } from '../data/board'
+
+interface Props {
+  items: Item[]
+  w?: number
+  h?: number
+  // Loops and draws only on a live board; a static one (a thumbnail) never moves.
+  live?: boolean
+  class?: string
+}
+const { items, w = 400, h = 250, live = false, class: extra } = Astro.props
+
+const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
+const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
+const place = ([x, y, width, height]: number[]) =>
+  `--x:${x};--y:${y}` + (width ? `;--w:${width}` : '') + (height ? `;--h:${height}` : '')
+---
+
+<div class:list={['mini dots', { reveal: live }, extra]} style={`--bw:${w};--bh:${h}`} aria-hidden="true">
+  <svg class="arrows" viewBox={`0 0 ${w} ${h}`}>
+    {items.map((item) => item.t === 'arrow' && <path class:list={{ draw: item.draw }} d={item.d} pathLength="1" />)}
+  </svg>
+  {
+    items.map((item) => {
+      if (item.t === 'arrow') return null
+      if (item.t === 'frame')
+        return <div class={`n frame ${item.tone ?? 'plain'}`} style={place(item.at)}><b>{item.title}</b></div>
+      if (item.t === 'card')
+        return (
+          <div class:list={['n card', { wide: item.title, flips: item.to }]} data-status={item.s} data-to={item.to} style={place(item.at) + (item.d ? `;--delay:${item.d}s` : '')}>
+            {item.tr && <span class="tr"><Mark tracker={item.tr} size={10} /></span>}
+            <span class="ty"><Icon name={TYPE_ICON[item.type ?? 'task']} size={10} /></span>
+            <span class="k">{item.k}</span>
+            {item.title && <span class="tt">{item.title}</span>}
+            <span class="lzs">
+              <span class="lz from">{STATUS[item.s]}</span>
+              {item.to && <span class="lz next">{STATUS[item.to]}</span>}
+            </span>
+          </div>
+        )
+      if (item.t === 'note') return <div class={`n note ${item.tone}`} style={place(item.at)}>{item.text}</div>
+      if (item.t === 'timer') return <div class="n timer" style={place(item.at)}>{item.left}</div>
+      if (item.t === 'focus')
+        return <div class="n focus" style={place(item.at)}><i />{item.time}<i class="play" /></div>
+      if (item.t === 'search')
+        return (
+          <div class="n search" style={place(item.at)}>
+            <span class="q">
+              <Icon name="search" size={10} />
+              {item.chips.map((chip) => <i>{chip}</i>)}
+            </span>
+            {item.hits.map((hit, i) => <span class:list={['hit', { on: i === 0 }]}>{hit}</span>)}
+          </div>
+        )
+      if (item.t === 'cursor')
+        return (
+          <div
+            class:list={['n cursor', item.tone, { moves: item.to }]}
+            style={place(item.at) + (item.to ? `;--tx:${item.to[0] - item.at[0]};--ty:${item.to[1] - item.at[1]}` : '')}
+          >
+            <svg viewBox="0 0 12 14"><path d="M1 1 L1 12 L4 9 L6.5 13 L8.2 12.2 L5.8 8.2 L10 8.2 Z" /></svg>
+            <span>{item.name}</span>
+          </div>
+        )
+      return (
+        <div class="n gantt" style={place(item.at)}>
+          <b>{item.title}</b>
+          {item.bars.map(([left, width, status]) => (
+            <span class="row"><i class={status} style={`left:${left}%;width:${width}%`} /></span>
+          ))}
+          <i class="today" />
+          <i class="stone" />
+        </div>
+      )
+    })
+  }
+</div>
+
+<style>
+  .mini {
+    --u: calc(100cqw / var(--bw));
+    position: relative;
+    aspect-ratio: var(--bw) / var(--bh);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background-color: var(--background);
+    background-size: calc(16 * var(--u)) calc(16 * var(--u));
+    font-size: calc(9 * var(--u));
+    line-height: 1.3;
+    transition: border-color 0.2s;
+  }
+  .arrows {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--foreground);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    opacity: 0.55;
+  }
+  .n {
+    position: absolute;
+    left: calc(var(--x) * var(--u));
+    top: calc(var(--y) * var(--u));
+    width: calc(var(--w) * var(--u));
+    height: calc(var(--h) * var(--u));
+  }
+  /* Frames and notes as on the board: a plain frame on --muted, a filled one tinted. */
+  .frame {
+    border: 1px solid var(--border);
+    border-radius: calc(3.4 * var(--u));
+    background: color-mix(in oklab, var(--tone) var(--frame-tint), var(--background));
+  }
+  .frame.plain {
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
+  }
+  .frame b {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 3 * var(--u));
+    font-size: calc(9.5 * var(--u));
+    font-weight: 500;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .green {
+    --tone: var(--sticky-green);
+  }
+  .yellow {
+    --tone: var(--sticky-yellow);
+  }
+  .pink {
+    --tone: var(--sticky-pink);
+  }
+  .violet {
+    --tone: var(--sticky-violet);
+  }
+  .orange {
+    --tone: var(--sticky-orange);
+  }
+  .blue {
+    --tone: var(--sticky-blue);
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    width: auto;
+    height: auto;
+    padding: calc(3 * var(--u)) calc(6 * var(--u));
+    border: 1px solid var(--border);
+    border-radius: calc(3.4 * var(--u));
+    background: var(--card);
+    white-space: nowrap;
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* A card with a title has a fixed width, like a card on the board. */
+  .card.wide {
+    width: calc(var(--w) * var(--u));
+  }
+  /* The type icon is a muted outline, as on demo cards. */
+  .ty,
+  .tr {
+    display: grid;
+    color: var(--muted-foreground);
+  }
+  .ty :global(svg),
+  .tr :global(svg) {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+  }
+  .tr {
+    color: var(--foreground);
+  }
+  .k {
+    font-family: var(--mono);
+    font-size: calc(8 * var(--u));
+    color: var(--primary);
+  }
+  .tt {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lz {
+    padding: 0 calc(3 * var(--u));
+    border-radius: calc(2 * var(--u));
+    background: var(--todo);
+    color: var(--todo-fg);
+    font-size: calc(7 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  [data-status='progress'] .from,
+  [data-status='review'] .from,
+  [data-to='progress'] .next,
+  [data-to='review'] .next {
+    background: var(--progress);
+    color: var(--progress-fg);
+  }
+  [data-status='done'] .from,
+  [data-to='done'] .next {
+    background: var(--done);
+    color: var(--done-fg);
+  }
+  [data-status='done'] .k {
+    text-decoration: line-through;
+  }
+  /* Both lozenges share one grid cell, so the card is as wide as the longer one. */
+  .lzs {
+    display: inline-grid;
+    justify-items: end;
+  }
+  .lzs .lz {
+    grid-area: 1 / 1;
+  }
+  /* A card that changes status: the next lozenge takes the place of the first one, in a loop. */
+  .flips .next {
+    display: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .flips {
+      --cycle: 7s;
+    }
+    .flips .next {
+      display: inline;
+      opacity: 0;
+    }
+    .in .flips .from {
+      animation: lz-out var(--cycle) var(--delay, 1.2s) infinite;
+    }
+    .in .flips .next {
+      animation: lz-in var(--cycle) var(--delay, 1.2s) infinite;
+    }
+    .in .flips[data-to='done'] .k {
+      animation: strike var(--cycle) var(--delay, 1.2s) infinite;
+    }
+  }
+  @keyframes lz-out {
+    0%,
+    8%,
+    92%,
+    100% {
+      opacity: 1;
+    }
+    12%,
+    88% {
+      opacity: 0;
+    }
+  }
+  @keyframes lz-in {
+    0%,
+    8%,
+    92%,
+    100% {
+      opacity: 0;
+      transform: translateY(calc(3 * var(--u)));
+    }
+    12%,
+    88% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes strike {
+    0%,
+    10%,
+    90%,
+    100% {
+      text-decoration-color: transparent;
+    }
+    12%,
+    88% {
+      text-decoration: line-through;
+    }
+  }
+  /* An arrow with `draw` grows from its start when the board comes into view. */
+  @media (prefers-reduced-motion: no-preference) {
+    .rising .arrows .draw {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    .rising .in .arrows .draw {
+      transition: stroke-dashoffset 1.1s cubic-bezier(0.4, 0, 0.2, 1) 0.6s;
+      stroke-dashoffset: 0;
+    }
+  }
+  /* A teammate's cursor with a name tag, as in live collaboration. */
+  .cursor {
+    --c: oklch(0.55 0.16 var(--hue, 255));
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    gap: calc(1 * var(--u));
+    width: auto;
+    height: auto;
+  }
+  .cursor svg {
+    width: calc(11 * var(--u));
+    height: calc(13 * var(--u));
+    fill: var(--c);
+    stroke: var(--card);
+    stroke-width: 1;
+  }
+  .cursor span {
+    margin-top: calc(9 * var(--u));
+    padding: calc(1 * var(--u)) calc(4 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--c);
+    color: oklch(0.99 0 0);
+    font-size: calc(7.5 * var(--u));
+    font-weight: 600;
+  }
+  .cursor.violet {
+    --hue: 300;
+  }
+  .cursor.green {
+    --hue: 150;
+  }
+  .cursor.orange {
+    --hue: 55;
+  }
+  .cursor.pink {
+    --hue: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .in .cursor.moves {
+      animation: glide 9s ease-in-out 0.8s infinite;
+    }
+  }
+  @keyframes glide {
+    0%,
+    10%,
+    100% {
+      transform: none;
+    }
+    45%,
+    60% {
+      transform: translate(calc(var(--tx) * var(--u)), calc(var(--ty) * var(--u)));
+    }
+  }
+  /* The command palette with filter chips, as on the board. */
+  .search {
+    z-index: 2;
+    height: auto;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .q {
+    display: flex;
+    align-items: center;
+    gap: calc(4 * var(--u));
+    padding: calc(6 * var(--u)) calc(8 * var(--u));
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+  }
+  .q :global(svg) {
+    width: calc(10 * var(--u));
+    height: calc(10 * var(--u));
+  }
+  .q i {
+    padding: 0 calc(4 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--accent);
+    color: var(--primary);
+    font-family: var(--mono);
+    font-size: calc(8 * var(--u));
+    font-style: normal;
+  }
+  .hit {
+    display: block;
+    padding: calc(4 * var(--u)) calc(8 * var(--u));
+    font-size: calc(8.5 * var(--u));
+  }
+  .hit.on {
+    background: var(--accent);
+  }
+  .note {
+    padding: calc(8 * var(--u));
+    border-radius: calc(3.4 * var(--u));
+    background: var(--tone);
+    color: var(--sticky-foreground);
+    font-size: calc(9.5 * var(--u));
+    line-height: 1.35;
+  }
+  .timer {
+    display: grid;
+    place-items: center;
+    width: calc(26 * var(--u));
+    height: calc(26 * var(--u));
+    border-radius: calc(4.2 * var(--u));
+    background: var(--timer);
+    color: var(--timer-foreground);
+    box-shadow: 0 1px 2px oklch(0.3 0.07 60 / 0.25);
+    font-family: var(--mono);
+    font-size: calc(8 * var(--u));
+    font-weight: 600;
+  }
+  .focus {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+    width: calc(140 * var(--u));
+    height: calc(28 * var(--u));
+    padding-inline: calc(7 * var(--u));
+    border-radius: calc(14 * var(--u));
+    background: linear-gradient(100deg, var(--focus-fill), var(--focus-fill-2), var(--focus-fill));
+    color: var(--focus-ink);
+    font-family: var(--mono);
+    font-size: calc(13 * var(--u));
+    font-weight: 500;
+  }
+  .focus i {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--focus-ink) 14%, transparent);
+  }
+  .focus .play {
+    margin-left: auto;
+    background: var(--focus-ink);
+  }
+  .gantt {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: calc(6 * var(--u));
+    background: var(--card);
+  }
+  .gantt b {
+    display: block;
+    padding: calc(6 * var(--u)) calc(8 * var(--u));
+    border-bottom: 1px solid var(--border);
+    font-size: calc(10 * var(--u));
+    font-weight: 600;
+  }
+  .row {
+    position: relative;
+    display: block;
+    height: calc(26 * var(--u));
+  }
+  .row i {
+    position: absolute;
+    top: calc(6 * var(--u));
+    height: calc(14 * var(--u));
+    border-radius: calc(3 * var(--u));
+    background: var(--todo);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
+  }
+  .row .progress {
+    background: var(--progress);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
+  }
+  .row .done {
+    background: var(--done);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
+  }
+  .today {
+    position: absolute;
+    left: 56%;
+    top: calc(26 * var(--u));
+    bottom: 0;
+    width: 1px;
+    background: var(--primary);
+  }
+  .stone {
+    position: absolute;
+    right: calc(10 * var(--u));
+    bottom: calc(6 * var(--u));
+    width: calc(7 * var(--u));
+    height: calc(7 * var(--u));
+    background: var(--foreground);
+    transform: rotate(45deg);
+  }
+</style>

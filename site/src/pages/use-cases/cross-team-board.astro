@@ -1,0 +1,477 @@
+---
+// Use case: one board for the work of several teams and projects. Every key, name and note in
+// the drawings is made up.
+import type { Item } from '../../data/board'
+import { brand, DEMO, DOCS } from '../../data/site'
+import Cta from '../../components/Cta.astro'
+import Clip from '../../components/Clip.astro'
+import Faq from '../../components/Faq.astro'
+import FeatureFrame from '../../components/FeatureFrame.astro'
+import Footer from '../../components/Footer.astro'
+import Header from '../../components/Header.astro'
+import Icon from '../../components/Icon.astro'
+import Install from '../../components/Install.astro'
+import MiniBoard from '../../components/MiniBoard.astro'
+import SelfHost from '../../components/SelfHost.astro'
+import Trackers from '../../components/Trackers.astro'
+import Base from '../../layouts/Base.astro'
+
+const title = 'See work across teams and projects on one board · tiko'
+const description =
+  'Put tasks from several projects and teams of your tracker on one board. Group them, draw who waits on whom, and watch statuses update on their own.'
+
+const hero: Item[] = [
+  { t: 'frame', at: [20, 34, 190, 100], title: 'Web', tone: 'blue' },
+  { t: 'frame', at: [225, 34, 190, 100], title: 'API', tone: 'green' },
+  { t: 'frame', at: [430, 34, 190, 100], title: 'Mobile', tone: 'violet' },
+  { t: 'card', at: [28, 52, 174], k: 'WEB-14', title: 'Checkout', s: 'progress', to: 'done', tr: 'jira', d: 1.4 },
+  { t: 'card', at: [28, 80, 174], k: 'WEB-17', title: 'Dark theme', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [28, 108, 174], k: 'web#231', title: 'Search', s: 'review', tr: 'github', type: 'story' },
+  { t: 'card', at: [233, 52, 174], k: 'api#212', title: 'Pay API', s: 'progress', to: 'review', tr: 'github', d: 3.2 },
+  { t: 'card', at: [233, 80, 174], k: 'API-88', title: 'Rate limits', s: 'todo', to: 'progress', tr: 'jira', d: 2.3 },
+  { t: 'card', at: [233, 108, 174], k: 'API-90', title: 'Audit log', s: 'done', tr: 'jira' },
+  { t: 'card', at: [438, 52, 174], k: 'MOB-31', title: 'Saved cards', s: 'todo', tr: 'jira', type: 'story' },
+  { t: 'card', at: [438, 80, 174], k: 'MOB-33', title: 'Offline', s: 'progress', tr: 'jira', type: 'story' },
+  { t: 'card', at: [438, 108, 174], k: 'MOB-40', title: 'Login', s: 'review', to: 'done', tr: 'jira', type: 'bug', d: 4.4 },
+  { t: 'arrow', d: 'M407 61 C 420 61, 425 61, 438 61', draw: true },
+  { t: 'arrow', d: 'M202 89 C 214 89, 220 89, 233 89', draw: true },
+  { t: 'note', at: [225, 160, 190, 40], text: 'api#212 blocks the mobile release', tone: 'yellow' },
+  { t: 'note', at: [20, 160, 190, 40], text: 'Release 2.4: code freeze on Wednesday', tone: 'blue' },
+  { t: 'gantt', at: [430, 152, 190, 104], title: 'Release 2.4', bars: [[4, 40, 'done'], [30, 44, 'progress'], [58, 36, 'todo']] },
+  { t: 'cursor', at: [290, 222], to: [470, 120], name: 'Anna', tone: 'violet' },
+  { t: 'cursor', at: [120, 214], name: 'Max', tone: 'green' },
+]
+
+const pull: Item[] = [
+  { t: 'search', at: [20, 18, 360], chips: ['project in (WEB, API)', 'sprint in openSprints()'], hits: [] },
+  { t: 'card', at: [20, 66], k: 'WEB-14', s: 'progress', tr: 'jira' },
+  { t: 'card', at: [20, 92], k: 'WEB-17', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [20, 118], k: 'WEB-21', s: 'todo', tr: 'jira', type: 'bug' },
+  { t: 'card', at: [20, 144], k: 'WEB-22', s: 'review', tr: 'jira' },
+  { t: 'card', at: [20, 170], k: 'WEB-25', s: 'done', tr: 'jira', type: 'story' },
+  { t: 'card', at: [140, 66], k: 'API-88', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [140, 92], k: 'API-90', s: 'done', tr: 'jira' },
+  { t: 'card', at: [140, 118], k: 'API-93', s: 'progress', tr: 'jira', type: 'story' },
+  { t: 'card', at: [262, 66], k: 'api#212', s: 'progress', tr: 'github' },
+  { t: 'card', at: [262, 92], k: 'web#231', s: 'review', tr: 'github', type: 'story' },
+  { t: 'note', at: [262, 136, 118, 60], text: 'Pasted links from two GitHub repos', tone: 'green' },
+]
+
+const group: Item[] = [
+  { t: 'frame', at: [8, 30, 142, 150], title: 'Web', tone: 'blue' },
+  { t: 'frame', at: [159, 30, 142, 150], title: 'API', tone: 'green' },
+  { t: 'frame', at: [310, 30, 142, 150], title: 'Mobile', tone: 'violet' },
+  { t: 'card', at: [15, 42], k: 'WEB-14', s: 'progress', tr: 'jira' },
+  { t: 'card', at: [15, 68], k: 'WEB-17', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [15, 94], k: 'web#231', s: 'review', tr: 'github' },
+  { t: 'card', at: [166, 42], k: 'api#212', s: 'review', tr: 'github' },
+  { t: 'card', at: [166, 68], k: 'API-88', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [317, 42], k: 'MOB-31', s: 'todo', tr: 'jira', type: 'story' },
+  { t: 'card', at: [317, 68], k: 'MOB-33', s: 'progress', tr: 'jira', type: 'story' },
+  { t: 'note', at: [166, 104, 118, 60], text: 'Who owns the retry logic?', tone: 'yellow' },
+  { t: 'note', at: [8, 196, 200, 40], text: 'Goal: release 2.4 by the end of the month', tone: 'orange' },
+]
+
+const live: Item[] = [
+  { t: 'frame', at: [20, 30, 360, 196], title: 'Release 2.4' },
+  { t: 'card', at: [32, 44, 336], k: 'WEB-14', title: 'Checkout page', s: 'progress', to: 'done', tr: 'jira', d: 0.8 },
+  { t: 'card', at: [32, 74, 336], k: 'api#212', title: 'Payments API v2', s: 'progress', to: 'review', tr: 'github', d: 2.2 },
+  { t: 'card', at: [32, 104, 336], k: 'API-88', title: 'Rate limits', s: 'todo', to: 'progress', tr: 'jira', d: 3.4 },
+  { t: 'card', at: [32, 134, 336], k: 'MOB-40', title: 'Crash on login', s: 'review', to: 'done', tr: 'jira', type: 'bug', d: 4.6 },
+  { t: 'card', at: [32, 164, 336], k: 'API-90', title: 'Audit log', s: 'done', tr: 'jira' },
+  { t: 'card', at: [32, 194, 336], k: 'MOB-33', title: 'Offline', s: 'progress', tr: 'jira', type: 'story' },
+]
+
+const depend: Item[] = [
+  { t: 'frame', at: [8, 30, 140, 96], title: 'Mobile', tone: 'violet' },
+  { t: 'frame', at: [160, 30, 140, 96], title: 'API', tone: 'green' },
+  { t: 'frame', at: [312, 30, 140, 96], title: 'Data', tone: 'orange' },
+  { t: 'card', at: [15, 42], k: 'MOB-31', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [15, 82], k: 'MOB-33', s: 'todo', tr: 'jira', type: 'story' },
+  { t: 'card', at: [167, 42], k: 'api#212', s: 'review', tr: 'github' },
+  { t: 'card', at: [167, 82], k: 'API-88', s: 'review', tr: 'jira' },
+  { t: 'card', at: [319, 42], k: 'DATA-8', s: 'done', tr: 'jira' },
+  { t: 'arrow', d: 'M319 52 C 305 52, 300 52, 292 52', draw: true },
+  { t: 'arrow', d: 'M167 52 C 153 52, 148 52, 140 52', draw: true },
+  { t: 'arrow', d: 'M167 92 C 153 92, 148 92, 140 92', draw: true },
+  { t: 'gantt', at: [8, 144, 292, 96], title: 'Release 2.4', bars: [[4, 30, 'done'], [26, 40, 'progress'], [60, 34, 'todo']] },
+  { t: 'timer', at: [312, 150], left: '2d' },
+  { t: 'note', at: [346, 144, 106, 60], text: 'Ping me when api#212 moves', tone: 'yellow' },
+]
+
+const find: Item[] = [
+  { t: 'frame', at: [10, 30, 180, 150], title: 'Web', tone: 'blue' },
+  { t: 'frame', at: [210, 30, 180, 150], title: 'API', tone: 'green' },
+  { t: 'card', at: [18, 42], k: 'WEB-14', s: 'progress', tr: 'jira' },
+  { t: 'card', at: [18, 68], k: 'WEB-17', s: 'review', tr: 'jira' },
+  { t: 'card', at: [218, 42], k: 'API-88', s: 'review', tr: 'jira' },
+  { t: 'card', at: [218, 68], k: 'api#212', s: 'progress', tr: 'github' },
+  { t: 'search', at: [70, 96, 260], chips: ['@anna', 'status:review'], hits: ['API-88  Rate limits', 'WEB-17  Dark theme'] },
+]
+
+const together: Item[] = [
+  { t: 'frame', at: [10, 30, 180, 190], title: 'Web', tone: 'blue' },
+  { t: 'frame', at: [210, 30, 180, 190], title: 'API', tone: 'green' },
+  { t: 'card', at: [18, 42], k: 'WEB-14', s: 'progress', tr: 'jira' },
+  { t: 'card', at: [18, 68], k: 'WEB-17', s: 'todo', tr: 'jira' },
+  { t: 'card', at: [218, 42], k: 'api#212', s: 'progress', tr: 'github' },
+  { t: 'card', at: [218, 68], k: 'API-88', s: 'todo', to: 'progress', tr: 'jira', d: 2 },
+  { t: 'note', at: [18, 110, 96, 60], text: 'Move WEB-17 to the next sprint?', tone: 'pink' },
+  { t: 'cursor', at: [60, 190], to: [250, 96], name: 'Anna', tone: 'violet' },
+  { t: 'cursor', at: [300, 170], to: [120, 140], name: 'Max', tone: 'green' },
+  { t: 'cursor', at: [330, 50], name: 'Lee', tone: 'orange' },
+]
+
+const pains = [
+  'Dependencies come up when the launch date slips, not before.',
+  'Before every leadership meeting someone rebuilds the status by hand.',
+  'A week after planning, the whiteboard is a stale screenshot in a chat.',
+]
+
+const faq = [
+  {
+    q: 'How do I see what other teams are working on without moving everyone to one tool?',
+    a: 'Leave every team in its own project. Put their tasks on one tiko board with a query or by pasting links, group them in frames, and the statuses stay current on their own.',
+  },
+  {
+    q: 'Can one board hold tasks from several projects and trackers?',
+    a: 'Yes. A board can mix tasks from any number of Jira projects and GitHub repositories. Each card shows the mark of its tracker.',
+  },
+  {
+    q: 'Does the board go stale?',
+    a: 'No. Statuses refresh every 30 seconds while the board is open, and closed tasks are struck through. The layout, notes and plan dates are yours and stay on the board.',
+  },
+  {
+    q: 'Can people outside the tracker see the board?',
+    a: 'People you add see tasks in full, as their own tracker token allows. A public link works for anyone without an account, but it shows only the task keys: titles and statuses are never published.',
+  },
+  {
+    q: 'Is tiko free?',
+    a: 'Yes. tiko is free software under AGPL-3.0: run it on your own server for as many people as you like. A hosted tiko Cloud with a free plan is coming.',
+  },
+]
+
+const related = [
+  { href: `${DOCS}/gantt/`, title: 'Plan the dates on a Gantt', text: 'Drop cards onto a timeline, mark milestones and see which bar slips.' },
+  { href: '/#scenarios', title: 'Ways to lay a board out', text: 'Sprints, releases, incidents and your own week, as small boards.' },
+  { href: `${DOCS}/working-together/`, title: 'Share a board', text: 'Who sees what, live cursors and the view-only public link.' },
+]
+---
+
+<Base {title} {description} {faq} crumbs={[['Cross-team board']]}>
+  <Header />
+  <main id="main" class="dots">
+    <section class="hero">
+      <div class="wrap copy">
+        <p class="eyebrow">Use case</p>
+        <h1>See work across teams and projects on one board</h1>
+        <p class="sub" set:html={brand('Every team works in its own project, and nobody sees the whole release. tiko puts their tasks on one canvas, straight from your tracker. Statuses keep up on their own, so the board never goes stale.')} />
+        <div class="actions">
+          <a class="btn btn-primary" href={DEMO}>Try the demo <Icon name="arrow-right" /></a>
+          <Install />
+        </div>
+        <ul class="facts">
+          {['Open source, AGPL-3.0', 'Self-hosted', 'Your tracker stays the source of truth'].map((fact) => <li><Icon name="check" size={14} />{fact}</li>)}
+        </ul>
+      </div>
+      <div class="wrap scene">
+        <Clip label="Tasks from three teams on one board, statuses changing live">
+          <MiniBoard items={hero} w={640} h={272} live />
+        </Clip>
+      </div>
+    </section>
+
+    <section class="section problem">
+      <div class="wrap cols">
+        <div>
+          <h2 class="h2 reveal">Every team sees a different version of the work</h2>
+          <p class="lead reveal">The status lives in five projects, a few spreadsheets and the last planning call. One more tool that everyone has to update rarely helps: it turns into one more place that goes stale.</p>
+        </div>
+        <ul class="pains reveal">
+          {pains.map((pain) => <li><Icon name="circle-alert" size={18} /><span>{pain}</span></li>)}
+        </ul>
+      </div>
+    </section>
+
+    <FeatureFrame
+      id="pull"
+      label="Pull in"
+      heading="Tasks from every project on one board"
+      lead="Type a key, a link, a range of keys or a query like JQL, or paste links straight from your tracker tabs. Tasks from different projects and trackers sit side by side, each with its tracker's mark."
+      points={['Up to 50 cards in one go', 'Jira and GitHub tasks on the same board', 'Cards land in tidy columns of five']}
+      more={{ href: `${DOCS}/adding-tasks/`, text: 'Adding tasks' }}
+      tone="blue"
+    >
+      <Clip><MiniBoard items={pull} live /></Clip>
+    </FeatureFrame>
+
+    <FeatureFrame
+      id="group"
+      label="Group"
+      heading="Group by team, goal or release"
+      lead="A frame holds the cards of one team or one goal. Move the frame and everything inside moves with it. Sticky notes sit next to the tasks they explain."
+      points={['Frames with a fill color', 'Notes for what is still unclear', 'Collapse cards to one line on a busy board']}
+      more={{ href: `${DOCS}/adding-tasks/`, text: 'Frames, notes and arrows' }}
+      tone="green"
+      flip
+    >
+      <Clip><MiniBoard items={group} w={460} h={250} live /></Clip>
+    </FeatureFrame>
+
+    <FeatureFrame
+      id="live"
+      label="Live"
+      heading="Statuses keep up on their own"
+      lead="Each card shows the real status of its task. The board refreshes every 30 seconds with one request and strikes through closed tasks, so nobody keeps it in sync by hand."
+      points={['Your tracker stays the source of truth', 'Layout, notes and plans stay on the board', 'A dot in the corner shows that every tracker syncs']}
+      more={{ href: `${DOCS}/adding-tasks/`, text: 'How cards update' }}
+      tone="yellow"
+    >
+      <Clip><MiniBoard items={live} live /></Clip>
+    </FeatureFrame>
+
+    <FeatureFrame
+      id="dependencies"
+      label="Dependencies"
+      heading="Draw who waits on whom"
+      lead="Join cards from two teams with an arrow, and the dependency is on the board before the planning call, not after the slip. You draw the arrows yourself, and the cards at both ends keep their live status."
+      points={['Arrows between any elements', 'Dependency lines on a Gantt turn amber on a conflict', 'On a Jira card, a reminder goes off when the task changes status']}
+      more={{ href: `${DOCS}/gantt/`, text: 'Gantt and dependencies' }}
+      tone="orange"
+      flip
+    >
+      <Clip><MiniBoard items={depend} w={460} h={250} live /></Clip>
+    </FeatureFrame>
+
+    <FeatureFrame
+      id="find"
+      label="Find"
+      heading="Find what's stuck"
+      lead="Search the whole board from one palette. Filter by person or status, like <code>@anna</code> or <code>status:review</code>, and jump to the card."
+      points={['Filters turn into chips as you type', 'Assignee, status, type and priority', 'Press <kbd>B</kbd> to go back where you were']}
+      more={{ href: `${DOCS}/search/`, text: 'Search and filters' }}
+      tone="pink"
+    >
+      <Clip><MiniBoard items={find} live /></Clip>
+    </FeatureFrame>
+
+    <FeatureFrame
+      id="together"
+      label="Together"
+      heading="Look at it together"
+      lead="Teammates work on the same board live, and every cursor carries its owner's avatar. Each person connects their own tracker token, so everyone sees exactly what their tracker access allows."
+      points={['Live cursors and changes', 'A tracker token per person', 'A view-only public link for people without an account']}
+      more={{ href: `${DOCS}/working-together/`, text: 'Working together' }}
+      tone="violet"
+      flip
+    >
+      <Clip><MiniBoard items={together} live /></Clip>
+    </FeatureFrame>
+
+    <section class="section stays">
+      <div class="wrap">
+        <h2 class="h2 reveal">What stays where</h2>
+        <div class="split reveal">
+          <div>
+            <h3>In your tracker</h3>
+            <p>The task itself: its title, status, assignee and history. Teams keep working where they work now.</p>
+          </div>
+          <div>
+            <h3>On the board</h3>
+            <p>The picture around the tasks: frames, notes, arrows, plan dates and the layout.</p>
+          </div>
+        </div>
+        <p class="honest reveal" set:html={brand('What tiko does not do: it does not read task links from your tracker, so you draw dependencies yourself. A guest on a public link sees task keys, not titles.')} />
+      </div>
+    </section>
+
+    <Trackers />
+    <SelfHost />
+    <Faq items={faq} title="Questions about one board for many teams" />
+
+    <section class="section related">
+      <div class="wrap">
+        <h2 class="h2 reveal">Keep going</h2>
+        <div class="cards reveal">
+          {related.map(({ href, title, text }) => (
+            <a class="rel" {href}>
+              <h3>{title}</h3>
+              <p>{text}</p>
+              <span class="more">Read more <Icon name="arrow-right" /></span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <Cta />
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .hero {
+    padding-block: clamp(3rem, 7vw, 5.5rem) clamp(3rem, 7vw, 5rem);
+  }
+  .copy {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+  }
+  .eyebrow {
+    margin-bottom: 1rem;
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  h1 {
+    max-width: 20ch;
+    font-size: clamp(2.25rem, 5.6vw, 3.75rem);
+    font-weight: 650;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .sub {
+    max-width: 60ch;
+    margin-top: 1.25rem;
+    font-size: 1.125rem;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+  .actions :global(.install) {
+    min-width: min(26rem, 100%);
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.25rem;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  .facts li {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .facts :global(svg) {
+    color: var(--sync-ok);
+  }
+  .scene {
+    max-width: calc(66rem + var(--gutter) * 2);
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+    container-type: inline-size;
+  }
+  .scene :global(.mini) {
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2rem clamp(2rem, 6vw, 5rem);
+    align-items: center;
+  }
+  .pains {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .pains li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+  }
+  .pains :global(svg) {
+    flex: none;
+    margin-top: 0.15em;
+    color: var(--muted-foreground);
+  }
+  .problem {
+    padding-top: 0;
+  }
+  .split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .split > div {
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+  }
+  .split h3,
+  .rel h3 {
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+  .split p,
+  .rel p {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+  }
+  .honest {
+    max-width: 70ch;
+    margin-top: 1.5rem;
+    font-size: 0.9375rem;
+    color: var(--muted-foreground);
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .rel {
+    display: grid;
+    align-content: start;
+    gap: 0;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    transition: border-color 0.15s;
+  }
+  .rel:hover {
+    border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+  }
+  .rel .more {
+    margin-top: 1rem;
+  }
+  :global(.frame code) {
+    padding: 0.05em 0.3em;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card);
+  }
+  @media (max-width: 860px) {
+    .cols,
+    .split,
+    .cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
+<script>
+  import '../../scripts/page'
+  import '../../scripts/install'
+</script>

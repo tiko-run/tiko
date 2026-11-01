@@ -1,21 +1,9 @@
 ---
 // Ways to lay a board out, drawn as small boards in the look of the real one, in a carousel.
 // Not customer stories: every key, name and note here is made up.
+import type { Item } from '../data/board'
 import Icon from './Icon.astro'
-
-type Tone = 'blue' | 'green' | 'yellow' | 'pink' | 'violet' | 'orange'
-type Status = 'todo' | 'progress' | 'review' | 'done'
-type Item =
-  | { t: 'frame'; at: number[]; title: string; tone?: Tone }
-  | { t: 'card'; at: number[]; k: string; s: Status; type?: 'story' | 'task' | 'bug' }
-  | { t: 'note'; at: number[]; text: string; tone: Tone }
-  | { t: 'timer'; at: number[]; left: string; fired?: boolean }
-  | { t: 'gantt'; at: number[]; title: string; bars: [number, number, 'todo' | 'progress' | 'done'][] }
-  | { t: 'focus'; at: number[]; time: string }
-  | { t: 'arrow'; d: string }
-
-const STATUS = { todo: 'To do', progress: 'In progress', review: 'In review', done: 'Done' }
-const TYPE_ICON = { story: 'bookmark', task: 'square-check', bug: 'bug' }
+import MiniBoard from './MiniBoard.astro'
 
 const scenarios: { tag: string; title: string; text: string; items: Item[] }[] = [
   {
@@ -189,8 +177,6 @@ const scenarios: { tag: string; title: string; text: string; items: Item[] }[] =
     ],
   },
 ]
-const place = ([x, y, w, h]: number[]) =>
-  `--x:${x};--y:${y}` + (w ? `;--w:${w}` : '') + (h ? `;--h:${h}` : '')
 ---
 
 <section class="section alt" id="scenarios">
@@ -209,41 +195,8 @@ const place = ([x, y, w, h]: number[]) =>
       {
         scenarios.map(({ tag, title, text, items }) => (
           <article>
-            <div class="thumb" aria-hidden="true">
-              <div class="mini dots">
-                <svg class="arrows" viewBox="0 0 400 250">
-                  {items.map((item) => item.t === 'arrow' && <path d={item.d} />)}
-                </svg>
-                {items.map((item) => {
-                  if (item.t === 'arrow') return null
-                  if (item.t === 'frame')
-                    return <div class={`n frame ${item.tone ?? 'plain'}`} style={place(item.at)}><b>{item.title}</b></div>
-                  if (item.t === 'card')
-                    return (
-                      <div class="n card" data-status={item.s} style={place(item.at)}>
-                        <span class="ty"><Icon name={TYPE_ICON[item.type ?? 'task']} size={10} /></span>
-                        <span class="k">{item.k}</span>
-                        <span class="lz">{STATUS[item.s]}</span>
-                      </div>
-                    )
-                  if (item.t === 'note')
-                    return <div class={`n note ${item.tone}`} style={place(item.at)}>{item.text}</div>
-                  if (item.t === 'timer')
-                    return <div class="n timer" style={place(item.at)}>{item.left}</div>
-                  if (item.t === 'focus')
-                    return <div class="n focus" style={place(item.at)}><i />{item.time}<i class="play" /></div>
-                  return (
-                    <div class="n gantt" style={place(item.at)}>
-                      <b>{item.title}</b>
-                      {item.bars.map(([left, width, status]) => (
-                        <span class="row"><i class={status} style={`left:${left}%;width:${width}%`} /></span>
-                      ))}
-                      <i class="today" />
-                      <i class="stone" />
-                    </div>
-                  )
-                })}
-              </div>
+            <div class="thumb">
+              <MiniBoard items={items} />
             </div>
             <span class="tag">{tag}</span>
             <h3>{title}</h3>
@@ -386,229 +339,15 @@ const place = ([x, y, w, h]: number[]) =>
       display: none;
     }
   }
-  /* Like the hero board: one unit is a pixel of a 400×250 board, scaled to the thumbnail. */
   .thumb {
     container-type: inline-size;
     margin-bottom: 1rem;
   }
-  .mini {
-    --u: calc(100cqw / 400);
-    position: relative;
-    aspect-ratio: 400 / 250;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background-color: var(--background);
-    background-size: calc(16 * var(--u)) calc(16 * var(--u));
-    font-size: calc(9 * var(--u));
-    line-height: 1.3;
-    transition: border-color 0.2s;
-  }
-  article:hover .mini {
+  article:hover :global(.mini) {
     border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
   }
-  .arrows {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke: var(--foreground);
-    stroke-width: 1.25;
-    stroke-linecap: round;
-    opacity: 0.55;
-  }
-  .n {
-    position: absolute;
-    left: calc(var(--x) * var(--u));
-    top: calc(var(--y) * var(--u));
-    width: calc(var(--w) * var(--u));
-    height: calc(var(--h) * var(--u));
-  }
-  /* Frames and notes as on the board: a plain frame on --muted, a filled one tinted. */
-  .frame {
-    border: 1px solid var(--border);
-    border-radius: calc(3.4 * var(--u));
-    background: color-mix(in oklab, var(--tone) var(--frame-tint), var(--background));
-  }
-  .frame.plain {
-    background: color-mix(in oklab, var(--muted) 40%, transparent);
-  }
-  .frame b {
-    position: absolute;
-    left: 0;
-    bottom: calc(100% + 3 * var(--u));
-    font-size: calc(9.5 * var(--u));
-    font-weight: 500;
-    color: var(--muted-foreground);
-    white-space: nowrap;
-  }
-  .green {
-    --tone: var(--sticky-green);
-  }
-  .yellow {
-    --tone: var(--sticky-yellow);
-  }
-  .pink {
-    --tone: var(--sticky-pink);
-  }
-  .violet {
-    --tone: var(--sticky-violet);
-  }
-  .orange {
-    --tone: var(--sticky-orange);
-  }
-  .blue {
-    --tone: var(--sticky-blue);
-  }
-  .card {
-    display: flex;
-    align-items: center;
-    gap: calc(4 * var(--u));
-    width: auto;
-    height: auto;
-    padding: calc(3 * var(--u)) calc(6 * var(--u));
-    border: 1px solid var(--border);
-    border-radius: calc(3.4 * var(--u));
-    background: var(--card);
-    white-space: nowrap;
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  article:hover .card:nth-of-type(odd) {
+  article:hover :global(.card:nth-of-type(odd)) {
     transform: translateX(calc(3 * var(--u)));
-  }
-  /* The type icon is a muted outline, as on demo cards. */
-  .ty {
-    display: grid;
-    color: var(--muted-foreground);
-  }
-  .ty :global(svg) {
-    width: calc(10 * var(--u));
-    height: calc(10 * var(--u));
-  }
-  .k {
-    font-family: var(--mono);
-    font-size: calc(8 * var(--u));
-    color: var(--primary);
-  }
-  .lz {
-    padding: 0 calc(3 * var(--u));
-    border-radius: calc(2 * var(--u));
-    background: var(--todo);
-    color: var(--todo-fg);
-    font-size: calc(7 * var(--u));
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  [data-status='progress'] .lz,
-  [data-status='review'] .lz {
-    background: var(--progress);
-    color: var(--progress-fg);
-  }
-  [data-status='done'] .lz {
-    background: var(--done);
-    color: var(--done-fg);
-  }
-  [data-status='done'] .k {
-    text-decoration: line-through;
-  }
-  .note {
-    padding: calc(8 * var(--u));
-    border-radius: calc(3.4 * var(--u));
-    background: var(--tone);
-    color: var(--sticky-foreground);
-    font-size: calc(9.5 * var(--u));
-    line-height: 1.35;
-  }
-  .timer {
-    display: grid;
-    place-items: center;
-    width: calc(26 * var(--u));
-    height: calc(26 * var(--u));
-    border-radius: calc(4.2 * var(--u));
-    background: var(--timer);
-    color: var(--timer-foreground);
-    box-shadow: 0 1px 2px oklch(0.3 0.07 60 / 0.25);
-    font-family: var(--mono);
-    font-size: calc(8 * var(--u));
-    font-weight: 600;
-  }
-  .focus {
-    display: flex;
-    align-items: center;
-    gap: calc(6 * var(--u));
-    width: calc(140 * var(--u));
-    height: calc(28 * var(--u));
-    padding-inline: calc(7 * var(--u));
-    border-radius: calc(14 * var(--u));
-    background: linear-gradient(100deg, var(--focus-fill), var(--focus-fill-2), var(--focus-fill));
-    color: var(--focus-ink);
-    font-family: var(--mono);
-    font-size: calc(13 * var(--u));
-    font-weight: 500;
-  }
-  .focus i {
-    width: calc(16 * var(--u));
-    height: calc(16 * var(--u));
-    border-radius: 50%;
-    background: color-mix(in oklch, var(--focus-ink) 14%, transparent);
-  }
-  .focus .play {
-    margin-left: auto;
-    background: var(--focus-ink);
-  }
-  .gantt {
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: calc(6 * var(--u));
-    background: var(--card);
-  }
-  .gantt b {
-    display: block;
-    padding: calc(6 * var(--u)) calc(8 * var(--u));
-    border-bottom: 1px solid var(--border);
-    font-size: calc(10 * var(--u));
-    font-weight: 600;
-  }
-  .row {
-    position: relative;
-    display: block;
-    height: calc(26 * var(--u));
-  }
-  .row i {
-    position: absolute;
-    top: calc(6 * var(--u));
-    height: calc(14 * var(--u));
-    border-radius: calc(3 * var(--u));
-    background: var(--todo);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--todo-fg) 22%, transparent);
-  }
-  .row .progress {
-    background: var(--progress);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-fg) 30%, transparent);
-  }
-  .row .done {
-    background: var(--done);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--done-fg) 30%, transparent);
-  }
-  .today {
-    position: absolute;
-    left: 56%;
-    top: calc(26 * var(--u));
-    bottom: 0;
-    width: 1px;
-    background: var(--primary);
-  }
-  .stone {
-    position: absolute;
-    right: calc(10 * var(--u));
-    bottom: calc(6 * var(--u));
-    width: calc(7 * var(--u));
-    height: calc(7 * var(--u));
-    background: var(--foreground);
-    transform: rotate(45deg);
   }
   .tag {
     display: inline-block;
