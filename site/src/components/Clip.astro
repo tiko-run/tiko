@@ -32,18 +32,27 @@ const { src, poster, width = 1280, height = 800, label } = Astro.props
 }
 
 <script>
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
-  const seen = new IntersectionObserver(
+  // Two boundaries: start loading a little before the clip arrives, play only while it is on screen.
+  const clips = document.querySelectorAll<HTMLVideoElement>('[data-clip]')
+  const near = new IntersectionObserver(
     (entries) => {
       for (const { target, isIntersecting } of entries) {
-        const video = target as HTMLVideoElement
-        if (isIntersecting) video.play().catch(() => {})
-        else video.pause()
+        if (!isIntersecting) continue
+        ;(target as HTMLVideoElement).preload = 'auto'
+        near.unobserve(target)
       }
     },
     { rootMargin: '200px 0px' },
   )
-  if (!reduce) for (const video of document.querySelectorAll<HTMLVideoElement>('[data-clip]')) seen.observe(video)
+  const seen = new IntersectionObserver((entries) => {
+    for (const { target, isIntersecting } of entries) {
+      const video = target as HTMLVideoElement
+      if (isIntersecting) video.play().catch(() => {})
+      else video.pause()
+    }
+  })
+  for (const video of clips) near.observe(video)
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) for (const video of clips) seen.observe(video)
 </script>
 
 <style>

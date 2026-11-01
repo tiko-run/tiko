@@ -10,8 +10,9 @@ interface Props {
   index?: boolean
   // The page's own questions for FAQPage markup; the home page uses the site FAQ.
   faq?: { q: string; a: string }[]
-  // Trail below Home for BreadcrumbList markup, e.g. [['Use cases', '/use-cases/'], ['Cross-team board']].
-  crumbs?: [string, string?][]
+  // Trail below Home for BreadcrumbList markup, e.g. [['Use cases', '/use-cases/'], ['Cross-team board']]:
+  // every crumb but the last links somewhere, as Google requires.
+  crumbs?: [...[string, string][], [string, string?]]
 }
 const home = Astro.url.pathname === '/'
 const { title = TITLE, description = DESCRIPTION, index = true, faq = home ? FAQ : [], crumbs } = Astro.props
