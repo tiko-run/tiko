@@ -18,6 +18,7 @@ import type { GanttContent } from '@/modules/gantt/schema'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import type { PlanningState } from '@/planning/context'
+import { Scroller } from '@/components/Scroller'
 
 type Props = {
   content: GanttContent
@@ -35,10 +36,11 @@ export function GanttFilters({ content, planning, onChange }: Props) {
   const labelOf = (key: string, value: string) =>
     key === PERSON ? (planning.people.find((p) => p.id === value)?.name ?? 'Unknown') : value
   return (
-    <div
+    <Scroller
       data-gantt-filters
-      className="nowheel flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-2 whitespace-nowrap"
-      style={{ height: FILTER_BAR }}
+      className="nowheel shrink-0 border-b"
+      viewportClassName="flex items-center gap-1.5 px-2 whitespace-nowrap"
+      frameStyle={{ height: FILTER_BAR }}
     >
       {planning.views.length > 0 && (
         <>
@@ -92,7 +94,7 @@ export function GanttFilters({ content, planning, onChange }: Props) {
         </Button>
       </FilterPicker>
       {keys.length > 0 && !current && <SaveView filters={filters} />}
-    </div>
+    </Scroller>
   )
 }
 
@@ -156,7 +158,7 @@ function FilterPicker({
                   : 'No values yet. Fill this column first.'}
               </p>
             )}
-            <div className="flex max-h-60 flex-col overflow-y-auto">
+            <Scroller viewportClassName="flex max-h-60 flex-col">
               {options.map((option) => (
                 <label
                   key={option.value}
@@ -170,7 +172,7 @@ function FilterPicker({
                   <span className="truncate">{option.label}</span>
                 </label>
               ))}
-            </div>
+            </Scroller>
             {key === TEAM && (
               <p className="text-muted-foreground px-2 text-[12px]">
                 Also shows rows where a person of the team has a stage.

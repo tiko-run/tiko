@@ -69,6 +69,7 @@ import { openSettings } from '@/settings/store'
 import { useNewBoard } from '@/home/actions'
 import { clearRename, goTo } from '@/lib/navigation'
 import { topOverlay } from '@/lib/overlays'
+import { Scroller } from '@/components/Scroller'
 
 // Boards owned by someone else name the owner, so shared ones stand apart from your own.
 function BoardItem({ board }: { board: BoardSummary }) {
@@ -379,26 +380,24 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
-              <DropdownMenuRadioGroup
-                value={current.id}
-                onValueChange={(id) => goTo(id)}
-                className="max-h-80 overflow-x-hidden overflow-y-auto"
-              >
-                {boards.map((board) => (
-                  <BoardItem key={board.id} board={board} />
-                ))}
-                {others.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
-                      Other boards
-                    </DropdownMenuLabel>
-                    {others.map((board) => (
-                      <BoardItem key={board.id} board={board} />
-                    ))}
-                  </>
-                )}
-              </DropdownMenuRadioGroup>
+              <Scroller viewportClassName="max-h-80 overflow-x-hidden">
+                <DropdownMenuRadioGroup value={current.id} onValueChange={(id) => goTo(id)}>
+                  {boards.map((board) => (
+                    <BoardItem key={board.id} board={board} />
+                  ))}
+                  {others.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-muted-foreground text-[12px] font-medium">
+                        Other boards
+                      </DropdownMenuLabel>
+                      {others.map((board) => (
+                        <BoardItem key={board.id} board={board} />
+                      ))}
+                    </>
+                  )}
+                </DropdownMenuRadioGroup>
+              </Scroller>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => goTo(null)}>
                 <LayoutGrid strokeWidth={1.75} />

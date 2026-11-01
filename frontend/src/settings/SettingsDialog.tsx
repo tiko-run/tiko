@@ -36,6 +36,7 @@ import { Security } from '@/settings/sections/Security'
 import { Sharing } from '@/settings/sections/Sharing'
 import { TaskSource } from '@/settings/sections/TaskSource'
 import { openSettings, useSettingsSection, type Section } from '@/settings/store'
+import { Scroller } from '@/components/Scroller'
 
 type Entry = {
   id: Section
@@ -202,12 +203,12 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
 
   if (narrow && listShown) {
     return (
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+      <Scroller className="flex-1" viewportClassName="flex flex-col gap-4 p-4">
         <DialogTitle className="flex h-8 items-center text-[16px] font-semibold">
           Settings
         </DialogTitle>
         <Nav groups={groups} current={entry.id} narrow onPick={pick} />
-      </div>
+      </Scroller>
     )
   }
 
@@ -221,7 +222,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
           <Nav groups={groups} current={entry.id} narrow={false} onPick={pick} />
         </aside>
       )}
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <Scroller className="min-w-0 flex-1" viewportClassName="flex flex-col">
         {narrow && (
           <div className="flex h-16 shrink-0 items-center border-b px-2 pr-14">
             <Button variant="ghost" size="sm" onClick={() => setListShown(true)}>
@@ -236,7 +237,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
           {/* Keyed so a section's unsaved fields start fresh when the person changes. */}
           <div key={`${me.id}:${entry.id}`}>{entry.render(me)}</div>
         </div>
-      </div>
+      </Scroller>
     </>
   )
 }

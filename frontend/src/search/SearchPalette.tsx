@@ -33,6 +33,7 @@ import { highlight, snippet, type Range } from './match'
 import { dropLastToken, FIELD_TITLES, filterText, MARKERS, parseQuery, type Filter } from './query'
 import { suggestionsFor, taskFacets, viewFor, type View } from './view'
 import { didOnboarding } from '@/onboarding/done'
+import { Scroller } from '@/components/Scroller'
 
 const ICONS: Record<Exclude<Entry['kind'], 'card' | 'module'>, LucideIcon> = {
   sticky: StickyNote,
@@ -377,12 +378,12 @@ function PaletteBody({
           Showing results for <span className="text-foreground">{view.fallback}</span>
         </p>
       )}
-      <div
-        ref={list}
+      <Scroller
+        viewportRef={list}
         id={listId}
         role="listbox"
         aria-label={suggestions ? FIELD_TITLES[suggestions.field] : 'Results'}
-        className="max-h-[min(60vh,420px)] overflow-y-auto p-1.5 empty:hidden"
+        viewportClassName="max-h-[min(60vh,420px)] p-1.5 empty:hidden"
       >
         {suggestions && suggestions.values.length > 0 && (
           <div role="group" aria-label={FIELD_TITLES[suggestions.field]}>
@@ -457,7 +458,7 @@ function PaletteBody({
             {view.more} more. Type more to narrow down.
           </p>
         )}
-      </div>
+      </Scroller>
       {count === 0 && (
         <p className="text-muted-foreground px-4 py-6 text-center text-[14px]">
           {suggestions

@@ -7,6 +7,7 @@ import { describeWatch, SNOOZES, type TimerState } from './timer'
 import { setTimerPanelOpen, useTimerPanelOpen } from './panel'
 import { groupTimers, sameDay } from './groups'
 import type { TimerEntry } from './useTimers'
+import { Scroller } from '@/components/Scroller'
 
 const ICONS: Record<TimerState, typeof AlarmClock> = {
   running: AlarmClock,
@@ -107,7 +108,7 @@ export function TimerPanel({ timers, now, onOpen, onDone, onSnooze }: PanelProps
           <X strokeWidth={1.75} />
         </Button>
       </header>
-      <div className="flex flex-col gap-2 overflow-y-auto p-2">
+      <Scroller viewportClassName="flex flex-col gap-2 p-2">
         {groups.length === 0 && (
           <p className="text-muted-foreground px-1 py-2 text-[13px]">
             No reminders on this board. Pick the Reminder tool (R) and click an element.
@@ -170,7 +171,7 @@ export function TimerPanel({ timers, now, onOpen, onDone, onSnooze }: PanelProps
             </ul>
           </section>
         ))}
-      </div>
+      </Scroller>
     </section>
   )
 }

@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
 import { formatShortcut, SHORTCUTS, type ShortcutId } from '@/lib/shortcuts'
+import { Scroller } from '@/components/Scroller'
 
 const GROUPS = ['Tools', 'Edit', 'Canvas', 'General'] as const
 
@@ -25,7 +26,7 @@ export function ShortcutsDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>Press ? anywhere on the board to open this list.</DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
+        <Scroller viewportClassName="flex max-h-[60vh] flex-col gap-4">
           {GROUPS.map((group) => (
             <section key={group} className="flex flex-col gap-1.5">
               <h3 className="text-muted-foreground text-[13px] font-medium">{group}</h3>
@@ -52,7 +53,7 @@ export function ShortcutsDialog({ open, onOpenChange }: Props) {
               </dl>
             </section>
           ))}
-        </div>
+        </Scroller>
       </DialogContent>
     </Dialog>
   )

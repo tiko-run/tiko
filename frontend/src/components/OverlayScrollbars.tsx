@@ -48,7 +48,7 @@ export function OverlayScrollbars({ target, insetLeft = 0 }: Props) {
     read()
     const observer = new ResizeObserver(read)
     observer.observe(target)
-    if (target.firstElementChild) observer.observe(target.firstElementChild)
+    for (const child of target.children) observer.observe(child)
     target.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       observer.disconnect()
@@ -73,6 +73,7 @@ export function OverlayScrollbars({ target, insetLeft = 0 }: Props) {
           style={{ left: insetLeft + EDGE, right: EDGE, bottom: EDGE }}
           onHold={setHeld}
           onScroll={(to) => (target.scrollLeft = to)}
+          onWheel={(dx, dy) => target.scrollBy(dx, dy)}
         />
       )}
       {m.scrollHeight > m.height + 1 && (
@@ -86,6 +87,7 @@ export function OverlayScrollbars({ target, insetLeft = 0 }: Props) {
           style={{ top: EDGE, bottom: EDGE, right: EDGE }}
           onHold={setHeld}
           onScroll={(to) => (target.scrollTop = to)}
+          onWheel={(dx, dy) => target.scrollBy(dx, dy)}
         />
       )}
     </>
@@ -102,6 +104,7 @@ function Bar({
   style,
   onHold,
   onScroll,
+  onWheel,
 }: {
   axis: 'x' | 'y'
   track: number
@@ -112,6 +115,7 @@ function Bar({
   style: CSSProperties
   onHold: (held: boolean) => void
   onScroll: (to: number) => void
+  onWheel: (dx: number, dy: number) => void
 }) {
   const drag = useRef<{ from: number; offset: number } | null>(null)
   const thumb = Math.max((track * size) / content, MIN_THUMB)
@@ -150,6 +154,8 @@ function Bar({
           if (!start || track <= thumb) return
           onScroll(start.offset + ((pos(event) - start.from) * range) / (track - thumb))
         }}
+        // The thumb sits outside the scroller, so a wheel over it would scroll what lies behind.
+        onWheel={(event) => onWheel(event.deltaX, event.deltaY)}
         onPointerUp={release}
         onPointerCancel={release}
       />

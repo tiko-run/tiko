@@ -12,6 +12,7 @@ import { toastError } from '@/lib/toast'
 import { setChecklistOpen } from '@/onboarding/checklist-open'
 import { startTour } from '@/onboarding/start'
 import { cn } from '@/lib/utils'
+import { Scroller } from '@/components/Scroller'
 
 const REPO = 'https://github.com/tiko-run/tiko'
 const DOCS = 'https://docs.tiko.run'
@@ -131,32 +132,34 @@ export function AboutButton({ admin = false }: { admin?: boolean }) {
               {security && (
                 <span className="text-destructive">Includes a security fix. Update soon.</span>
               )}
-              <ul className="flex max-h-28 flex-col overflow-y-auto" aria-label="New releases">
-                {info.newer.map((release) => (
-                  <li key={release.version} className="flex items-baseline gap-2">
-                    <a
-                      href={release.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary font-mono text-[12px]"
-                    >
-                      v{release.version}
-                    </a>
-                    {LEVEL_LABEL[release.level] && (
-                      <span
-                        className={cn(
-                          'text-[12px]',
-                          release.level === 'security'
-                            ? 'text-destructive'
-                            : 'text-muted-foreground',
-                        )}
+              <Scroller viewportClassName="max-h-28">
+                <ul className="flex flex-col" aria-label="New releases">
+                  {info.newer.map((release) => (
+                    <li key={release.version} className="flex items-baseline gap-2">
+                      <a
+                        href={release.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary font-mono text-[12px]"
                       >
-                        {LEVEL_LABEL[release.level]}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                        v{release.version}
+                      </a>
+                      {LEVEL_LABEL[release.level] && (
+                        <span
+                          className={cn(
+                            'text-[12px]',
+                            release.level === 'security'
+                              ? 'text-destructive'
+                              : 'text-muted-foreground',
+                          )}
+                        >
+                          {LEVEL_LABEL[release.level]}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </Scroller>
               <UpdateAction info={info} admin={admin} />
               <a href={UPGRADE_DOCS} target="_blank" rel="noreferrer" className="text-primary">
                 How to upgrade

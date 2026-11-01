@@ -83,6 +83,7 @@ import {
 import { useFolders, usePlace, useStar, useTrash } from './organize'
 import { BOARD_DRAG, Side, type Counts } from './Side'
 import { Trash } from './Trash'
+import { Scroller } from '@/components/Scroller'
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -276,7 +277,7 @@ export function Home({ boards, others }: Props) {
       : 'Move boards here from their menu or by dragging them onto the folder.'
 
   return (
-    <div className="absolute inset-0 overflow-y-auto">
+    <Scroller className="absolute inset-0">
       <div className="mx-auto flex max-w-[1192px] flex-col gap-4 px-4 pt-32 pb-24 sm:px-8 md:flex-row md:gap-8">
         {(boards.length > 0 || others.length > 0 || trashed > 0) && (
           <Side
@@ -448,7 +449,7 @@ export function Home({ boards, others }: Props) {
         <ShareDialog board={sharing} open onOpenChange={(open) => !open && setSharing(null)} />
       )}
       <TrashBoardDialog board={deleting} onOpenChange={(open) => !open && setDeleting(null)} />
-    </div>
+    </Scroller>
   )
 }
 
@@ -757,7 +758,7 @@ function MenuItems({ kind, actions }: { kind: 'dropdown' | 'context'; actions: A
             <Icon strokeWidth={1.75} className="text-muted-foreground size-4" />
             {label}
           </SubTrigger>
-          <SubContent className="max-h-72 w-48 overflow-y-auto">
+          <SubContent className="max-h-72 w-48">
             {choices.length === 0 && <Item disabled>{empty}</Item>}
             {choices.map((choice) => (
               <Fragment key={choice.key}>

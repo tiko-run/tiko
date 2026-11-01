@@ -41,3 +41,14 @@ test('draws nothing when all fits', () => {
   const { container } = render(<OverlayScrollbars target={el} />)
   expect(container.childElementCount).toBe(0)
 })
+
+test('a wheel over a shown thumb scrolls the area, not what lies behind', () => {
+  const el = scroller({ scrollWidth: 2000, clientWidth: 1000 })
+  el.scrollBy = vi.fn()
+  const { container } = render(<OverlayScrollbars target={el} />)
+  act(() => {
+    fireEvent.scroll(el)
+  })
+  fireEvent.wheel(container.querySelector('.rounded-full')!, { deltaX: 0, deltaY: 40 })
+  expect(el.scrollBy).toHaveBeenCalledWith(0, 40)
+})

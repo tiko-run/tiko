@@ -30,7 +30,7 @@ description: "Task list for Everyday fixes"
 
 ## Phase 5: Slice `feat/overlay-scrollbars` (US5, #214)
 
-- [ ] T009 One scroll wrapper over `OverlayScrollbars`, swapped into every scrolling area; browser bars hidden there. Screenshots in both themes, no layout shift. Tests
+- [x] T009 One scroll wrapper over `OverlayScrollbars`, swapped into every scrolling area; browser bars hidden there. Screenshots in both themes, no layout shift. Tests
 
 ## Phase 6: Slice `feat/recent-inputs` (US6, #83)
 

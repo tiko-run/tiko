@@ -11,6 +11,7 @@ import {
 } from '@/board/UpdateProgress'
 import { Button } from '@/components/ui/button'
 import { toastError } from '@/lib/toast'
+import { Scroller } from '@/components/Scroller'
 
 const PLATFORM = { railway: 'Railway', render: 'Render' }
 const INSTALLERS = [
@@ -46,9 +47,9 @@ function Failed({ status }: { status: NonNullable<UpdateInfo['status']> }) {
       {status.log.length > 0 && (
         <details className="text-muted-foreground">
           <summary className="cursor-pointer">Log</summary>
-          <pre className="max-h-32 overflow-auto font-mono text-[11px] whitespace-pre-wrap">
-            {status.log.join('\n')}
-          </pre>
+          <Scroller viewportClassName="max-h-32">
+            <pre className="font-mono text-[11px] whitespace-pre-wrap">{status.log.join('\n')}</pre>
+          </Scroller>
         </details>
       )}
     </div>
