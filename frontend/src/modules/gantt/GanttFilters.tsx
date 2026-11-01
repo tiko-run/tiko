@@ -38,9 +38,9 @@ export function GanttFilters({ content, planning, onChange }: Props) {
   return (
     <Scroller
       data-gantt-filters
-      className="shrink-0 border-b"
-      viewportClassName="nowheel flex items-center gap-1.5 px-2 whitespace-nowrap"
-      style={{ height: FILTER_BAR }}
+      className="nowheel shrink-0 border-b"
+      viewportClassName="flex items-center gap-1.5 px-2 whitespace-nowrap"
+      frameStyle={{ height: FILTER_BAR }}
     >
       {planning.views.length > 0 && (
         <>
