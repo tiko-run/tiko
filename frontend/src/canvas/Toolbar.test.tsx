@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { isJql, Toolbar } from '@/canvas/Toolbar'
 
@@ -18,7 +18,10 @@ const task = {
   fetched_at: '2026-10-05T07:00:00Z',
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
 
 function renderToolbar(
   onAddCards = vi.fn(),
@@ -170,4 +173,43 @@ test('picks a shape from the gallery and closes it', async () => {
   fireEvent.click(rhombus)
   expect(onShape).toHaveBeenCalledWith('rhombus')
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Rhombus' })).toBeNull())
+})
+
+test('an empty field offers the recent inputs, and a pick adds its cards', async () => {
+  localStorage.setItem('tiko.card.recent', JSON.stringify(['DEMO-3', 'DEMO-2']))
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      const ref = init?.body ? JSON.parse(init.body as string).ref : undefined
+      if (ref === 'NOPE') {
+        return new Response(
+          JSON.stringify({ error: { code: 'invalid_ref', message: 'Not a Jira key or link' } }),
+          { status: 422 },
+        )
+      }
+      return new Response(JSON.stringify({ task: { ...task, key: ref } }), { status: 200 })
+    }),
+  )
+  const onAddCards = renderToolbar()
+  fireEvent.click(screen.getByRole('button', { name: 'Task card' }))
+  const field = await screen.findByLabelText('Issue keys, links or JQL')
+  const list = screen.getByRole('listbox', { name: 'Recent inputs' })
+  expect(
+    within(list)
+      .getAllByRole('option')
+      .map((o) => o.textContent),
+  ).toEqual(['DEMO-3', 'DEMO-2'])
+
+  fireEvent.change(field, { target: { value: 'N' } })
+  expect(screen.queryByRole('listbox', { name: 'Recent inputs' })).toBeNull()
+  fireEvent.change(field, { target: { value: 'NOPE' } })
+  fireEvent.submit(field)
+  expect(await screen.findByRole('alert')).toHaveTextContent('NOPE:')
+  expect(JSON.parse(localStorage.getItem('tiko.card.recent')!)).toEqual(['DEMO-3', 'DEMO-2'])
+
+  fireEvent.change(field, { target: { value: '' } })
+  fireEvent.keyDown(field, { key: 'ArrowDown' })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  await waitFor(() => expect(onAddCards).toHaveBeenCalledWith([{ ...task, key: 'DEMO-2' }]))
+  expect(JSON.parse(localStorage.getItem('tiko.card.recent')!)).toEqual(['DEMO-2', 'DEMO-3'])
 })

@@ -32,6 +32,7 @@ import { useCommands } from '@/search/commands'
 import { JqlInput, keepOpenWhileSuggesting, useJqlCount } from '@/canvas/JqlInput'
 import { SHORTCUTS, useShortcut, withShortcut } from '@/lib/shortcuts'
 import { useAutoTour } from '@/onboarding/start'
+import { readRecentInputs, rememberInput } from '@/lib/recent-inputs'
 
 export type Tool = 'select' | 'hand' | 'frame' | 'sticky' | 'text' | 'shape' | 'timer'
 
@@ -82,10 +83,14 @@ export function AddCardForm({
   onDone: () => void
 }) {
   const [input, setInput] = useState('')
+  const [recent] = useState(readRecentInputs)
   const resolve = useMutation({
     mutationFn: addFromInput,
-    onSuccess: ({ tasks, failed, total }) => {
-      if (tasks.length > 0) onAdd(tasks)
+    onSuccess: ({ tasks, failed, total }, sent) => {
+      if (tasks.length > 0) {
+        onAdd(tasks)
+        rememberInput(sent)
+      }
       // A query that found nothing or more than fits stays open to be narrowed.
       if (total !== undefined && (tasks.length === 0 || total > tasks.length)) return
       if (failed.length === 0) onDone()
@@ -124,6 +129,11 @@ export function AddCardForm({
         id="card-ref"
         value={input}
         onValueChange={setInput}
+        recent={recent}
+        onPickRecent={(picked) => {
+          setInput(picked)
+          resolve.mutate(picked)
+        }}
         placeholder="DEMO-1, DEMO-2"
         autoComplete="off"
         spellCheck={false}

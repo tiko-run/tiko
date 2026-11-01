@@ -5,6 +5,8 @@ description: What the card tool takes for each tracker, from keys and links to r
 
 Pick the card tool (`C`) and type into its field, or paste on the board with `⌘V` (`Ctrl+V`). Up to 50 cards go on the board at a time.
 
+An empty field lists the last five inputs that added a card, newest first. Pick one with the arrow keys and Enter, or click it, to add its cards again. The list stays in this browser and is never sent to the server.
+
 ## Any tracker
 
 - **Several at once**, separated by commas or spaces: `DEV-12, DEV-15`.
