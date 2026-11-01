@@ -1,16 +1,22 @@
 ---
 import { brand, FAQ } from '../data/site'
 import Icon from './Icon.astro'
+
+interface Props {
+  items?: { q: string; a: string }[]
+  title?: string
+}
+const { items = FAQ, title = 'Questions before you try it' } = Astro.props
 ---
 
 <section class="section" id="faq">
   <div class="wrap cols">
     <div>
-      <h2 class="h2 reveal">Questions before you try it</h2>
+      <h2 class="h2 reveal" set:html={brand(title)} />
     </div>
     <div class="list reveal">
       {
-        FAQ.map(({ q, a }, i) => (
+        items.map(({ q, a }, i) => (
           <details open={i === 0}>
             <summary>
               <h3 set:html={brand(q)} />

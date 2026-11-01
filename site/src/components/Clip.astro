@@ -1,0 +1,67 @@
+---
+// A short muted screencast loop from media.tiko.run, or the drawing in the slot until one is shot.
+// It loads only near the viewport, plays only in view and shows its poster under reduced motion.
+interface Props {
+  src?: string
+  poster?: string
+  width?: number
+  height?: number
+  label?: string
+}
+const { src, poster, width = 1280, height = 800, label } = Astro.props
+---
+
+{
+  src ? (
+    <video
+      class="clip"
+      data-clip
+      src={src}
+      poster={poster}
+      width={width}
+      height={height}
+      muted
+      loop
+      playsinline
+      preload="none"
+      aria-label={label}
+    />
+  ) : (
+    <slot />
+  )
+}
+
+<script>
+  // Two boundaries: start loading a little before the clip arrives, play only while it is on screen.
+  const clips = document.querySelectorAll<HTMLVideoElement>('[data-clip]')
+  const near = new IntersectionObserver(
+    (entries) => {
+      for (const { target, isIntersecting } of entries) {
+        if (!isIntersecting) continue
+        ;(target as HTMLVideoElement).preload = 'auto'
+        near.unobserve(target)
+      }
+    },
+    { rootMargin: '200px 0px' },
+  )
+  const seen = new IntersectionObserver((entries) => {
+    for (const { target, isIntersecting } of entries) {
+      const video = target as HTMLVideoElement
+      if (isIntersecting) video.play().catch(() => {})
+      else video.pause()
+    }
+  })
+  for (const video of clips) near.observe(video)
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) for (const video of clips) seen.observe(video)
+</script>
+
+<style>
+  .clip {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+  }
+</style>
