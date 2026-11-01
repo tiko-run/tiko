@@ -95,10 +95,20 @@ function suggestionsFor(
 type Props = Omit<ComponentProps<typeof Textarea>, 'value' | 'onChange'> & {
   value: string
   onValueChange: (value: string) => void
+  /** Earlier inputs offered while the field is empty. */
+  recent?: string[]
+  onPickRecent?: (input: string) => void
 }
 
 /** Growing JQL field with suggestions: Tab inserts, arrows move, Enter inserts after arrows or submits, Shift+Enter breaks the line. */
-export function JqlInput({ value, onValueChange, className, ...props }: Props) {
+export function JqlInput({
+  value,
+  onValueChange,
+  recent = [],
+  onPickRecent,
+  className,
+  ...props
+}: Props) {
   const input = useRef<HTMLTextAreaElement>(null)
   const [cursor, setCursor] = useState(value.length)
   const [highlight, setHighlight] = useState(0)
@@ -129,7 +139,12 @@ export function JqlInput({ value, onValueChange, className, ...props }: Props) {
     asked !== '' && asked === wanted
       ? (values.data ?? []).map((v) => ({ insert: v.value, label: v.label }))
       : []
-  const items = dismissed ? [] : suggestionsFor(context, vocabulary.data, current)
+  const picking = value === '' && recent.length > 0
+  const items = dismissed
+    ? []
+    : picking
+      ? recent.map((input) => ({ insert: input, label: input }))
+      : suggestionsFor(context, vocabulary.data, current)
   const open = items.length > 0
   const active = Math.min(highlight, items.length - 1)
 
@@ -151,6 +166,12 @@ export function JqlInput({ value, onValueChange, className, ...props }: Props) {
   const track = () => setCursor(input.current?.selectionStart ?? value.length)
 
   const apply = (item: Suggestion) => {
+    if (picking) {
+      setHighlight(0)
+      setNavigated(false)
+      onPickRecent?.(item.insert)
+      return
+    }
     const next = applySuggestion(value, context, item.insert)
     pendingCursor.current = next.cursor
     setHighlight(0)
@@ -212,7 +233,11 @@ export function JqlInput({ value, onValueChange, className, ...props }: Props) {
           className="bg-popover text-popover-foreground absolute right-0 bottom-full left-0 z-10 mb-1 rounded-md border shadow-md"
           viewportClassName="max-h-64 p-1"
         >
-          <ul id="jql-suggestions" role="listbox">
+          <ul
+            id="jql-suggestions"
+            role="listbox"
+            aria-label={picking ? 'Recent inputs' : 'Suggestions'}
+          >
             {items.map((item, i) => (
               <li
                 key={`${item.insert}-${i}`}
@@ -231,7 +256,7 @@ export function JqlInput({ value, onValueChange, className, ...props }: Props) {
                 onMouseMove={() => setHighlight(i)}
               >
                 <span className="truncate">{item.label}</span>
-                {item.insert.replace(/^"|"$/g, '') !== item.label && (
+                {!picking && item.insert.replace(/^"|"$/g, '') !== item.label && (
                   <span className="text-muted-foreground shrink-0 font-mono text-xs">
                     {item.insert}
                   </span>

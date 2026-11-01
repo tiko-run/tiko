@@ -34,4 +34,4 @@ description: "Task list for Everyday fixes"
 
 ## Phase 6: Slice `feat/recent-inputs` (US6, #83)
 
-- [ ] T010 Last five inputs that added a card in `tiko.card.recent`, shown in an empty card input, keyboard pick. Tests
+- [x] T010 Last five inputs that added a card in `tiko.card.recent`, shown in an empty card input, keyboard pick. Tests
