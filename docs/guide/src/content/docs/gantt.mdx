@@ -8,6 +8,8 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components'
 Add a Gantt from the modules tool (`M`) to plan tasks on a timeline right on the board.
 
 - Drop cards onto the timeline to plan them as bars. Bars keep the live status of their task.
+- Or click **Add** in the Gantt's header. The tracker tab takes keys, links or a query, as on the board (see [What you can add](/what-you-can-add/)). **Plain task** adds a row with just a title, for work that has no task in your tracker. A plain task lives only on this board.
+- Drag a row out of the Gantt onto the board to take it off the plan: a tracker task becomes a card again, a plain task becomes a sticky note.
 - Nest rows under a parent row; its bar spans its children. **Collapse all** and **Expand all** at the top of the task column fold the whole plan at once.
 - Mark milestones.
 - Draw dependency lines between bars. A line turns amber when a task starts before the one it depends on ends.
