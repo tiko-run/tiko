@@ -17,6 +17,7 @@ tiko reads tasks from your tracker and never changes them. Each person connects 
 | Todoist | Planned |
 | TickTick | Planned |
 | Windshift | Planned |
+| CalDAV servers such as Nextcloud and Radicale | Planned |
 
 What the card tool takes for each tracker is in [What you can add](../what-you-can-add/).
 
