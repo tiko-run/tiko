@@ -16,7 +16,7 @@ export const TURNSTILE_SITEKEY = import.meta.env.DEV ? '1x00000000000000000000AA
 
 export const TITLE = 'tiko: open-source canvas with live task cards from your tracker'
 export const DESCRIPTION =
-  'A self-hosted infinite canvas where the tasks from your tracker live as cards. Lay them out the way you think, and their statuses update on their own.'
+  'A self-hosted infinite canvas where the tasks from your tracker live as cards. Lay them out, link what blocks what, see them on a timeline. Statuses update on their own.'
 
 export const FAQ = [
   {
