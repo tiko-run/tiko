@@ -201,6 +201,11 @@ export function lingering() {
       for (const [client, { until }] of kept) if (until <= now) kept.delete(client)
       return [...kept.values()].map(({ peer }) => peer)
     },
+    /** When the first lingering tab is due to go, if any lingers. */
+    soonest(): number | undefined {
+      const times = [...kept.values()].map(({ until }) => until)
+      return times.length ? Math.min(...times) : undefined
+    },
   }
 }
 

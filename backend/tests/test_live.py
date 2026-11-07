@@ -14,6 +14,7 @@ from pycrdt import (
 )
 from starlette.websockets import WebSocketDisconnect
 
+from app.adapters.live.rooms import KEEPALIVE_S
 from app.config import Settings
 from app.domain.boards import BoardDoc
 from app.domain.live import PLANNING_CHANGED, LiveDoc, stored_node
@@ -380,6 +381,7 @@ def test_presence_is_relayed_handed_to_newcomers_and_cleared_on_leave(world):
 
 
 def test_a_quiet_room_keeps_every_socket_alive(world, monkeypatch):
+    assert KEEPALIVE_S <= 15
     monkeypatch.setattr(world.rooms, "keepalive_s", 0.05)
     board_id = world.board()
     token = world.publish(board_id)

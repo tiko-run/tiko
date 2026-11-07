@@ -163,7 +163,9 @@ test('a tab whose presence went stale stays among the people a while, one that l
   // Bob's tab went to the background and missed its renewal: still on the board.
   stale.note({ ...none, removed: [2] }, true, [bob, ann], 0)
   expect(stale.peers(LINGER_MS - 1)).toEqual([bob])
+  expect(stale.soonest()).toBe(LINGER_MS)
   expect(stale.peers(LINGER_MS)).toEqual([])
+  expect(stale.soonest()).toBeUndefined()
   // Back before the time is up: an ordinary peer again, nothing lingering.
   stale.note({ ...none, removed: [2] }, true, [bob, ann], 0)
   stale.note({ ...none, added: [2], removed: [] }, false, [ann], 10)

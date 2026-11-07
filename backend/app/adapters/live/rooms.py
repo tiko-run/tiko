@@ -406,6 +406,8 @@ def _presence_message(states: dict[int, tuple[int, str]]) -> bytes:
 
 # Presence of nobody: every client takes it, and it counts as hearing from the server.
 _KEEPALIVE = _presence_message({})
+# Under the 30 s after which a browser's provider gives up on a silent socket.
+KEEPALIVE_S = 15.0
 
 
 class LiveRooms:
@@ -429,8 +431,7 @@ class LiveRooms:
         self.save_idle_s = 2.0
         self.save_max_s = 10.0
         self.idle_s = 30.0
-        # Under the 30 s after which a browser's provider gives up on a silent socket.
-        self.keepalive_s = 15.0
+        self.keepalive_s = KEEPALIVE_S
 
     def presence_delay(self, sockets: int) -> float:
         busy = sockets >= self.presence_busy_from

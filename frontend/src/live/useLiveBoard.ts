@@ -11,7 +11,6 @@ import { LOCAL, LiveBinding } from '@/live/binding'
 import { dragFeed, remoteDrags } from '@/live/drags'
 import {
   colorOf,
-  LINGER_MS,
   lingering,
   parsePeers,
   pacer,
@@ -189,9 +188,10 @@ export function useLiveBoard(
       const next = parsePeers(awareness.getStates(), doc.clientID)
       before = next
       setBoardPeers(next, meId, stale.peers(now))
-      if (origin === 'timeout') {
-        clearTimeout(lingerTimer)
-        lingerTimer = setTimeout(() => onPresence(NO_CHANGES, 'linger'), LINGER_MS + 100)
+      clearTimeout(lingerTimer)
+      const due = stale.soonest()
+      if (due !== undefined) {
+        lingerTimer = setTimeout(() => onPresence(NO_CHANGES, 'linger'), due - now + 100)
       }
       const texts = {
         selections: JSON.stringify(next.map((peer) => [peer.user, peer.selected])),

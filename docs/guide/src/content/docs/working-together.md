@@ -27,7 +27,7 @@ When a person is added and "Everyone in this workspace" is on too, the higher ro
 
 ## Who is here
 
-- The top bar shows an avatar for everyone else who has the board open: their initials on their own color. Hover one for the name. Someone whose tab sits in the background stays there. A closed tab leaves at once; one that goes silent without closing leaves within a minute and a half.
+- The top bar shows an avatar for everyone else who has the board open: their initials on their own color. Hover one for the name. Someone whose tab sits in the background stays there. A closed tab leaves at once; one that goes silent without closing leaves after about a minute and a half.
 - Each person's cursor carries the same small avatar, so you can tell at a glance who is doing what. The name shows next to it for a moment when they arrive.
 - An element someone else has selected gets an outline in their color with their avatar on its corner. Take it as "busy": two people changing the same thing at once do not merge.
 - An element someone is dragging moves on your screen while they drag it, and other changes glide into place instead of jumping. With reduced motion turned on in the system, they jump.
