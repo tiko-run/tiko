@@ -42,10 +42,11 @@ import {
   type Style,
 } from '@/canvas/selection-props'
 import type { Alignment, Distribution } from '@/canvas/align'
-import { STROKES, TEXT_SIZES, type AppNode } from '@/canvas/types'
+import { STROKES, TEXT_SIZES, type AppNode, type Turned } from '@/canvas/types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
+import { turnedBounds } from '@/canvas/turn'
 import { topOverlayRects, useTopOverlays } from '@/lib/overlays'
 import { withShortcut } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
@@ -84,11 +85,19 @@ function useScreenBox(ids: string[]): Box | null {
     for (const id of ids) {
       const node = s.nodeLookup.get(id)
       if (!node) continue
-      const { x, y } = node.internals.positionAbsolute
+      // A turned element reaches past its own box; the bar keeps its distance from what is drawn.
+      const { x, y, width, height } = turnedBounds(
+        {
+          ...node.internals.positionAbsolute,
+          width: node.measured.width ?? node.width ?? 0,
+          height: node.measured.height ?? node.height ?? 0,
+        },
+        (node.data as Turned).rotation ?? 0,
+      )
       left = Math.min(left, x)
       top = Math.min(top, y)
-      right = Math.max(right, x + (node.measured.width ?? node.width ?? 0))
-      bottom = Math.max(bottom, y + (node.measured.height ?? node.height ?? 0))
+      right = Math.max(right, x + width)
+      bottom = Math.max(bottom, y + height)
     }
     if (left === Infinity) return ''
     const [tx, ty, zoom] = s.transform

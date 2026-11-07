@@ -9,6 +9,6 @@
 ## Slice 2: rotate
 
 - [x] T004 Optional `rotation` on stickies, shapes and text in the board document; older boards read as 0
-- [x] T005 Rotate handle, Shift snaps to 15°; synced, undone, copied, saved
-- [x] T006 Arrow ends on a turned element, or a note in the guide if they do not follow: they keep to the upright box, said in the guide
+- [x] T005 Turning spots at the corners, Shift snaps to 15°; the whole element turns and resizes in its own axes; synced, undone, copied, saved
+- [x] T006 Arrow ends on a turned element, or a note in the guide if they do not follow: they meet the turned sides and leave square to them
 - [x] T007 Guide and CHANGELOG

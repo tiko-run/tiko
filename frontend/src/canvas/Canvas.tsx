@@ -51,6 +51,7 @@ import {
 } from '@/canvas/clipboard'
 import { markFresh } from '@/canvas/editing'
 import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/frames'
+import { TurnedEdge } from '@/canvas/TurnedEdge'
 import { Guides } from '@/canvas/Guides'
 import { CARD_GUESS, columnPositions } from '@/canvas/layout'
 import {
@@ -146,6 +147,9 @@ import { TimerNode } from '@/timers/TimerNode'
 import { useTheme } from '@/lib/theme'
 import { didOnboarding } from '@/onboarding/done'
 import { topOverlay } from '@/lib/overlays'
+
+// Arrows tied to a turned element leave it along its turned side.
+const edgeTypes = { default: TurnedEdge }
 
 const nodeTypes = {
   task_card: withPresence(farView(TaskCardNode, FarCard)),
@@ -1010,6 +1014,7 @@ export function BoardCanvas({
         onNodeDoubleClick={onNodeDoubleClick}
         onMoveEnd={(_, viewport) => saveViewport(board.id, viewport)}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
         connectionMode={ConnectionMode.Loose}
         defaultViewport={lastView ?? undefined}

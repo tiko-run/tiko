@@ -1,6 +1,6 @@
 import { type NodeProps } from '@xyflow/react'
 import { Resizer } from '@/canvas/nodes/Resizer'
-import { Rotator, turned } from '@/canvas/nodes/Rotator'
+import { Rotator, turned, useTurnedHandles } from '@/canvas/nodes/Rotator'
 import { Ban } from 'lucide-react'
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canvas/fit'
@@ -36,11 +36,18 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
   // Bold text is wider, so it takes another fit.
   useLayoutEffect(fit, [fit, data.text, data.bold, width, height])
 
+  useTurnedHandles(id, data.rotation)
+
   const block = () => setBlocked((n) => n + 1)
 
   return (
-    <div className="relative h-full w-full">
-      <Resizer isVisible={selected && !readOnly} minWidth={80} minHeight={60} />
+    <div className="relative h-full w-full" style={turned(data.rotation)}>
+      <Resizer
+        isVisible={selected && !readOnly}
+        rotation={data.rotation}
+        minWidth={80}
+        minHeight={60}
+      />
       <div
         ref={box}
         className={cn(
@@ -52,7 +59,6 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
           color: faded('var(--sticky-foreground)', data.opacity),
           fontSize,
           fontWeight: data.bold ? 600 : undefined,
-          ...turned(data.rotation),
         }}
         onInput={fit}
         onFocus={fit}
@@ -83,7 +89,7 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
           />
         )}
       </div>
-      {/* Last, so a turned corner never covers it. */}
+      {/* Last, so the element never covers its turning spots. */}
       <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles />
     </div>
