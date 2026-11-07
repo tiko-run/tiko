@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type ComponentProps, type FormEvent } from 'react'
+import { useEffect, useState, type ComponentProps, type FormEvent } from 'react'
 import { signOut, type Me } from '@/api/auth'
+import { ApiError } from '@/api/client'
 import { acceptInvite, joinInvite, openInvite, type InviteInfo } from '@/api/people'
 import { SignIn } from '@/auth/SignIn'
 import { Emblem } from '@/components/Emblem'
@@ -199,6 +200,15 @@ export function AcceptInvite({ link, auth }: { link: InviteLink; auth: Auth }) {
     retry: false,
   })
   const me = auth.data?.signed_in ? auth.data.me : null
+  // Someone who joined already and clicks the invite again is let in, not told it expired.
+  const usedByMe =
+    link.kind === 'invite' &&
+    !!me?.workspace &&
+    info.error instanceof ApiError &&
+    info.error.code === 'invite_expired'
+  useEffect(() => {
+    if (usedByMe) leave()
+  }, [usedByMe])
   if (signingIn && !me) {
     return (
       <SignIn
@@ -219,7 +229,7 @@ export function AcceptInvite({ link, auth }: { link: InviteLink; auth: Auth }) {
       {(info.isPending || (invite && auth.isPending)) && (
         <p className="text-muted-foreground text-[14px]">Checking the link…</p>
       )}
-      {info.isError && (
+      {info.isError && !usedByMe && (
         <div className="flex flex-col gap-3">
           <p className="text-[14px]">{info.error.message}</p>
           <div>

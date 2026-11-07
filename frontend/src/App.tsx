@@ -16,6 +16,7 @@ import { UpdateBanner } from '@/board/UpdateBanner'
 import { UpdatedNotice } from '@/board/UpdateProgress'
 import { FocusCapsule } from '@/focus/FocusCapsule'
 import { useFocusVisible } from '@/focus/store'
+import { NoAccess } from '@/board/NoAccess'
 import { TopBar } from '@/board/TopBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -117,18 +118,21 @@ export default function App() {
     : undefined
   // A board stays in the list while it is open; one that leaves it is gone for this person.
   const opened = useRef(new Set<string>())
+  const meId = auth.data?.me?.id
+  useEffect(() => {
+    // Another account signed in on this tab: boards the last one opened are not this one's.
+    opened.current.clear()
+  }, [meId])
   useEffect(() => {
     if (current) opened.current.add(current.id)
   }, [current])
   const missing = !!boardId && !!boards.data && !current && !boards.isFetching
 
   useEffect(() => {
-    if (!missing || !boardId) return
-    const text = opened.current.has(boardId)
-      ? 'You no longer have access to this board.'
-      : 'This board is not available.'
+    // A board never opened here shows the no-access screen and keeps its address instead.
+    if (!missing || !boardId || !opened.current.has(boardId)) return
     // The canvas says the same with this id when it finds out first.
-    toast(text, { id: 'board-lost', duration: ERROR_MS })
+    toast('You no longer have access to this board.', { id: 'board-lost', duration: ERROR_MS })
     goTo(null, { replace: true })
   }, [missing, boardId])
 
@@ -252,6 +256,7 @@ export default function App() {
         </Suspense>
       )}
       {mine && others && !boardId && <Home boards={mine} others={others} />}
+      {missing && <NoAccess />}
       {mine && others && (!boardId || current) && (
         <TopBar boards={mine} others={others} current={current} renameOnOpen={renameOnOpen} />
       )}

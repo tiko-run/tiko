@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { copyLink } from '@/lib/copy'
 import { toastError } from '@/lib/toast'
+import { boardHref } from '@/lib/navigation'
 
 const LABEL = { owner: 'Owner', editor: 'Can edit', viewer: 'Can view' } as const
 type EveryoneChoice = ShareRole | 'none'
@@ -187,6 +188,8 @@ function AddPeople({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={exact ? 'Add a person by their username' : 'Add people by name or username'}
           aria-label="Add people"
+          // Members load after the dialog opens; typing goes here once the field is there.
+          autoFocus
           autoComplete="off"
           spellCheck={false}
         />
@@ -225,6 +228,33 @@ function AddPeople({
 
 const COPIED_MS = 2000
 
+/** A read-only address with a Copy button; the field is there to copy by hand when the clipboard is not. */
+function CopyField({ url, label }: { url: string; label: string }) {
+  const [copied, setCopied] = useState(false)
+  const field = useRef<HTMLInputElement>(null)
+  const copy = async () => {
+    if (!(await copyLink(url, field.current))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), COPIED_MS)
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        ref={field}
+        readOnly
+        value={url}
+        aria-label={label}
+        className="font-mono text-[12px]"
+        onFocus={(event) => event.target.select()}
+      />
+      <Button variant="outline" size="sm" onClick={() => void copy()}>
+        {copied ? <Check strokeWidth={1.75} /> : <Copy strokeWidth={1.75} />}
+        {copied ? 'Copied' : 'Copy'}
+      </Button>
+    </div>
+  )
+}
+
 function PublicLink({
   boardId,
   manage,
@@ -238,7 +268,6 @@ function PublicLink({
 }) {
   const queryClient = useQueryClient()
   const allowed = useQuery({ queryKey: ['settings'], queryFn: getSettings }).data?.public_links
-  const [copied, setCopied] = useState(false)
   const toggle = useMutation({
     mutationFn: (next: boolean) => setPublicLink(boardId, next),
     onSuccess: () => {
@@ -247,13 +276,6 @@ function PublicLink({
     },
     onError: toastError,
   })
-  const url = token ? publicUrl(token) : ''
-  const field = useRef<HTMLInputElement>(null)
-  const copy = async () => {
-    if (!(await copyLink(url, field.current))) return
-    setCopied(true)
-    setTimeout(() => setCopied(false), COPIED_MS)
-  }
   return (
     <section className="flex flex-col gap-2 border-t pt-3" aria-label="Public link">
       <div className="flex items-center gap-3">
@@ -265,7 +287,7 @@ function PublicLink({
           <span className="text-muted-foreground text-[12px]">
             {allowed === false
               ? 'An admin switched public links off on this tiko.'
-              : 'Anyone with the link can view, no sign-in. Tracker tasks show only their key.'}
+              : 'For people without an account: anyone with the link can view, no sign-in. Tracker tasks show only their key.'}
           </span>
         </div>
         {manage ? (
@@ -280,22 +302,7 @@ function PublicLink({
           <span className="text-muted-foreground text-[13px]">{isPublic ? 'On' : 'Off'}</span>
         )}
       </div>
-      {manage && token && (
-        <div className="flex items-center gap-2">
-          <Input
-            ref={field}
-            readOnly
-            value={url}
-            aria-label="Public link address"
-            className="font-mono text-[12px]"
-            onFocus={(event) => event.target.select()}
-          />
-          <Button variant="outline" size="sm" onClick={() => void copy()}>
-            {copied ? <Check strokeWidth={1.75} /> : <Copy strokeWidth={1.75} />}
-            {copied ? 'Copied' : 'Copy'}
-          </Button>
-        </div>
-      )}
+      {manage && token && <CopyField url={publicUrl(token)} label="Public link address" />}
     </section>
   )
 }
@@ -328,7 +335,17 @@ export function ShareDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Pinned from the top like the search palette: the match list grows down, the window stays. */}
-      <DialogContent className="top-[18%] translate-y-0 gap-4 sm:max-w-[480px]">
+      <DialogContent
+        className="top-[18%] translate-y-0 gap-4 sm:max-w-[480px]"
+        // The owner opens Share to add someone; the board link above is not where typing goes.
+        onOpenAutoFocus={(event) => {
+          const dialog = event.currentTarget as HTMLElement
+          const field = dialog.querySelector<HTMLElement>('input[aria-label="Add people"]')
+          event.preventDefault()
+          const target = field ?? dialog
+          target.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Share {board.name}</DialogTitle>
           <DialogDescription>
@@ -337,6 +354,15 @@ export function ShareDialog({
               : 'Only the owner can change who has access.'}
           </DialogDescription>
         </DialogHeader>
+        <section className="flex flex-col gap-1.5" aria-label="Board link">
+          <span className="text-muted-foreground text-[12px]">
+            Link to this board. It opens for the people who have access.
+          </span>
+          <CopyField
+            url={`${window.location.origin}${boardHref(board.id)}`}
+            label="Board link address"
+          />
+        </section>
         {manage && members.data && (
           <AddPeople boardId={board.id} members={members.data.members} exact={demo} />
         )}

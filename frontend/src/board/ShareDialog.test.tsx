@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { BoardRole } from '@/api/boards'
 import { ShareDialog } from '@/board/ShareDialog'
@@ -90,6 +90,15 @@ test('others see who has access but cannot change it', async () => {
   expect(screen.getByText('Only the owner can change who has access.')).toBeInTheDocument()
   expect(screen.queryByLabelText('Add people')).toBeNull()
   expect(screen.queryByRole('button', { name: /Can edit/ })).toBeNull()
+})
+
+test('everyone who opens Share gets the link to the board itself', async () => {
+  for (const role of ['owner', 'viewer'] as const) {
+    show(role)
+    const address = await screen.findByLabelText('Board link address')
+    expect(address).toHaveValue(`${window.location.origin}/?board=b1`)
+    cleanup()
+  }
 })
 
 test('the owner turns the public link on and gets the address', async () => {

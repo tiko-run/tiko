@@ -131,10 +131,13 @@ test('Try the demo opens the welcome board, with Home one step back', async () =
   expect(window.location.pathname).toBe('/')
 })
 
-test('a link to a board that is gone lands on Home and says so', async () => {
+test('a board link without access says so and keeps the address', async () => {
   window.history.replaceState(null, '', '/?board=gone')
   mockFetch(200, { boards: [summary('b1', 'Roadmap')], all: [] }, signedIn)
   renderApp()
+  expect(await screen.findByText("You don't have access to this board.")).toBeInTheDocument()
+  expect(address()).toBe('gone')
+  fireEvent.click(screen.getByRole('button', { name: 'Go to your boards' }))
   expect(await screen.findByRole('heading', { name: 'Boards' })).toBeInTheDocument()
   expect(address()).toBeNull()
 })
