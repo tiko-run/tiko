@@ -33,8 +33,8 @@ function magnet(deg: number): number {
 /** Whether a turn sits on one of the angles the grip pulls to. */
 export const onMagnet = (deg: number) => deg % MAGNET_STEP === 0
 
-/** The angle as people read it: 0° to 359°, clockwise. */
-export const degreesLabel = (deg: number) => `${(deg + 360) % 360}°`
+/** The angle with its way round: clockwise is positive, counterclockwise negative. */
+export const degreesLabel = (deg: number) => `${deg < 0 ? '−' : ''}${Math.abs(deg)}°`
 
 /** The turn of a whole element: its look, grips and arrow points, around its center. */
 export const turned = (rotation: number | undefined): CSSProperties | undefined =>
