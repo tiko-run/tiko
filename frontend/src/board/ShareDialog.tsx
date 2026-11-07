@@ -188,6 +188,8 @@ function AddPeople({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={exact ? 'Add a person by their username' : 'Add people by name or username'}
           aria-label="Add people"
+          // Members load after the dialog opens; typing goes here once the field is there.
+          autoFocus
           autoComplete="off"
           spellCheck={false}
         />

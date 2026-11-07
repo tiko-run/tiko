@@ -118,6 +118,11 @@ export default function App() {
     : undefined
   // A board stays in the list while it is open; one that leaves it is gone for this person.
   const opened = useRef(new Set<string>())
+  const meId = auth.data?.me?.id
+  useEffect(() => {
+    // Another account signed in on this tab: boards the last one opened are not this one's.
+    opened.current.clear()
+  }, [meId])
   useEffect(() => {
     if (current) opened.current.add(current.id)
   }, [current])
