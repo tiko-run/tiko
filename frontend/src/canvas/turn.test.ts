@@ -16,7 +16,7 @@ test('the upright box around a turned one', () => {
 })
 
 test('an upright box resizes as before', () => {
-  close(resizeTurned(box, 0, ['right'], { x: 300, y: 40 }, min), {
+  close(resizeTurned(box, 0, ['right'], { x: 100, y: 40 }, min), {
     x: 0,
     y: 0,
     width: 300,
@@ -31,8 +31,9 @@ test('an upright box resizes as before', () => {
 })
 
 test('a box turned a quarter grows along its own width, its far side staying put', () => {
+  // Dragged 100 down the board, which is along its own width.
   // Turned 90°: its own "right" points down the board, its left side sits at y = -50.
-  const next = resizeTurned(box, 90, ['right'], { x: 100, y: 250 }, min)
+  const next = resizeTurned(box, 90, ['right'], { x: 0, y: 100 }, min)
   close(next, { width: 300, height: 100 })
   // The center moved down by half the growth; the left side is still at y = -50.
   close({ cy: next.y + next.height / 2 }, { cy: 100 })
@@ -41,4 +42,8 @@ test('a box turned a quarter grows along its own width, its far side staying put
 
 test('a side does not pass its opposite side', () => {
   close(resizeTurned(box, 30, ['left'], { x: 1000, y: 0 }, min), { width: 20 })
+})
+
+test('grabbing a grip off its line does not make the box jump', () => {
+  close(resizeTurned(box, 45, ['right'], { x: 0, y: 0 }, min), box)
 })

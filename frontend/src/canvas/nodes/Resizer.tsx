@@ -54,11 +54,12 @@ function TurnedResizer({
     sides: Side[]
     box: { x: number; y: number; width: number; height: number }
     position: XYPosition
+    pointer: XYPosition
   } | null>(null)
 
   const down = (sides: Side[]) => (event: PointerEvent) => {
     const node = store.getState().nodeLookup.get(id)
-    if (!node) return
+    if (!node || event.button !== 0) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     const { x, y } = node.internals.positionAbsolute
@@ -66,13 +67,15 @@ function TurnedResizer({
       sides,
       box: { x, y, width: node.measured.width ?? 0, height: node.measured.height ?? 0 },
       position: node.position,
+      pointer: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
     }
   }
   const move = (event: PointerEvent) => {
     const from = start.current
     if (!from) return
     const pointer = screenToFlowPosition({ x: event.clientX, y: event.clientY })
-    const next = resizeTurned(from.box, rotation, from.sides, pointer, {
+    const travel = { x: pointer.x - from.pointer.x, y: pointer.y - from.pointer.y }
+    const next = resizeTurned(from.box, rotation, from.sides, travel, {
       width: minWidth,
       height: minHeight,
     })
@@ -87,7 +90,9 @@ function TurnedResizer({
   }
   const up = (event: PointerEvent) => {
     start.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
   }
   return GRIPS.map((sides) => {
     const line = sides.length === 1
@@ -99,6 +104,8 @@ function TurnedResizer({
         onPointerDown={down(sides)}
         onPointerMove={move}
         onPointerUp={up}
+        onPointerCancel={up}
+        onLostPointerCapture={up}
       />
     )
   })

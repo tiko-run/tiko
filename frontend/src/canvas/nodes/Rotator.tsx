@@ -87,6 +87,13 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
     const center = { x: box.left + box.width / 2, y: box.top + box.height / 2 }
     return pointerAngle(center, { x: event.clientX, y: event.clientY })
   }
+  const stop = (event: PointerEvent) => {
+    start.current = null
+    setPointer(null)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
   const size = SPOT / zoom
   const offset = -(SPOT + OUT) / zoom
   const spots = CORNERS.map(({ top, left }) => {
@@ -96,7 +103,7 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
         key={`${top}-${left}`}
         role={icon ? 'button' : undefined}
         aria-label={icon ? 'Rotate' : undefined}
-        title={icon ? 'Rotate (Shift: 15° steps)' : undefined}
+        title={icon ? 'Rotate (Shift or arrow keys: 15° steps)' : undefined}
         className="nodrag nopan text-muted-foreground hover:text-foreground absolute flex items-center justify-center"
         style={{
           width: size,
@@ -106,6 +113,7 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
           cursor: CURSOR,
         }}
         onPointerDown={(event) => {
+          if (event.button !== 0) return
           event.stopPropagation()
           event.currentTarget.setPointerCapture(event.pointerId)
           start.current = { angle: angleOf(event), rotation }
@@ -117,10 +125,17 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
           updateNodeData(id, { rotation: turnBy(from, angle, angleOf(event), event.shiftKey) })
           setPointer({ x: event.clientX, y: event.clientY })
         }}
-        onPointerUp={(event) => {
-          start.current = null
-          setPointer(null)
-          event.currentTarget.releasePointerCapture(event.pointerId)
+        onPointerUp={stop}
+        onPointerCancel={stop}
+        onLostPointerCapture={stop}
+        tabIndex={icon ? 0 : undefined}
+        // From the keyboard: arrows turn 15° at a time, as Shift does with the pointer.
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+          event.preventDefault()
+          event.stopPropagation()
+          const by = event.key === 'ArrowRight' ? ROTATE_STEP : -ROTATE_STEP
+          updateNodeData(id, { rotation: turnBy(rotation, 0, by, true) })
         }}
       >
         {icon && <RotateCw style={{ width: 12 / zoom, height: 12 / zoom }} />}

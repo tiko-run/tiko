@@ -23,27 +23,28 @@ export function turnedBounds(box: Box, deg: number): Box {
 }
 
 /**
- * Resizes a turned box in its own axes: the grabbed sides follow the pointer and the opposite ones
- * stay where they are on the board. `box` is the upright box before turning, as the node stores it.
+ * Resizes a turned box in its own axes: the grabbed sides move by the pointer's travel since the
+ * grab, and the opposite ones stay where they are on the board. `box` is the upright box before
+ * turning, as the node stores it.
  */
 export function resizeTurned(
   box: Box,
   deg: number,
   sides: Side[],
-  pointer: XYPosition,
+  travel: XYPosition,
   min: { width: number; height: number },
 ): Box {
   const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
-  // The pointer in the box's own axes, with the center at 0.
-  const local = turnVector({ x: pointer.x - center.x, y: pointer.y - center.y }, -deg)
+  // The travel in the box's own axes.
+  const local = turnVector(travel, -deg)
   let left = -box.width / 2
   let right = box.width / 2
   let top = -box.height / 2
   let bottom = box.height / 2
-  if (sides.includes('left')) left = Math.min(local.x, right - min.width)
-  if (sides.includes('right')) right = Math.max(local.x, left + min.width)
-  if (sides.includes('top')) top = Math.min(local.y, bottom - min.height)
-  if (sides.includes('bottom')) bottom = Math.max(local.y, top + min.height)
+  if (sides.includes('left')) left = Math.min(left + local.x, right - min.width)
+  if (sides.includes('right')) right = Math.max(right + local.x, left + min.width)
+  if (sides.includes('top')) top = Math.min(top + local.y, bottom - min.height)
+  if (sides.includes('bottom')) bottom = Math.max(bottom + local.y, top + min.height)
   const width = right - left
   const height = bottom - top
   const shift = turnVector({ x: (left + right) / 2, y: (top + bottom) / 2 }, deg)
