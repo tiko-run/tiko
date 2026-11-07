@@ -25,6 +25,7 @@ Requires: installer
 
 ### Fixed
 
+- The people on a board no longer blink in and out of the top bar when someone's tab sits in the background, and that tab no longer reconnects every minute.
 - Task bars no longer show through the month header of an expanded Gantt while you scroll.
 - A view-only board no longer lets you draw arrows that vanish on refresh.
 - Open a task from a Gantt on a view-only board: its key is now a link to the tracker.

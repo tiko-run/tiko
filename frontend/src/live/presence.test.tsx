@@ -7,6 +7,8 @@ import {
   TRAVEL_MS,
   colorOf,
   initials,
+  LINGER_MS,
+  lingering,
   parsePeers,
   peopleOf,
   pacer,
@@ -151,4 +153,22 @@ test('who has a node selected: each person once, in the order they are known', (
   expect(by.get('a')?.map((person) => person.name)).toEqual(['Ann', 'Bob'])
   expect(by.get('b')?.map((person) => person.name)).toEqual(['Ann'])
   expect(by.get('c')).toBeUndefined()
+})
+
+test('a tab whose presence went stale stays among the people a while, one that left does not', () => {
+  const bob = { ...state('u2', 'Bob'), client: 2 } as Peer
+  const ann = { ...state('u1', 'Ann'), client: 5 } as Peer
+  const stale = lingering()
+  const none = { added: [], updated: [] }
+  // Bob's tab went to the background and missed its renewal: still on the board.
+  stale.note({ ...none, removed: [2] }, true, [bob, ann], 0)
+  expect(stale.peers(LINGER_MS - 1)).toEqual([bob])
+  expect(stale.peers(LINGER_MS)).toEqual([])
+  // Back before the time is up: an ordinary peer again, nothing lingering.
+  stale.note({ ...none, removed: [2] }, true, [bob, ann], 0)
+  stale.note({ ...none, added: [2], removed: [] }, false, [ann], 10)
+  expect(stale.peers(20)).toEqual([])
+  // Ann closed her tab: the server's goodbye takes her away at once.
+  stale.note({ ...none, removed: [5] }, false, [ann], 0)
+  expect(stale.peers(1)).toEqual([])
 })

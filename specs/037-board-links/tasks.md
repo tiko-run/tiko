@@ -22,5 +22,5 @@ description: "Task list for Board links"
 
 ## Phase 3: Slice `feat/steady-presence` (US5, SC-002)
 
-- [ ] T007 Server keepalive on every board socket and the guest socket, at most 15 s apart, as an empty awareness update. Test that a silent room still sends
-- [ ] T008 Faces keep a person 90 s after their last presence; a hidden tab sends presence on `visibilitychange`. Tests with timers held to one tick a minute (SC-002); `CHANGELOG.md`
+- [x] T007 Server keepalive on every board socket and the guest socket, at most 15 s apart, as an empty awareness update. Test that a silent room still sends
+- [x] T008 Faces keep a person 90 s after their last presence; a hidden tab sends presence on `visibilitychange`. Tests; `CHANGELOG.md`
