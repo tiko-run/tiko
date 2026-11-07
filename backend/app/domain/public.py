@@ -89,11 +89,12 @@ class PublicLinks:
 
     def board_for(self, person: Person, token: str, members: Members) -> str:
         """The board behind a link, for a signed-in person who can open it anyway. Anyone else
-        gets the answer of a wrong link, so the link tells nothing more about the board."""
-        board_id, *_ = self.find(token)
-        if members.role(person, board_id) is None:
+        gets the answer of a wrong link, so the link tells nothing more about the board. It is
+        asked outside the guests' budget: signed-in people must not use up the link for guests."""
+        found = self._boards.by_public_token(token) if self._allowed() else None
+        if found is None or members.role(person, found[0]) is None:
             raise NotFound("board not found")
-        return board_id
+        return found[0]
 
     def alive(self, token: str, board_id: str) -> bool:
         """Whether the link still opens this board; asked for an open socket, outside the budget."""
