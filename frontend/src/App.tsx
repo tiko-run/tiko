@@ -161,10 +161,12 @@ export default function App() {
           <>
             <SignIn
               demo={auth.data?.demo}
-              onSignedIn={() => {
-                setSigningIn(false)
-                void queryClient.invalidateQueries({ queryKey: ['auth'] })
-              }}
+              // The sign-in form stays until the new session is known, so the guest view does not flash.
+              onSignedIn={() =>
+                void queryClient
+                  .invalidateQueries({ queryKey: ['auth'] })
+                  .finally(() => setSigningIn(false))
+              }
             />
             <Button
               variant="ghost"

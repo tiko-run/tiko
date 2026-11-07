@@ -5,6 +5,7 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
+from app.domain.errors import NotFound
 from app.domain.public import LINK_REQUESTS, PublicLinks
 from tests.conftest import run_sql
 from tests.jira_fake import TOKEN
@@ -387,3 +388,19 @@ def test_a_public_link_leads_people_with_access_to_the_board(world):
 
     clients["ann"].put(f"/api/boards/{board_id}/public", json={"public": False})
     assert clients["bob"].get(f"/api/boards/by-public/{token}").status_code == 404
+
+
+def test_looking_a_link_up_spends_nothing_of_the_guests():
+    class Boards:
+        def by_public_token(self, token):
+            return ("b", 1, "")
+
+    class Members:
+        def role(self, person, board_id):
+            return None
+
+    links = PublicLinks(Boards(), lambda: True)
+    for _ in range(LINK_REQUESTS + 1):
+        with pytest.raises(NotFound):
+            links.board_for(None, "t", Members())
+    assert links.find("t") == ("b", 1, "")
