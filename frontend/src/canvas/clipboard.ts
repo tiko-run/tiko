@@ -183,3 +183,14 @@ export function withoutStandIns(nodes: AppNode[]): AppNode[] {
     return [{ ...n, className: rest || undefined }]
   })
 }
+
+/** While a drag copies, arrows stay with the originals: they point at the stand-ins. */
+export function edgesToStandIns(edges: AppEdge[], shown: AppNode[]): AppEdge[] {
+  const stood = new Set(shown.filter((n) => isStandIn(n.id)).map((n) => n.id.slice(STAY.length)))
+  const to = (id: string) => (stood.has(id) ? STAY + id : id)
+  return edges.map((e) =>
+    stood.has(e.source) || stood.has(e.target)
+      ? { ...e, source: to(e.source), target: to(e.target) }
+      : e,
+  )
+}

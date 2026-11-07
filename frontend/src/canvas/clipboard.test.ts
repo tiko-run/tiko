@@ -3,6 +3,7 @@ import {
   cloneSnippet,
   copySelection,
   dragCopy,
+  edgesToStandIns,
   isStandIn,
   snippetOrigin,
   withStandIns,
@@ -134,4 +135,15 @@ test('while a drag copies, a stand-in stays where it began, before its node and 
   expect(shown.filter((n) => isStandIn(n.id)).every((n) => n.draggable === false)).toBe(true)
   // At the drop the board takes its nodes back as they were.
   expect(withoutStandIns(shown)).toEqual(nodes)
+})
+
+test('while a drag copies, arrows of the dragged node stay with its stand-in', () => {
+  const shown = withStandIns(
+    [card('a', 0, 0, { dragging: true }), card('b', 0, 0)],
+    new Map([['a', { x: 0, y: 0 }]]),
+  )
+  expect(edgesToStandIns(edges, shown).map((e) => [e.id, e.source, e.target])).toEqual([
+    ['e1', 'stay:a', 'b'],
+    ['e2', 'stay:a', 'c'],
+  ])
 })
