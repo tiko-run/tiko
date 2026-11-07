@@ -21,6 +21,8 @@ A shared board is live: everyone who has it open sees each other's changes as th
 - **Everyone in this workspace** is a role for the whole team at once, so you do not add people one by one. It does not reach demo visitors, and on an instance where anyone can sign up it is not offered: there "everyone" would mean strangers.
 - **Public link** is for people without an account, such as a client. See [Public link](#public-link).
 
+To bring people to the board, copy the board link at the top of "Share" and post it in your team chat. It opens the board for everyone who has access; someone who has none yet sees "You don't have access to this board" and gets in once you add them. The public link is for people without an account, not for your team.
+
 When a person is added and "Everyone in this workspace" is on too, the higher role wins. Adding someone as "Can view" does not take editing away from them while everyone can edit.
 
 ## Who is here

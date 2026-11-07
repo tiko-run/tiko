@@ -77,6 +77,20 @@ test('says when a link has expired', async () => {
   expect(await screen.findByText(message)).toBeInTheDocument()
 })
 
+test('someone who joined already is let in, not told the link expired', async () => {
+  const message = 'This invite link has expired. Ask your admin for a new one.'
+  const me = { ...ann, role: 'member' as const, workspace: { id: 'w1', name: 'Default' } }
+  const fetchMock = show(
+    'invite',
+    Response.json({ error: { code: 'invite_expired', message } }, { status: 410 }),
+    { isPending: false, data: { signed_in: true, me } },
+  )
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(screen.queryByText(message)).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Go to sign in' })).toBeNull()
+})
+
 test('a signed-in person outside a workspace joins with their account', async () => {
   const fetchMock = show('invite', anInvite(), {
     isPending: false,

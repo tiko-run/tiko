@@ -16,6 +16,7 @@ Requires: installer
 
 ### Changed
 
+- Share a board with your team in one copy: Share now has the board's own link at the top, for everyone who can open it. A teammate who follows it before you add them sees that they have no access yet, instead of landing on Home. See [Three ways to share a board](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
 - A public link no longer locks your teammates into view only: anyone it is shared with lands on the board itself, ready to edit, and Sign in on a public page takes you back to that board instead of Home. See [Public link](https://docs.tiko.run/working-together/#public-link).
 - No more empty strip at the edge of Settings, menus, search and the Gantt filters: scroll bars sit over the content, show while it scrolls and fade a second after, as in the expanded Gantt.
 - Shift a plan in one drag: hold Alt while you move or stretch a stage to the right in Planning, and the later stages of its row go along, gaps kept. See [Stages](https://docs.tiko.run/gantt/stages/#stages).
@@ -26,6 +27,7 @@ Requires: installer
 ### Fixed
 
 - The people on a board no longer blink in and out of the top bar when someone's tab sits in the background, and that tab no longer reconnects every minute.
+- Opening an invite link again after you have joined takes you to your boards instead of saying the link expired.
 - Task bars no longer show through the month header of an expanded Gantt while you scroll.
 - A view-only board no longer lets you draw arrows that vanish on refresh.
 - Open a task from a Gantt on a view-only board: its key is now a link to the tracker.
