@@ -49,6 +49,12 @@ export function goTo(board: string | null, { replace = false, rename = false }: 
   window.dispatchEvent(new Event(NAVIGATED))
 }
 
+/** Swaps a public link's page for the board itself, in place, so Back does not return to it. */
+export function leavePublicLink(board: string) {
+  window.history.replaceState(null, '', boardHref(board))
+  window.dispatchEvent(new Event(NAVIGATED))
+}
+
 /** Drops the one-time rename mark from the address once the name field has opened. */
 export function clearRename() {
   if (!readRename()) return

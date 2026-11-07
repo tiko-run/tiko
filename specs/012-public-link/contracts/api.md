@@ -9,6 +9,7 @@ Additions to the contract of [spec 008](../../008-accounts/contracts/api.md). Er
 | `GET /api/boards`, `GET /api/boards/{id}`, `POST /api/boards`, `PATCH /api/boards/{id}` | as before | each board gains `public: bool` |
 | `GET /api/boards/{id}/members` | viewer and up | gains `public: bool` and `public_token: string \| null`; the token is sent to the owner (and an admin) only |
 | `PUT /api/boards/{id}/public` | owner | body `{"public": bool}`, answers `{"public": bool, "public_token": string \| null}` |
+| `GET /api/boards/by-public/{token}` | signed in | `{id}` of the board behind the link when the person can open it; otherwise 404 `not_found`, the same as a wrong link (spec 037) |
 | `GET /api/settings` | signed in | gains `public_links: bool` |
 | `PUT /api/settings` | admin | accepts `public_links: bool` |
 

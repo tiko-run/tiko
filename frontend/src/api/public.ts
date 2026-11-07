@@ -32,6 +32,11 @@ export function refreshPublicBoard(token: string) {
   return fetchJson(`/api/public/${token}/refresh`, refreshSchema, { method: 'POST' })
 }
 
+/** The board behind a public link, for a signed-in person who can open it; 404 for anyone else. */
+export function boardByPublicLink(token: string) {
+  return fetchJson(`/api/boards/by-public/${token}`, z.object({ id: z.string() }))
+}
+
 /** The token when this page is a public link (`/p/<token>`), else null. */
 export function readPublicToken(): string | null {
   return /^\/p\/([\w-]+)\/?$/.exec(window.location.pathname)?.[1] ?? null

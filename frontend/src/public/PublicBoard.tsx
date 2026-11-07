@@ -24,7 +24,7 @@ const LIVE_WAIT_MS = 5000
 
 const isGone = (error: unknown) => error instanceof ApiError && error.code === 'not_found'
 
-function PublicBar({ name }: { name: string }) {
+function PublicBar({ name, onSignIn }: { name: string; onSignIn?: () => void }) {
   const { resolved, setTheme } = useTheme()
   const focusVisible = useFocusVisible()
   const dark = resolved === 'dark'
@@ -70,15 +70,18 @@ function PublicBar({ name }: { name: string }) {
           <Moon className="size-[18px]" strokeWidth={1.75} />
         )}
       </Button>
-      <Button variant="ghost" size="sm" className="text-[14px] font-normal" asChild>
-        <a href="/">Sign in</a>
-      </Button>
+      {onSignIn && (
+        <Button variant="ghost" size="sm" className="text-[14px] font-normal" onClick={onSignIn}>
+          Sign in
+        </Button>
+      )}
     </div>
   )
 }
 
-/** A board opened by its public link: anyone can look, nobody can change it. */
-export default function PublicBoard({ token }: { token: string }) {
+/** A board opened by its public link: anyone can look, nobody can change it. Without
+ * `onSignIn` the person is signed in already and has no access of their own. */
+export default function PublicBoard({ token, onSignIn }: { token: string; onSignIn?: () => void }) {
   const focusVisible = useFocusVisible()
   const [live, setLive] = useState(false)
   const [waited, setWaited] = useState(false)
@@ -177,7 +180,7 @@ export default function PublicBoard({ token }: { token: string }) {
       <ReactFlowProvider>
         <BoardCanvas board={shown} viewer onAccessChanged={reread} guest={guest} />
       </ReactFlowProvider>
-      <PublicBar name={shown.name} />
+      <PublicBar name={shown.name} onSignIn={onSignIn} />
       {focusVisible && <FocusCapsule />}
     </>
   )

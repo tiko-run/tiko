@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { getAuthStatus } from '@/api/auth'
 import { listBoards } from '@/api/boards'
 import { AUTH_REQUIRED_EVENT, PASSWORD_CHANGE_EVENT } from '@/api/client'
-import { readPublicToken } from '@/api/public'
+import { boardByPublicLink, readPublicToken } from '@/api/public'
 import { AcceptInvite, readInviteLink } from '@/auth/AcceptInvite'
 import { NoWorkspace } from '@/auth/NoWorkspace'
 import { NewPassword } from '@/auth/NewPassword'
@@ -18,9 +18,16 @@ import { FocusCapsule } from '@/focus/FocusCapsule'
 import { useFocusVisible } from '@/focus/store'
 import { TopBar } from '@/board/TopBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Home } from '@/home/Home'
-import { goTo, takeFirstBoard, useAddressBoard, useRenameOnOpen } from '@/lib/navigation'
+import {
+  goTo,
+  leavePublicLink,
+  takeFirstBoard,
+  useAddressBoard,
+  useRenameOnOpen,
+} from '@/lib/navigation'
 import { ERROR_MS } from '@/lib/toast'
 import { startErrorReports } from '@/lib/errorReports'
 
@@ -68,24 +75,33 @@ export default function App() {
   const renameOnOpen = useRenameOnOpen()
   const focusVisible = useFocusVisible()
   const [inviteLink] = useState(readInviteLink)
-  // A public link is a page of its own: no sign-in, no boards of the person who opened it.
-  const [publicToken] = useState(() => (typeof window === 'undefined' ? null : readPublicToken()))
+  // A public link is a page of its own, unless the person can open the board anyway.
+  const [linkToken] = useState(() => (typeof window === 'undefined' ? null : readPublicToken()))
+  const [signingIn, setSigningIn] = useState(false)
   const queryClient = useQueryClient()
-  const auth = useQuery({
-    queryKey: ['auth'],
-    queryFn: getAuthStatus,
-    enabled: mounted && !publicToken,
-  })
+  const auth = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus, enabled: mounted })
   // The first admin sees only the new password screen until they set one.
   const held = auth.data?.me?.must_change_password === true
   const signedIn = auth.data?.signed_in === true && !held
   const serverAdmin = auth.data?.me?.server_admin ?? false
   // Removed from the workspace: the account still signs in, but has no boards to open.
   const outside = signedIn && !!auth.data?.me && !auth.data.me.workspace
+  const behindLink = useQuery({
+    queryKey: ['by-public', linkToken],
+    queryFn: () => boardByPublicLink(linkToken ?? ''),
+    enabled: mounted && !!linkToken && signedIn && !outside,
+    retry: false,
+  })
+  const linkedBoard = behindLink.data?.id
+  // Once the board behind the link is known, the page is that board's.
+  const publicToken = linkedBoard ? null : linkToken
+  useEffect(() => {
+    if (linkedBoard) leavePublicLink(linkedBoard)
+  }, [linkedBoard])
   const boards = useQuery({
     queryKey: ['boards'],
     queryFn: listBoards,
-    enabled: mounted && signedIn && !outside,
+    enabled: mounted && signedIn && !outside && !publicToken,
     // Home shows other people's changes too: its previews follow a board within a minute.
     refetchInterval: boardId ? false : 30_000,
   })
@@ -138,12 +154,38 @@ export default function App() {
   }, [queryClient])
 
   if (mounted && publicToken) {
+    const checking = auth.isPending || behindLink.isFetching
     return (
       <main className="bg-background relative h-dvh w-full overflow-hidden">
         <h1 className="sr-only">tiko</h1>
-        <Suspense fallback={<Skeleton className="absolute inset-0 rounded-none" />}>
-          <PublicBoard token={publicToken} />
-        </Suspense>
+        {signingIn && !signedIn ? (
+          <>
+            <SignIn
+              demo={auth.data?.demo}
+              onSignedIn={() => {
+                setSigningIn(false)
+                void queryClient.invalidateQueries({ queryKey: ['auth'] })
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 left-4"
+              onClick={() => setSigningIn(false)}
+            >
+              Back to the board
+            </Button>
+          </>
+        ) : checking ? (
+          <Skeleton className="absolute inset-0 rounded-none" />
+        ) : (
+          <Suspense fallback={<Skeleton className="absolute inset-0 rounded-none" />}>
+            <PublicBoard
+              token={publicToken}
+              onSignIn={signedIn ? undefined : () => setSigningIn(true)}
+            />
+          </Suspense>
+        )}
       </main>
     )
   }

@@ -98,6 +98,10 @@ class PublicOut(BaseModel):
     public_token: str | None
 
 
+class BoardRef(BaseModel):
+    id: str
+
+
 @router.get("")
 def list_boards(person: CurrentPerson, boards: Boards) -> BoardList:
     mine, others = service.list_boards(person, boards, datetime.now(UTC))
@@ -133,6 +137,16 @@ def get_preview(board_id: str, _: CanView, boards: Boards, request: Request) -> 
     if svg is None:
         return Response(status_code=304, headers=headers)
     return Response(svg, media_type="image/svg+xml", headers=headers)
+
+
+@router.get("/by-public/{token}")
+def board_by_public_link(
+    token: str,
+    person: CurrentPerson,
+    members: MembersDep,
+    links: Annotated[PublicLinks, Depends(deps.public_links)],
+) -> BoardRef:
+    return BoardRef(id=links.board_for(person, token, members))
 
 
 @router.get("/{board_id}")

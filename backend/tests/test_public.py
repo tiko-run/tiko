@@ -365,3 +365,25 @@ def test_guest_of_a_mixed_board_sees_demo_tasks_only(jira_client):
         assert secret["summary"] not in response.text and TOKEN not in response.text
     sources = anyone.post(f"/api/public/{token}/refresh").json()["sources"]
     assert [source["id"] for source in sources] == ["demo"]
+
+
+def test_a_public_link_leads_people_with_access_to_the_board(world):
+    clients, _ = world
+    board_id = new_board(world)
+    token = publish(clients["ann"], board_id)
+    for who in ("ann", "bob", "carl", "admin"):
+        response = clients[who].get(f"/api/boards/by-public/{token}")
+        assert response.json() == {"id": board_id}, who
+    # No access looks exactly like a wrong link.
+    stranger = clients["dave"].get(f"/api/boards/by-public/{token}")
+    wrong = clients["dave"].get("/api/boards/by-public/nope")
+    assert stranger.status_code == wrong.status_code == 404
+    assert stranger.json() == wrong.json()
+    assert guest(clients["ann"]).get(f"/api/boards/by-public/{token}").status_code == 401
+
+    everyone = clients["ann"].put(f"/api/boards/{board_id}/everyone", json={"role": "viewer"})
+    assert everyone.is_success
+    assert clients["dave"].get(f"/api/boards/by-public/{token}").json() == {"id": board_id}
+
+    clients["ann"].put(f"/api/boards/{board_id}/public", json={"public": False})
+    assert clients["bob"].get(f"/api/boards/by-public/{token}").status_code == 404
