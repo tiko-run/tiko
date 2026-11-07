@@ -38,6 +38,11 @@ import { CanvasContextMenu, type MenuTarget, type PlaceTool } from '@/canvas/Can
 import {
   cloneSnippet,
   copySelection,
+  dragCopy,
+  edgesToStandIns,
+  isStandIn,
+  withStandIns,
+  withoutStandIns,
   clipboardId,
   getClipboard,
   setClipboard,
@@ -299,13 +304,22 @@ export function BoardCanvas({
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
   const far = useStore((state) => state.transform[2] <= FAR_ZOOM)
+  const [dragFrom, setDragFrom] = useState<Map<string, XYPosition> | null>(null)
+  // The drop may come before React has drawn the start, so it reads this instead.
+  const dragFromNow = useRef<Map<string, XYPosition> | null>(null)
+  // Set only while a drag that started with Alt runs; a missed drag end leaves no stand-ins.
+  const copying = dragFrom !== null && nodes.some((n) => n.dragging)
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
   // A style tried on the selection from the bar: drawn here only, never saved or sent.
   const [preview, setPreview] = useState<Style | null>(null)
   const shown = useMemo(() => {
     const painted =
       preview === null ? moving : moving.map((n) => (n.selected ? withStyle(n, preview) : n))
-    const raised = raiseAnchors(painted.map(withHandles), edges)
+    const standing = copying ? withStandIns(painted, dragFrom) : painted
+    const raised = raiseAnchors(
+      standing.map(withHandles),
+      copying ? edgesToStandIns(edges, standing) : edges,
+    )
     if (!flashId && !hits) return raised
     return {
       ...raised,
@@ -322,7 +336,7 @@ export function BoardCanvas({
         }
       }),
     }
-  }, [moving, preview, edges, flashId, hits])
+  }, [moving, preview, edges, flashId, hits, copying, dragFrom])
 
   // What the others see of this person: what is selected, and nodes on their way while dragged.
   const { presence } = live
@@ -355,10 +369,14 @@ export function BoardCanvas({
   const [surfaceEl, setSurfaceEl] = useState<HTMLDivElement | null>(null)
   useWheelMode(surfaceEl, wheel)
   const { nodes: touchNodes, edges: touchEdges } = touch
-  const onNodesChangeShown = useMemo(
-    () => touchNodes(guides.onNodesChange),
-    [touchNodes, guides.onNodesChange],
-  )
+  const onNodesChangeShown = useMemo(() => {
+    const change = touchNodes(guides.onNodesChange)
+    // Stand-ins are drawn only; xyflow still measures them.
+    return (changes: Parameters<typeof change>[0]) => {
+      const real = changes.filter((c) => !('id' in c) || !isStandIn(c.id))
+      if (real.length) change(real)
+    }
+  }, [touchNodes, guides.onNodesChange])
   const onEdgesChangeShown = useMemo(() => touchEdges(onEdgesChange), [touchEdges, onEdgesChange])
   useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
   useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
@@ -619,15 +637,18 @@ export function BoardCanvas({
     setNodes((current) => reparent([...current, node], [node.id]))
   }
 
+  // The store also holds what is only drawn, such as the stand-ins of a copying drag.
+  const boardNodes = () => withoutStandIns(getNodes())
+
   // Cards dropped on a module that takes them join it; the rest may change frames.
-  const dropNodes = (ids: string[]) => {
-    // The store has the final drag position; this render's nodes may not yet.
-    const current = getNodes()
+  // The store has the final drag position; this render's nodes may not yet.
+  const dropNodes = (ids: string[], current = boardNodes(), arrows?: AppEdge[]) => {
     const result = absorbCards(current, ids, planning)
     let kept = result?.nodes ?? current
     if (result?.absorbed.size) didOnboarding('gantt_task')
+    if (arrows && !result) setEdges(arrows)
     if (result) {
-      const edgesLeft = getEdges().filter(
+      const edgesLeft = (arrows ?? edges).filter(
         (e) => !result.absorbed.has(e.source) && !result.absorbed.has(e.target),
       )
       setEdges(edgesLeft)
@@ -638,6 +659,20 @@ export function BoardCanvas({
     const next = reparent(dropTimers(kept, left), left)
     // The store still says dragging, and xyflow puts a dragging node into every marquee.
     setNodes(next.map((n) => (n.dragging ? { ...n, dragging: false } : n)))
+  }
+
+  // A copying drag leaves the originals where it began and puts copies where it ended.
+  // The copies land as any dropped element does: on a Gantt, into a frame, under a reminder.
+  const dropCopies = (ids: string[], from: Map<string, XYPosition>) => {
+    const copied = dragCopy(boardNodes(), edges, tasks, from)
+    if (!copied) return dropNodes(ids)
+    const copy = cloneSnippet(copied.snippet, { x: 0, y: 0 })
+    setAdded((current) => ({ ...current, ...copy.tasks }))
+    dropNodes(
+      copy.nodes.filter((n) => !n.parentId).map((n) => n.id),
+      framesFirst([...copied.nodes.map((n) => ({ ...n, selected: false })), ...copy.nodes]),
+      [...edges.map((e) => ({ ...e, selected: false })), ...copy.edges],
+    )
   }
 
   const moduleHost = useMemo<ModuleHost>(
@@ -943,7 +978,21 @@ export function BoardCanvas({
           connectFrom.current = { x: clientX, y: clientY }
         }}
         onConnectEnd={onConnectEnd}
-        onNodeDragStop={(_, __, dragged) => dropNodes(dragged.map((n) => n.id))}
+        onNodeDragStart={(event, __, dragged) => {
+          // As in Miro: Alt when the drag starts makes it a copy, and it may be let go after.
+          const copy = event.altKey && !readOnly
+          const from = copy ? new Map(dragged.map((n) => [n.id, n.position])) : null
+          dragFromNow.current = from
+          setDragFrom(from)
+        }}
+        onNodeDragStop={(_, __, dragged) => {
+          const ids = dragged.map((n) => n.id)
+          const from = dragFromNow.current
+          dragFromNow.current = null
+          setDragFrom(null)
+          if (from) dropCopies(ids, from)
+          else dropNodes(ids)
+        }}
         onBeforeDelete={onBeforeDelete}
         onPaneClick={place}
         onPaneContextMenu={(event) =>

@@ -16,6 +16,7 @@ Requires: installer
 
 ### Changed
 
+- Copy as you drag, as in Miro and Figma: hold Alt as you start a drag, and a copy follows the pointer while the original stays put. Moving without snapping to guides is now ⌘ or Ctrl + drag. See [Keyboard shortcuts](https://docs.tiko.run/keyboard-shortcuts/).
 - Share a board with your team in one copy: Share now has the board's own link at the top, for everyone who can open it. A teammate who follows it before you add them sees that they have no access yet, instead of landing on Home. See [Three ways to share a board](https://docs.tiko.run/working-together/#three-ways-to-share-a-board).
 - A public link no longer locks your teammates into view only: anyone it is shared with lands on the board itself, ready to edit, and Sign in on a public page takes you back to that board instead of Home. See [Public link](https://docs.tiko.run/working-together/#public-link).
 - No more empty strip at the edge of Settings, menus, search and the Gantt filters: scroll bars sit over the content, show while it scrolls and fade a second after, as in the expanded Gantt.

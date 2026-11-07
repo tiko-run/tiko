@@ -1,5 +1,14 @@
 import { expect, test } from 'vitest'
-import { cloneSnippet, copySelection, snippetOrigin } from '@/canvas/clipboard'
+import {
+  cloneSnippet,
+  copySelection,
+  dragCopy,
+  edgesToStandIns,
+  isStandIn,
+  snippetOrigin,
+  withStandIns,
+  withoutStandIns,
+} from '@/canvas/clipboard'
 import type { Task } from '@/api/tasks'
 import type { AppEdge, AppNode } from '@/canvas/types'
 
@@ -83,4 +92,58 @@ test('a copied module carries the live tasks of its rows', () => {
   const copy = cloneSnippet(snippet, { x: 10, y: 0 })
   expect(copy.nodes[0].data).toEqual(gantt.data)
   expect(copy.nodes[0].data).not.toBe(gantt.data)
+})
+
+test('a drag that copies puts the originals back and copies them where they were dropped', () => {
+  const nodes = [
+    card('a', 300, 300, { dragging: true }),
+    card('b', 350, 300, { dragging: true }),
+    card('c', 0, 0),
+  ]
+  const from = new Map([
+    ['a', { x: 0, y: 100 }],
+    ['b', { x: 50, y: 100 }],
+  ])
+  const copied = dragCopy(nodes, edges, {}, from)!
+  expect(copied.nodes.map((n) => [n.id, n.position, n.dragging])).toEqual([
+    ['a', { x: 0, y: 100 }, false],
+    ['b', { x: 50, y: 100 }, false],
+    ['c', { x: 0, y: 0 }, undefined],
+  ])
+  expect(copied.snippet.nodes.map((n) => [n.id, n.position])).toEqual([
+    ['a', { x: 300, y: 300 }],
+    ['b', { x: 350, y: 300 }],
+  ])
+  // Only the arrow between two copied elements comes along.
+  expect(copied.snippet.edges.map((e) => e.id)).toEqual(['e1'])
+})
+
+test('a drag that copies but did not move copies nothing', () => {
+  const from = new Map([['a', { x: 0, y: 0 }]])
+  expect(dragCopy([card('a', 0, 0, { dragging: true })], edges, {}, from)).toBeNull()
+})
+
+test('while a drag copies, a stand-in stays where it began, before its node and after its frame', () => {
+  const nodes = [frame, card('a', 10, 20, { parentId: 'f', dragging: true }), card('c', 0, 0)]
+  const shown = withStandIns(nodes, new Map([['a', { x: 5, y: 5 }]]))
+  expect(shown.map((n) => [n.id, n.parentId, n.position, n.className])).toEqual([
+    ['f', undefined, { x: 100, y: 100 }, undefined],
+    ['stay:a', 'f', { x: 5, y: 5 }, undefined],
+    ['a', 'f', { x: 10, y: 20 }, 'drag-ghost'],
+    ['c', undefined, { x: 0, y: 0 }, undefined],
+  ])
+  expect(shown.filter((n) => isStandIn(n.id)).every((n) => n.draggable === false)).toBe(true)
+  // At the drop the board takes its nodes back as they were.
+  expect(withoutStandIns(shown)).toEqual(nodes)
+})
+
+test('while a drag copies, arrows of the dragged node stay with its stand-in', () => {
+  const shown = withStandIns(
+    [card('a', 0, 0, { dragging: true }), card('b', 0, 0)],
+    new Map([['a', { x: 0, y: 0 }]]),
+  )
+  expect(edgesToStandIns(edges, shown).map((e) => [e.id, e.source, e.target])).toEqual([
+    ['e1', 'stay:a', 'b'],
+    ['e2', 'stay:a', 'c'],
+  ])
 })
