@@ -16,9 +16,9 @@ description: "Task list for Board links"
 
 ## Phase 2: Slice `feat/share-links` (US2, US3, US4)
 
-- [ ] T004 Share: Copy link at the top for everyone who can open it; note on the public link row. Tests
-- [ ] T005 No-access screen for a board address that does not open, in place of the toast and the move Home; the lost-access toast stays. Tests
-- [ ] T006 Used or expired invite: a signed-in person goes to their boards. Tests; guide; `CHANGELOG.md`
+- [x] T004 Share: Copy link at the top for everyone who can open it; note on the public link row. Tests
+- [x] T005 No-access screen for a board address that does not open, in place of the toast and the move Home; the lost-access toast stays. Tests
+- [x] T006 Used or expired invite: a signed-in person goes to their boards. Tests; guide; `CHANGELOG.md`
 
 ## Phase 3: Slice `feat/steady-presence` (US5, SC-002)
 
