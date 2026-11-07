@@ -11,6 +11,8 @@ type Shortcut = {
 }
 
 /** Every keyboard shortcut in one place: the help dialog lists them and tooltips show them. */
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
+
 export const SHORTCUTS = {
   help: { keys: 'shift+slash', display: '?', label: 'Keyboard shortcuts', group: 'General' },
   search: { keys: 'mod+k, mod+f', label: 'Search the board', group: 'General' },
@@ -52,17 +54,21 @@ export const SHORTCUTS = {
   },
   back: { keys: 'b', label: 'Back to where you were', group: 'Canvas' },
   pan: { keys: 'space', display: 'Space + drag', label: 'Pan', group: 'Canvas' },
-  freeDrag: {
+  copyDrag: {
     keys: 'alt',
     display: 'Alt + drag',
+    label: 'Drag a copy',
+    group: 'Edit',
+  },
+  freeDrag: {
+    keys: 'mod',
+    display: isMac ? '⌘ + drag' : 'Ctrl + drag',
     label: 'Move without snapping',
     group: 'Canvas',
   },
 } satisfies Record<string, Shortcut>
 
 export type ShortcutId = keyof typeof SHORTCUTS
-
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 
 const KEY_NAMES: Record<string, string> = {
   mod: isMac ? '⌘' : 'Ctrl',

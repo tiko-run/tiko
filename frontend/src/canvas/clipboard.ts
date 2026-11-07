@@ -105,3 +105,67 @@ export function cloneSnippet(snippet: Snippet, delta: XYPosition): Snippet {
     tasks: snippet.tasks,
   }
 }
+
+/**
+ * A drag that copies: the dragged nodes go back to where they started, and the snippet holds
+ * copies of them where they were dropped. Null when nothing moved.
+ */
+export function dragCopy(
+  nodes: AppNode[],
+  edges: AppEdge[],
+  tasks: Record<string, Task>,
+  from: Map<string, XYPosition>,
+): { nodes: AppNode[]; snippet: Snippet } | null {
+  const moved = nodes.some((n) => {
+    const start = from.get(n.id)
+    return start && (start.x !== n.position.x || start.y !== n.position.y)
+  })
+  const snippet =
+    moved &&
+    copySelection(
+      nodes.map((n) => ({ ...n, selected: from.has(n.id) })),
+      edges,
+      tasks,
+    )
+  if (!snippet) return null
+  return {
+    nodes: nodes.map((n) => {
+      const start = from.get(n.id)
+      if (start) return { ...n, position: start, dragging: false }
+      return n.dragging ? { ...n, dragging: false } : n
+    }),
+    snippet,
+  }
+}
+
+const STAY = 'stay:'
+
+/** Not a node of the board: a stand-in drawn where a copying drag began. */
+export const isStandIn = (id: string) => id.startsWith(STAY)
+
+/**
+ * While a drag copies, the originals look as if they stayed: stand-ins sit where the drag began,
+ * and the dragged nodes are drawn as ghosts of the copies.
+ */
+export function withStandIns(nodes: AppNode[], from: Map<string, XYPosition>): AppNode[] {
+  const picked = new Set(from.keys())
+  const inside = (n: AppNode) => n.parentId !== undefined && picked.has(n.parentId)
+  // Each stand-in goes right before its node: after its frame, and under the ghost.
+  return nodes.flatMap((n) => {
+    if (!picked.has(n.id) && !inside(n)) return [n]
+    const standIn = {
+      ...n,
+      id: STAY + n.id,
+      ...(n.parentId && { parentId: inside(n) ? STAY + n.parentId : n.parentId }),
+      position: from.get(n.id) ?? n.position,
+      selected: false,
+      dragging: false,
+      draggable: false,
+      selectable: false,
+      connectable: false,
+      className: undefined,
+    } as AppNode
+    const ghost = { ...n, className: [n.className, 'drag-ghost'].filter(Boolean).join(' ') }
+    return [standIn, ghost]
+  })
+}

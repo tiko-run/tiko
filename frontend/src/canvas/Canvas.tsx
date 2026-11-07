@@ -38,6 +38,9 @@ import { CanvasContextMenu, type MenuTarget, type PlaceTool } from '@/canvas/Can
 import {
   cloneSnippet,
   copySelection,
+  dragCopy,
+  isStandIn,
+  withStandIns,
   clipboardId,
   getClipboard,
   setClipboard,
@@ -299,13 +302,17 @@ export function BoardCanvas({
   )
   // Other people's moves in progress; arrows and everything else placed from a node follow.
   const far = useStore((state) => state.transform[2] <= FAR_ZOOM)
+  const [dragFrom, setDragFrom] = useState<Map<string, XYPosition> | null>(null)
+  // Set only while a drag that started with Alt runs; a missed drag end leaves no stand-ins.
+  const copying = dragFrom !== null && nodes.some((n) => n.dragging)
   const moving = useRemoteMotion(nodes, drags, live.glide, originOf, useBoardTravel())
   // A style tried on the selection from the bar: drawn here only, never saved or sent.
   const [preview, setPreview] = useState<Style | null>(null)
   const shown = useMemo(() => {
     const painted =
       preview === null ? moving : moving.map((n) => (n.selected ? withStyle(n, preview) : n))
-    const raised = raiseAnchors(painted.map(withHandles), edges)
+    const standing = copying ? withStandIns(painted, dragFrom) : painted
+    const raised = raiseAnchors(standing.map(withHandles), edges)
     if (!flashId && !hits) return raised
     return {
       ...raised,
@@ -322,7 +329,7 @@ export function BoardCanvas({
         }
       }),
     }
-  }, [moving, preview, edges, flashId, hits])
+  }, [moving, preview, edges, flashId, hits, copying, dragFrom])
 
   // What the others see of this person: what is selected, and nodes on their way while dragged.
   const { presence } = live
@@ -355,10 +362,14 @@ export function BoardCanvas({
   const [surfaceEl, setSurfaceEl] = useState<HTMLDivElement | null>(null)
   useWheelMode(surfaceEl, wheel)
   const { nodes: touchNodes, edges: touchEdges } = touch
-  const onNodesChangeShown = useMemo(
-    () => touchNodes(guides.onNodesChange),
-    [touchNodes, guides.onNodesChange],
-  )
+  const onNodesChangeShown = useMemo(() => {
+    const change = touchNodes(guides.onNodesChange)
+    // Stand-ins are drawn only; xyflow still measures them.
+    return (changes: Parameters<typeof change>[0]) => {
+      const real = changes.filter((c) => !('id' in c) || !isStandIn(c.id))
+      if (real.length) change(real)
+    }
+  }, [touchNodes, guides.onNodesChange])
   const onEdgesChangeShown = useMemo(() => touchEdges(onEdgesChange), [touchEdges, onEdgesChange])
   useShortcut('undo', live.undo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
   useShortcut('redo', live.redo, { enabled: !readOnly, ignoreEventWhen: dialogOverBoard })
@@ -619,10 +630,13 @@ export function BoardCanvas({
     setNodes((current) => reparent([...current, node], [node.id]))
   }
 
+  // The store also holds what is only drawn, such as the stand-ins of a copying drag.
+  const boardNodes = () => getNodes().filter((n) => !isStandIn(n.id))
+
   // Cards dropped on a module that takes them join it; the rest may change frames.
   const dropNodes = (ids: string[]) => {
     // The store has the final drag position; this render's nodes may not yet.
-    const current = getNodes()
+    const current = boardNodes()
     const result = absorbCards(current, ids, planning)
     let kept = result?.nodes ?? current
     if (result?.absorbed.size) didOnboarding('gantt_task')
@@ -638,6 +652,14 @@ export function BoardCanvas({
     const next = reparent(dropTimers(kept, left), left)
     // The store still says dragging, and xyflow puts a dragging node into every marquee.
     setNodes(next.map((n) => (n.dragging ? { ...n, dragging: false } : n)))
+  }
+
+  // A copying drag leaves the originals where it began and puts copies where it ended.
+  const dropCopies = (ids: string[]) => {
+    const copied = dragFrom && dragCopy(boardNodes(), getEdges(), tasks, dragFrom)
+    if (!copied) return dropNodes(ids)
+    setNodes(copied.nodes)
+    insert(copied.snippet, { x: 0, y: 0 })
   }
 
   const moduleHost = useMemo<ModuleHost>(
@@ -943,7 +965,17 @@ export function BoardCanvas({
           connectFrom.current = { x: clientX, y: clientY }
         }}
         onConnectEnd={onConnectEnd}
-        onNodeDragStop={(_, __, dragged) => dropNodes(dragged.map((n) => n.id))}
+        onNodeDragStart={(event, __, dragged) => {
+          // As in Miro: Alt when the drag starts makes it a copy, and it may be let go after.
+          const copy = event.altKey && !readOnly
+          setDragFrom(copy ? new Map(dragged.map((n) => [n.id, n.position])) : null)
+        }}
+        onNodeDragStop={(_, __, dragged) => {
+          const ids = dragged.map((n) => n.id)
+          if (dragFrom) dropCopies(ids)
+          else dropNodes(ids)
+          setDragFrom(null)
+        }}
         onBeforeDelete={onBeforeDelete}
         onPaneClick={place}
         onPaneContextMenu={(event) =>

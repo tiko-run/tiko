@@ -52,11 +52,11 @@ function asResize(changes: NodeChange<AppNode>[]): Resize | undefined {
 
 /**
  * Snaps a node dragged or resized alone to the others on screen and returns the guides to
- * draw; Alt turns it off. Arrow anchors take no part.
+ * draw; Cmd or Ctrl turns it off. Arrow anchors take no part.
  */
 export function useGuides(onNodesChange: OnNodesChange<AppNode>) {
   const store = useStoreApi<AppNode>()
-  const free = useKeyPress('Alt')
+  const free = useKeyPress(['Meta', 'Control'])
   const [guides, setGuides] = useState<Guide[]>([])
   // xyflow ends a drag or resize with its own unsnapped values; the last snapped ones replace them.
   const last = useRef<{ id: string; position?: XYPosition; width?: number; height?: number }>(null)

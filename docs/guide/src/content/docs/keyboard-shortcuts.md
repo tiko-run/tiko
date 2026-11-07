@@ -40,6 +40,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `⌘X` | Cut |
 | `⌘V` | Paste at the cursor |
 | `⌘D` | Duplicate |
+| `Alt` + drag | Drag a copy, the original stays |
 | `⌘A` | Select all |
 | `Delete`, `Backspace` | Delete selection |
 | `Shift` + click | Add to selection |
@@ -52,5 +53,5 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `Ctrl` + wheel, pinch | Zoom |
 | `Shift` + wheel | Pan sideways |
 | Wheel held + drag | Pan |
-| `Alt` + drag | Move without snapping |
+| `⌘` / `Ctrl` + drag | Move without snapping |
 | `B` | Back to where you were |

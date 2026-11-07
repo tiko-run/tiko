@@ -489,6 +489,12 @@
 }
 
 /* Any other node the board moved to: a ring that blinks three times. */
+/* The copy on its way while Alt is held: a tinted see-through version of the element. */
+.react-flow__node.drag-ghost {
+  opacity: 0.55;
+  filter: drop-shadow(0 0 3px var(--primary));
+}
+
 .react-flow__node.node-flash {
   border-radius: var(--radius);
   animation: node-flash 400ms ease-in-out 3;
