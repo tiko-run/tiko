@@ -16,6 +16,7 @@ Requires: installer
 
 ### Changed
 
+- A public link no longer locks your teammates into view only: anyone it is shared with lands on the board itself, ready to edit, and Sign in on a public page takes you back to that board instead of Home. See [Public link](https://docs.tiko.run/working-together/#public-link).
 - No more empty strip at the edge of Settings, menus, search and the Gantt filters: scroll bars sit over the content, show while it scrolls and fade a second after, as in the expanded Gantt.
 - Shift a plan in one drag: hold Alt while you move or stretch a stage to the right in Planning, and the later stages of its row go along, gaps kept. See [Stages](https://docs.tiko.run/gantt/stages/#stages).
 - Select several elements faster: a selection box takes everything it touches, not only what fits inside it whole. A frame is still selected only when the box covers all of it, so you can pick the notes inside without the frame. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).

@@ -36,6 +36,15 @@ vi.mock('@/canvas/Canvas', () => ({
   default: ({ boardId }: { boardId: string }) => <p>Canvas of {boardId}</p>,
 }))
 
+vi.mock('@/public/PublicBoard', () => ({
+  default: ({ token, onSignIn }: { token: string; onSignIn?: () => void }) => (
+    <div>
+      <p>Guest view of {token}</p>
+      {onSignIn && <button onClick={onSignIn}>Sign in</button>}
+    </div>
+  ),
+}))
+
 afterEach(() => {
   vi.unstubAllGlobals()
   window.history.replaceState(null, '', '/')
@@ -290,4 +299,55 @@ test('someone removed from the workspace sees how to come back, and no boards', 
   expect(await screen.findByText('You are not in a workspace.')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
   expect(fetch.mock.calls.map(([path]) => path)).not.toContain('/api/boards')
+})
+
+const linkBoard = { '/api/boards/by-public/t1': { status: 200, body: { id: 'b1' } } }
+const noLink = {
+  '/api/boards/by-public/t1': {
+    status: 404,
+    body: { error: { code: 'not_found', message: 'board not found' } },
+  },
+}
+
+test('a public link opens the board itself for a person who can open it', async () => {
+  window.history.replaceState(null, '', '/p/t1')
+  mockFetch(200, { boards: [summary('b1', 'Roadmap')], all: [] }, { ...signedIn, ...linkBoard })
+  renderApp()
+  expect(await screen.findByText('Canvas of b1')).toBeInTheDocument()
+  expect(window.location.pathname).toBe('/')
+  expect(address()).toBe('b1')
+  expect(screen.queryByText(/Guest view/)).toBeNull()
+})
+
+test('a signed-in person without access keeps the guest view, with no Sign in', async () => {
+  window.history.replaceState(null, '', '/p/t1')
+  mockFetch(200, { boards: [], all: [] }, { ...signedIn, ...noLink })
+  renderApp()
+  expect(await screen.findByText('Guest view of t1')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull()
+})
+
+test('signing in from a public link lands on the board, not on Home', async () => {
+  window.history.replaceState(null, '', '/p/t1')
+  let signed = false
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string) => {
+      if (path === '/api/auth/login') {
+        signed = true
+        return new Response(null, { status: 204 })
+      }
+      if (path === '/api/auth/status')
+        return Response.json({ signed_in: signed, me: signed ? me : null })
+      if (path === '/api/boards/by-public/t1') return Response.json({ id: 'b1' })
+      return Response.json({ boards: [summary('b1', 'Roadmap')], all: [] })
+    }),
+  )
+  renderApp()
+  fireEvent.click(await screen.findByRole('button', { name: 'Sign in' }))
+  fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'ann' } })
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret-password' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  expect(await screen.findByText('Canvas of b1')).toBeInTheDocument()
+  expect(address()).toBe('b1')
 })

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, expect, test, vi } from 'vitest'
 import type { Board } from '@/api/boards'
@@ -68,10 +68,10 @@ const stamp = (version: number, updated_at = '2026-10-10T00:00:00+00:00') => ({
 const gone = () =>
   Response.json({ error: { code: 'not_found', message: 'board not found' } }, { status: 404 })
 
-function show() {
+function show(onSignIn?: () => void) {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <PublicBoard token="tok123" />
+      <PublicBoard token="tok123" onSignIn={onSignIn} />
     </QueryClientProvider>,
   )
 }
@@ -81,11 +81,13 @@ test('a guest gets the board view-only and asks only the public routes', async (
     url.endsWith('/version') ? Response.json(stamp(4)) : Response.json(board(4, ['a'])),
   )
   vi.stubGlobal('fetch', fetchMock)
-  show()
+  const signIn = vi.fn()
+  show(signIn)
   expect(await screen.findByTestId('canvas')).toHaveTextContent('1 nodes, v4, viewer, tok123')
   expect(screen.getByText('Roadmap')).toBeInTheDocument()
   expect(screen.getByText('View only')).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/')
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+  expect(signIn).toHaveBeenCalledOnce()
   for (const [url] of fetchMock.mock.calls) expect(url).toMatch(/^\/api\/public\/tok123/)
 })
 

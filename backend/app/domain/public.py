@@ -6,10 +6,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.domain.accounts import Person
 from app.domain.attempts import MemoryAttempts
 from app.domain.boards import stage_refs, task_refs, working_ranges
 from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
 from app.domain.live import room_key
+from app.domain.members import Members
 from app.domain.planning import BoardPlanning, Planning
 from app.domain.ports import Attempts, BoardRepo, LiveBoards, TaskProvider
 from app.domain.tasks import GITHUB, Task, github_url, now_iso, split_ref, task_ref
@@ -84,6 +86,15 @@ class PublicLinks:
             wait = math.ceil(opened + LINK_WINDOW_S - now)
             raise TooManyAttempts("This board is busy. Try again in a moment.", max(wait, 1))
         return found
+
+    def board_for(self, person: Person, token: str, members: Members) -> str:
+        """The board behind a link, for a signed-in person who can open it anyway. Anyone else
+        gets the answer of a wrong link, so the link tells nothing more about the board. It is
+        asked outside the guests' budget: signed-in people must not use up the link for guests."""
+        found = self._boards.by_public_token(token) if self._allowed() else None
+        if found is None or members.role(person, found[0]) is None:
+            raise NotFound("board not found")
+        return found[0]
 
     def alive(self, token: str, board_id: str) -> bool:
         """Whether the link still opens this board; asked for an open socket, outside the budget."""

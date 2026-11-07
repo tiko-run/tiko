@@ -88,6 +88,9 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
     folder = ok(client.post("/api/folders", json={"name": f"folder-{tag}"}))["id"]
     assert client.put(f"/api/boards/{board_id}/star").is_success
     assert client.put(f"/api/boards/{board_id}/folder", json={"folder_id": folder}).is_success
+    link = client.put(f"/api/boards/{board_id}/public", json={"public": True})
+    token = link.json()["public_token"] if link.is_success else "none"
+    print("WALKTOKEN", tag, link.status_code)
     trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
     assert client.delete(f"/api/boards/{trashed}").is_success
     return {
@@ -101,6 +104,7 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "invite_id": invite,
         "folder_id": folder,
         "key": "DEMO-1",
+        "token": token,
         "workspace": me["workspace"]["id"],
         "markers": [
             f"board-{tag}",
