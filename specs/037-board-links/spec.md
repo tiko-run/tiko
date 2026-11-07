@@ -91,7 +91,7 @@ A team of eight sits on a retro board; some tabs are in the background. The face
 ## Success Criteria
 
 - **SC-001**: A signed-in member opening a public link reaches an editable board in one page load, checked on the compose stack.
-- **SC-002**: A tab hidden for 5 minutes makes zero reconnects, checked by a test with timers at one tick a minute.
+- **SC-002**: A quiet room sends something to every socket at least every 15 s, so a tab that wakes once a minute never sees 30 s of silence and makes no reconnects; checked by a backend test of a room where nobody acts.
 
 ## Out of scope
 

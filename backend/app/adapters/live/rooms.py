@@ -145,6 +145,9 @@ class Room:
         self._check_timer: asyncio.TimerHandle | None = None
         self._save_timer: asyncio.TimerHandle | None = None
         self._drop_timer: asyncio.TimerHandle | None = None
+        self._keepalive_timer = asyncio.get_running_loop().call_later(
+            rooms.keepalive_s, self._keepalive
+        )
         self._saving = asyncio.Lock()
         # pycrdt objects must be freed on the thread that made them. A bound method here would
         # tie the room and the document into a cycle that the collector may free on any thread.
@@ -166,6 +169,15 @@ class Room:
         # Checked once per burst: validating a big board on every keystroke would stall the loop.
         if self._check_timer is None:
             self._check_timer = loop.call_later(self._rooms.check_delay_s, self.check)
+
+    def _keepalive(self) -> None:
+        """A browser tab in the background wakes its timers once a minute, so its own heartbeat
+        comes too late and its provider reconnects after 30 s of silence. The room speaks first."""
+        for listener in (*self.connections, *self.guests):
+            listener.push(_KEEPALIVE)
+        self._keepalive_timer = asyncio.get_running_loop().call_later(
+            self._rooms.keepalive_s, self._keepalive
+        )
 
     def _stay(self) -> None:
         if self._drop_timer:
@@ -373,6 +385,7 @@ class Room:
             self._save_timer,
             self._drop_timer,
             self._presence_timer,
+            self._keepalive_timer,
         ):
             if timer:
                 timer.cancel()
@@ -389,6 +402,12 @@ def _presence_message(states: dict[int, tuple[int, str]]) -> bytes:
         encoder.write_var_uint(clock)
         encoder.write_var_string(state)
     return create_awareness_message(encoder.to_bytes())
+
+
+# Presence of nobody: every client takes it, and it counts as hearing from the server.
+_KEEPALIVE = _presence_message({})
+# Under the 30 s after which a browser's provider gives up on a silent socket.
+KEEPALIVE_S = 15.0
 
 
 class LiveRooms:
@@ -412,6 +431,7 @@ class LiveRooms:
         self.save_idle_s = 2.0
         self.save_max_s = 10.0
         self.idle_s = 30.0
+        self.keepalive_s = KEEPALIVE_S
 
     def presence_delay(self, sockets: int) -> float:
         busy = sockets >= self.presence_busy_from

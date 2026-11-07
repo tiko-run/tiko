@@ -14,6 +14,7 @@ from pycrdt import (
 )
 from starlette.websockets import WebSocketDisconnect
 
+from app.adapters.live.rooms import KEEPALIVE_S
 from app.config import Settings
 from app.domain.boards import BoardDoc
 from app.domain.live import PLANNING_CHANGED, LiveDoc, stored_node
@@ -89,6 +90,8 @@ class World:
         self.app = create_app(Settings(db_path=":memory:"))
         self.rooms = self.app.state.live
         self.rooms.save_idle_s = self.rooms.check_delay_s = self.rooms.presence_delay_s = 0.01
+        # Out of the way of tests that read frames in order; the keepalive test sets its own.
+        self.rooms.keepalive_s = 3600
         self.clients = {"admin": signed_in(self.app)}
         self.ids = {}
         for name in ("ann", "bob", "carl", "dave"):
@@ -375,6 +378,24 @@ def test_presence_is_relayed_handed_to_newcomers_and_cleared_on_leave(world):
                 assert hello in bob.received
         assert ann.read() == presence(7, 2, "null")
     assert world.stored(board_id)["doc"]["nodes"] == []
+
+
+def test_a_quiet_room_keeps_every_socket_alive(world, monkeypatch):
+    assert KEEPALIVE_S <= 15
+    monkeypatch.setattr(world.rooms, "keepalive_s", 0.05)
+    board_id = world.board()
+    token = world.publish(board_id)
+    with world.tab("ann", board_id) as ann, world.guest(token) as guest:
+        # Nobody does anything: both still hear from the room, more than once.
+        nobody = presence_of_nobody()
+        assert [ann.read(), ann.read()] == [nobody, nobody]
+        assert [guest.read(), guest.read()] == [nobody, nobody]
+
+
+def presence_of_nobody() -> bytes:
+    encoder = Encoder()
+    encoder.write_var_uint(0)
+    return create_awareness_message(encoder.to_bytes())
 
 
 def moves(clocks: range) -> list[bytes]:

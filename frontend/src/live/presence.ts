@@ -175,9 +175,44 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener)
 }
 
-export function setBoardPeers(next: Peer[], me: string | undefined) {
+/** Tabs whose presence went stale, kept in the faces a while longer. A tab in the background
+ * renews its presence only once a minute, and others drop it after 30 s. */
+export const LINGER_MS = 60_000
+
+export function lingering() {
+  const kept = new Map<number, { peer: Peer; until: number }>()
+  return {
+    /** Changes of one awareness event; `before` is the peers as they were shown. */
+    note(
+      changes: { added: number[]; updated: number[]; removed: number[] },
+      timedOut: boolean,
+      before: Peer[],
+      now: number,
+    ) {
+      for (const client of [...changes.added, ...changes.updated]) kept.delete(client)
+      for (const client of changes.removed) {
+        const peer = before.find((one) => one.client === client)
+        // A goodbye from the server is a person who left: gone at once.
+        if (timedOut && peer) kept.set(client, { peer, until: now + LINGER_MS })
+        else kept.delete(client)
+      }
+    },
+    peers(now: number): Peer[] {
+      for (const [client, { until }] of kept) if (until <= now) kept.delete(client)
+      return [...kept.values()].map(({ peer }) => peer)
+    },
+    /** When the first lingering tab is due to go, if any lingers. */
+    soonest(): number | undefined {
+      const times = [...kept.values()].map(({ until }) => until)
+      return times.length ? Math.min(...times) : undefined
+    },
+  }
+}
+
+/** `away` are lingering tabs: they count as people on the board but draw no cursor. */
+export function setBoardPeers(next: Peer[], me: string | undefined, away: Peer[] = []) {
   tabs = next
-  const nextPeople = peopleOf(next, me)
+  const nextPeople = peopleOf([...next, ...away], me)
   if (JSON.stringify(nextPeople) !== JSON.stringify(people)) people = nextPeople
   for (const listener of listeners) listener()
 }

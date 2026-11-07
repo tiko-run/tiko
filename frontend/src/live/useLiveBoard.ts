@@ -11,6 +11,7 @@ import { LOCAL, LiveBinding } from '@/live/binding'
 import { dragFeed, remoteDrags } from '@/live/drags'
 import {
   colorOf,
+  lingering,
   parsePeers,
   pacer,
   presenceSender,
@@ -18,6 +19,7 @@ import {
   setBoardPeers,
   setBoardTravel,
   TRAVEL_MS,
+  type Peer,
   type PresenceState,
   type PresenceUser,
 } from '@/live/presence'
@@ -171,11 +173,26 @@ export function useLiveBoard(
     }
     let shown = { selections: '', drags: '' }
     const pace = pacer()
-    const onPresence = (_changes: unknown, origin: unknown) => {
+    const stale = lingering()
+    let before: Peer[] = []
+    let lingerTimer: ReturnType<typeof setTimeout> | undefined
+    const NO_CHANGES = { added: [], updated: [], removed: [] }
+    const onPresence = (
+      changes: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
+    ) => {
       // This tab's own moves are not frames of the room.
-      if (origin !== 'local') setBoardTravel(pace(performance.now()))
+      if (origin !== 'local' && origin !== 'linger') setBoardTravel(pace(performance.now()))
+      const now = Date.now()
+      stale.note(changes, origin === 'timeout', before, now)
       const next = parsePeers(awareness.getStates(), doc.clientID)
-      setBoardPeers(next, meId)
+      before = next
+      setBoardPeers(next, meId, stale.peers(now))
+      clearTimeout(lingerTimer)
+      const due = stale.soonest()
+      if (due !== undefined) {
+        lingerTimer = setTimeout(() => onPresence(NO_CHANGES, 'linger'), due - now + 100)
+      }
       const texts = {
         selections: JSON.stringify(next.map((peer) => [peer.user, peer.selected])),
         drags: JSON.stringify(next.map((peer) => peer.drag)),
@@ -251,8 +268,16 @@ export function useLiveBoard(
       if (offlineEdits && !provider.wsconnected) event.preventDefault()
     }
     window.addEventListener('beforeunload', beforeUnload)
+    // Back from the background: say so at once instead of at the next once-a-minute wake-up.
+    const onVisible = () => {
+      const state = awareness.getLocalState()
+      if (document.visibilityState === 'visible' && state) awareness.setLocalState(state)
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       window.removeEventListener('beforeunload', beforeUnload)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearTimeout(lingerTimer)
       clearTimeout(unsaved)
       clearTimeout(retry)
       clearTimeout(waiting)

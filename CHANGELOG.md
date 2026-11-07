@@ -26,6 +26,7 @@ Requires: installer
 
 ### Fixed
 
+- The people on a board no longer blink in and out of the top bar when someone's tab sits in the background, and that tab no longer reconnects every minute.
 - Opening an invite link again after you have joined takes you to your boards instead of saying the link expired.
 - Task bars no longer show through the month header of an expanded Gantt while you scroll.
 - A view-only board no longer lets you draw arrows that vanish on refresh.
