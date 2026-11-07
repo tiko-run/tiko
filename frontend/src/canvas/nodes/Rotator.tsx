@@ -1,6 +1,8 @@
 import { useReactFlow, useStore, useUpdateNodeInternals } from '@xyflow/react'
 import { RotateCw } from 'lucide-react'
-import { useEffect, useRef, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { cn } from '@/lib/utils'
 
 // Shift turns in these steps, as in most editors.
 export const ROTATE_STEP = 15
@@ -12,11 +14,27 @@ export function pointerAngle(center: { x: number; y: number }, point: { x: numbe
 
 /** The element's new turn after the pointer swept from `from` to `to`, in (-180, 180]. */
 export function turnBy(rotation: number, from: number, to: number, snap: boolean): number {
-  const step = snap ? ROTATE_STEP : 1
-  const turned = Math.round((rotation + to - from) / step) * step
+  const raw = rotation + to - from
+  const turned = snap ? Math.round(raw / ROTATE_STEP) * ROTATE_STEP : magnet(raw)
   const normal = ((((turned + 180) % 360) + 360) % 360) - 180
   return normal === -180 ? 180 : normal
 }
+
+// Upright, diagonal and upside down pull the element in from this close, so it is easy to set
+// straight again; a little further on it lets go.
+const MAGNET_STEP = 45
+const MAGNET_DEG = 4
+
+function magnet(deg: number): number {
+  const near = Math.round(deg / MAGNET_STEP) * MAGNET_STEP
+  return Math.abs(deg - near) <= MAGNET_DEG ? near : Math.round(deg)
+}
+
+/** Whether a turn sits on one of the angles the grip pulls to. */
+export const onMagnet = (deg: number) => deg % MAGNET_STEP === 0
+
+/** The angle as people read it: 0° to 359°, clockwise. */
+export const degreesLabel = (deg: number) => `${(deg + 360) % 360}°`
 
 /** The turn of a whole element: its look, grips and arrow points, around its center. */
 export const turned = (rotation: number | undefined): CSSProperties | undefined =>
@@ -62,6 +80,8 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
   const zoom = useStore((state) => state.transform[2])
   const { updateNodeData } = useReactFlow()
   const start = useRef<{ angle: number; rotation: number } | null>(null)
+  // Where the pointer is while turning, for the angle shown next to it.
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
   const angleOf = (event: PointerEvent) => {
     const box = event.currentTarget.closest('.react-flow__node')!.getBoundingClientRect()
     const center = { x: box.left + box.width / 2, y: box.top + box.height / 2 }
@@ -69,7 +89,7 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
   }
   const size = SPOT / zoom
   const offset = -(SPOT + OUT) / zoom
-  return CORNERS.map(({ top, left }) => {
+  const spots = CORNERS.map(({ top, left }) => {
     const icon = !top && !left
     return (
       <div
@@ -89,14 +109,17 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
           event.stopPropagation()
           event.currentTarget.setPointerCapture(event.pointerId)
           start.current = { angle: angleOf(event), rotation }
+          setPointer({ x: event.clientX, y: event.clientY })
         }}
         onPointerMove={(event) => {
           if (!start.current) return
           const { angle, rotation: from } = start.current
           updateNodeData(id, { rotation: turnBy(from, angle, angleOf(event), event.shiftKey) })
+          setPointer({ x: event.clientX, y: event.clientY })
         }}
         onPointerUp={(event) => {
           start.current = null
+          setPointer(null)
           event.currentTarget.releasePointerCapture(event.pointerId)
         }}
       >
@@ -104,4 +127,25 @@ function Spots({ id, rotation }: { id: string; rotation: number }) {
       </div>
     )
   })
+  return (
+    <>
+      {spots}
+      {pointer &&
+        createPortal(
+          // By the pointer, where the eye already is: it never covers the element's text.
+          <div
+            className={cn(
+              'pointer-events-none fixed z-50 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums shadow-sm',
+              onMagnet(rotation)
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-foreground text-background',
+            )}
+            style={{ left: pointer.x + 16, top: pointer.y + 16 }}
+          >
+            {degreesLabel(rotation)}
+          </div>,
+          document.body,
+        )}
+    </>
+  )
 }
