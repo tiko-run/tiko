@@ -1,6 +1,6 @@
 import { getBezierPath, Position } from '@xyflow/react'
 import { expect, test } from 'vitest'
-import { turnedBezier } from '@/canvas/TurnedEdge'
+import { turnedBezier, turnedEnd } from '@/canvas/TurnedEdge'
 
 const numbers = (path: string) => path.match(/-?\d+(\.\d+)?/g)!.map(Number)
 
@@ -26,4 +26,16 @@ test('an end on a turned element leaves along that element’s turned side', () 
   )
   expect(c1x).toBeCloseTo(0)
   expect(c1y).toBeLessThan(0)
+})
+
+test('an arrow meets a turned element in the middle of its turned side', () => {
+  const box = { x: 0, y: 0, width: 200, height: 100 }
+  // Upright: the right side's middle.
+  expect(turnedEnd(box, Position.Right, 0)).toEqual({ x: 200, y: 50 })
+  // A quarter turn clockwise takes the right side to the bottom.
+  const end = turnedEnd(box, Position.Right, 90)
+  expect(end.x).toBeCloseTo(100)
+  expect(end.y).toBeCloseTo(150)
+  // A shape whose side sits inside its box.
+  expect(turnedEnd(box, Position.Left, 0, 10)).toEqual({ x: 20, y: 50 })
 })

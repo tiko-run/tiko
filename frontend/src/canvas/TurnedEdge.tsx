@@ -1,6 +1,7 @@
 import { BaseEdge, Position, useInternalNode, type EdgeProps, type XYPosition } from '@xyflow/react'
 import { memo } from 'react'
 import { turnVector } from '@/canvas/turn'
+import { sideInset, type ShapeKind } from '@/canvas/shapes'
 import type { Turned } from '@/canvas/types'
 
 const OUT: Record<Position, XYPosition> = {
@@ -36,17 +37,66 @@ export function turnedBezier(
   return `M${source.x},${source.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${target.x},${target.y}`
 }
 
-const turnOf = (node: ReturnType<typeof useInternalNode>) =>
-  (node?.data as Turned | undefined)?.rotation ?? 0
+type Box = { x: number; y: number; width: number; height: number }
+
+const SIDE_OF: Record<string, Position> = {
+  t: Position.Top,
+  r: Position.Right,
+  b: Position.Bottom,
+  l: Position.Left,
+}
+
+/**
+ * Where an arrow meets a turned element: the middle of its side, turned around the center.
+ * Worked out from the element itself, so the arrow moves in the same frame as the element.
+ */
+export function turnedEnd(box: Box, side: Position, deg: number, inset = 0): XYPosition {
+  const half = { x: box.width / 2, y: box.height / 2 }
+  const local = {
+    [Position.Top]: { x: 0, y: -half.y },
+    [Position.Bottom]: { x: 0, y: half.y },
+    [Position.Left]: { x: -half.x + (box.width * inset) / 100, y: 0 },
+    [Position.Right]: { x: half.x - (box.width * inset) / 100, y: 0 },
+  }[side]
+  const turned = turnVector(local, deg)
+  return { x: box.x + half.x + turned.x, y: box.y + half.y + turned.y }
+}
+
+type Internal = ReturnType<typeof useInternalNode>
+
+function end(node: Internal, handle: string | null | undefined, at: XYPosition, side: Position) {
+  const deg = (node?.data as Turned | undefined)?.rotation ?? 0
+  if (!node || !deg || !handle || !SIDE_OF[handle]) return { at, deg }
+  const data = node.data as { shape?: ShapeKind }
+  const box = {
+    ...node.internals.positionAbsolute,
+    width: node.measured.width ?? 0,
+    height: node.measured.height ?? 0,
+  }
+  const inset = node.type === 'shape' && data.shape ? sideInset(data.shape) : 0
+  return { at: turnedEnd(box, side, deg, inset), deg }
+}
 
 function TurnedEdgeView(props: EdgeProps) {
-  const path = turnedBezier(
+  const source = end(
+    useInternalNode(props.source),
+    props.sourceHandleId,
     { x: props.sourceX, y: props.sourceY },
     props.sourcePosition,
-    turnOf(useInternalNode(props.source)),
+  )
+  const target = end(
+    useInternalNode(props.target),
+    props.targetHandleId,
     { x: props.targetX, y: props.targetY },
     props.targetPosition,
-    turnOf(useInternalNode(props.target)),
+  )
+  const path = turnedBezier(
+    source.at,
+    props.sourcePosition,
+    source.deg,
+    target.at,
+    props.targetPosition,
+    target.deg,
   )
   return (
     <BaseEdge
