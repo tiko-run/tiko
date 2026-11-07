@@ -1,5 +1,6 @@
 import { type NodeProps } from '@xyflow/react'
 import { Resizer } from '@/canvas/nodes/Resizer'
+import { Rotator, turned } from '@/canvas/nodes/Rotator'
 import { Ban } from 'lucide-react'
 import { memo, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canvas/fit'
@@ -38,47 +39,52 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
   const block = () => setBlocked((n) => n + 1)
 
   return (
-    <div
-      ref={box}
-      className={cn(
-        'relative h-full w-full rounded-md p-3 leading-[1.35]',
-        selected && 'ring-primary ring-2',
-      )}
-      style={{
-        background: faded(`var(--sticky-${data.color})`, data.opacity),
-        color: faded('var(--sticky-foreground)', data.opacity),
-        fontSize,
-        fontWeight: data.bold ? 600 : undefined,
-      }}
-      onInput={fit}
-      onFocus={fit}
-      onBeforeInput={(event) => {
-        const field = event.target
-        const added = (event.nativeEvent as InputEvent).data?.length ?? 1
-        if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
-      }}
-      onPaste={(event) => {
-        const field = event.target
-        const added = event.clipboardData.getData('text/plain').length
-        if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
-      }}
-    >
+    <div className="relative h-full w-full">
       <Resizer isVisible={selected && !readOnly} minWidth={80} minHeight={60} />
-      <EditableText
-        nodeId={id}
-        value={data.text}
-        field="text"
-        maxLength={STICKY_MAX_CHARS}
-        placeholder="Note"
-        className={cn(TEXT, 'h-full overflow-hidden')}
-      />
-      {blocked > 0 && (
-        <Ban
-          key={blocked}
-          aria-hidden
-          className="sticky-blocked pointer-events-none absolute inset-0 m-auto size-3/5"
+      <div
+        ref={box}
+        className={cn(
+          'relative h-full w-full rounded-md p-3 leading-[1.35]',
+          selected && 'ring-primary ring-2',
+        )}
+        style={{
+          background: faded(`var(--sticky-${data.color})`, data.opacity),
+          color: faded('var(--sticky-foreground)', data.opacity),
+          fontSize,
+          fontWeight: data.bold ? 600 : undefined,
+          ...turned(data.rotation),
+        }}
+        onInput={fit}
+        onFocus={fit}
+        onBeforeInput={(event) => {
+          const field = event.target
+          const added = (event.nativeEvent as InputEvent).data?.length ?? 1
+          if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
+        }}
+        onPaste={(event) => {
+          const field = event.target
+          const added = event.clipboardData.getData('text/plain').length
+          if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
+        }}
+      >
+        <EditableText
+          nodeId={id}
+          value={data.text}
+          field="text"
+          maxLength={STICKY_MAX_CHARS}
+          placeholder="Note"
+          className={cn(TEXT, 'h-full overflow-hidden')}
         />
-      )}
+        {blocked > 0 && (
+          <Ban
+            key={blocked}
+            aria-hidden
+            className="sticky-blocked pointer-events-none absolute inset-0 m-auto size-3/5"
+          />
+        )}
+      </div>
+      {/* Last, so a turned corner never covers it. */}
+      <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles />
     </div>
   )

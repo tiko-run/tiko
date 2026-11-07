@@ -1,5 +1,6 @@
 import { type NodeProps } from '@xyflow/react'
 import { Resizer } from '@/canvas/nodes/Resizer'
+import { Rotator, turned } from '@/canvas/nodes/Rotator'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -31,7 +32,7 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
         minWidth={SHAPE_MIN.width}
         minHeight={SHAPE_MIN.height}
       />
-      <div className="absolute inset-0" style={{ opacity }}>
+      <div className="absolute inset-0" style={{ opacity, ...turned(data.rotation) }}>
         <svg aria-hidden className="absolute inset-0 size-full overflow-visible">
           <path
             d={shapePath(data.shape, width, height)}
@@ -60,6 +61,8 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
           />
         </div>
       </div>
+      {/* Last, so a turned corner never covers it. */}
+      <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles side={sideInset(data.shape)} />
     </div>
   )

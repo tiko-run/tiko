@@ -129,7 +129,10 @@ def test_unknown_frame_fill_rejected(client, color):
 
 STYLED = [
     {"type": "frame", "data": {"title": "Done", "opacity": 40}},
-    {"type": "sticky", "data": {"text": "Idea", "color": "pink", "opacity": 75, "bold": True}},
+    {
+        "type": "sticky",
+        "data": {"text": "Idea", "color": "pink", "opacity": 75, "bold": True, "rotation": -15},
+    },
     {
         "type": "shape",
         "data": {
@@ -141,9 +144,13 @@ STYLED = [
             "dash": True,
             "bold": True,
             "size": "small",
+            "rotation": 180,
         },
     },
-    {"type": "text", "data": {"text": "Q4", "opacity": 100, "bold": False, "size": "large"}},
+    {
+        "type": "text",
+        "data": {"text": "Q4", "opacity": 100, "bold": False, "size": "large", "rotation": 0},
+    },
 ]
 
 
@@ -164,6 +171,9 @@ def test_style_round_trip(client):
         ("shape", {"stroke": 2}),
         ("shape", {"size": "huge"}),
         ("text", {"opacity": 105}),
+        ("sticky", {"rotation": 181}),
+        ("shape", {"rotation": -200}),
+        ("text", {"rotation": 12.5}),
     ],
 )
 def test_unknown_style_rejected(client, kind, style):

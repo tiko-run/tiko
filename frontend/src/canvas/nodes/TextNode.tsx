@@ -1,5 +1,6 @@
 import { type NodeProps } from '@xyflow/react'
 import { Resizer } from '@/canvas/nodes/Resizer'
+import { Rotator, turned } from '@/canvas/nodes/Rotator'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -11,25 +12,30 @@ import { useReadOnly } from '@/canvas/readonly'
 function TextNodeView({ id, data, selected }: NodeProps<TextNodeType>) {
   const readOnly = useReadOnly()
   return (
-    <div
-      className={cn(
-        'h-full w-full rounded-sm px-1 leading-[1.35]',
-        selected && 'outline-primary outline-1',
-      )}
-      style={{
-        fontSize: textPx('text', data.size),
-        fontWeight: data.bold ? 600 : undefined,
-        color: data.opacity === undefined ? undefined : faded('var(--foreground)', data.opacity),
-      }}
-    >
+    <div className="relative h-full w-full">
       <Resizer isVisible={selected && !readOnly} minWidth={40} minHeight={24} />
-      <EditableText
-        nodeId={id}
-        value={data.text}
-        field="text"
-        maxLength={5000}
-        placeholder="Text"
-      />
+      <div
+        className={cn(
+          'h-full w-full rounded-sm px-1 leading-[1.35]',
+          selected && 'outline-primary outline-1',
+        )}
+        style={{
+          fontSize: textPx('text', data.size),
+          fontWeight: data.bold ? 600 : undefined,
+          color: data.opacity === undefined ? undefined : faded('var(--foreground)', data.opacity),
+          ...turned(data.rotation),
+        }}
+      >
+        <EditableText
+          nodeId={id}
+          value={data.text}
+          field="text"
+          maxLength={5000}
+          placeholder="Text"
+        />
+      </div>
+      {/* Last, so a turned corner never covers it. */}
+      <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles />
     </div>
   )
