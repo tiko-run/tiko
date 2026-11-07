@@ -6,6 +6,7 @@ import {
   isStandIn,
   snippetOrigin,
   withStandIns,
+  withoutStandIns,
 } from '@/canvas/clipboard'
 import type { Task } from '@/api/tasks'
 import type { AppEdge, AppNode } from '@/canvas/types'
@@ -131,4 +132,6 @@ test('while a drag copies, a stand-in stays where it began, before its node and 
     ['c', undefined, { x: 0, y: 0 }, undefined],
   ])
   expect(shown.filter((n) => isStandIn(n.id)).every((n) => n.draggable === false)).toBe(true)
+  // At the drop the board takes its nodes back as they were.
+  expect(withoutStandIns(shown)).toEqual(nodes)
 })

@@ -139,6 +139,7 @@ export function dragCopy(
 }
 
 const STAY = 'stay:'
+const GHOST = 'drag-ghost'
 
 /** Not a node of the board: a stand-in drawn where a copying drag began. */
 export const isStandIn = (id: string) => id.startsWith(STAY)
@@ -165,7 +166,20 @@ export function withStandIns(nodes: AppNode[], from: Map<string, XYPosition>): A
       connectable: false,
       className: undefined,
     } as AppNode
-    const ghost = { ...n, className: [n.className, 'drag-ghost'].filter(Boolean).join(' ') }
+    const ghost = { ...n, className: [n.className, GHOST].filter(Boolean).join(' ') }
     return [standIn, ghost]
+  })
+}
+
+/** The board's own nodes out of what is drawn: no stand-ins, no ghost look. */
+export function withoutStandIns(nodes: AppNode[]): AppNode[] {
+  return nodes.flatMap((n) => {
+    if (isStandIn(n.id)) return []
+    if (!n.className?.includes(GHOST)) return [n]
+    const rest = n.className
+      .split(' ')
+      .filter((name) => name !== GHOST)
+      .join(' ')
+    return [{ ...n, className: rest || undefined }]
   })
 }

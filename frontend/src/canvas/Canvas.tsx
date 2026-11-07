@@ -41,6 +41,7 @@ import {
   dragCopy,
   isStandIn,
   withStandIns,
+  withoutStandIns,
   clipboardId,
   getClipboard,
   setClipboard,
@@ -631,7 +632,7 @@ export function BoardCanvas({
   }
 
   // The store also holds what is only drawn, such as the stand-ins of a copying drag.
-  const boardNodes = () => getNodes().filter((n) => !isStandIn(n.id))
+  const boardNodes = () => withoutStandIns(getNodes())
 
   // Cards dropped on a module that takes them join it; the rest may change frames.
   const dropNodes = (ids: string[]) => {
