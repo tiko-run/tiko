@@ -72,6 +72,8 @@ def absent_or(kind: Any) -> Any:
 FrameFill = Literal["none", "yellow", "orange", "pink", "violet", "blue", "green"]
 Opacity = Annotated[int, Field(ge=10, le=100, multiple_of=5)]
 TextSize = Literal["small", "medium", "large"]
+# Degrees clockwise; a turned element is drawn around its center.
+Rotation = Annotated[int, Field(ge=-180, le=180)]
 
 
 class FrameData(_Strict):
@@ -85,6 +87,7 @@ class StickyData(_Strict):
     color: str = Field(default="yellow", max_length=20)
     opacity: absent_or(Opacity) = None
     bold: absent_or(bool) = None
+    rotation: absent_or(Rotation) = None
 
 
 ShapeKind = Literal[
@@ -110,6 +113,7 @@ class ShapeData(_Strict):
     dash: absent_or(bool) = None
     bold: absent_or(bool) = None
     size: absent_or(TextSize) = None
+    rotation: absent_or(Rotation) = None
 
 
 class TextData(_Strict):
@@ -117,6 +121,7 @@ class TextData(_Strict):
     opacity: absent_or(Opacity) = None
     bold: absent_or(bool) = None
     size: absent_or(TextSize) = None
+    rotation: absent_or(Rotation) = None
 
 
 class ModuleData(_Strict):

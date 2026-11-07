@@ -29,6 +29,7 @@ Click a card for assignee, priority, last update and a link to the task. Links o
 - **Back:** after search or the reminder list moves the board, press `B` or the arrow under the zoom buttons to return.
 - **Far out:** at 20% zoom and below, elements turn into blocks in their colors, with grey bars where the text was, and keep their arrows. A big board stays smooth to pan and zoom. Elements still select and move there; to edit text or draw a new arrow, zoom in. A double-click on an element zooms in on it.
 - **Resize** from a corner, or from one side to change only the width or the height.
+- **Rotate** a sticky note, a shape or a text: select it and drag from just outside any corner, where the pointer turns into a circular arrow. The angle shows next to the pointer, positive counterclockwise and negative clockwise, as in geometry, and lights up when the element sits straight, diagonal or upside down: it pulls in to those from a few degrees away, so a crooked element is easy to set right again. Hold `Shift` to turn in 15° steps. A turned element still resizes from its own sides and corners, and its arrows follow its turned sides.
 - **Smart guides** snap what you drag or resize to the edges, centers and gaps of its neighbors. Hold `⌘` or `Ctrl` while you drag to move without them.
 - **Copy by dragging:** hold `Alt` and start dragging; you can let go of `Alt` after that. The originals stay where they were, and their copies follow the pointer and land where you drop them, arrows between them included. One Undo takes the copies back.
 

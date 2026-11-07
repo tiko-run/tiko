@@ -21,7 +21,10 @@ export const FRAME_COLORS = ['none', ...STICKY_COLORS] as const
 export type FrameData = { title: string; color?: (typeof FRAME_COLORS)[number] } & Faded
 export type FrameNode = Node<FrameData, 'frame'>
 
-export type StickyData = { text: string; color: StickyColor; bold?: boolean } & Faded
+/** Degrees clockwise around the center; absent is 0. */
+export type Turned = { rotation?: number }
+
+export type StickyData = { text: string; color: StickyColor; bold?: boolean } & Faded & Turned
 export type StickyNode = Node<StickyData, 'sticky'>
 
 // `none` leaves a shape see-through, `surface` fills it with the card surface.
@@ -34,10 +37,11 @@ export type ShapeData = {
   dash?: boolean
   bold?: boolean
   size?: TextSize
-} & Faded
+} & Faded &
+  Turned
 export type ShapeNode = Node<ShapeData, 'shape'>
 
-export type TextData = { text: string; bold?: boolean; size?: TextSize } & Faded
+export type TextData = { text: string; bold?: boolean; size?: TextSize } & Faded & Turned
 export type TextNode = Node<TextData, 'text'>
 
 export type ModuleData = { kind: string; title?: string; content: unknown }

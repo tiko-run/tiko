@@ -1,6 +1,7 @@
+import { turnedBounds } from '@/canvas/turn'
 import type { XYPosition } from '@xyflow/react'
 import { absolute } from '@/canvas/frames'
-import type { AppNode } from '@/canvas/types'
+import type { AppNode, Turned } from '@/canvas/types'
 
 export type Alignment = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'
 export type Distribution = 'horizontal' | 'vertical'
@@ -19,11 +20,17 @@ export function movers(nodes: AppNode[]): AppNode[] {
 
 export function boxesOf(moving: AppNode[], all: AppNode[]): Box[] {
   const byId = new Map(all.map((n) => [n.id, n]))
+  // A turned element lines up by what is drawn; a shift of that box moves the element as much.
   return moving.map((n) => ({
     id: n.id,
-    ...absolute(n, byId),
-    width: n.measured?.width ?? n.width ?? 0,
-    height: n.measured?.height ?? n.height ?? 0,
+    ...turnedBounds(
+      {
+        ...absolute(n, byId),
+        width: n.measured?.width ?? n.width ?? 0,
+        height: n.measured?.height ?? n.height ?? 0,
+      },
+      (n.data as Turned).rotation ?? 0,
+    ),
   }))
 }
 

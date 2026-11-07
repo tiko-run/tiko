@@ -1,5 +1,6 @@
 import { type NodeProps } from '@xyflow/react'
 import { Resizer } from '@/canvas/nodes/Resizer'
+import { Rotator, turned, useTurnedHandles } from '@/canvas/nodes/Rotator'
 import { memo } from 'react'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -11,6 +12,7 @@ import { useReadOnly } from '@/canvas/readonly'
 
 function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeNodeType>) {
   const readOnly = useReadOnly()
+  useTurnedHandles(id, data.rotation)
   const stroke = data.stroke ?? 1.5
   // On the drawing and the text as one layer, not the node, so the selection outline and handles stay solid.
   const opacity = data.opacity === undefined ? undefined : data.opacity / 100
@@ -20,6 +22,7 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
       className={cn('relative h-full w-full', selected && 'outline-primary outline-1')}
       // The outline and the text share one color, dark on a filled shape in both themes.
       style={{
+        ...turned(data.rotation),
         color:
           data.color === 'none' || data.color === 'surface'
             ? undefined
@@ -28,6 +31,7 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
     >
       <Resizer
         isVisible={selected && !readOnly}
+        rotation={data.rotation}
         minWidth={SHAPE_MIN.width}
         minHeight={SHAPE_MIN.height}
       />
@@ -60,6 +64,8 @@ function ShapeNodeView({ id, data, selected, width = 0, height = 0 }: NodeProps<
           />
         </div>
       </div>
+      {/* Last, so the element never covers its turning spots. */}
+      <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles side={sideInset(data.shape)} />
     </div>
   )

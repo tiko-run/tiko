@@ -8,6 +8,7 @@ Requires: installer
 
 ### Added
 
+- Turn sticky notes, shapes and text to any angle, as in Miro: drag from just outside a corner, with Shift for 15° steps. Arrows follow the turned sides. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).
 - Add yesterday's cards again without retyping the query: the card tool lists your last five inputs while its field is empty. They stay in your browser. See [What you can add](https://docs.tiko.run/what-you-can-add/).
 - A new instance asks its first admin to pick a password of their own at the first sign-in, before anything else opens: the generated one sat in a log, a file or a hosting variable. tiko then deletes `data/password`. Instances that already have people are not affected. See [The first password](https://docs.tiko.run/security/#the-first-password).
 - Fold a big plan down to its top rows and open it again with one click: Collapse all and Expand all sit at the top of the Gantt's task column. See [Gantt](https://docs.tiko.run/gantt/).
