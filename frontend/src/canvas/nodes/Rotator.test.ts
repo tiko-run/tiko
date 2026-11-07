@@ -40,10 +40,12 @@ test('upright, diagonal and upside down pull the element in from a few degrees a
   expect(turnBy(0, 0, 30, false)).toBe(30)
 })
 
-test('the angle reads with its way round and lights up on a pulled angle', () => {
-  expect(degreesLabel(-45)).toBe('−45°')
+test('the angle reads counterclockwise as positive and lights up on a pulled angle', () => {
+  // Stored clockwise, as CSS turns it: a turn to the left reads positive.
+  expect(degreesLabel(-45)).toBe('45°')
+  expect(degreesLabel(90)).toBe('−90°')
   expect(degreesLabel(180)).toBe('180°')
-  expect(degreesLabel(90)).toBe('90°')
+  expect(degreesLabel(0)).toBe('0°')
   expect(onMagnet(-90)).toBe(true)
   expect(onMagnet(30)).toBe(false)
 })

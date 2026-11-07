@@ -33,8 +33,14 @@ function magnet(deg: number): number {
 /** Whether a turn sits on one of the angles the grip pulls to. */
 export const onMagnet = (deg: number) => deg % MAGNET_STEP === 0
 
-/** The angle with its way round: clockwise is positive, counterclockwise negative. */
-export const degreesLabel = (deg: number) => `${deg < 0 ? '−' : ''}${Math.abs(deg)}°`
+/**
+ * The angle as geometry and Figma read it: counterclockwise is positive. The stored turn is
+ * clockwise, as CSS draws it on a screen whose y axis points down.
+ */
+export const degreesLabel = (deg: number) => {
+  const read = deg === 180 ? 180 : -deg
+  return `${read < 0 ? '−' : ''}${Math.abs(read)}°`
+}
 
 /** The turn of a whole element: its look, grips and arrow points, around its center. */
 export const turned = (rotation: number | undefined): CSSProperties | undefined =>
