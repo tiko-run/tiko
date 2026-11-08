@@ -249,6 +249,22 @@ def test_a_moving_webp_loses_its_exif_and_keeps_moving(client):
     assert played.info["duration"] == 200
 
 
+def test_a_wide_animated_webp_plays_from_its_copy_at_its_own_pace(client):
+    frames = [Image.new("RGB", (1100, 40), c) for c in ((255, 0, 0), (0, 0, 255), (0, 255, 0))]
+    out = io.BytesIO()
+    frames[0].save(out, "WEBP", save_all=True, append_images=frames[1:], duration=[70, 120, 70])
+    board_id = board(client)
+    file_id = upload(client, board_id, out.getvalue(), "image/webp").json()["id"]
+    played = opened(client.get(f"/api/boards/{board_id}/files/{file_id}", params={"move": 1}))
+    assert played.width == 1024
+    timing = []
+    for n in range(played.n_frames):
+        played.seek(n)
+        played.load()
+        timing.append(played.info["duration"])
+    assert timing == [70, 120, 70]
+
+
 def test_a_wide_gamut_picture_gets_srgb_copies(client):
     from PIL import ImageCms
 

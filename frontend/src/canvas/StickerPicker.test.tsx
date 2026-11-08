@@ -7,6 +7,7 @@ const STICKERS = [
   { code: '1f600', name: 'smile', tags: [], category: 'Smileys and emotions' },
   { code: '1f525', name: 'fire', tags: ['lit'], category: 'Smileys and emotions' },
   { code: '1f40c', name: 'snail', tags: [], category: 'Animals and nature' },
+  { code: '2648', name: 'Aries', tags: [], category: 'Symbols' },
 ]
 const LOGO = {
   id: 'p1',
@@ -19,8 +20,10 @@ afterEach(() => {
   localStorage.clear()
 })
 
-function serve(pack: unknown[] = []) {
+function serve(pack: unknown[] = [], packStatus = 200) {
   const fetch = vi.fn((url: string, init?: RequestInit) => {
+    if (url === '/api/stickers/pack' && !init?.method && packStatus !== 200)
+      return Promise.resolve(new Response(null, { status: packStatus }))
     const body =
       url === '/api/stickers'
         ? { stickers: STICKERS }
@@ -35,7 +38,9 @@ function serve(pack: unknown[] = []) {
 
 function renderPicker(onPick = vi.fn()) {
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <StickerPicker open onOpenChange={vi.fn()} onPick={onPick} />
     </QueryClientProvider>,
   )
@@ -87,4 +92,32 @@ test('a sticker of the pack is picked or removed', async () => {
       expect.objectContaining({ method: 'DELETE' }),
     ),
   )
+})
+
+test('search does not mind letter case', async () => {
+  serve()
+  renderPicker()
+  await screen.findByRole('button', { name: 'fire' })
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search stickers' }), {
+    target: { value: 'aries' },
+  })
+  expect(screen.getByRole('button', { name: 'Aries' })).toBeTruthy()
+})
+
+test('a pack that did not load says so and offers to try again', async () => {
+  serve([], 500)
+  renderPicker()
+  fireEvent.click(await screen.findByRole('tab', { name: 'Workspace' }))
+  expect(await screen.findByText(/did not load/)).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
+  expect(screen.queryByText(/Save to stickers/)).toBeNull()
+})
+
+test('a sticker dragged onto the board goes to the recent ones', async () => {
+  serve()
+  renderPicker()
+  const fire = await screen.findByRole('button', { name: 'fire' })
+  fireEvent.dragEnd(fire, { dataTransfer: { dropEffect: 'copy' } })
+  fireEvent.click(screen.getByRole('tab', { name: 'Recent' }))
+  expect(screen.getByRole('button', { name: 'fire' })).toBeTruthy()
 })

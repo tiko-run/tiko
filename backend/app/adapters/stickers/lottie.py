@@ -1,5 +1,7 @@
+import contextlib
 import io
 import json
+import logging
 import lzma
 import os
 import threading
@@ -11,6 +13,7 @@ from rlottie_python import LottieAnimation
 from app.domain.stickers import Sticker
 
 NOTO = Path(__file__).parent / "noto"
+log = logging.getLogger(__name__)
 # A sticker is placed 160 px wide; 256 gives a retina screen at 100 % zoom nearly every pixel.
 LARGE_PX = 256
 # A panel cell is 48 px; twice that keeps it sharp on a retina screen.
@@ -87,6 +90,9 @@ class LottieStickers:
         entries = json.loads((folder / "catalog.json").read_text())
         self._catalog = [Sticker(**entry) for entry in entries]
         self._codes = {sticker.code for sticker in self._catalog}
+        # One lock per drawing; a few thousand at most, for the set in two sizes, still and moving.
+        self._locks: dict[str, threading.Lock] = {}
+        self._locks_lock = threading.Lock()
 
     def catalog(self) -> list[Sticker]:
         return self._catalog
@@ -99,13 +105,33 @@ class LottieStickers:
         kept = self._cache / f"{name}-{DRAWING}.webp" if self._cache else None
         if kept and kept.exists():
             return kept.read_bytes()
-        source = lzma.decompress((self._folder / f"{code}.json.xz").read_bytes()).decode()
-        with _DRAWING_AT_ONCE:
-            data = _draw(LottieAnimation.from_data(source), LARGE_PX if large else SMALL_PX, moving)
-        if kept:
-            kept.parent.mkdir(parents=True, exist_ok=True)
-            # Written aside and renamed, so a reader never gets half a file.
-            part = kept.with_suffix(f".{os.getpid()}.{threading.get_ident()}.part")
-            part.write_bytes(data)
-            part.replace(kept)
+        # A board opened cold asks for the same sticker from many browsers at once: the first
+        # request draws it, the others wait for that drawing instead of making their own.
+        with self._drawing(name):
+            if kept and kept.exists():
+                return kept.read_bytes()
+            source = lzma.decompress((self._folder / f"{code}.json.xz").read_bytes()).decode()
+            with _DRAWING_AT_ONCE:
+                side = LARGE_PX if large else SMALL_PX
+                data = _draw(LottieAnimation.from_data(source), side, moving)
+            if kept:
+                _keep(kept, data)
         return data
+
+    def _drawing(self, name: str) -> threading.Lock:
+        with self._locks_lock:
+            return self._locks.setdefault(name, threading.Lock())
+
+
+def _keep(path: Path, data: bytes) -> None:
+    """Best effort: a full or read-only disk still serves the sticker, drawn again next time."""
+    part = path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.part")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Written aside and renamed, so a reader never gets half a file.
+        part.write_bytes(data)
+        part.replace(path)
+    except OSError:
+        log.warning("sticker not kept in %s", path.parent, exc_info=True)
+        with contextlib.suppress(OSError):
+            part.unlink(missing_ok=True)

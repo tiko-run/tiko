@@ -10,7 +10,7 @@ const stickerSchema = z.object({
 })
 export type Sticker = z.infer<typeof stickerSchema>
 
-const packStickerSchema = z.object({ id: z.string(), name: z.string(), file: storedSchema })
+export const packStickerSchema = z.object({ id: z.string(), name: z.string(), file: storedSchema })
 export type PackSticker = z.infer<typeof packStickerSchema>
 
 export function getStickers() {
@@ -33,8 +33,10 @@ export function stickerUrl(code: string, width: number, moving = false, source?:
   return `${base}?${params}`
 }
 
-/** The React Query key of the workspace's pack. */
+/** The React Query key of every workspace's pack, for invalidating them all. */
 export const PACK_KEY = ['stickers', 'pack']
+/** One workspace's pack: signed in to another, the panel never shows the last one's. */
+export const packKey = (workspace: string | undefined) => [...PACK_KEY, workspace ?? null]
 
 export function getPack() {
   return fetchJson('/api/stickers/pack', z.object({ stickers: z.array(packStickerSchema) })).then(

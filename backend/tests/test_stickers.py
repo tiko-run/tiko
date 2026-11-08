@@ -1,6 +1,8 @@
 """Spec 039 slice 3: the built-in stickers and the workspace's own pack."""
 
 import io
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
@@ -81,6 +83,31 @@ def test_a_guest_sees_stickers_through_the_public_link(client):
     assert guest.get(url, params={"w": 512, "move": 1}).status_code == 200
     client.put(f"/api/boards/{board_id}/public", json={"public": False})
     assert guest.get(url).status_code == 404
+
+
+def test_a_sticker_is_served_when_the_cache_cannot_keep_it(tmp_path):
+    blocked = tmp_path / "file"
+    blocked.write_text("not a folder")
+    art = LottieStickers(blocked / "stickers")
+    assert art.picture(FIRE, large=False, moving=False)
+    assert list(tmp_path.iterdir()) == [blocked]
+
+
+def test_requests_at_once_draw_a_sticker_once(tmp_path, monkeypatch):
+    drawn = []
+    real = lottie._draw
+
+    def slow(*args):
+        drawn.append(args)
+        time.sleep(0.2)
+        return real(*args)
+
+    monkeypatch.setattr(lottie, "_draw", slow)
+    art = LottieStickers(tmp_path)
+    with ThreadPoolExecutor(4) as pool:
+        shown = list(pool.map(lambda _: art.picture(FIRE, large=False, moving=False), range(4)))
+    assert len(drawn) == 1
+    assert len(set(shown)) == 1
 
 
 def test_a_drawn_sticker_is_kept_and_read_again(tmp_path, monkeypatch):

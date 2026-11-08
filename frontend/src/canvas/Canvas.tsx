@@ -146,12 +146,13 @@ import { BoardTimers } from '@/timers/BoardTimers'
 import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { uploadFile } from '@/api/files'
-import { getPack, linkPackSticker, PACK_KEY, saveToPack } from '@/api/stickers'
+import { getPack, linkPackSticker, PACK_KEY, packKey, saveToPack } from '@/api/stickers'
 import {
   STICKER_DRAG,
   STICKER_SIDE,
   STICKER_GAP,
   stickerSize,
+  readStickerChoice,
   STICKER_TONE,
   type StickerChoice,
 } from '@/canvas/stickers'
@@ -628,10 +629,13 @@ export function BoardCanvas({
     }
     // Picked one after another, stickers line up to the right instead of hiding each other.
     const position = { x: center.x - size.width / 2, y: center.y - size.height / 2 }
+    // Compared on the board, not inside a frame: a sticker that landed in one sits there by
+    // its frame's corner.
     const taken = () =>
-      getNodes().some(
-        (n) => Math.abs(n.position.x - position.x) < 1 && Math.abs(n.position.y - position.y) < 1,
-      )
+      getNodes().some((n) => {
+        const at = originOf(n.id) ?? n.position
+        return Math.abs(at.x - position.x) < 1 && Math.abs(at.y - position.y) < 1
+      })
     while (taken()) position.x += STICKER_SIDE + STICKER_GAP
     const node = {
       id: newId(),
@@ -647,7 +651,11 @@ export function BoardCanvas({
   }
 
   // Pictures in the pack already: saving them again would change nothing.
-  const pack = useQuery({ queryKey: PACK_KEY, queryFn: getPack, enabled: !guest && !readOnly })
+  const pack = useQuery({
+    queryKey: packKey(me?.workspace?.id),
+    queryFn: getPack,
+    enabled: !guest && !readOnly,
+  })
   const savedStickers = useMemo(() => new Set(pack.data?.map((s) => s.file.id)), [pack.data])
 
   const saveSticker = (file: string) =>
@@ -1161,10 +1169,8 @@ export function BoardCanvas({
         const sticker = event.dataTransfer.getData(STICKER_DRAG)
         if (!readOnly && sticker) {
           event.preventDefault()
-          void addSticker(JSON.parse(sticker) as StickerChoice, {
-            x: event.clientX,
-            y: event.clientY,
-          })
+          const choice = readStickerChoice(sticker)
+          if (choice) void addSticker(choice, { x: event.clientX, y: event.clientY })
           return
         }
         if (readOnly || !event.dataTransfer.files.length) return

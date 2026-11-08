@@ -17,9 +17,12 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { getAuthStatus } from '@/api/auth'
 import {
   getPack,
   PACK_KEY,
+  packKey,
   getStickers,
   packPictureUrl,
   removeFromPack,
@@ -38,6 +41,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useReducedMotion } from '@/lib/motion'
 import { SHORTCUTS, withShortcut } from '@/lib/shortcuts'
+import { ERROR_MS } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
 // How long the pointer rests on a sticker before it plays.
@@ -64,6 +68,7 @@ function Cell({
   name,
   choice,
   onPick,
+  onDropped,
   onRemove,
 }: {
   src: string
@@ -72,6 +77,8 @@ function Cell({
   name: string
   choice: StickerChoice
   onPick: (choice: StickerChoice) => void
+  /** Dragged onto the board rather than clicked. */
+  onDropped: (choice: StickerChoice) => void
   onRemove?: () => void
 }) {
   // One sticker plays at a time, the one the pointer rests on: the panel stays light however
@@ -103,6 +110,9 @@ function Cell({
           event.dataTransfer.setData(STICKER_DRAG, JSON.stringify(choice))
           event.dataTransfer.effectAllowed = 'copy'
         }}
+        onDragEnd={(event) => {
+          if (event.dataTransfer.dropEffect !== 'none') onDropped(choice)
+        }}
         onClick={() => onPick(choice)}
         className="hover:bg-accent focus-visible:ring-ring grid size-14 place-items-center rounded-md outline-none focus-visible:ring-2"
       >
@@ -132,7 +142,8 @@ function Cell({
 }
 
 function matches(sticker: Sticker, query: string) {
-  return sticker.name.includes(query) || sticker.tags.some((tag) => tag.includes(query))
+  const found = (text: string) => text.toLowerCase().includes(query)
+  return found(sticker.name) || sticker.tags.some(found)
 }
 
 /** The sticker panel over the toolbar: the built-in set by section, recents and the pack. */
@@ -155,17 +166,22 @@ export function StickerPicker({
     staleTime: Infinity,
     enabled: open,
   })
-  const pack = useQuery({ queryKey: PACK_KEY, queryFn: getPack, enabled: open })
+  const workspace = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me?.workspace
+  const pack = useQuery({ queryKey: packKey(workspace?.id), queryFn: getPack, enabled: open })
   const remove = useMutation({
     mutationFn: removeFromPack,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: PACK_KEY }),
+    onError: (error) =>
+      toast.error('Not removed', { description: error.message, duration: ERROR_MS }),
   })
 
+  const remember = (choice: StickerChoice) => {
+    if (!('code' in choice)) return
+    rememberSticker(choice.code)
+    setRecent(readRecentStickers())
+  }
   const pick = (choice: StickerChoice) => {
-    if ('code' in choice) {
-      rememberSticker(choice.code)
-      setRecent(readRecentStickers())
-    }
+    remember(choice)
     onPick(choice)
   }
 
@@ -188,6 +204,7 @@ export function StickerPicker({
       name={s.name}
       choice={{ pack: s }}
       onPick={pick}
+      onDropped={remember}
       onRemove={() => remove.mutate(s.id)}
     />
   )
@@ -199,6 +216,7 @@ export function StickerPicker({
       name={s.name}
       choice={{ code: s.code }}
       onPick={pick}
+      onDropped={remember}
     />
   )
 
@@ -260,6 +278,19 @@ export function StickerPicker({
         <div className="h-80 overflow-y-auto p-2">
           {catalog.isError ? (
             <Note>Stickers did not load. Close the panel and open it again.</Note>
+          ) : showPack && pack.isPending ? (
+            <Note>Loading the workspace's stickers…</Note>
+          ) : showPack && pack.isError ? (
+            <Note>
+              The workspace's stickers did not load.{' '}
+              <button
+                type="button"
+                className="text-primary underline-offset-2 hover:underline"
+                onClick={() => void pack.refetch()}
+              >
+                Try again
+              </button>
+            </Note>
           ) : showPack && packed.length === 0 ? (
             <Note>
               Select a picture on the board and pick <b>Save to stickers</b>. Everyone in the
