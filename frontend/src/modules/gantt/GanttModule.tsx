@@ -598,21 +598,24 @@ function trackerNotes(row: Row, parent: boolean, task: Task | undefined, off: Tr
 }
 
 // A little taller than a bar, so its dashes show around one it overlaps.
-const GHOST_TOP = 4
-const GHOST_HEIGHT = 26
 const GHOST = 'absolute top-[4px] h-[26px] rounded-[5px]'
-// Where a bar sits in its row, under the frame's top.
-const BAR_TOP = 7
-const BAR_HEIGHT = 20
+// The frame's press area: most of the row's height, so the strips above and below a bar are
+// easy to hit.
+const HIT_TOP = 1
+const HIT_HEIGHT = 32
+const HIT = 'absolute top-[1px] h-[32px] rounded-[5px]'
+// Where a bar or a stage sits in its row; it keeps its own presses.
+const BAR_TOP = 6
+const BAR_HEIGHT = 22
 
 /** The frame's area less the bar, so the bar and its stages keep every press of their own. */
 function aroundBar(width: number, left: number, bar?: { left: number; right: number }) {
   if (!bar) return undefined
   const from = Math.min(Math.max(bar.left - left, 0), width)
   const to = Math.min(Math.max(bar.right - left, 0), width)
-  const top = BAR_TOP - GHOST_TOP
+  const top = BAR_TOP - HIT_TOP
   const bottom = top + BAR_HEIGHT
-  const h = GHOST_HEIGHT
+  const h = HIT_HEIGHT
   return `polygon(evenodd, 0 0, ${width}px 0, ${width}px ${h}px, 0 ${h}px, 0 0, ${from}px ${top}px, ${from}px ${bottom}px, ${to}px ${bottom}px, ${to}px ${top}px, ${from}px ${top}px)`
 }
 
@@ -644,7 +647,7 @@ function DriftGhost({
         <button
           type="button"
           aria-label={`Tracker dates: ${trackerDates(tracked)}`}
-          className={cn(GHOST, 'bg-warning/10 hover:bg-warning/20 z-[1] cursor-pointer')}
+          className={cn(HIT, 'hover:bg-warning/15 z-[1] cursor-pointer')}
           style={{ ...box, clipPath: aroundBar(box.width, box.left, bar) }}
         />
       </PopoverTrigger>
