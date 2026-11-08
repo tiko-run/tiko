@@ -1934,13 +1934,22 @@ class PgFileStore(_Repo):
             return found
         return StoredFile(file_id, picture.width, picture.height, picture.color, picture.moving)
 
-    def link(self, board_id: str, file_id: str) -> None:
+    def link(self, board_id: str, file_id: str) -> bool:
         with self._tx() as conn:
+            # The lock holds the cleanup off until the file is marked used again.
+            row = conn.execute(
+                "SELECT unused_since FROM files WHERE id = %s FOR KEY SHARE", (file_id,)
+            ).fetchone()
+            if row is None:
+                return False
+            if row["unused_since"] is not None:
+                conn.execute("UPDATE files SET unused_since = NULL WHERE id = %s", (file_id,))
             conn.execute(
                 "INSERT INTO board_files (workspace_id, board_id, file_id) VALUES (%s, %s, %s)"
                 " ON CONFLICT DO NOTHING",
                 (self._ws, board_id, file_id),
             )
+        return True
 
     def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
         with self._tx() as conn:
@@ -2051,10 +2060,40 @@ def _index_files(conn: psycopg.Connection, ws: str, board_id: str, doc: BoardDoc
     files = image_files(doc)
     if files:
         conn.execute(
+            "UPDATE files SET unused_since = NULL WHERE id = ANY(%s) AND unused_since IS NOT NULL",
+            (list(files),),
+        )
+        conn.execute(
             "INSERT INTO board_files (workspace_id, board_id, file_id)"
             " SELECT %s, %s, id FROM files WHERE id = ANY(%s) ON CONFLICT DO NOTHING",
             (ws, board_id, list(files)),
         )
+
+
+# Files a saved board shows, in the trash too, and files a sticker pack holds.
+_USED_FILES = (
+    "SELECT n -> 'data' ->> 'file' AS id FROM boards b, jsonb_array_elements(b.doc -> 'nodes') n"
+    " WHERE n -> 'data' ->> 'file' IS NOT NULL UNION SELECT file_id FROM stickers"
+)
+
+
+class PgUnusedFiles(_Repo):
+    def clean(self, now: str, before: str) -> int:
+        with self._db.jobs() as conn:
+            conn.execute(
+                f"WITH used AS ({_USED_FILES}) UPDATE files f"
+                " SET unused_since = CASE WHEN f.id IN (SELECT id FROM used) THEN NULL"
+                " ELSE %s::timestamptz END"
+                " WHERE (f.unused_since IS NULL) = (f.id NOT IN (SELECT id FROM used))",
+                (now,),
+            )
+        with self._db.jobs() as conn:
+            # Counted again: a board saved since the first step may show the file once more.
+            return conn.execute(
+                f"WITH used AS ({_USED_FILES}) DELETE FROM files"
+                " WHERE unused_since <= %s AND id NOT IN (SELECT id FROM used)",
+                (before,),
+            ).rowcount
 
 
 # The names main.py builds the app from, the same in both adapters until SQLite goes.
@@ -2079,4 +2118,5 @@ InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces
 FileStore = PgFileStore
+UnusedFiles = PgUnusedFiles
 StickerPack = PgStickerPack

@@ -1,3 +1,4 @@
+import hashlib
 import math
 import secrets
 import time
@@ -6,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.domain.accounts import Person
+from app.domain.accounts import Person, address_key
 from app.domain.attempts import MemoryAttempts
 from app.domain.boards import stage_refs, task_refs, working_ranges
 from app.domain.errors import DomainError, Forbidden, NotFound, TooManyAttempts
@@ -21,6 +22,11 @@ from app.domain.tasks import GITHUB, Task, github_url, now_iso, split_ref, task_
 LINK_REQUESTS = 3000
 LINK_WINDOW_S = 60.0
 _LINK = "link"
+# Each guest's own budget for the pictures of public boards. A browser asks for each picture
+# about once, so a person opening big boards stays far below it; a script pulling pictures not.
+PICTURE_REQUESTS = 1500
+PICTURE_WINDOW_S = 60.0
+_PICTURES = "pictures"
 
 
 class PublicBoard(BaseModel):
@@ -87,9 +93,16 @@ class PublicLinks:
             raise TooManyAttempts("This board is busy. Try again in a moment.", max(wait, 1))
         return found
 
-    def files_of(self, token: str) -> str:
-        """The board behind a link, for its pictures. Outside the guests' budget: a board asks
-        for many pictures at once, each only once per browser."""
+    def files_of(self, token: str, address: str) -> str:
+        """The board behind a link, for its pictures. Outside the link's budget, since a board
+        asks for many pictures at once, but within the guest's own one, counted by address."""
+        # Kept by hash for the window only: the budget needs to tell guests apart, not name them.
+        key = hashlib.sha256(address_key(address).encode()).hexdigest()
+        now = self._clock()
+        opened = self._attempts.spend(_PICTURES, key, PICTURE_REQUESTS, PICTURE_WINDOW_S, now)
+        if opened is not None:
+            wait = math.ceil(opened + PICTURE_WINDOW_S - now)
+            raise TooManyAttempts("Too many pictures at once. Try again in a moment.", max(wait, 1))
         found = self._boards.by_public_token(token) if self._allowed() else None
         if found is None:
             raise NotFound("board not found")

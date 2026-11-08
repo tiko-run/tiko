@@ -1,8 +1,9 @@
 import hashlib
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from app.domain.errors import FileQuota, FileTooLarge, NotFound, UnsupportedFile
-from app.domain.ports import FileStore, PictureMaker
+from app.domain.ports import FileStore, PictureMaker, UnusedFiles
 
 MAX_BYTES = 25 * 1024 * 1024
 MAX_PIXELS = 50_000_000
@@ -11,6 +12,8 @@ COPY_WIDTHS = (512, 1024, 2048)
 TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 # A demo workspace is anyone's; a few screenshots are enough to try the feature.
 DEMO_QUOTA_MB = 20
+# A picture off its last board stays this long, so undo and a pasted copy still find it.
+UNUSED_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -69,12 +72,15 @@ class Files:
             stored = self._store.add(sha, picture, size, uploaded_by, self._quota)
             if stored is None:
                 raise FileQuota("There is no room for more pictures in this workspace.")
-        self._store.link(board_id, stored.id)
+        if not self._store.link(board_id, stored.id):
+            # The cleanup deleted it between the two steps: store it again.
+            return self.add(data, mime, uploaded_by, board_id)
         return stored
 
     def link(self, board_id: str, file_id: str) -> None:
         """Lets the board serve a file of its workspace stored before."""
-        self._store.link(board_id, file_id)
+        if not self._store.link(board_id, file_id):
+            raise NotFound("picture not found")
 
     def open(self, board_id: str, file_id: str, width: int | None, moving: bool = False) -> Served:
         """What `board_id` shows of a file it refers to: moving, the animated WebP; else the
@@ -84,3 +90,8 @@ class Files:
         if served is None:
             raise NotFound("picture not found")
         return served
+
+
+def clean_files(files: UnusedFiles, now: datetime) -> int:
+    """Deletes the pictures no board and no sticker pack has used for UNUSED_DAYS."""
+    return files.clean(now.isoformat(), (now - timedelta(days=UNUSED_DAYS)).isoformat())

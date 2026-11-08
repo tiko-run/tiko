@@ -161,6 +161,12 @@ def board_role(needed: BoardRole):
     return Depends(check)
 
 
+def client_address(request: Request) -> str:
+    # The web container's nginx works the client out and is the only way in to the API.
+    peer = request.client.host if request.client else ""
+    return request.headers.get("x-real-ip") or peer
+
+
 def public_links(request: Request) -> PublicLinks:
     return request.app.state.public_links
 

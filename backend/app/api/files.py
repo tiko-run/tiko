@@ -92,9 +92,11 @@ def get_file(
 def get_public_file(
     token: str,
     file_id: str,
+    request: Request,
     files: FilesDep,
     links: Annotated[PublicLinks, Depends(deps.public_links)],
     w: Width = None,
     move: Moving = False,
 ) -> Response:
-    return _served(files.open(links.files_of(token), file_id, w, move))
+    board_id = links.files_of(token, deps.client_address(request))
+    return _served(files.open(board_id, file_id, w, move))
