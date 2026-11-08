@@ -13,7 +13,7 @@
 - [x] T008 Card tool: CalDAV tab with a search by title across lists or in one, the account named, 20 at a time with the count of the rest, ticks kept across searches, "Show done"
 - [x] T009 Source mark and short key (list name) on the card
 - [x] T010 Radicale stand for the integration test and a seed script with made-up tasks; Nextcloud stand for the checks by hand
-- [ ] T011 By hand on Nextcloud: tasks from Thunderbird, Apple Reminders and the web app show and refresh; results in the PR (FR-011)
+- [ ] T011 By hand on Nextcloud: tasks from Thunderbird, Apple Reminders and the web app show and refresh; results in the PR (FR-011). Apple Reminders on macOS and the Nextcloud web app checked 2026-11-08; Thunderbird left
 - [x] T012 Guide (CalDAV page, What you can add, Task trackers), `.env.example`, README if needed, `THIRD_PARTY.md`, CHANGELOG
 
 ## Slice 2: caldav-more-servers
