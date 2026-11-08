@@ -130,3 +130,15 @@ test('a row planned from a task follows the tracker, a plain row does not', () =
   expect(makeRow(gantt([]), { key: 'DEMO-1', source: 'demo' }).follow).toBe(true)
   expect('follow' in makeRow(gantt([]), { title: 'Design review' })).toBe(false)
 })
+
+test('a row cut into stages stops following and keeps its bar', () => {
+  const staged: Row = {
+    ...row,
+    stages: [{ id: 's', type: 'dev', start: '2026-10-05', end: '2026-10-09', people: [] }],
+  }
+  const dated = () => task({ start: '2026-11-02', due: '2026-11-20' })
+  expect(followTracker(gantt([staged]), dated).rows[0].start).toBe('2026-10-05')
+  const { content, detached } = detachEdited(gantt([row]), gantt([staged]), dated)
+  expect(detached).toEqual([])
+  expect(content.rows[0].follow).toBeUndefined()
+})

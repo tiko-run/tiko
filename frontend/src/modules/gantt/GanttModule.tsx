@@ -49,6 +49,7 @@ import { Milestone } from '@/modules/gantt/Milestone'
 import {
   detachEdited,
   drift,
+  follows,
   followTracker,
   trackerDates,
   trackerSpan,
@@ -396,7 +397,9 @@ export function GanttModule({
                 onAddChild={() => addChildRow(row.id)}
                 onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
                 onEject={(screen) => eject(row, screen)}
-                follow={row.key && !hasChildren ? Boolean(row.follow) : undefined}
+                follow={
+                  row.key && !hasChildren && !row.stages?.length ? Boolean(row.follow) : undefined
+                }
                 onFollow={(follow) => setFollow([row.id], follow)}
               />
             ))}
@@ -475,57 +478,71 @@ export function GanttModule({
               }}
             />
           )}
-          {visible.map(({ row, hasChildren }) => (
-            <div
-              key={row.id}
-              data-gantt-row={row.id}
-              className="group/row relative border-b border-border/60"
-              style={{ height }}
-            >
-              {planning.enabled && !hasChildren ? (
-                <GanttStages
-                  row={row}
-                  axis={axis}
-                  types={planning.types}
-                  people={planning.people}
-                  assignees={assignees}
-                  below={content.people === 'below'}
-                  label={stagesLabel(row, taskOf(row))}
-                  onRow={(next) => onChange(updateRow(content, row.id, () => next))}
-                />
-              ) : (
-                <GanttBar
-                  span={barSpan(row)}
-                  summary={hasChildren}
-                  axis={axis}
-                  label={
-                    row.key ? `${keyOf(row, taskOf(row))} ${taskOf(row)?.summary ?? ''}` : row.title
-                  }
-                  task={taskOf(row)}
-                  {...trackerNotes(row, hasChildren, taskOf(row))}
-                  onSpan={(next) =>
-                    hasChildren
-                      ? onParentSpan(row, next)
-                      : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
-                  }
-                />
-              )}
-              {row.key && (!row.follow || hasChildren) && bars.has(row.id) && (
-                <DriftMark
-                  tracked={drift(taskOf(row), barSpan(row))}
-                  x={bars.get(row.id)!.right}
-                  onFollow={readOnly || hasChildren ? undefined : () => setFollow([row.id], true)}
-                />
-              )}
-              {bars.has(row.id) && (
-                <ConnectHandle
-                  bar={bars.get(row.id)!}
-                  onWire={setWire}
-                  onDrop={(target) => link(row.id, target)}
-                />
-              )}
-            </div>
-          ))}
+          {visible.map(({ row, hasChildren }) => {
+            const task = taskOf(row)
+            // Rows with their own dates show the tracker's beside them where the two differ.
+            const off = row.key && !follows(row, hasChildren) ? drift(task, barSpan(row)) : null
+            const ghost = off && (
+              <DriftGhost
+                tracked={off}
+                axis={axis}
+                bar={bars.get(row.id)}
+                onFollow={
+                  readOnly || hasChildren || row.stages?.length
+                    ? undefined
+                    : () => setFollow([row.id], true)
+                }
+              />
+            )
+            return (
+              <div
+                key={row.id}
+                data-gantt-row={row.id}
+                className="group/row relative border-b border-border/60"
+                style={{ height }}
+              >
+                {ghost}
+                {planning.enabled && !hasChildren ? (
+                  <GanttStages
+                    row={row}
+                    axis={axis}
+                    types={planning.types}
+                    people={planning.people}
+                    assignees={assignees}
+                    below={content.people === 'below'}
+                    label={stagesLabel(row, taskOf(row))}
+                    onRow={(next) => onChange(updateRow(content, row.id, () => next))}
+                  />
+                ) : (
+                  <GanttBar
+                    span={barSpan(row)}
+                    summary={hasChildren}
+                    axis={axis}
+                    label={
+                      row.key
+                        ? `${keyOf(row, taskOf(row))} ${taskOf(row)?.summary ?? ''}`
+                        : row.title
+                    }
+                    task={task}
+                    {...trackerNotes(row, hasChildren, task, off)}
+                    onSpan={(next) =>
+                      hasChildren
+                        ? onParentSpan(row, next)
+                        : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
+                    }
+                  />
+                )}
+                {off && <DriftOutline tracked={off} axis={axis} />}
+                {bars.has(row.id) && (
+                  <ConnectHandle
+                    bar={bars.get(row.id)!}
+                    onWire={setWire}
+                    onDrop={(target) => link(row.id, target)}
+                  />
+                )}
+              </div>
+            )
+          })}
           <Links
             links={content.links}
             bars={bars}
@@ -564,9 +581,10 @@ export function GanttModule({
   )
 }
 
-/** How a following bar's dates came about, for its look and its tooltip. */
-function trackerNotes(row: Row, parent: boolean, task: Task | undefined) {
-  if (!row.follow || parent || task?.state !== 'ok') return {}
+/** How a bar's dates relate to the tracker's, for its look and its tooltip. */
+function trackerNotes(row: Row, parent: boolean, task: Task | undefined, off: Tracked | null) {
+  if (off) return { notes: [`Tracker: ${trackerDates(off)}`] }
+  if (!follows(row, parent) || task?.state !== 'ok') return {}
   const tracked = trackerSpan(task)
   if (!tracked) return { notes: ['The tracker has no dates for this task'] }
   const guess = {
@@ -579,40 +597,92 @@ function trackerNotes(row: Row, parent: boolean, task: Task | undefined) {
   }
 }
 
-/** A dot after a bar whose dates differ from the tracker's, with a way to follow them. */
-function DriftMark({
+// A little taller than a bar, so its dashes show around one it overlaps.
+const GHOST_TOP = 4
+const GHOST_HEIGHT = 26
+const GHOST = 'absolute top-[4px] h-[26px] rounded-[5px]'
+// Where a bar sits in its row, under the frame's top.
+const BAR_TOP = 7
+const BAR_HEIGHT = 20
+
+/** The frame's area less the bar, so the bar and its stages keep every press of their own. */
+function aroundBar(width: number, left: number, bar?: { left: number; right: number }) {
+  if (!bar) return undefined
+  const from = Math.min(Math.max(bar.left - left, 0), width)
+  const to = Math.min(Math.max(bar.right - left, 0), width)
+  const top = BAR_TOP - GHOST_TOP
+  const bottom = top + BAR_HEIGHT
+  const h = GHOST_HEIGHT
+  return `polygon(evenodd, 0 0, ${width}px 0, ${width}px ${h}px, 0 ${h}px, 0 0, ${from}px ${top}px, ${from}px ${bottom}px, ${to}px ${bottom}px, ${to}px ${top}px, ${from}px ${top}px)`
+}
+
+function ghostBox(tracked: Tracked, axis: Axis) {
+  const box = barBox(tracked.span, axis)
+  return box && { left: box.left - 2, width: Math.max(box.width, 4) + 4 }
+}
+
+/**
+ * Where the tracker has the task: the frame around and beyond the bar opens the tracker's dates
+ * and a way to follow them. It lies over the row, so Planning's stage drawing does not hide it.
+ */
+function DriftGhost({
   tracked,
-  x,
+  axis,
+  bar,
   onFollow,
 }: {
-  tracked: Tracked | null
-  x: number
+  tracked: Tracked
+  axis: Axis
+  bar?: { left: number; right: number }
   onFollow?: () => void
 }) {
-  if (!tracked) return null
+  const box = ghostBox(tracked, axis)
+  if (!box) return null
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Dates differ from the tracker"
-          title={`Tracker: ${trackerDates(tracked)}`}
-          className="ring-card absolute top-[13px] z-10 size-2 rounded-full bg-warning ring-2"
-          style={{ left: x + 3 }}
+          aria-label={`Tracker dates: ${trackerDates(tracked)}`}
+          className={cn(GHOST, 'bg-warning/10 hover:bg-warning/20 z-[1] cursor-pointer')}
+          style={{ ...box, clipPath: aroundBar(box.width, box.left, bar) }}
         />
       </PopoverTrigger>
-      <PopoverContent side="top" className="flex w-auto flex-col gap-2 p-3 text-[13px]">
+      <PopoverContent side="top" className="flex w-auto max-w-64 flex-col gap-2 p-3 text-[13px]">
         <p>
-          <span className="text-muted-foreground">Tracker: </span>
+          <span className="text-muted-foreground">In the tracker: </span>
           {trackerDates(tracked)}
         </p>
-        {onFollow && (
+        {onFollow ? (
           <Button size="sm" variant="outline" onClick={onFollow}>
             Follow tracker dates
           </Button>
+        ) : (
+          <p className="text-muted-foreground text-[12px]">
+            Rows with stages or children keep their own dates.
+          </p>
         )}
       </PopoverContent>
     </Popover>
+  )
+}
+
+/** The dashed edge of the tracker's dates, drawn over the bar and never in its way. */
+function DriftOutline({ tracked, axis }: { tracked: Tracked; axis: Axis }) {
+  const box = ghostBox(tracked, axis)
+  if (!box) return null
+  return (
+    <span
+      aria-hidden
+      data-tracker-dates
+      className={cn(
+        GHOST,
+        'border-warning pointer-events-none z-[1] border-[1.5px] border-dashed',
+        tracked.guess === 'start' && 'border-l-0',
+        tracked.guess === 'end' && 'border-r-0',
+      )}
+      style={box}
+    />
   )
 }
 

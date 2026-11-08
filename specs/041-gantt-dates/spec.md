@@ -32,9 +32,9 @@
    - A start after the due is taken as due only.
    - The filled-in end is drawn faded with a dashed edge, and the tooltip says it is a guess, so a guess never passes for the tracker's date.
 6. **Dragging a following bar takes it off the tracker.** The dragged dates become the row's own dates, and the row stops following. A toast says so with Undo, which puts the row back on the tracker's dates. Nothing is written to the tracker: tiko still only reads.
-7. **The board shows where the plan and the tracker disagree.** A row with its own dates whose task has different dates in the tracker gets a small mark at the end of its bar. Its tooltip shows the tracker's dates and offers Follow tracker dates. The mark is the place where a later write-back offers to send the row's dates to the tracker.
-8. **A following bar moves when the tracker changes.** When a refresh brings new dates, the bar moves for everyone on the board, and its Planning stages fit into the new span as they do when a bar is dragged. The board saves the dates it shows, so a public link guest and an export see the same bar as the team.
-9. **A parent row keeps spanning its children.** Tracker dates of a parent task do not move a parent bar; the parent follows its children as it does now. A parent that follows the tracker shows the mark of Decision 7 when its own task's dates fall outside its children.
+7. **The board shows where the plan and the tracker disagree.** A row with its own dates whose task has different dates in the tracker gets a dashed frame where the tracker has the task, drawn over the row and never in the bar's way. The bar's tooltip names the tracker's dates; a click on the frame shows them with Follow tracker dates. A dot was tried first and dropped: the link handle at the bar's end covered it. The frame is the place where a later write-back offers to send the row's dates to the tracker.
+8. **A following bar moves when the tracker changes.** When a refresh brings new dates, the bar moves for everyone on the board. The board saves the dates it shows, so a public link guest and an export see the same bar as the team.
+9. **A parent row keeps spanning its children, and a row with stages keeps its stages.** Tracker dates move neither: a parent follows its children, and Planning stages are a plan of people that a date changed in the tracker must not reshuffle unseen. A row stops following when it is cut into stages. Both show the frame of Decision 7. How stages could follow the tracker is left for a later spec.
 
 ## Requirements
 
@@ -45,9 +45,9 @@
 - **FR-005**: A Gantt row MUST store whether it follows the tracker; a row added from a task MUST follow it, and a row saved before this feature MUST keep its own dates. Older boards read unchanged.
 - **FR-006**: A following row MUST draw its bar from the task's dates by the rules of Decision 5, with the filled-in end faded and dashed and named a guess in the tooltip.
 - **FR-007**: Dragging or resizing a following bar MUST switch the row to its own dates with a toast and Undo; nothing MUST be sent to the tracker.
-- **FR-008**: A row with its own dates whose task's dates differ MUST show the mark of Decision 7 with the tracker's dates and a way to follow them.
-- **FR-009**: When a refresh changes a task's dates, every following bar of that task MUST move for everyone on the board, its stages MUST fit the new span, and the board MUST save the new dates.
-- **FR-010**: A parent bar MUST keep spanning its children whatever its task's dates are.
+- **FR-008**: A row with its own dates whose task's dates differ MUST show the frame of Decision 7 with the tracker's dates and a way to follow them, with Planning on and off.
+- **FR-009**: When a refresh changes a task's dates, every following bar of that task MUST move for everyone on the board, and the board MUST save the new dates.
+- **FR-010**: A parent bar MUST keep spanning its children, and a row with stages MUST keep its stages, whatever the task's dates are; a row cut into stages MUST stop following.
 
 ## Slices
 
@@ -61,4 +61,5 @@
 - GitHub Projects date fields: they need the GraphQL API and a project scope on the token.
 - More than one Jira site per instance: the mapping is per source, so a second site gets its own when that lands.
 - Sprint dates as a stand-in for task dates.
+- Stages that follow the tracker's dates.
 - Time of day: a tracker's date-time is read as the day the tracker wrote, whatever the offset after it. CalDAV takes the day in the instance's time zone, as spec 040 says.

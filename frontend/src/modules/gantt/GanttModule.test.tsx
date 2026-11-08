@@ -1036,13 +1036,38 @@ test('dragging a following bar keeps the dragged dates, and Undo follows the tra
   expect(rows()[0].follow).toBe(true)
 })
 
-test('a row with its own dates marks where the tracker disagrees and can follow it', () => {
-  renderGantt({}, content, OFF, { 'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' } })
-  const mark = screen.getByRole('button', { name: 'Dates differ from the tracker' })
-  expect(mark.getAttribute('title')).toBe('Tracker: Mon Oct 5 – Tue Oct 20')
-  fireEvent.click(mark)
+test('a row with its own dates shows the tracker dates beside it and can follow them', () => {
+  renderGantt({}, content, OFF, {
+    'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' },
+  })
+  // The bar says it in words; the frame shows where, and its free part opens the choice.
+  expect(screen.getByText('Tracker: Mon Oct 5 – Tue Oct 20')).toBeTruthy()
+  expect(document.querySelector('[data-tracker-dates]')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Tracker dates: Mon Oct 5 – Tue Oct 20' }))
   fireEvent.click(screen.getByRole('button', { name: 'Follow tracker dates' }))
   expect(rows()[0].follow).toBe(true)
+})
+
+test('a row cut into stages keeps its own dates and shows the tracker ones beside it', () => {
+  const staged: GanttContent = {
+    ...content,
+    rows: [
+      {
+        ...content.rows[0],
+        follow: true,
+        stages: [{ id: 's', type: 'dev', start: '2026-10-05', end: '2026-10-09', people: [] }],
+      },
+    ],
+  }
+  const host = renderGantt({}, staged, OFF, {
+    'DEMO-1': { ...task, start: '2026-11-02', due: '2026-11-20' },
+  })
+  expect(host.syncContent).not.toHaveBeenCalled()
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  expect(bar.getAttribute('aria-valuetext')).toBe('Mon Oct 5 – Fri Oct 9 · 5 days')
+  expect(screen.queryByRole('button', { name: /^Keep own dates for/ })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /^Tracker dates:/ }))
+  expect(screen.getByText('Rows with stages or children keep their own dates.')).toBeTruthy()
 })
 
 test('a row stops and starts following from its own button', () => {

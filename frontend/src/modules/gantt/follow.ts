@@ -35,6 +35,14 @@ function spanned(row: Row): Row {
 
 const same = (a: Row, b: Row) => JSON.stringify(a) === JSON.stringify(b)
 
+/**
+ * Whether a row draws its task's dates. A parent spans its children, and a row cut into stages
+ * keeps the plan people made of them: both show the tracker's dates beside their own instead.
+ */
+export function follows(row: Row, parent: boolean) {
+  return Boolean(row.follow) && !parent && !row.stages?.length
+}
+
 /** Moves every following leaf onto its task's dates; the same object when nothing moves. */
 export function followTracker(
   content: GanttContent,
@@ -43,7 +51,7 @@ export function followTracker(
   const parents = parentIds(content)
   let changed = false
   const rows = content.rows.map((row) => {
-    const tracked = row.follow && !parents.has(row.id) ? trackerSpan(taskOf(row)) : null
+    const tracked = follows(row, parents.has(row.id)) ? trackerSpan(taskOf(row)) : null
     if (!tracked) return row
     const next = spanned(fitStages(row, tracked.span))
     if (same(next, row)) return row
@@ -66,6 +74,8 @@ export function detachEdited(
   const parents = parentIds(after)
   const detached: string[] = []
   const rows = after.rows.map((row) => {
+    // A row cut into stages stops following quietly: its bar did not move.
+    if (row.follow && row.stages?.length) return withFollow(row, false)
     const old = was.get(row.id)
     if (!row.follow || !old || parents.has(row.id)) return row
     if (row.start === old.start && row.end === old.end) return row
@@ -73,7 +83,8 @@ export function detachEdited(
     detached.push(row.id)
     return withFollow(row, false)
   })
-  return { content: detached.length ? { ...after, rows } : after, detached }
+  const changed = rows.some((row, i) => row !== after.rows[i])
+  return { content: changed ? { ...after, rows } : after, detached }
 }
 
 /** A row that follows the tracker, or keeps its own dates; the key is left out when it does not. */
