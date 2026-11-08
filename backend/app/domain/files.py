@@ -24,6 +24,8 @@ class Picture:
     color: str
     moving: bool
     copies: dict[int, bytes]
+    # A moving picture as an animated WebP, several times lighter than its GIF; None when still.
+    motion: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,7 @@ class StoredFile:
     width: int
     height: int
     color: str
+    moving: bool = False
 
 
 @dataclass(frozen=True)
@@ -50,26 +53,30 @@ class Files:
         self._maker = maker
         self._quota = quota_mb * 1024 * 1024 if quota_mb else None
 
-    def add(self, data: bytes, mime: str, uploaded_by: str) -> StoredFile:
-        """Keeps a picture once per workspace: the same bytes again answer with the stored file."""
+    def add(self, data: bytes, mime: str, uploaded_by: str, board_id: str) -> StoredFile:
+        """Keeps a picture once per workspace: the same bytes again answer with the stored file.
+        The board it was uploaded to may serve it from then on."""
         if mime not in TYPES:
             raise UnsupportedFile("Only PNG, JPEG, WebP and GIF pictures can go on a board.")
         if len(data) > MAX_BYTES:
             raise _too_large()
         sha = hashlib.sha256(data).hexdigest()
-        if found := self._store.find(sha):
-            return found
-        picture = self._maker.make(data)
-        size = len(picture.data) + sum(len(copy) for copy in picture.copies.values())
-        stored = self._store.add(sha, picture, size, uploaded_by, self._quota)
+        stored = self._store.find(sha)
         if stored is None:
-            raise FileQuota("There is no room for more pictures in this workspace.")
+            picture = self._maker.make(data)
+            size = len(picture.data) + sum(len(copy) for copy in picture.copies.values())
+            size += len(picture.motion or b"")
+            stored = self._store.add(sha, picture, size, uploaded_by, self._quota)
+            if stored is None:
+                raise FileQuota("There is no room for more pictures in this workspace.")
+        self._store.link(board_id, stored.id)
         return stored
 
-    def open(self, file_id: str, width: int | None) -> Served:
-        """The smallest copy at least `width` wide, else the original; without a width, the
-        original. A GIF is never served moving on the canvas: past its copies, its widest."""
-        served = self._store.get(file_id, width)
+    def open(self, board_id: str, file_id: str, width: int | None, moving: bool = False) -> Served:
+        """What `board_id` shows of a file it refers to: moving, the animated WebP; else the
+        smallest copy at least `width` wide, else the original. A moving picture asked still is
+        never served moving: past its copies, its widest."""
+        served = self._store.get(board_id, file_id, width, moving)
         if served is None:
             raise NotFound("picture not found")
         return served

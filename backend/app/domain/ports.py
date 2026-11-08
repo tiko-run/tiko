@@ -585,7 +585,13 @@ class FileStore(Protocol):
         None when the workspace's files would pass `quota` bytes, checked with the insert."""
         ...
 
-    def get(self, file_id: str, width: int | None) -> Served | None: ...
+    def link(self, board_id: str, file_id: str) -> None:
+        """Lets the board serve the file."""
+        ...
+
+    def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
+        """None unless the board may serve the file."""
+        ...
 
 
 class PictureMaker(Protocol):

@@ -12,6 +12,9 @@ _META = ("exif", "xmp", "XML:com.adobe.xmp", "comment")
 # What a saved picture keeps of its info: how it is drawn, nothing about where it came from.
 _KEPT = ("transparency", "duration", "loop", "background")
 COPY_QUALITY = 90
+# A moving picture plays at most this wide: enough for a GIF on a board, light to decode.
+MOTION_WIDTH = 1024
+MOTION_QUALITY = 80
 # WebP cannot be taller or wider than this; a copy past it is left out and the original serves.
 WEBP_MAX_SIDE = 16383
 _SRGB = ImageCms.createProfile("sRGB")
@@ -91,6 +94,30 @@ def _webp(image: Image.Image) -> bytes:
     return out.getvalue()
 
 
+def _motion(image: Image.Image) -> bytes:
+    """The moving picture as an animated WebP, several times lighter than a GIF."""
+    width, height = image.size
+    scale = min(1.0, MOTION_WIDTH / width, WEBP_MAX_SIDE / height)
+    size = (max(1, round(width * scale)), max(1, round(height * scale)))
+    frames, durations = [], []
+    for frame in ImageSequence.Iterator(image):
+        durations.append(frame.info.get("duration", 100))
+        frame = frame.convert("RGBA")
+        frames.append(frame.resize(size, Image.Resampling.LANCZOS) if scale < 1 else frame)
+    out = io.BytesIO()
+    frames[0].save(
+        out,
+        "WEBP",
+        save_all=True,
+        append_images=frames[1:],
+        duration=durations,
+        loop=image.info.get("loop", 0),
+        quality=MOTION_QUALITY,
+        method=4,
+    )
+    return out.getvalue()
+
+
 def _color(image: Image.Image) -> str:
     red, green, blue = image.convert("RGB").resize((1, 1), Image.Resampling.BOX).getpixel((0, 0))
     return f"#{red:02x}{green:02x}{blue:02x}"
@@ -118,6 +145,7 @@ class PillowPictures:
             smaller = smaller.resize(size, Image.Resampling.LANCZOS, reducing_gap=3.0)
             copies[copy_width] = _webp(smaller)
         original = _without_meta(image, moving) if _has_meta(image) else data
+        motion = _motion(image) if moving else None
         return Picture(
             mime=FORMATS[image.format],
             data=original,
@@ -126,4 +154,5 @@ class PillowPictures:
             color=_color(smaller),
             moving=moving,
             copies=copies,
+            motion=motion,
         )
