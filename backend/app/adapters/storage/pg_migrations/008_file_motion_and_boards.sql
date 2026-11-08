@@ -22,10 +22,17 @@ CREATE POLICY app_rows ON board_files TO tiko_app
     WITH CHECK (workspace_id = nullif(current_setting('app.workspace_id', true), ''));
 CREATE POLICY jobs_rows ON board_files TO tiko_jobs USING (true) WITH CHECK (true);
 
--- Boards saved before this release.
+-- Boards saved before this release. The owner running migrations sees no rows through the
+-- forced policies, so they step aside for this one statement, inside the migration's transaction.
+ALTER TABLE boards NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE files NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE board_files NO FORCE ROW LEVEL SECURITY;
 INSERT INTO board_files (workspace_id, board_id, file_id)
 SELECT DISTINCT b.workspace_id, b.id, n -> 'data' ->> 'file'
 FROM boards b, jsonb_array_elements(b.doc -> 'nodes') n
 JOIN files f ON f.id = n -> 'data' ->> 'file'
 WHERE n ->> 'type' = 'image' AND f.workspace_id = b.workspace_id
 ON CONFLICT DO NOTHING;
+ALTER TABLE boards FORCE ROW LEVEL SECURITY;
+ALTER TABLE files FORCE ROW LEVEL SECURITY;
+ALTER TABLE board_files FORCE ROW LEVEL SECURITY;
