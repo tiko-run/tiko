@@ -66,7 +66,7 @@
 ## Out of scope
 
 - Calendar events (VEVENT) as cards.
-- Writing back: ticking a task done, editing it, creating a task from tiko.
+- Writing back: ticking a task done, editing it, creating a task from tiko. It gets a spec of its own for every tracker, CalDAV first and together with the date write-back of spec 041, switched on per account so nobody who connected a read-only tiko gets writes unasked.
 - Several CalDAV accounts per person.
 - Pasting a link to a task (a Nextcloud Tasks link, for example) into the card tool.
 - Google Tasks, Microsoft To Do and other trackers without CalDAV.
