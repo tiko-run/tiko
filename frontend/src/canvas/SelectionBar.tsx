@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Copy,
   Frame,
+  Image as ImageIcon,
   LayoutTemplate,
   Maximize2,
   Minimize2,
@@ -57,6 +58,7 @@ const KIND_ICONS: Record<Kind, LucideIcon> = {
   sticky: StickyNote,
   shape: Shapes,
   text: Type,
+  image: ImageIcon,
   module: LayoutTemplate,
   timer: AlarmClock,
 }

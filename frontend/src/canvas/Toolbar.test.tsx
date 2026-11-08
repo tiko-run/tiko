@@ -36,6 +36,7 @@ function renderToolbar(
         onTool={onTool}
         onShape={onShape}
         onAddCards={onAddCards}
+        onImages={vi.fn()}
         onAddModule={onAddModule}
       />
     </QueryClientProvider>,

@@ -34,6 +34,7 @@ export const SHORTCUTS = {
   text: { keys: 't', label: 'Text', group: 'Tools' },
   shape: { keys: 's', label: 'Shapes', group: 'Tools' },
   timer: { keys: 'r', label: 'Reminder', group: 'Tools' },
+  image: { keys: 'i', label: 'Image', group: 'Tools' },
   card: { keys: 'c', label: 'Task card', group: 'Tools' },
   module: { keys: 'm', label: 'Modules', group: 'Tools' },
   cancel: { keys: 'escape', label: 'Back to Select', group: 'Tools' },

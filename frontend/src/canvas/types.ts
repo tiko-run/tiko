@@ -44,6 +44,10 @@ export type ShapeNode = Node<ShapeData, 'shape'>
 export type TextData = { text: string; bold?: boolean; size?: TextSize } & Faded & Turned
 export type TextNode = Node<TextData, 'text'>
 
+/** `file` is absent while the picture uploads; `w`, `h` and `color` are the picture's own. */
+export type ImageData = { file?: string; w: number; h: number; color: string } & Turned
+export type ImageNode = Node<ImageData, 'image'>
+
 export type ModuleData = { kind: string; title?: string; content: unknown }
 export type ModuleNode = Node<ModuleData, 'module'>
 
@@ -65,5 +69,13 @@ export type TimerData = {
 export type TimerNode = Node<TimerData, 'timer'>
 
 export type AppNode =
-  TaskCardNode | FrameNode | StickyNode | ShapeNode | TextNode | ModuleNode | AnchorNode | TimerNode
+  | TaskCardNode
+  | FrameNode
+  | StickyNode
+  | ShapeNode
+  | TextNode
+  | ImageNode
+  | ModuleNode
+  | AnchorNode
+  | TimerNode
 export type AppEdge = Edge

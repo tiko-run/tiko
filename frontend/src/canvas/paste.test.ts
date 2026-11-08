@@ -57,6 +57,12 @@ describe('classifyPaste', () => {
     })
   })
 
+  it('takes a screenshot over the text that comes with it', () => {
+    const shot = new File(['png'], 'shot.png', { type: 'image/png' })
+    const data = { ...clip({ 'text/plain': 'https://example.com/shot.png' }), files: [shot] }
+    expect(classifyPaste(data, null)).toEqual({ kind: 'files', files: [shot] })
+  })
+
   it('turns task refs into cards', () => {
     expect(classifyPaste(clip({ 'text/plain': 'DEMO-1 DEMO-2' }), null)).toEqual({
       kind: 'refs',

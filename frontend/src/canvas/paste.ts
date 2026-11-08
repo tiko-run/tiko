@@ -25,18 +25,22 @@ export function writePasteAs(value: PasteAs) {
 
 export type Paste =
   | { kind: 'elements' }
+  | { kind: 'files'; files: File[] }
   | { kind: 'refs'; refs: string[]; more: boolean }
   | { kind: 'text'; text: string }
 
-type Clipboard = Pick<DataTransfer, 'getData'>
+type Clipboard = Pick<DataTransfer, 'getData'> & { files?: FileList | File[] }
 
 /**
- * What a paste over the board adds, tried in order: elements copied in tiko,
- * task keys and links, plain text. Other trackers' links join the refs step.
+ * What a paste over the board adds, tried in order: elements copied in tiko, files such as a
+ * screenshot, task keys and links, plain text. Other trackers' links join the refs step.
  */
 export function classifyPaste(data: Clipboard, copyId: string | null): Paste | null {
   const marker = data.getData(CLIPBOARD_MARKER)
   if (marker && marker === copyId) return { kind: 'elements' }
+  // A picture copied from a page comes with its address as text; the picture wins.
+  const files = Array.from(data.files ?? [])
+  if (files.length) return { kind: 'files', files }
   const text = data.getData('text/plain')
   if (!text.trim()) return null
   const refs = pastedRefs(text)
