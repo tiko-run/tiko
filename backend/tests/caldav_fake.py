@@ -148,11 +148,22 @@ class FakeCalDav:
             ),
             None,
         )
+        title = next(
+            (
+                (f.findtext(f"{{{CAL}}}text-match") or "")
+                for f in body.iter(f"{{{CAL}}}prop-filter")
+                if f.get("name") == "SUMMARY"
+            ),
+            None,
+        )
         rows = []
         for name, ics in item.items.items():
             if open_only and "\r\nCOMPLETED:" in ics:
                 continue
             if uid is not None and uid not in ics:
+                continue
+            summary = ics.split("SUMMARY:", 1)[1].split("\r\n", 1)[0]
+            if title is not None and title.casefold() not in summary.casefold():
                 continue
             rows.append((f"{base}{name}", _data(ics)))
         return self._ms(rows)

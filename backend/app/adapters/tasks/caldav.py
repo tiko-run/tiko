@@ -261,6 +261,13 @@ def _by_uid(uid: str) -> str:
     )
 
 
+def _by_title(words: str) -> str:
+    return (
+        '<c:prop-filter name="SUMMARY"><c:text-match collation="i;unicode-casemap">'
+        f"{_xml_text(words)}</c:text-match></c:prop-filter>"
+    )
+
+
 @dataclass
 class _List:
     info: TaskList
@@ -529,31 +536,40 @@ class CalDavReader:
                 found.append((resource.href, todo))
         return found
 
-    def list_tasks(self, list_id: str, done: bool, limit: int) -> ListTasks:
+    def find_tasks(self, query: str, list_id: str | None, done: bool, limit: int) -> ListTasks:
+        """Tasks whose title holds `query`, in one list or in every shown one; the server does
+        the matching, so a list of thousands sends only what matches."""
         with self._lock:
             self._refresh_lists()
-            kept = self._lists.get(list_id)
-            if kept is None or not kept.info.shown:
-                raise TaskNotFound("This task list is not in your CalDAV account.")
-            response, final = self._call("REPORT", list_id, _query("" if done else _OPEN), "1")
-            _seen(kept, self._clock())
-            # Read in full first: a subtask may come before its parent.
-            found = self._read(kept, response, final)
+            if list_id is None:
+                lists = [kept for kept in self._lists.values() if kept.info.shown]
+            else:
+                kept = self._lists.get(list_id)
+                if kept is None or not kept.info.shown:
+                    raise TaskNotFound("This task list is not in your CalDAV account.")
+                lists = [kept]
+            words = query.strip()
+            filters = ("" if done else _OPEN) + (_by_title(words) if words else "")
+            needle = words.casefold()
             ranked = []
-            for href, todo in found:
-                task = to_task(todo, href, kept.info, kept.titles)
-                if not done and task.status_category == "done":
-                    continue
-                kept.hrefs[task.key] = href
-                ranked.append(
-                    (task.status_category == "done", _due_key(todo), task.summary.lower(), task)
-                )
+            for kept in lists:
+                response, final = self._call("REPORT", kept.info.id, _query(filters), "1")
+                _seen(kept, self._clock())
+                for href, todo in self._read(kept, response, final):
+                    task = to_task(todo, href, kept.info, kept.titles)
+                    # Checked here too: a server may skip a filter it does not know.
+                    if not done and task.status_category == "done":
+                        continue
+                    if needle and needle not in task.summary.casefold():
+                        continue
+                    kept.hrefs[task.key] = href
+                    kept.tasks[task.key] = task
+                    ranked.append(
+                        (task.status_category == "done", _due_key(todo), task.summary.lower(), task)
+                    )
             # Open ones first, then by due date, then by title: the order of a to-do app.
             ranked.sort(key=lambda item: item[:3])
-            tasks = [item[3] for item in ranked]
-            for task in tasks[:limit]:
-                kept.tasks[task.key] = task
-            return ListTasks(tasks=tasks[:limit], total=len(tasks))
+            return ListTasks(tasks=[item[3] for item in ranked[:limit]], total=len(ranked))
 
     def _find(self, uid: str) -> Task | None:
         """Looks for the task in every list, as when a client moved it."""

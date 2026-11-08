@@ -17,7 +17,8 @@
 4. **The address is found for the person.** They may type just the domain (`cloud.example.com`) or a full CalDAV address. tiko follows `/.well-known/caldav` to the principal and its calendar home, and keeps only the collections that hold tasks (VTODO). Saving the connection checks it at once and shows the account's display name, or says what failed: wrong password, no task lists, server not reached.
 5. **Where tiko may connect.** A public address must use HTTPS. Plain HTTP is accepted only for a private network address, where a home Nextcloud or Radicale often runs. Private network addresses are allowed by default on a self-hosted instance and switched off by `TIKO_CALDAV_PRIVATE_NETWORK=deny`, which the demo sets. Every redirect is checked by the same rules.
 6. **The person chooses the lists.** After connecting, Settings lists the task lists of the account with a switch each, all on at first. Lists switched off are never shown in the card tool. The choice is per person, not per board.
-7. **Cards are added from a list, not by typing a key.** A task's id (its UID) is long and nobody types it. When CalDAV is connected, the card tool gets a CalDAV tab: pick a list, see its open tasks, tick some or add the whole list, up to 50 at a time. Done tasks show behind a "Show done" switch.
+7. **Cards are found by their title, not typed by a key.** A task's id (its UID) is long and nobody types it, and a list may hold thousands of tasks. When CalDAV is connected, the card tool gets a CalDAV tab: a search by title across every shown list, a menu to narrow it to one list, and the account the tasks come from. The server does the matching, so a big list sends only what matches. The tab shows 20 tasks at a time, the soonest due first, and says how many more a search would reach. Ticks stay across searches. Done tasks show behind a "Show done" switch.
+   - A new task on the server does not appear on a board by itself: it is added like any card. A board element that follows a whole list is a feature of its own, for every tracker.
 8. **A card knows its task by its UID.** The card's key is the task's UID. tiko remembers where the task was found; when a client moves it to another list, tiko finds it again by UID among the person's lists. The card shows the list name where other trackers show the key.
 9. **How a task reads as a card.**
    - Title: `SUMMARY`.
@@ -40,7 +41,7 @@
 - **FR-002**: Connecting MUST discover the task lists from a domain or a full address through `/.well-known/caldav`, keep only lists that hold tasks, and report the account's display name or the reason it failed.
 - **FR-003**: tiko MUST refuse plain HTTP to public addresses, and refuse private network addresses when `TIKO_CALDAV_PRIVATE_NETWORK=deny`, including after a redirect.
 - **FR-004**: A person MUST be able to switch each task list on or off; lists switched off MUST NOT appear in the card tool.
-- **FR-005**: The card tool MUST let a person add tasks from a chosen list, singly or the whole list, up to 50 at once, with done tasks hidden unless asked for.
+- **FR-005**: The card tool MUST find a person's tasks by words of their title across every shown list or in one, matched by the server, show at most 20 at a time with the count of the rest, and add the ticked ones or all shown; done tasks hidden unless asked for.
 - **FR-006**: A card MUST read a task as Decision 9 describes, including date-only and time-zoned due dates, repeating tasks and subtasks.
 - **FR-012**: A task MUST fill `Task.start` from `DTSTART` and `Task.due` from `DUE` with the field names `DTSTART` and `DUE`, as Decision 9 describes. Whichever of this spec and 041-gantt-dates lands second wires this in.
 - **FR-007**: A card MUST find its task again by UID after the task moves to another list of the same account.
@@ -70,3 +71,4 @@
 - Pasting a link to a task (a Nextcloud Tasks link, for example) into the card tool.
 - Google Tasks, Microsoft To Do and other trackers without CalDAV.
 - Expanding a repeating task into its occurrences.
+- A board element that follows a whole list and adds its new tasks by itself.

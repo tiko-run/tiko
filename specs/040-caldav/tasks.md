@@ -10,7 +10,7 @@
 - [x] T005 Personal account in the credential store: connect with a check, replace, remove; list switches kept with it; `caldav` provider per person and a stand-in for people without an account (FR-001, FR-004, FR-009)
 - [x] T006 API: account and list switches under `/me`, tasks of a list under `/tasks/caldav`; no write request to the server (FR-010)
 - [x] T007 Settings → My tracker: CalDAV form and list switches
-- [x] T008 Card tool: CalDAV tab with lists, open tasks, "Show done", tick or add the whole list, up to 50
+- [x] T008 Card tool: CalDAV tab with a search by title across lists or in one, the account named, 20 at a time with the count of the rest, ticks kept across searches, "Show done"
 - [x] T009 Source mark and short key (list name) on the card
 - [x] T010 Radicale stand for the integration test and a seed script with made-up tasks; Nextcloud stand for the checks by hand
 - [ ] T011 By hand on Nextcloud: tasks from Thunderbird, Apple Reminders and the web app show and refresh; results in the PR (FR-011)

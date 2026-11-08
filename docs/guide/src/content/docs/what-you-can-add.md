@@ -38,7 +38,7 @@ There are no queries for GitHub. Setup: [GitHub Issues](../github-issues/).
 
 ## CalDAV
 
-CalDAV tasks are picked from their list: switch the card tool to **CalDAV** once you have [connected an account](../caldav/). A task's id is long and nobody types it, so there are no keys or queries for CalDAV.
+CalDAV tasks are found by their title: switch the card tool to **CalDAV** once you have [connected an account](../caldav/) and type a few words. A task's id is long and nobody types it, so there are no keys or queries for CalDAV.
 
 ## Demo tasks
 

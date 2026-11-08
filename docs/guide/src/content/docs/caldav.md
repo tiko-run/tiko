@@ -26,7 +26,9 @@ Once connected, **Settings → My tracker** lists your task lists with a switch 
 
 ## Add cards
 
-Pick the card tool (`C`), switch to **CalDAV**, pick a list and tick the tasks, or press **Add all**. Up to 50 go on the board at a time. Done tasks are hidden until you turn on **Show done**.
+Pick the card tool (`C`) and switch to **CalDAV**. Type a few words of a task's title: tiko searches all your lists at once, or one list picked in the menu next to the search. Tick the tasks you want, search again for more, and press **Add**. With an empty search the tasks due soonest come first. Done tasks are hidden until you turn on **Show done**.
+
+A task you create later in your app does not appear on the board by itself: add it the same way.
 
 A CalDAV card shows its list where other cards show a key. Click it for the mini-card: the due date and the start date, the progress, whether it repeats, the parent task of a subtask, and the categories as chips. On Nextcloud the mini-card links to the task in the Tasks app; other servers have no page for a task, so there is no link.
 

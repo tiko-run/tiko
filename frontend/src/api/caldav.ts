@@ -55,13 +55,14 @@ export function hideCalDavLists(hidden: string[]) {
   }).then((body) => body.lists)
 }
 
-export function getListTasks(listId: string, done: boolean) {
+/** The person's tasks whose title holds `query`, in one list or in every shown one. */
+export function findCalDavTasks(query: string, listId: string | null, done: boolean) {
   return fetchJson(
     '/api/tasks/caldav',
     z.object({ tasks: z.array(taskSchema), total: z.number() }),
     {
       method: 'POST',
-      body: JSON.stringify({ list_id: listId, done }),
+      body: JSON.stringify({ query, list_id: listId, done }),
     },
   )
 }

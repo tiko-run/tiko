@@ -10,6 +10,8 @@ from app.domain.tasks import CALDAV, Task, now_iso
 
 # Tasks a list adds to a board at once, as the card tool does for other trackers.
 MAX_LIST_TASKS = 50
+# What the card tool shows at once: enough to pick from, short enough to stay one glance.
+PICKER_TASKS = 20
 
 
 def normalize_address(value: str) -> str:
@@ -51,15 +53,18 @@ class CalDavIn(BaseModel):
     password: SecretStr | None = None
 
 
-class ListTasksIn(BaseModel):
-    list_id: str = Field(min_length=1, max_length=2000)
+class FindTasksIn(BaseModel):
+    # Words of the title; empty: every task, the soonest due first.
+    query: str = Field(default="", max_length=200)
+    # One list, or every list the person shows.
+    list_id: str | None = Field(default=None, min_length=1, max_length=2000)
     done: bool = False
-    limit: int = Field(default=MAX_LIST_TASKS, ge=1, le=MAX_LIST_TASKS)
+    limit: int = Field(default=PICKER_TASKS, ge=1, le=MAX_LIST_TASKS)
 
 
 class ListTasks(BaseModel):
     tasks: list[Task]
-    # Open tasks of the list past `limit` are counted, not sent.
+    # Matches past `limit` are counted, not sent.
     total: int
 
 
@@ -70,7 +75,7 @@ class CalDavSource(TaskProvider, Protocol):
         """The account's task lists, without event-only calendars."""
         ...
 
-    def list_tasks(self, list_id: str, done: bool, limit: int) -> ListTasks: ...
+    def find_tasks(self, query: str, list_id: str | None, done: bool, limit: int) -> ListTasks: ...
 
 
 def no_account(key: str) -> Task:
@@ -95,4 +100,4 @@ class NoCalDav:
     def _refuse(self, *_: object) -> NoReturn:
         raise ValidationFailed("Connect your CalDAV account in Settings → My tracker.")
 
-    resolve = check = search = jql_vocabulary = jql_values = list_tasks = _refuse
+    resolve = check = search = jql_vocabulary = jql_values = find_tasks = _refuse

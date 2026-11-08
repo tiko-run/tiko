@@ -40,7 +40,7 @@ def test_finds_the_task_lists_and_skips_event_calendars(reader):
 
 def test_reads_tasks_as_their_clients_wrote_them(reader):
     personal = by_name(reader)["Home"]
-    open_tasks = {t.key: t for t in reader.list_tasks(personal, done=False, limit=50).tasks}
+    open_tasks = {t.key: t for t in reader.find_tasks("", personal, done=False, limit=50).tasks}
     assert "stand-done-1" not in open_tasks
     assert "stand-cancelled-1" not in open_tasks
     apple = open_tasks["stand-apple-1"]
@@ -53,7 +53,7 @@ def test_reads_tasks_as_their_clients_wrote_them(reader):
     )
     child = {r.label: r.value for r in open_tasks["stand-child-1"].rows}
     assert child["Part of"] == "Plan the holidays"
-    every = reader.list_tasks(personal, done=True, limit=50).tasks
+    every = reader.find_tasks("", personal, done=True, limit=50).tasks
     assert {"stand-done-1", "stand-cancelled-1"} <= {t.key for t in every}
 
 
@@ -61,3 +61,8 @@ def test_resolves_and_polls_by_uid(reader):
     assert reader.resolve("stand-milk-1").summary == "Oat milk"
     (task,) = reader.poll(["stand-milk-1"])
     assert task.state == "ok"
+
+
+def test_searches_by_title_on_the_server(reader):
+    found = reader.find_tasks("DENTIST", None, done=False, limit=20)
+    assert [t.key for t in found.tasks] == ["stand-apple-1"]

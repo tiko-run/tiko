@@ -82,7 +82,7 @@ def test_hidden_lists_are_marked_and_refused_in_the_picker():
     reader = make(FakeCalDav(), hidden=frozenset({WORK}))
     assert {i.name: i.shown for i in reader.lists()} == {"Personal": True, "Work": False}
     with pytest.raises(TaskNotFound):
-        reader.list_tasks(WORK, done=False, limit=50)
+        reader.find_tasks("", WORK, done=False, limit=50)
 
 
 def test_list_tasks_hides_done_unless_asked():
@@ -94,8 +94,10 @@ def test_list_tasks_hides_done_unless_asked():
     )
     reader = make(fake)
     reader.check()
-    assert [t.key for t in reader.list_tasks(PERSONAL, done=False, limit=50).tasks] == ["task-1"]
-    found = reader.list_tasks(PERSONAL, done=True, limit=50)
+    assert [t.key for t in reader.find_tasks("", PERSONAL, done=False, limit=50).tasks] == [
+        "task-1"
+    ]
+    found = reader.find_tasks("", PERSONAL, done=True, limit=50)
     assert [t.key for t in found.tasks] == ["task-1", "task-2"]
     assert found.total == 2
 
@@ -104,7 +106,7 @@ def test_list_tasks_counts_past_the_limit():
     fake = FakeCalDav()
     for n in range(2, 6):
         fake.put("personal", f"a{n}.ics", todo(f"task-{n}", f"Task {n}"))
-    found = make(fake).list_tasks(PERSONAL, done=False, limit=2)
+    found = make(fake).find_tasks("", PERSONAL, done=False, limit=2)
     assert len(found.tasks) == 2
     assert found.total == 5
 
@@ -268,7 +270,7 @@ def test_never_writes():
     clock = Clock()
     reader = make(fake, clock=clock)
     reader.check()
-    reader.list_tasks(PERSONAL, done=True, limit=50)
+    reader.find_tasks("", PERSONAL, done=True, limit=50)
     reader.resolve("task-1")
     clock.now += 60
     reader.poll(["task-1", "missing"])
@@ -343,6 +345,39 @@ def test_list_tasks_sorts_by_the_due_date_itself_and_knows_a_later_parent():
         "b.ics": todo("soon", "Call the dentist", "DUE;VALUE=DATE:20261112"),
         "p.ics": todo("parent", "Plan the holidays"),
     }
-    found = make(fake).list_tasks(PERSONAL, done=False, limit=50).tasks
+    found = make(fake).find_tasks("", PERSONAL, done=False, limit=50).tasks
     assert [t.key for t in found] == ["soon", "child", "parent"]
     assert rows(found[1])["Part of"] == "Plan the holidays"
+
+
+def test_find_tasks_searches_every_shown_list_by_title():
+    fake = FakeCalDav()
+    fake.put("work", "w1.ics", todo("work-1", "Buy a new chair"))
+    fake.put("work", "w2.ics", todo("work-2", "Write the report"))
+    reader = make(fake)
+    found = reader.find_tasks("buy", None, done=False, limit=20)
+    assert sorted(t.key for t in found.tasks) == ["task-1", "work-1"]
+    assert {t.type_name for t in found.tasks} == {"Personal", "Work"}
+    only_work = reader.find_tasks("", WORK, done=False, limit=20)
+    assert [t.key for t in only_work.tasks] == ["work-1", "work-2"]
+
+
+def test_find_tasks_matches_any_case_and_script():
+    fake = FakeCalDav()
+    fake.put("personal", "ru.ics", todo("ru-1", "Тестовая задача"))
+    found = make(fake).find_tasks("ТЕСТОВАЯ", None, done=False, limit=20)
+    assert [t.key for t in found.tasks] == ["ru-1"]
+
+
+def test_find_tasks_skips_hidden_lists():
+    fake = FakeCalDav()
+    fake.put("work", "w1.ics", todo("work-1", "Buy a new chair"))
+    found = make(fake, hidden=frozenset({WORK})).find_tasks("buy", None, done=False, limit=20)
+    assert [t.key for t in found.tasks] == ["task-1"]
+
+
+def test_the_title_filter_goes_to_the_server():
+    fake = FakeCalDav()
+    make(fake).find_tasks("milk", PERSONAL, done=False, limit=20)
+    report = next(r for r in fake.requests if r.method == "REPORT")
+    assert b'name="SUMMARY"' in report.content

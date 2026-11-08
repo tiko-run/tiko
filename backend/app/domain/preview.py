@@ -21,6 +21,7 @@ from app.domain.boards import (
 )
 from app.domain.errors import NotFound
 from app.domain.ports import BoardRepo
+from app.domain.tasks import CALDAV
 
 WIDTH, HEIGHT = 320, 200
 # Raised whenever the picture changes for the same board, so kept and cached pictures are redrawn.
@@ -241,7 +242,8 @@ def _node(node: Node, box: Box, words: bool) -> list[str]:
             f"<rect x='{_n(x)}' y='{_n(y)}' width='{_n(w)}' height='{_n(h)}' rx='6'"
             f" fill='{LINE}' fill-opacity='.08' stroke='{LINE}'/>"
         )
-        if not words:
+        # A CalDAV key is a long id that means nothing to people; the card stays bare.
+        if not words or node.data.source == CALDAV:
             return [card]
         return [
             card,

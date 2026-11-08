@@ -86,6 +86,8 @@ def test_switched_off_lists_stay_off(admin):
     again = admin.get("/api/me/caldav/lists").json()["lists"]
     assert {i["name"]: i["shown"] for i in again} == {"Personal": True, "Work": False}
     assert admin.post("/api/tasks/caldav", json={"list_id": WORK}).status_code == 404
+    everywhere = admin.post("/api/tasks/caldav", json={"query": "milk"}).json()
+    assert [t["summary"] for t in everywhere["tasks"]] == ["Buy milk"]
 
 
 def test_tasks_of_a_list_and_a_card_that_refreshes(admin, fake):

@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -8,6 +7,7 @@ import {
   type ComponentProps,
   type KeyboardEvent,
 } from 'react'
+import { useDebounced } from '@/lib/useDebounced'
 import { getJqlValues, getJqlVocabulary, searchTasks, type JqlVocabulary } from '@/api/tasks'
 import { Textarea } from '@/components/ui/textarea'
 import { applySuggestion, jqlContext, rank, type JqlContext } from '@/lib/jql'
@@ -20,15 +20,6 @@ const COUNT_DELAY_MS = 400
 const KEY_START = /^[A-Za-z][A-Za-z0-9_]*-/
 
 type Suggestion = { insert: string; label: string }
-
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debounced
-}
 
 /** Match count of a query, checked by Jira while the user pauses typing. */
 export function useJqlCount(jql: string, enabled: boolean) {

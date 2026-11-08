@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.api import deps
-from app.domain.caldav import CalDavSource, ListTasks, ListTasksIn
+from app.domain.caldav import CalDavSource, FindTasksIn, ListTasks
 from app.domain.ports import SnapshotRepo, TaskProvider
 from app.domain.tasks import MAX_SEARCH, Task, resolve_task, search_tasks
 
@@ -54,11 +54,11 @@ def resolve(
 
 @router.post("/caldav")
 def caldav_tasks(
-    body: ListTasksIn,
+    body: FindTasksIn,
     caldav: Annotated[CalDavSource, Depends(deps.caldav_source)],
     snapshots: Annotated[SnapshotRepo, Depends(deps.snapshots)],
 ) -> ListTasks:
-    """Tasks of one of the person's lists, to pick cards from."""
-    found = caldav.list_tasks(body.list_id, body.done, body.limit)
+    """The person's tasks matching a search, to pick cards from."""
+    found = caldav.find_tasks(body.query, body.list_id, body.done, body.limit)
     snapshots.put_many(found.tasks)
     return found
