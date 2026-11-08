@@ -1212,6 +1212,7 @@ export function BoardCanvas({
                           onPlace={placeAt}
                           onAddCards={addCards}
                           onAddModule={addModule}
+                          onAddImages={(files, point) => void addImages(files, point)}
                           onDelete={deleteSelection}
                           cards={cardCounts}
                           onCollapse={setCollapsed}

@@ -239,3 +239,27 @@ test('an add that leaves the form open shows itself in the list at once', async 
   const list = screen.getByRole('listbox', { name: 'Recent inputs' })
   expect(within(list).getByRole('option')).toHaveTextContent('DEMO-1, NOPE')
 })
+
+test('the image button and I open the picker, and picked files are added', () => {
+  const onImages = vi.fn()
+  const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {})
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <Toolbar
+        tool="select"
+        onTool={vi.fn()}
+        onShape={vi.fn()}
+        onAddCards={vi.fn()}
+        onImages={onImages}
+        onAddModule={vi.fn()}
+      />
+    </QueryClientProvider>,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Image' }))
+  fireEvent.keyDown(document.body, { key: 'i', code: 'KeyI' })
+  expect(click).toHaveBeenCalledTimes(2)
+  const shot = new File(['png'], 'shot.png', { type: 'image/png' })
+  fireEvent.change(screen.getByTestId('image-picker'), { target: { files: [shot] } })
+  expect(onImages).toHaveBeenCalledWith([shot])
+  click.mockRestore()
+})

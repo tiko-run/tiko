@@ -19,10 +19,11 @@
    - Paste: Ctrl/Cmd + V of a screenshot, a copied image or several copied files, at the cursor.
    - Drop: one or several files from the desktop onto the board, where they are dropped.
    - Toolbar: an Image tool (key `I`) opens the file picker and places the image in the middle of the view.
+   - Right-click menu: Add image opens the file picker and places the pictures where the menu was opened.
    - Stickers: a panel of stickers (slice 3).
    An image shows the moment it is added, from the local copy, and uploads in the background; other people on the board see a placeholder of the right size until it is stored. A failed upload says so on the element and offers a retry; the other images of the same paste are not affected.
-5. **Big images do not slow the canvas.** The original is kept for opening and downloading in full. The board shows a smaller WebP copy made at upload: 512, 1024 and 2048 px wide, only those smaller than the original. The canvas picks the copy by the element's size on screen, the zoom and the screen's pixel density, so a 4K screenshot zoomed out costs as much as a thumbnail. The element knows its size before the picture arrives, so nothing jumps; until then it shows a flat tone of the picture's average colour. Pictures are decoded off the main thread. Double-click opens the original in full.
-6. **Text in screenshots stays sharp.** The copies of a PNG keep text readable; the encoding (lossless or high-quality WebP) is chosen by measuring weight and readability on real screenshots during the slice.
+5. **Big images do not slow the canvas.** The original is kept for opening and downloading in full. The board shows a smaller WebP copy made at upload: 512, 1024 and 2048 px wide, only those smaller than the original. The canvas picks the copy by the element's size on screen, the zoom and the screen's pixel density, so a 4K screenshot zoomed out costs as much as a thumbnail. The element knows its size before the picture arrives, so nothing jumps; until then it shows a flat tone of the picture's average colour. Pictures are decoded off the main thread. The original is not opened from the board in slice 1: a double-click opening a browser tab felt like leaving the board, so a viewer inside the board comes later.
+6. **Text in screenshots stays sharp.** Copies are WebP at quality 90: on a real retina screenshot of the app the 1024 px copy weighs 14 KB against 31 KB lossless, and small text stays readable (measured in slice 1).
 7. **Formats and limits.**
    - Accepted: PNG, JPEG, WebP, GIF. Refused with a clear message: SVG (it can carry scripts), HEIC and everything else.
    - Up to 25 MB and 50 megapixels per file; a bigger one is refused before upload when the browser can tell, and by the server in any case.
@@ -31,6 +32,13 @@
 8. **Access follows the board.** A file is served only to someone who can open a board of its workspace, and through a board's public link to anyone who has that link. The address of a file never changes, so the browser caches it for a year and loads it once.
 9. **GIFs move without the cost** (slice 2). A GIF is stored as is and also as an animated WebP, which is several times lighter. The canvas animates only the GIFs in view, shows the first frame below a zoom threshold and for people who ask the system for reduced motion. Until slice 2 lands, a GIF is accepted and shows its first frame.
 10. **Stickers** (slice 3). A sticker panel holds a built-in set and the workspace's own pack; any image on the board can be saved to the pack and then shows in the panel for everyone in the workspace. The built-in set is chosen by its licence, which must allow an AGPL repository and keep dual licensing open; Telegram packs and open emoji sets are checked before the slice starts. Animated stickers are drawn as animated WebP, not Lottie, under the same rules as GIFs.
+   - Checked before slice 3: Telegram sticker packs belong to their artists and no Telegram term allows using them outside Telegram, so none is bundled, and importing a pack through a bot is not built either. The built-in set is Noto Animated Emoji (CC BY 4.0), copied into the repository as WebP, credited in `THIRD_PARTY.md` and in the panel itself.
+11. **Loose ends of slice 1** are closed in the next slices:
+   - An upload cut short (the tab closed or the network gone before the file was stored) leaves an element that others see as "Uploading…" for ever. Such an element turns into "Upload did not finish" after a while, can be deleted like any element, and the person who added it can pick the file again.
+   - Resizing a turned picture does not keep its proportions, while an upright one does. A turned one keeps them too.
+   - Files no element refers to any more stay in the database. A job removes them some time after their last element is gone, so an Undo still finds them; the quota counts only what is left.
+   - The colour the board shows before a picture loads is worked out in the browser and the server works out its own; the server's is the one kept, so everyone sees the same tone.
+   - Smoothness was measured on a fast machine only. FR-008 and the repeat of FR-007 are measured again with the CPU slowed four times in the browser's performance panel.
 
 ## Requirements
 
@@ -38,22 +46,27 @@
 - **FR-002**: Paste, drop and the Image tool MUST add images as in Decision 4; an image MUST show at once and upload in the background; a failure MUST be shown on the element with a retry.
 - **FR-003**: The server MUST store a file once per workspace by its SHA-256, record who uploaded it, and refuse anything but PNG, JPEG, WebP and GIF, files over 25 MB or 50 megapixels, and uploads past the workspace quota.
 - **FR-004**: The server MUST make WebP copies at 512, 1024 and 2048 px (only smaller than the original), know the picture's size and average colour, and serve nothing with EXIF location or camera data.
-- **FR-005**: The canvas MUST pick the smallest copy that is sharp at the element's size on screen, zoom and pixel density, MUST reserve the element's size before the picture loads, and MUST open the original on double-click.
+- **FR-005**: The canvas MUST pick the smallest copy that is sharp at the element's size on screen, zoom and pixel density, and MUST reserve the element's size before the picture loads.
 - **FR-006**: A file MUST be served only to someone who can open a board of its workspace or holds a public link to such a board, with a cache lifetime of a year.
 - **FR-007**: A board with 30 4K screenshots MUST pan and zoom as smoothly as the same board without them (measured in the Chrome performance panel, numbers written into the slice's PR).
 - **FR-008** (slice 2): GIFs MUST animate only in view, above the zoom threshold and without reduced motion; a board with 50 GIFs MUST pan and zoom without dropping frames.
-- **FR-009** (slice 3): The sticker panel MUST offer a built-in set under an allowed licence and the workspace's own pack.
+- **FR-009** (slice 3): The sticker panel MUST offer a built-in set under an allowed licence, credited where it is shown, and the workspace's own pack.
+- **FR-010** (slice 2): An element whose upload never finished MUST stop showing "Uploading…" after a while and say the upload did not finish; its author MUST be able to pick the file again.
+- **FR-011** (slice 2): Resizing a turned picture MUST keep its proportions, as for an upright one.
+- **FR-012** (slice 4): A file no element refers to MUST be removed some time after its last element is gone, and the quota MUST count only stored files that are still there.
+- **FR-013** (slice 2): The board MUST keep the picture's average colour as the server worked it out.
+- **FR-014** (slices 2 and 3): Smoothness MUST hold with the CPU slowed four times, on the GIF board of FR-008 and the screenshot board of FR-007.
 
 ## Slices
 
-1. `images`: FR-001 – FR-007. Postgres table and port, upload and serving with access, copies, the element, paste / drop / tool, limits, the guide.
-2. `gifs`: FR-008. Animated WebP, pausing out of view and when far, reduced motion.
-3. `stickers`: FR-009. After the licence check.
+1. `images`: FR-001 – FR-007. Postgres table and port, upload and serving with access, copies, the element, paste / drop / tool, limits, the guide. Done.
+2. `gifs`: FR-008, FR-010, FR-011, FR-013, FR-014. Animated WebP, pausing out of view and when far, reduced motion; the loose ends of slice 1.
+3. `stickers`: FR-009, FR-014. Noto Animated Emoji and the workspace pack.
+4. `files-cleanup`: FR-012. Removing files nothing refers to.
 
 ## Out of scope
 
 - Pasting an image by its web address (the server fetching a URL invites abuse; the browser hits CORS).
 - Video, YouTube, PDF and document readers; HEIC.
-- Removing files no board refers to any more (later; an undo can bring an element back).
 - Moving a stored image between workspaces: an image element pasted into a board of another workspace shows "Image not available".
 - Image editing: crop, filters, annotations.

@@ -12,9 +12,9 @@ import {
   Type,
   type LucideIcon,
 } from 'lucide-react'
-import { useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { searchTasks, type Task } from '@/api/tasks'
-import { IMAGE_TYPES } from '@/canvas/images'
+import { useImagePicker } from '@/canvas/ImagePicker'
 import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
 import {
   errorMessage,
@@ -214,8 +214,7 @@ function ShapeIcon({ kind }: { kind: ShapeKind }) {
 
 export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImages }: Props) {
   const [open, setOpen] = useState(false)
-  const picker = useRef<HTMLInputElement>(null)
-  const pickImages = () => picker.current?.click()
+  const { input: imagePicker, open: pickImages } = useImagePicker(onImages)
   const [shapesOpen, setShapesOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
   // The toolbar is on screen only on a board the person can edit, where the tour may start.
@@ -348,20 +347,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImag
       >
         <ImagePlus className="size-[18px]" strokeWidth={1.75} />
       </Button>
-      <input
-        ref={picker}
-        type="file"
-        accept={IMAGE_TYPES.join(',')}
-        multiple
-        hidden
-        data-testid="image-picker"
-        onChange={(event) => {
-          const files = Array.from(event.target.files ?? [])
-          // Cleared, so picking the same file again still adds it.
-          event.target.value = ''
-          if (files.length) onImages(files)
-        }}
-      />
+      {imagePicker}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

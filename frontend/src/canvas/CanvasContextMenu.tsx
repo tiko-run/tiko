@@ -1,6 +1,7 @@
 import {
   AlarmClock,
   Frame,
+  ImagePlus,
   Maximize2,
   Minimize2,
   StickyNote,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/context-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { keepOpenWhileSuggesting } from '@/canvas/JqlInput'
+import { useImagePicker } from '@/canvas/ImagePicker'
 import { AddCardForm } from '@/canvas/Toolbar'
 import { MODULES } from '@/modules/registry'
 
@@ -30,6 +32,7 @@ type Props = {
   onPlace: (tool: PlaceTool, point: XYPosition) => void
   onAddCards: (tasks: Task[], point: XYPosition) => void
   onAddModule: (kind: string, point: XYPosition) => void
+  onAddImages: (files: File[], point: XYPosition) => void
   onDelete: () => void
   /** How many selected cards are expanded and collapsed, for the collapse items. */
   cards: { expanded: number; collapsed: number }
@@ -55,6 +58,7 @@ export function CanvasContextMenu({
   onPlace,
   onAddCards,
   onAddModule,
+  onAddImages,
   onDelete,
   cards,
   onCollapse,
@@ -69,9 +73,15 @@ export function CanvasContextMenu({
   const later = (action: () => void) => () => {
     pending.current = action
   }
+  // Pictures land where the menu was opened.
+  const imagesAt = useRef<XYPosition | null>(null)
+  const images = useImagePicker((files) => {
+    if (imagesAt.current) onAddImages(files, imagesAt.current)
+  })
 
   return (
     <>
+      {images.input}
       <ContextMenu>
         <ContextMenuTrigger
           asChild
@@ -102,6 +112,16 @@ export function CanvasContextMenu({
                   {label}
                 </ContextMenuItem>
               ))}
+              <ContextMenuItem
+                onSelect={() => {
+                  // Opened in the click itself: a picker needs the person's gesture.
+                  imagesAt.current = target.point
+                  images.open()
+                }}
+              >
+                <ImagePlus strokeWidth={1.75} />
+                Add image
+              </ContextMenuItem>
               {MODULES.map(({ kind, name, Icon }) => (
                 <ContextMenuItem key={kind} onSelect={later(() => onAddModule(kind, target.point))}>
                   <Icon strokeWidth={1.75} />

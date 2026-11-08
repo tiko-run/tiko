@@ -48,9 +48,6 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
       <div
         className={cn('relative h-full w-full overflow-hidden', selected && 'ring-primary ring-2')}
         style={{ background: data.color }}
-        onDoubleClick={() => {
-          if (data.file) window.open(fileUrl(source, data.file), '_blank', 'noopener')
-        }}
       >
         {local && !shown && <Picture src={local} />}
         {shown && shown !== src && <Picture src={shown} />}
