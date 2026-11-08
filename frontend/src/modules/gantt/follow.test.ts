@@ -103,17 +103,20 @@ test('stages that cannot reach the tracker dates settle instead of moving foreve
   ])
 })
 
-test('a bar a person moved stops following; one whose task has no dates keeps following', () => {
-  const before = gantt([row, { ...row, id: 'b', key: 'DEMO-2' }])
+test('a bar a person moved stops following, also when its task has no dates yet', () => {
+  const before = gantt([
+    row,
+    { ...row, id: 'b', key: 'DEMO-2' },
+    { ...row, id: 'c', key: 'DEMO-3' },
+  ])
   const after = gantt([
     { ...row, start: '2026-10-12', end: '2026-10-16' },
     { ...row, id: 'b', key: 'DEMO-2', start: '2026-10-12', end: '2026-10-16' },
+    { ...row, id: 'c', key: 'DEMO-3' },
   ])
-  const { content, detached } = detachEdited(before, after, (r) =>
-    r.key === 'DEMO-1' ? task({ due: '2026-10-09' }) : task({}),
-  )
-  expect(detached).toEqual(['a'])
-  expect(content.rows.map((r) => r.follow)).toEqual([undefined, true])
+  const { content, detached } = detachEdited(before, after)
+  expect(detached).toEqual(['a', 'b'])
+  expect(content.rows.map((r) => r.follow)).toEqual([undefined, undefined, true])
   expect('follow' in content.rows[0]).toBe(false)
 })
 
@@ -138,7 +141,7 @@ test('a row cut into stages stops following and keeps its bar', () => {
   }
   const dated = () => task({ start: '2026-11-02', due: '2026-11-20' })
   expect(followTracker(gantt([staged]), dated).rows[0].start).toBe('2026-10-05')
-  const { content, detached } = detachEdited(gantt([row]), gantt([staged]), dated)
+  const { content, detached } = detachEdited(gantt([row]), gantt([staged]))
   expect(detached).toEqual([])
   expect(content.rows[0].follow).toBeUndefined()
 })

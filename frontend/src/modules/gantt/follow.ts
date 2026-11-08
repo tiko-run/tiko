@@ -74,14 +74,25 @@ export function followTracker(
   return changed ? { ...content, rows } : content
 }
 
+/** The tracker dates every following leaf draws, as one string that changes when they do. */
+export function trackedKey(content: GanttContent, taskOf: (row: Row) => Task | undefined) {
+  const parents = parentIds(content)
+  return content.rows
+    .flatMap((row) => {
+      const tracked = follows(row, parents.has(row.id)) ? trackerSpan(taskOf(row)) : null
+      return tracked ? [`${row.id}:${tracked.span.start}-${tracked.span.end}`] : []
+    })
+    .join(',')
+}
+
 /**
  * Takes off the tracker every following leaf whose dates a person changed: their dates are
- * now their own. Rows whose task has no dates keep following, for when it gets some.
+ * now their own, also when the task has none yet, so a date the tracker gets later does not
+ * replace them.
  */
 export function detachEdited(
   before: GanttContent,
   after: GanttContent,
-  taskOf: (row: Row) => Task | undefined,
 ): { content: GanttContent; detached: string[] } {
   const was = new Map(before.rows.map((r) => [r.id, r]))
   const parents = parentIds(after)
@@ -92,7 +103,6 @@ export function detachEdited(
     const old = was.get(row.id)
     if (!row.follow || !old || parents.has(row.id)) return row
     if (row.start === old.start && row.end === old.end) return row
-    if (!trackerSpan(taskOf(row))) return row
     detached.push(row.id)
     return withFollow(row, false)
   })

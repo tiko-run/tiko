@@ -1118,3 +1118,25 @@ test('with Planning on a following bar marks its guessed side as with Planning o
   expect(bar.getAttribute('data-guess')).toBe('start')
   expect(screen.getByText('Start is a guess: the tracker has only a due date')).toBeTruthy()
 })
+
+test('tracker dates are written when this tab’s tracker data changes, not on every edit', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  expect(host.syncContent).toHaveBeenCalledTimes(1)
+  // An edit of another row leaves the stored dates as they are: someone else may have newer ones.
+  fireEvent.click(screen.getByRole('button', { name: 'Indent Design review' }))
+  expect(host.syncContent).toHaveBeenCalledTimes(1)
+})
+
+test('a viewer who cannot edit reads the tracker dates without a reason about children', () => {
+  renderGantt(
+    {},
+    content,
+    OFF,
+    { 'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' } },
+    true,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /^Tracker dates:/ }))
+  expect(screen.getByText('Mon Oct 5 – Tue Oct 20')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Follow tracker dates' })).toBeNull()
+  expect(screen.queryByText('Rows with children keep their own dates.')).toBeNull()
+})

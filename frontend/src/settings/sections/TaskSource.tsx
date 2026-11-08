@@ -30,8 +30,17 @@ function ServerNote({ name }: { name: string }) {
 const AUTO = 'auto'
 
 /** The Jira field a task's start is read from: Auto, or one of the site's date fields. */
-function StartField({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-  const fields = useQuery({ queryKey: ['jira-date-fields'], queryFn: getJiraDateFields })
+function StartField({
+  site,
+  value,
+  onChange,
+}: {
+  site: string
+  value: string
+  onChange: (id: string) => void
+}) {
+  // Kept per site, so fields of a site left a moment ago are never offered for the new one.
+  const fields = useQuery({ queryKey: ['jira-date-fields', site], queryFn: getJiraDateFields })
   const chosen = fields.data?.find((field) => field.id === value)
   return (
     <div className="flex flex-col gap-1.5">
@@ -96,6 +105,8 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
       }),
     onSuccess: (saved) => {
       queryClient.setQueryData(['settings'], saved)
+      // A new site clears the choice on the server; the form follows, so a later save keeps it.
+      setStartField(saved.jira.start_field ?? '')
       // Cards resolve through the selected provider, so re-read open boards.
       void queryClient.invalidateQueries({ queryKey: ['board'] })
       void queryClient.invalidateQueries({ queryKey: ['refresh'] })
@@ -190,7 +201,13 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
           , so cards show what their own Jira access allows. Moving to another URL asks everyone to
           enter their token again.
         </p>
-        {sameSite && <StartField value={startField} onChange={setStartField} />}
+        {sameSite && (
+          <StartField
+            site={settings.jira.base_url ?? ''}
+            value={startField}
+            onChange={setStartField}
+          />
+        )}
       </fieldset>
 
       {save.isError && (

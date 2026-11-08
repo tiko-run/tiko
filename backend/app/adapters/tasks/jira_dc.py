@@ -1,3 +1,4 @@
+import hashlib
 import html
 import re
 import time
@@ -52,7 +53,8 @@ class DateField(NamedTuple):
 
 
 class JiraDateFields:
-    """The date fields of each Jira site, kept across the providers built per request."""
+    """The date fields each token sees on its Jira site, kept across the providers built per
+    request: Jira lists only the fields the account may view."""
 
     def __init__(self) -> None:
         self._sites: dict[str, tuple[float, list[DateField]]] = {}
@@ -154,9 +156,13 @@ class JiraDcProvider:
         self._date_fields = date_fields or JiraDateFields()
 
     def date_fields(self) -> list[DateField]:
-        """The site's date fields; none when Jira does not list them, so tasks still load."""
-        base_url = self._credentials().base_url
-        cached = self._date_fields.get(base_url)
+        """The site's date fields this token sees; none when Jira does not list them, so tasks
+        still load."""
+        creds = self._credentials()
+        # The token's hash, never the token, keys the cache: one person's fields stay theirs.
+        token = hashlib.sha256(creds.token.get_secret_value().encode()).hexdigest()[:16]
+        site = f"{creds.base_url} {token}"
+        cached = self._date_fields.get(site)
         if cached is not None:
             return cached
         try:
@@ -182,7 +188,7 @@ class JiraDcProvider:
             if isinstance(body, list)
             else []
         )
-        self._date_fields.put(base_url, fields)
+        self._date_fields.put(site, fields)
         return fields
 
     def _starts(self) -> list[str]:

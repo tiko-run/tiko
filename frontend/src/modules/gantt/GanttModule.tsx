@@ -51,6 +51,7 @@ import {
   drift,
   follows,
   followTracker,
+  trackedKey,
   trackerDates,
   trackerSpan,
   withFollow,
@@ -180,13 +181,18 @@ export function GanttModule({
   // Following rows show their task's dates; the board keeps them outside undo, so a guest of a
   // public link, who cannot read the tracker, sees the same bars.
   const content = followTracker(stored, taskOf)
-  useEffect(() => {
-    if (!readOnly && content !== stored) host.syncContent(id, content)
-  }, [readOnly, content, stored, host, id])
   const latest = useRef(content)
+  const saved = useRef(stored)
   useEffect(() => {
     latest.current = content
+    saved.current = stored
   })
+  // Written when this tab's own tracker data changes, not on every change of the board: two
+  // editors whose snapshots differ for a moment would otherwise overwrite each other in turn.
+  const tracked = trackedKey(stored, taskOf)
+  useEffect(() => {
+    if (!readOnly && latest.current !== saved.current) host.syncContent(id, latest.current)
+  }, [tracked, readOnly, host, id])
   const setFollow = (ids: string[], follow: boolean) => {
     const now = latest.current
     write({
@@ -197,7 +203,7 @@ export function GanttModule({
   // Every change passes here, so no tree edit leaves a leaf apart from its stages, and a bar
   // a person moved keeps the dates they gave it.
   const onChange = (next: GanttContent) => {
-    const { content: kept, detached } = detachEdited(content, fitLeaves(next), taskOf)
+    const { content: kept, detached } = detachEdited(content, fitLeaves(next))
     write(kept)
     if (detached.length === 0) return
     toast(
@@ -496,6 +502,7 @@ export function GanttModule({
                       }
                 }
                 canSpread={spreadStages(row, off.span, axis) !== null}
+                parent={hasChildren}
                 onFollow={
                   readOnly || hasChildren || row.stages?.length
                     ? undefined
@@ -645,6 +652,7 @@ function DriftGhost({
   onFollow,
   onSpread,
   canSpread,
+  parent,
 }: {
   tracked: Tracked
   axis: Axis
@@ -653,6 +661,8 @@ function DriftGhost({
   /** Puts the row's stages into the tracker's dates, in equal shares. */
   onSpread?: () => void
   canSpread: boolean
+  /** A parent spans its children; a viewer who cannot edit just reads the dates. */
+  parent: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const [open, setOpen] = useState(false)
@@ -700,9 +710,11 @@ function DriftGhost({
               </p>
             </>
           ) : (
-            <p className="text-muted-foreground text-[12px]">
-              Rows with children keep their own dates.
-            </p>
+            parent && (
+              <p className="text-muted-foreground text-[12px]">
+                Rows with children keep their own dates.
+              </p>
+            )
           )}
         </PopoverContent>
       </Popover>

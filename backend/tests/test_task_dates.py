@@ -157,3 +157,15 @@ def test_start_field_is_dropped_with_another_site(jira_client):
     )
     assert moved.json()["jira"]["start_field"] is None
     assert jira_client.put("/api/settings", json={"jira_start_field": "a b"}).status_code == 422
+
+
+def test_field_list_is_kept_per_token():
+    fake = FakeJira()
+    fake.fields = [START]
+    fake.tokens = {"other-token": {"DEV-1"}}
+    cache = JiraDateFields()
+    provider(fake, cache=cache).resolve("DEV-1")
+    creds = JiraCredentials(base_url=BASE, token=SecretStr("other-token"))
+    other = JiraDcProvider(lambda: creds, httpx.Client(transport=httpx.MockTransport(fake)), cache)
+    other.resolve("DEV-1")
+    assert [r.url.path for r in fake.requests].count("/rest/api/2/field") == 2
