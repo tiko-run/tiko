@@ -501,7 +501,6 @@ export function GanttModule({
                 className="group/row relative border-b border-border/60"
                 style={{ height }}
               >
-                {ghost}
                 {planning.enabled && !hasChildren ? (
                   <GanttStages
                     row={row}
@@ -532,7 +531,7 @@ export function GanttModule({
                     }
                   />
                 )}
-                {off && <DriftOutline tracked={off} axis={axis} />}
+                {ghost}
                 {bars.has(row.id) && (
                   <ConnectHandle
                     bar={bars.get(row.id)!}
@@ -625,8 +624,9 @@ function ghostBox(tracked: Tracked, axis: Axis) {
 }
 
 /**
- * Where the tracker has the task: the frame around and beyond the bar opens the tracker's dates
- * and a way to follow them. It lies over the row, so Planning's stage drawing does not hide it.
+ * Where the tracker has the task: a dashed frame over the row, never in the bar's way. The
+ * frame around and beyond the bar opens the tracker's dates and a way to follow them; it lies
+ * over the row, so Planning's stage drawing does not hide it.
  */
 function DriftGhost({
   tracked,
@@ -639,53 +639,53 @@ function DriftGhost({
   bar?: { left: number; right: number }
   onFollow?: () => void
 }) {
+  const [hovered, setHovered] = useState(false)
+  const [open, setOpen] = useState(false)
   const box = ghostBox(tracked, axis)
   if (!box) return null
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Tracker dates: ${trackerDates(tracked)}`}
-          className={cn(HIT, 'hover:bg-warning/15 z-[1] cursor-pointer')}
-          style={{ ...box, clipPath: aroundBar(box.width, box.left, bar) }}
-        />
-      </PopoverTrigger>
-      <PopoverContent side="top" className="flex w-auto max-w-64 flex-col gap-2 p-3 text-[13px]">
-        <p>
-          <span className="text-muted-foreground">In the tracker: </span>
-          {trackerDates(tracked)}
-        </p>
-        {onFollow ? (
-          <Button size="sm" variant="outline" onClick={onFollow}>
-            Follow tracker dates
-          </Button>
-        ) : (
-          <p className="text-muted-foreground text-[12px]">
-            Rows with stages or children keep their own dates.
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Tracker dates: ${trackerDates(tracked)}`}
+            className={cn(HIT, 'z-[1] cursor-pointer')}
+            style={{ ...box, clipPath: aroundBar(box.width, box.left, bar) }}
+            onPointerEnter={() => setHovered(true)}
+            onPointerLeave={() => setHovered(false)}
+          />
+        </PopoverTrigger>
+        <PopoverContent side="top" className="flex w-auto max-w-64 flex-col gap-2 p-3 text-[13px]">
+          <p>
+            <span className="text-muted-foreground">In the tracker: </span>
+            {trackerDates(tracked)}
           </p>
+          {onFollow ? (
+            <Button size="sm" variant="outline" onClick={onFollow}>
+              Follow tracker dates
+            </Button>
+          ) : (
+            <p className="text-muted-foreground text-[12px]">
+              Rows with stages or children keep their own dates.
+            </p>
+          )}
+        </PopoverContent>
+      </Popover>
+      {/* The whole frame lights up, over the bar too, wherever the pointer found it. */}
+      <span
+        aria-hidden
+        data-tracker-dates
+        className={cn(
+          GHOST,
+          'border-warning pointer-events-none z-[1] border-[1.5px] border-dashed',
+          (hovered || open) && 'bg-warning/15',
+          tracked.guess === 'start' && 'border-l-0',
+          tracked.guess === 'end' && 'border-r-0',
         )}
-      </PopoverContent>
-    </Popover>
-  )
-}
-
-/** The dashed edge of the tracker's dates, drawn over the bar and never in its way. */
-function DriftOutline({ tracked, axis }: { tracked: Tracked; axis: Axis }) {
-  const box = ghostBox(tracked, axis)
-  if (!box) return null
-  return (
-    <span
-      aria-hidden
-      data-tracker-dates
-      className={cn(
-        GHOST,
-        'border-warning pointer-events-none z-[1] border-[1.5px] border-dashed',
-        tracked.guess === 'start' && 'border-l-0',
-        tracked.guess === 'end' && 'border-r-0',
-      )}
-      style={box}
-    />
+        style={box}
+      />
+    </>
   )
 }
 
