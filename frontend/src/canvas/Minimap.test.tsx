@@ -20,6 +20,7 @@ test('notes and shapes show their fill, frames an outline, cards a neutral block
   })
   expect(minimapLook(node('frame')).fill).toBe('transparent')
   expect(minimapLook(node('task_card')).fill).toBe('var(--muted-foreground)')
+  expect(minimapLook(node('image', { color: '#c82828' })).fill).toBe('#c82828')
 })
 
 test('anchors and timers draw nothing', () => {

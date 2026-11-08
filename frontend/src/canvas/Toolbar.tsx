@@ -3,6 +3,7 @@ import {
   AlarmClock,
   Frame,
   Hand,
+  ImagePlus,
   LayoutTemplate,
   MousePointer2,
   Shapes,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { searchTasks, type Task } from '@/api/tasks'
+import { useImagePicker } from '@/canvas/ImagePicker'
 import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
 import {
   errorMessage,
@@ -190,6 +192,8 @@ type Props = {
   onShape: (kind: ShapeKind) => void
   onAddCards: (tasks: Task[]) => void
   onAddModule: (kind: string) => void
+  /** Pictures picked from the device, placed in the middle of the view. */
+  onImages: (files: File[]) => void
 }
 
 const ICON = { width: 20, height: 14 }
@@ -208,8 +212,9 @@ function ShapeIcon({ kind }: { kind: ShapeKind }) {
   )
 }
 
-export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Props) {
+export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImages }: Props) {
   const [open, setOpen] = useState(false)
+  const { input: imagePicker, open: pickImages } = useImagePicker(onImages)
   const [shapesOpen, setShapesOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
   // The toolbar is on screen only on a board the person can edit, where the tour may start.
@@ -222,6 +227,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
   useShortcut('text', () => onTool('text'))
   useShortcut('shape', () => setShapesOpen(true))
   useShortcut('timer', () => onTool('timer'))
+  useShortcut('image', pickImages)
   useShortcut('card', () => setOpen(true))
   useShortcut('module', () => setModulesOpen(true))
   useCommands([
@@ -241,6 +247,15 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
       keywords: 'shape',
       run: () => onShape(kind),
     })),
+    {
+      id: 'tool:image',
+      title: 'Add image',
+      group: 'Commands',
+      Icon: ImagePlus,
+      shortcut: 'image',
+      keywords: 'picture screenshot photo gif upload',
+      run: pickImages,
+    },
     {
       id: 'tool:card',
       title: 'Add task card',
@@ -323,6 +338,16 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule }: Prop
           ))}
         </PopoverContent>
       </Popover>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={SHORTCUTS.image.label}
+        title={withShortcut('image')}
+        onClick={pickImages}
+      >
+        <ImagePlus className="size-[18px]" strokeWidth={1.75} />
+      </Button>
+      {imagePicker}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

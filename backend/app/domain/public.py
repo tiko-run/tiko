@@ -87,6 +87,14 @@ class PublicLinks:
             raise TooManyAttempts("This board is busy. Try again in a moment.", max(wait, 1))
         return found
 
+    def files_of(self, token: str) -> str:
+        """The board behind a link, for its pictures. Outside the guests' budget: a board asks
+        for many pictures at once, each only once per browser."""
+        found = self._boards.by_public_token(token) if self._allowed() else None
+        if found is None:
+            raise NotFound("board not found")
+        return found[0]
+
     def board_for(self, person: Person, token: str, members: Members) -> str:
         """The board behind a link, for a signed-in person who can open it anyway. Anyone else
         gets the answer of a wrong link, so the link tells nothing more about the board. It is

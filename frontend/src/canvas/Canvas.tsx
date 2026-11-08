@@ -106,6 +106,7 @@ import { readViewport, saveViewport } from '@/live/viewport'
 import type {
   AppEdge,
   AppNode,
+  ImageData,
   ModuleNode as ModuleNodeType,
   TaskCardNode as TaskCardNodeType,
   TimerData,
@@ -144,6 +145,10 @@ import { useSearchHits } from '@/search/palette'
 import { BoardTimers } from '@/timers/BoardTimers'
 import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
+import { uploadFile } from '@/api/files'
+import { mapLimited, placedSize, readPicture, rowAround, sortFiles } from '@/canvas/images'
+import { ImageNode } from '@/canvas/nodes/ImageNode'
+import { ImagesContext, Uploads, type ImagesHost } from '@/canvas/uploads'
 import { useTheme } from '@/lib/theme'
 import { didOnboarding } from '@/onboarding/done'
 import { topOverlay } from '@/lib/overlays'
@@ -157,6 +162,8 @@ const nodeTypes = {
   sticky: withPresence(farView(StickyNode, FarSticky)),
   shape: withPresence(farView(ShapeNode, FarShape)),
   text: withPresence(farView(TextNode, FarText)),
+  // Far out a picture is still itself: its smallest copy is as cheap as a block.
+  image: withPresence(ImageNode),
   module: withPresence(farView(ModuleNode, FarModule)),
   anchor: AnchorNode,
   timer: withPresence(TimerNode),
@@ -484,6 +491,73 @@ export function BoardCanvas({
     setEdges((current) => [...current.map((e) => ({ ...e, selected: false })), ...copy.edges])
   }
 
+  const { patchData } = live
+  const uploads = useMemo(() => {
+    if (guest) return null
+    const store: Uploads = new Uploads(
+      (file) => uploadFile(board.id, file).then((stored) => stored.id),
+      (id, file, look) => {
+        // Outside the undo history: Undo takes back the person's edit, not the upload. Copies
+        // made while it ran look the same and get the file too.
+        for (const node of getNodes()) {
+          if (node.type !== 'image' || node.data.file) continue
+          const copy =
+            node.data.w === look.w && node.data.h === look.h && node.data.color === look.color
+          if (node.id === id || copy) patchData(node.id, { file })
+        }
+        if (!getNodes().some((node) => node.id === id)) store.drop(id)
+      },
+    )
+    return store
+  }, [guest, board.id, patchData, getNodes])
+  useEffect(() => () => uploads?.dispose(), [uploads])
+  // A failed upload of an element that is gone has nothing left to retry for.
+  useEffect(() => {
+    if (!uploads) return
+    const here = new Set(nodes.map((node) => node.id))
+    for (const id of uploads.failed()) if (!here.has(id)) uploads.drop(id)
+  }, [nodes, uploads])
+  const guestToken = guest?.token
+  const images = useMemo<ImagesHost>(
+    () => ({ source: guestToken ? { token: guestToken } : { boardId: board.id }, uploads }),
+    [guestToken, board.id, uploads],
+  )
+
+  // Each picture shows at once from the file; the upload runs behind it.
+  const addImages = async (files: File[], screen: XYPosition) => {
+    const { pictures, refused } = sortFiles(files)
+    // Two at a time: each decode holds the whole picture in memory for a moment.
+    const read = await mapLimited(pictures, 2, (file) => readPicture(file).catch(() => null))
+    const ready = pictures.flatMap((file, i) => {
+      const picture = read[i]
+      if (!picture) refused.push(`${file.name || 'Picture'}: cannot be read`)
+      return picture ? [{ file, picture }] : []
+    })
+    if (refused.length)
+      toast.error('Not added', { description: refused.join('\n'), duration: ERROR_MS })
+    if (!ready.length || !uploads) return
+    const sizes = ready.map(({ picture }) => placedSize(picture.width, picture.height))
+    const corners = rowAround(screenToFlowPosition(screen), sizes)
+    const added = ready.map(
+      ({ picture }, i) =>
+        ({
+          id: newId(),
+          type: 'image',
+          position: corners[i],
+          ...sizes[i],
+          selected: true,
+          data: { w: picture.width, h: picture.height, color: picture.color },
+        }) as AppNode,
+    )
+    setNodes((current) =>
+      reparent(
+        [...current.map((n) => ({ ...n, selected: false })), ...added],
+        added.map((n) => n.id),
+      ),
+    )
+    ready.forEach(({ file }, i) => uploads.add(added[i].id, file, added[i].data as ImageData))
+  }
+
   const addPastedNote = (text: string, screen: XYPosition) => {
     const kind = readPasteAs()
     const { width, height, data } = NEW_NODES[kind]
@@ -556,6 +630,8 @@ export function BoardCanvas({
                 duration: ERROR_MS,
               })
           })
+        } else if (paste.kind === 'files') {
+          void addImages(paste.files, screen)
         } else if (paste.kind === 'text') {
           addPastedNote(paste.text, screen)
         }
@@ -968,6 +1044,19 @@ export function BoardCanvas({
       }}
       onPointerDownCapture={draw.onPointerDownCapture}
       onPointerMoveCapture={touch.onPointerMoveCapture}
+      onDragOver={(event) => {
+        if (readOnly || !event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+      }}
+      onDrop={(event) => {
+        if (readOnly || !event.dataTransfer.files.length) return
+        event.preventDefault()
+        void addImages(Array.from(event.dataTransfer.files), {
+          x: event.clientX,
+          y: event.clientY,
+        })
+      }}
     >
       <ReactFlow
         nodes={shown.nodes}
@@ -1124,81 +1213,90 @@ export function BoardCanvas({
 
   return (
     <TasksContext.Provider value={tasks}>
-      <PlanningContext.Provider value={planning}>
-        <BoardSourcesContext.Provider value={boardSources}>
-          <ReadOnlyContext.Provider value={readOnly}>
-            <FarContext.Provider value={far}>
-              <SelectedByContext.Provider value={live.selections}>
-                <ModuleHostContext.Provider value={moduleHost}>
-                  <ExpandModuleContext.Provider value={setExpandedId}>
-                    {readOnly ? (
-                      surface
-                    ) : (
-                      <CanvasContextMenu
-                        target={menuTarget}
-                        onPlace={placeAt}
-                        onAddCards={addCards}
-                        onAddModule={addModule}
-                        onDelete={deleteSelection}
-                        cards={cardCounts}
-                        onCollapse={setCollapsed}
-                        onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                      >
-                        {surface}
-                      </CanvasContextMenu>
-                    )}
-                    {expandedNode && (
-                      <ModuleExpanded
-                        node={expandedNode}
-                        readOnly={readOnly}
-                        onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
-                        onClose={() => setExpandedId(null)}
-                      />
-                    )}
-                  </ExpandModuleContext.Provider>
-                </ModuleHostContext.Provider>
-              </SelectedByContext.Provider>
-              {guest ? (
-                // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-                <div ref={topOverlay} className="absolute top-4 right-4 z-10">
-                  {indicator}
-                </div>
-              ) : (
-                <BoardTimers nodes={nodes} tasks={tasks} onOpen={openTimer} onChange={updateTimer}>
-                  {indicator}
-                </BoardTimers>
-              )}
-              <BoardSearch
-                boardId={board.id}
-                nodes={nodes}
-                tasks={tasks}
-                onJump={jumpTo}
-                onSelect={selectNodes}
-              />
-              {liveNotice && (
-                <Alert
-                  variant={live.status === 'unsaved' ? 'destructive' : 'default'}
-                  className="absolute top-16 right-4 z-10 w-80"
-                >
-                  <AlertDescription>{liveNotice}</AlertDescription>
-                </Alert>
-              )}
-              {!readOnly && (
-                <Toolbar
-                  tool={tool}
-                  onTool={setTool}
-                  onShape={(kind) => {
-                    setShapeKind(kind)
-                    setTool('shape')
-                  }}
-                  onAddCards={addCards}
-                  onAddModule={(kind) => addModule(kind, viewportCenter())}
+      <ImagesContext.Provider value={images}>
+        <PlanningContext.Provider value={planning}>
+          <BoardSourcesContext.Provider value={boardSources}>
+            <ReadOnlyContext.Provider value={readOnly}>
+              <FarContext.Provider value={far}>
+                <SelectedByContext.Provider value={live.selections}>
+                  <ModuleHostContext.Provider value={moduleHost}>
+                    <ExpandModuleContext.Provider value={setExpandedId}>
+                      {readOnly ? (
+                        surface
+                      ) : (
+                        <CanvasContextMenu
+                          target={menuTarget}
+                          onPlace={placeAt}
+                          onAddCards={addCards}
+                          onAddModule={addModule}
+                          onAddImages={(files, point) => void addImages(files, point)}
+                          onDelete={deleteSelection}
+                          cards={cardCounts}
+                          onCollapse={setCollapsed}
+                          onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                        >
+                          {surface}
+                        </CanvasContextMenu>
+                      )}
+                      {expandedNode && (
+                        <ModuleExpanded
+                          node={expandedNode}
+                          readOnly={readOnly}
+                          onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
+                          onClose={() => setExpandedId(null)}
+                        />
+                      )}
+                    </ExpandModuleContext.Provider>
+                  </ModuleHostContext.Provider>
+                </SelectedByContext.Provider>
+                {guest ? (
+                  // Timers on the board are its people's reminders: a guest sees them, nothing rings.
+                  <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                    {indicator}
+                  </div>
+                ) : (
+                  <BoardTimers
+                    nodes={nodes}
+                    tasks={tasks}
+                    onOpen={openTimer}
+                    onChange={updateTimer}
+                  >
+                    {indicator}
+                  </BoardTimers>
+                )}
+                <BoardSearch
+                  boardId={board.id}
+                  nodes={nodes}
+                  tasks={tasks}
+                  onJump={jumpTo}
+                  onSelect={selectNodes}
                 />
-              )}
-            </FarContext.Provider>
-          </ReadOnlyContext.Provider>
-        </BoardSourcesContext.Provider>
-      </PlanningContext.Provider>
+                {liveNotice && (
+                  <Alert
+                    variant={live.status === 'unsaved' ? 'destructive' : 'default'}
+                    className="absolute top-16 right-4 z-10 w-80"
+                  >
+                    <AlertDescription>{liveNotice}</AlertDescription>
+                  </Alert>
+                )}
+                {!readOnly && (
+                  <Toolbar
+                    tool={tool}
+                    onTool={setTool}
+                    onShape={(kind) => {
+                      setShapeKind(kind)
+                      setTool('shape')
+                    }}
+                    onAddCards={addCards}
+                    onAddModule={(kind) => addModule(kind, viewportCenter())}
+                    onImages={(files) => void addImages(files, viewportCenter())}
+                  />
+                )}
+              </FarContext.Provider>
+            </ReadOnlyContext.Provider>
+          </BoardSourcesContext.Provider>
+        </PlanningContext.Provider>
+      </ImagesContext.Provider>
     </TasksContext.Provider>
   )
 }

@@ -11,6 +11,7 @@ from xml.sax.saxutils import escape
 from app.domain.boards import (
     BoardDoc,
     FrameNode,
+    ImageNode,
     ModuleNode,
     Node,
     ShapeNode,
@@ -23,7 +24,7 @@ from app.domain.ports import BoardRepo
 
 WIDTH, HEIGHT = 320, 200
 # Raised whenever the picture changes for the same board, so kept and cached pictures are redrawn.
-DRAWING = 3
+DRAWING = 4
 # Board units around the content, so nothing touches the card's edge.
 MARGIN = 40
 # The largest elements win past this: a huge board stays small and quick to draw (SC-005).
@@ -89,6 +90,8 @@ def _size(node: Node) -> tuple[float, float]:
     if isinstance(node, StickyNode) and not (node.width and node.height):
         fit = _fit(node.data.text)
         return node.width or fit[0], node.height or fit[1]
+    if isinstance(node, ImageNode):
+        return node.width or node.data.w, node.height or node.data.h
     width = node.width or width
     if node.height:
         return width, node.height
@@ -226,6 +229,12 @@ def _node(node: Node, box: Box, words: bool) -> list[str]:
         return [
             f"<rect x='{_n(x)}' y='{_n(y)}' width='{_n(w)}' height='{_n(h)}'"
             f" fill='{LINE}' fill-opacity='.3'/>"
+        ]
+    if isinstance(node, ImageNode):
+        # The picture's own colour; its bytes stay out of a drawing made from the document.
+        return [
+            f"<rect x='{_n(x)}' y='{_n(y)}' width='{_n(w)}' height='{_n(h)}'"
+            f" fill='{node.data.color}'/>"
         ]
     if isinstance(node, TaskCardNode):
         card = (

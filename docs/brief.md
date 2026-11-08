@@ -47,6 +47,7 @@ The main hypothesis from the research (top by ICE): a lead will trust the canvas
 - Several trackers at once ([specs/013-task-sources](../specs/013-task-sources/spec.md) is step 1): tasks from different trackers on one instance and one board, each task knowing its tracker and showing its logo on a mixed board. GitHub Issues ([specs/015-github-issues](../specs/015-github-issues/spec.md)) reads public issues and pull requests without a key; Jira Cloud ([specs/030-jira-cloud](../specs/030-jira-cloud/spec.md)) reads tasks with each person's e-mail and API token, the same cards and JQL as Data Center.
 - Planning mode ([specs/027-planning](../specs/027-planning/spec.md)), off by default: Gantt rows cut into stages with people, one list of people per instance with their time off, columns that inherit down the task tree, saved filters, a person's workload across boards. Money and capacity come later.
 - Selection bar ([specs/023-selection-bar](../specs/023-selection-bar/spec.md)): one bar next to whatever is selected, with only the properties every selected element shares: fill, opacity, outline, text size and bold.
+- Images, GIFs and stickers ([specs/039-media](../specs/039-media/spec.md)): paste a screenshot, drop a file or pick one; each file stored once per workspace in Postgres, smaller copies keep big images light on the canvas; GIFs animate only in view; a sticker panel with a built-in set and the workspace's own pack.
 
 **Won't**
 - Confluence, Todoist (only a hook in the provider interface)

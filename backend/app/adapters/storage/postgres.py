@@ -23,6 +23,7 @@ from app.domain.accounts import Account, Person, PersonRecord, Role
 from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow, planned_stages
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
+from app.domain.files import Picture, Served, StoredFile
 from app.domain.folders import Folder
 from app.domain.invites import Invite
 from app.domain.members import BoardRole, Member, MemberUser, ShareRole
@@ -1867,6 +1868,78 @@ class PgMemberRepo(_Repo):
             )
 
 
+class PgFileStore(_Repo):
+    def find(self, sha256: str) -> StoredFile | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                "SELECT id, width, height, color FROM files WHERE sha256 = %s", (sha256,)
+            ).fetchone()
+        return StoredFile(**row) if row else None
+
+    def add(
+        self, sha256: str, picture: Picture, size: int, uploaded_by: str, quota: int | None
+    ) -> StoredFile | None:
+        file_id = uuid.uuid4().hex
+        with self._tx() as conn:
+            if quota is not None:
+                # Two uploads at once must not both fit into the same room.
+                _lock_workspace(conn, self._ws)
+                found = conn.execute(
+                    "SELECT id, width, height, color FROM files WHERE sha256 = %s", (sha256,)
+                ).fetchone()
+                if found:
+                    return StoredFile(**found)
+                used = conn.execute("SELECT coalesce(sum(size), 0) AS n FROM files").fetchone()["n"]
+                if used + size > quota:
+                    return None
+            row = conn.execute(
+                "INSERT INTO files (workspace_id, id, sha256, mime, width, height, color, moving,"
+                " size, uploaded_by, data) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                " ON CONFLICT (workspace_id, sha256) DO NOTHING RETURNING id",
+                (
+                    self._ws,
+                    file_id,
+                    sha256,
+                    picture.mime,
+                    picture.width,
+                    picture.height,
+                    picture.color,
+                    picture.moving,
+                    size,
+                    uploaded_by,
+                    picture.data,
+                ),
+            ).fetchone()
+            if row is not None:
+                conn.cursor().executemany(
+                    "INSERT INTO file_copies (workspace_id, file_id, width, data)"
+                    " VALUES (%s, %s, %s, %s)",
+                    [(self._ws, file_id, width, data) for width, data in picture.copies.items()],
+                )
+        if row is None:
+            found = self.find(sha256)
+            assert found is not None
+            return found
+        return StoredFile(file_id, picture.width, picture.height, picture.color)
+
+    def get(self, file_id: str, width: int | None) -> Served | None:
+        with self._tx() as conn:
+            if width is not None:
+                # The narrowest copy wide enough, else the widest, which a picture drawn still
+                # falls back to.
+                copy = conn.execute(
+                    "SELECT c.data, f.moving, c.width >= %s AS enough FROM file_copies c"
+                    " JOIN files f ON f.id = c.file_id WHERE c.file_id = %s"
+                    " ORDER BY c.width >= %s DESC,"
+                    " CASE WHEN c.width >= %s THEN c.width ELSE -c.width END LIMIT 1",
+                    (width, file_id, width, width),
+                ).fetchone()
+                if copy and (copy["enough"] or copy["moving"]):
+                    return Served(bytes(copy["data"]), "image/webp")
+            row = conn.execute("SELECT data, mime FROM files WHERE id = %s", (file_id,)).fetchone()
+        return Served(bytes(row["data"]), row["mime"]) if row else None
+
+
 # The names main.py builds the app from, the same in both adapters until SQLite goes.
 BoardRepo = PgBoardRepo
 FolderRepo = PgFolderRepo
@@ -1888,3 +1961,4 @@ SessionRepo = PgSessionRepo
 InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces
+FileStore = PgFileStore

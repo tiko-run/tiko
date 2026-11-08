@@ -7,7 +7,7 @@ export const TIMER_SIZE = 40
 const GAP = 6
 // Dropped this close to its element, a timer stays attached where it was dropped.
 const STAY = 48
-const HOLDERS = new Set(['task_card', 'sticky', 'shape', 'text', 'module'])
+const HOLDERS = new Set(['task_card', 'sticky', 'shape', 'text', 'image', 'module'])
 
 // Left of the top edge: cards grow and collapse to the right and down, so this spot never moves.
 export const BESIDE: XYPosition = { x: -(TIMER_SIZE + GAP), y: 0 }
@@ -72,6 +72,8 @@ export function holderLabel(node: { type?: string; data: unknown }): string | un
       return 'a shape'
     case 'text':
       return 'a text'
+    case 'image':
+      return 'an image'
     case 'module': {
       const { kind, title } = node.data as ModuleData
       return title || findModule(kind)?.name || 'a module'

@@ -124,6 +124,7 @@ export const KIND_NAMES: Record<Kind, [one: string, many: string]> = {
   sticky: ['Sticky note', 'Sticky notes'],
   shape: ['Shape', 'Shapes'],
   text: ['Text', 'Texts'],
+  image: ['Image', 'Images'],
   module: ['Module', 'Modules'],
   timer: ['Reminder', 'Reminders'],
 }

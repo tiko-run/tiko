@@ -29,6 +29,12 @@ server {
         # An open board is quiet for long stretches; the default 60 s would cut its socket.
         proxy_read_timeout 1h;
         proxy_send_timeout 1h;
+
+        # A picture for a board, up to the API's 25 MB; every other request keeps the 1 MB default.
+        location ~ ^/api/boards/[^/]+/files$ {
+            client_max_body_size 26m;
+            proxy_pass http://$api_upstream;
+        }
     }
 
     # Built files carry a hash of their content in the name, so they never change.

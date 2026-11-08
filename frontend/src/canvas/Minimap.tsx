@@ -49,6 +49,8 @@ export function minimapLook(node: AppNode): { fill: string; stroke: string } {
       return { fill: 'var(--muted-foreground)', stroke: 'transparent' }
     case 'text':
       return { fill: 'var(--border)', stroke: 'transparent' }
+    case 'image':
+      return { fill: node.data.color, stroke: 'transparent' }
     default:
       return none
   }

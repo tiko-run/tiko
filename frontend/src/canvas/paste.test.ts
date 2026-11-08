@@ -57,6 +57,28 @@ describe('classifyPaste', () => {
     })
   })
 
+  it('takes a picture over the address that comes with it', () => {
+    const shot = new File(['png'], 'shot.png', { type: 'image/png' })
+    const data = { ...clip({ 'text/plain': 'https://example.com/shot.png' }), files: [shot] }
+    expect(classifyPaste(data, null)).toEqual({ kind: 'files', files: [shot] })
+    expect(classifyPaste({ ...clip({}), files: [shot] }, null)).toEqual({
+      kind: 'files',
+      files: [shot],
+    })
+  })
+
+  it('takes the text of cells copied from a spreadsheet, which also come as a picture', () => {
+    const cells = new File(['png'], 'image.png', { type: 'image/png' })
+    const data = { ...clip({ 'text/plain': 'Q1\t120\nQ2\t140' }), files: [cells] }
+    expect(classifyPaste(data, null)).toMatchObject({ kind: 'text' })
+  })
+
+  it('falls back to the text when the files are no pictures', () => {
+    const doc = new File(['x'], 'notes.pdf', { type: 'application/pdf' })
+    const data = { ...clip({ 'text/plain': 'DEMO-1' }), files: [doc] }
+    expect(classifyPaste(data, null)).toMatchObject({ kind: 'refs' })
+  })
+
   it('turns task refs into cards', () => {
     expect(classifyPaste(clip({ 'text/plain': 'DEMO-1 DEMO-2' }), null)).toEqual({
       kind: 'refs',

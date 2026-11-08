@@ -14,6 +14,7 @@
 | pycrdt | MIT | Shared document (CRDT) of a live board on the server; bundles Yrs (MIT) |
 | psycopg 3 (`psycopg[binary]`) | LGPL-3.0 | Postgres driver; the wheel bundles libpq (PostgreSQL License) |
 | psycopg_pool | LGPL-3.0 | Postgres connection pool |
+| Pillow | MIT-CMU (HPND) | Reads pictures put on boards, removes their metadata and makes their smaller WebP copies; the wheel bundles libwebp, libjpeg-turbo, libpng and zlib (BSD-style licenses) |
 | PostgreSQL (`postgres:18` Docker image) | PostgreSQL License | The database in the compose files, unchanged |
 | React | MIT | UI |
 | driver.js | MIT | Product tour, loaded only when the tour runs |

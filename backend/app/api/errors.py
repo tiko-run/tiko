@@ -10,6 +10,8 @@ from app.domain.errors import (
     DemoFull,
     DependencyUnavailable,
     DomainError,
+    FileQuota,
+    FileTooLarge,
     FolderLimit,
     Forbidden,
     HostMismatch,
@@ -29,6 +31,7 @@ from app.domain.errors import (
     TooManyAttempts,
     TooManyRepositories,
     TrackerRateLimited,
+    UnsupportedFile,
     UpdateNotPossible,
     UsernameTaken,
     ValidationFailed,
@@ -67,6 +70,9 @@ _STATUS = {
     FolderLimit: 409,
     UpdateNotPossible: 409,
     NotEnoughSpace: 507,
+    FileTooLarge: 413,
+    UnsupportedFile: 415,
+    FileQuota: 507,
 }
 
 
