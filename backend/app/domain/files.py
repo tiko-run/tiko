@@ -72,6 +72,10 @@ class Files:
         self._store.link(board_id, stored.id)
         return stored
 
+    def link(self, board_id: str, file_id: str) -> None:
+        """Lets the board serve a file of its workspace stored before."""
+        self._store.link(board_id, file_id)
+
     def open(self, board_id: str, file_id: str, width: int | None, moving: bool = False) -> Served:
         """What `board_id` shows of a file it refers to: moving, the animated WebP; else the
         smallest copy at least `width` wide, else the original. A moving picture asked still is
