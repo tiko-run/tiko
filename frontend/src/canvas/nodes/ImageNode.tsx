@@ -1,8 +1,8 @@
 import { useStore, type NodeProps } from '@xyflow/react'
 import { ImageOff, RotateCcw } from 'lucide-react'
-import { memo, useState, type ReactNode } from 'react'
+import { memo, useEffect, useState, type ReactNode } from 'react'
 import { fileUrl } from '@/api/files'
-import { copyWidth } from '@/canvas/images'
+import { copyWidth, PAST_COPIES } from '@/canvas/images'
 import { Handles } from '@/canvas/nodes/Handles'
 import { Resizer } from '@/canvas/nodes/Resizer'
 import { Rotator, turned, useTurnedHandles } from '@/canvas/nodes/Rotator'
@@ -13,6 +13,9 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const pixelRatio = () => (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1)
+// A copy that failed to load is asked again this many times, a little later each time.
+const RETRIES = 3
+const RETRY_MS = 2000
 
 function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) {
   const readOnly = useReadOnly()
@@ -26,15 +29,23 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
   const step = Math.max(loadedWidth, wanted)
   // The last copy that loaded stays under the next one until that one has loaded too.
   const [shown, setShown] = useState<string | null>(null)
-  const [failed, setFailed] = useState<string | null>(null)
+  const [failure, setFailure] = useState<{ src: string; count: number } | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
   useTurnedHandles(id, data.rotation)
 
+  // Past the widest copy the server answers with the original, or a still copy for a GIF.
   const src = data.file
-    ? fileUrl(source, data.file, Number.isFinite(step) ? step : undefined)
+    ? fileUrl(source, data.file, Number.isFinite(step) ? step : PAST_COPIES)
     : null
   const local = upload?.local
-  const broken = src !== null && failed === src
+  const failing = src !== null && failure?.src === src ? failure.count : 0
+  const broken = failing > RETRIES
+  useEffect(() => {
+    if (failing === 0 || failing > RETRIES) return
+    const timer = setTimeout(() => setAttempt((n) => n + 1), RETRY_MS * failing)
+    return () => clearTimeout(timer)
+  }, [failing])
 
   return (
     <div className="relative h-full w-full" style={turned(data.rotation)}>
@@ -53,7 +64,7 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
         {shown && shown !== src && <Picture src={shown} />}
         {src && !broken && (
           <Picture
-            key={src}
+            key={`${src}#${attempt}`}
             src={src}
             hidden={shown !== src}
             onLoad={() => {
@@ -61,7 +72,9 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
               setLoadedWidth(step)
               uploads?.forget(id)
             }}
-            onError={() => setFailed(src)}
+            onError={() =>
+              setFailure((was) => ({ src, count: was?.src === src ? was.count + 1 : 1 }))
+            }
           />
         )}
         {!data.file && !local && <Note>Uploading…</Note>}
@@ -69,6 +82,18 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
           <Note>
             <ImageOff className="size-5" aria-hidden />
             Image not available
+            <Button
+              size="sm"
+              variant="secondary"
+              className="nodrag"
+              onClick={() => {
+                setFailure(null)
+                setAttempt((n) => n + 1)
+              }}
+            >
+              <RotateCcw aria-hidden />
+              Try again
+            </Button>
           </Note>
         )}
         {upload?.error && (

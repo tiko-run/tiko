@@ -31,6 +31,8 @@ export type Paste =
 
 type Clipboard = Pick<DataTransfer, 'getData'> & { files?: FileList | File[] }
 
+const LONE_ADDRESS = /^https?:\/\/\S+$/
+
 /**
  * What a paste over the board adds, tried in order: elements copied in tiko, files such as a
  * screenshot, task keys and links, plain text. Other trackers' links join the refs step.
@@ -38,11 +40,13 @@ type Clipboard = Pick<DataTransfer, 'getData'> & { files?: FileList | File[] }
 export function classifyPaste(data: Clipboard, copyId: string | null): Paste | null {
   const marker = data.getData(CLIPBOARD_MARKER)
   if (marker && marker === copyId) return { kind: 'elements' }
-  // A picture copied from a page comes with its address as text; the picture wins.
   const files = Array.from(data.files ?? [])
-  if (files.length) return { kind: 'files', files }
   const text = data.getData('text/plain')
-  if (!text.trim()) return null
+  // A picture copied from a page comes with at most its address; cells copied from a
+  // spreadsheet or a document come with their text too, and the text is what was meant.
+  const pictures = files.some((file) => file.type.startsWith('image/'))
+  if (pictures && (!text.trim() || LONE_ADDRESS.test(text.trim()))) return { kind: 'files', files }
+  if (!text.trim()) return files.length ? { kind: 'files', files } : null
   const refs = pastedRefs(text)
   if (refs) return { kind: 'refs', ...refs }
   return { kind: 'text', text: text.slice(0, TEXT_LIMIT) }

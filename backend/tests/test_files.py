@@ -212,3 +212,59 @@ def test_an_image_element_is_part_of_the_board(client):
         f"/api/boards/{board_id}", json={"version": 2, "doc": {"nodes": [bad], "edges": []}}
     )
     assert response.status_code == 422
+
+
+def test_a_still_gif_loses_its_comment(client):
+    out = io.BytesIO()
+    still = Image.new("P", (40, 30), 0)
+    still.paste(3, (0, 0, 20, 30))
+    still.save(out, "GIF", comment=b"secret note", transparency=0)
+    board_id = board(client)
+    file_id = upload(client, board_id, out.getvalue(), "image/gif").json()["id"]
+    served = client.get(f"/api/boards/{board_id}/files/{file_id}")
+    assert b"secret note" not in served.content
+    assert "transparency" in opened(served).info
+
+
+def test_a_moving_webp_loses_its_exif_and_keeps_moving(client):
+    exif = Image.Exif()
+    exif[0x010F] = "Camera maker"
+    frames = [Image.new("RGB", (64, 48), c) for c in ((255, 0, 0), (0, 0, 255))]
+    out = io.BytesIO()
+    frames[0].save(
+        out, "WEBP", save_all=True, append_images=frames[1:], duration=200, exif=exif.tobytes()
+    )
+    assert b"Camera maker" in out.getvalue()
+    board_id = board(client)
+    file_id = upload(client, board_id, out.getvalue(), "image/webp").json()["id"]
+    served = client.get(f"/api/boards/{board_id}/files/{file_id}")
+    assert b"Camera maker" not in served.content
+    assert opened(served).n_frames == 2
+
+
+def test_a_wide_gamut_picture_gets_srgb_copies(client):
+    from PIL import ImageCms
+
+    srgb = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    data = picture(1200, 800, "PNG", icc_profile=srgb)
+    board_id = board(client)
+    file_id = upload(client, board_id, data).json()["id"]
+    copy = client.get(f"/api/boards/{board_id}/files/{file_id}", params={"w": 512})
+    assert copy.headers["content-type"] == "image/webp"
+
+
+def test_a_very_tall_picture_is_kept_without_the_copies_webp_cannot_hold(client):
+    out = io.BytesIO()
+    Image.new("L", (1000, 40000), 200).save(out, "PNG")
+    board_id = board(client)
+    response = upload(client, board_id, out.getvalue())
+    assert response.status_code == 201, response.text
+    served = client.get(f"/api/boards/{board_id}/files/{response.json()['id']}", params={"w": 512})
+    assert served.headers["content-type"] == "image/png"
+
+
+def test_a_picture_of_a_trashed_board_is_not_served(client):
+    board_id = board(client)
+    file_id = upload(client, board_id, picture()).json()["id"]
+    assert client.delete(f"/api/boards/{board_id}").status_code == 204
+    assert client.get(f"/api/boards/{board_id}/files/{file_id}").status_code == 404

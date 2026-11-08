@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.api import deps
 from app.api.deps import CanEdit, CanView, CurrentPerson
-from app.domain.errors import FileTooLarge
+from app.domain.errors import FileTooLarge, TooManyAttempts
 from app.domain.files import MAX_BYTES, Files, Served
 from app.domain.public import PublicLinks
 
@@ -15,7 +15,10 @@ boards = APIRouter(prefix="/boards", tags=["files"])
 public = APIRouter(prefix="/public", tags=["files"])
 
 # Making copies of a 4K picture takes a core for a moment; a few at once leave the rest free.
+# A slot is taken before the body is read, so waiting uploads hold no memory; past a short
+# queue an upload is turned away and the browser retries it.
 _MAKING = anyio.CapacityLimiter(2)
+MAX_WAITING = 8
 # An address names one file forever, so the browser keeps it; a page never runs from it.
 SERVED_HEADERS = {
     "Cache-Control": "private, max-age=31536000, immutable",
@@ -60,11 +63,12 @@ def _served(served: Served) -> Response:
 async def upload(
     board_id: str, _: CanEdit, person: CurrentPerson, files: FilesDep, request: Request
 ) -> FileOut:
-    data = await _body(request)
+    if _MAKING.statistics().tasks_waiting >= MAX_WAITING:
+        raise TooManyAttempts("Many pictures are uploading. Trying again in a moment.", 5)
     mime = request.headers.get("content-type", "").split(";")[0].strip().lower()
-    stored = await anyio.to_thread.run_sync(
-        lambda: files.add(data, mime, person.id), limiter=_MAKING
-    )
+    async with _MAKING:
+        data = await _body(request)
+        stored = await anyio.to_thread.run_sync(lambda: files.add(data, mime, person.id))
     return FileOut(id=stored.id, width=stored.width, height=stored.height, color=stored.color)
 
 

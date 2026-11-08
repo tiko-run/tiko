@@ -57,14 +57,16 @@
 - **FR-012** (slice 4): A file no element refers to MUST be removed some time after its last element is gone, and the quota MUST count only stored files that are still there.
 - **FR-013** (slice 2): The board MUST keep the picture's average colour as the server worked it out.
 - **FR-015** (slice 2): A picture MUST step down to a smaller copy when it needs four times fewer pixels than the one it holds; a board of 20 4K pictures stretched far past their size MUST pan and zoom smoothly, with the CPU slowed four times, and the page's memory MUST stay within what the same board holds at its closest zoom.
+- **FR-016** (slice 2): A file MUST be served through a board only when that board's elements refer to it, including elements added a moment ago that are not saved yet; a GIF's local preview MUST stay still while it uploads.
+- **FR-017** (slice 4): Pictures served through a public link MUST have a request budget of their own, wide enough for a board that loads many pictures at once.
 - **FR-014** (slices 2 and 3): Smoothness MUST hold with the CPU slowed four times, on the GIF board of FR-008 and the screenshot board of FR-007.
 
 ## Slices
 
 1. `images`: FR-001 – FR-007. Postgres table and port, upload and serving with access, copies, the element, paste / drop / tool, limits, the guide. Done.
-2. `gifs`: FR-008, FR-010, FR-011, FR-013, FR-014, FR-015. Animated WebP, pausing out of view and when far, reduced motion; the loose ends of slice 1.
+2. `gifs`: FR-008, FR-010, FR-011, FR-013, FR-014, FR-015, FR-016. Animated WebP, pausing out of view and when far, reduced motion; the loose ends of slice 1.
 3. `stickers`: FR-009, FR-014. Noto Animated Emoji and the workspace pack.
-4. `files-cleanup`: FR-012. Removing files nothing refers to.
+4. `files-cleanup`: FR-012, FR-017. Removing files nothing refers to, so a full quota frees up; a budget for public picture downloads.
 
 ## Out of scope
 

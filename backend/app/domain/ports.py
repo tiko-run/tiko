@@ -578,12 +578,11 @@ class FileStore(Protocol):
 
     def find(self, sha256: str) -> StoredFile | None: ...
 
-    def add(self, sha256: str, picture: Picture, size: int, uploaded_by: str) -> StoredFile:
-        """Stores the picture; one stored meanwhile with the same hash wins and is returned."""
-        ...
-
-    def used(self) -> int:
-        """Bytes the workspace's files and copies take."""
+    def add(
+        self, sha256: str, picture: Picture, size: int, uploaded_by: str, quota: int | None
+    ) -> StoredFile | None:
+        """Stores the picture; one stored meanwhile with the same hash wins and is returned.
+        None when the workspace's files would pass `quota` bytes, checked with the insert."""
         ...
 
     def get(self, file_id: str, width: int | None) -> Served | None: ...

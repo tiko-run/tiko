@@ -3,17 +3,35 @@ export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'
 export const MAX_IMAGE_MB = 25
 /** Widths of the copies the server makes; past the widest, the original. */
 export const COPY_WIDTHS = [512, 1024, 2048] as const
+/** Asked past the widest copy: the server answers with the original, or a GIF's still copy. */
+export const PAST_COPIES = 16384
 /** A new picture's longer side on the board, so a 4K screenshot does not cover the view. */
 export const PLACED_SIDE = 800
 const GAP = 24
 
 export const isImageType = (type: string) => (IMAGE_TYPES as readonly string[]).includes(type)
 
+const BY_EXTENSION: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
+  gif: 'image/gif',
+}
+
+/** Some systems hand over a dropped file with no type; its name still tells, and the server reads it for what it is anyway. */
+function typed(file: File) {
+  if (file.type) return file
+  const type = BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? '']
+  return type ? new File([file], file.name, { type, lastModified: file.lastModified }) : file
+}
+
 /** The files of a paste or a drop that can go on a board, and a reason for the rest. */
 export function sortFiles(files: File[]) {
   const pictures: File[] = []
   const refused: string[] = []
-  for (const file of files) {
+  for (const given of files) {
+    const file = typed(given)
     if (!isImageType(file.type))
       refused.push(`${file.name || 'File'}: only PNG, JPEG, WebP and GIF`)
     else if (file.size > MAX_IMAGE_MB * 1024 * 1024)
@@ -35,7 +53,24 @@ export function copyWidth(widthOnBoard: number, zoom: number, pixelRatio: number
 /** A picture's size on the board when it is added: its own, the longer side at most PLACED_SIDE. */
 export function placedSize(width: number, height: number) {
   const scale = Math.min(1, PLACED_SIDE / Math.max(width, height))
-  return { width: Math.round(width * scale), height: Math.round(height * scale) }
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  }
+}
+
+/** `work` over `items`, at most `limit` at a time, results in order. */
+export async function mapLimited<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>) {
+  const results: R[] = new Array(items.length)
+  let next = 0
+  const lane = async () => {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await work(items[i])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane))
+  return results
 }
 
 /** Pictures side by side, the row centered on `at`; returns each one's top-left corner. */

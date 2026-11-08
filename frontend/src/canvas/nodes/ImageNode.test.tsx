@@ -47,10 +47,13 @@ function show(data: ImageData, host: Partial<ImagesHost> = {}) {
 
 const PICTURE = { w: 3840, h: 2880, color: '#c82828' }
 
-test('a stored picture loads the copy its size on screen needs', () => {
+test('a stored picture loads the copy its size on screen needs and shows once loaded', () => {
   const container = show({ ...PICTURE, file: 'f'.repeat(32) })
-  const img = container.querySelector('img')
-  expect(img?.getAttribute('src')).toBe(`/api/boards/b1/files/${'f'.repeat(32)}?w=512`)
+  const img = container.querySelector('img')!
+  expect(img.getAttribute('src')).toBe(`/api/boards/b1/files/${'f'.repeat(32)}?w=512`)
+  expect(img.className).toContain('opacity-0')
+  fireEvent.load(img)
+  expect(container.querySelector('img')!.className).not.toContain('opacity-0')
 })
 
 test('a guest reads pictures through the public link', () => {
@@ -71,7 +74,7 @@ test('a failed upload says why and retries', async () => {
   URL.revokeObjectURL = vi.fn()
   const send = vi.fn().mockRejectedValueOnce(new Error('No room for more pictures'))
   const uploads = new Uploads(send, vi.fn())
-  uploads.add('pic', new Blob(['x']))
+  uploads.add('pic', new Blob(['x']), PICTURE)
   show(PICTURE, { uploads })
   expect(await screen.findByText('No room for more pictures')).toBeTruthy()
   send.mockResolvedValue('f'.repeat(32))

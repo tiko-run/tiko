@@ -1876,9 +1876,22 @@ class PgFileStore(_Repo):
             ).fetchone()
         return StoredFile(**row) if row else None
 
-    def add(self, sha256: str, picture: Picture, size: int, uploaded_by: str) -> StoredFile:
+    def add(
+        self, sha256: str, picture: Picture, size: int, uploaded_by: str, quota: int | None
+    ) -> StoredFile | None:
         file_id = uuid.uuid4().hex
         with self._tx() as conn:
+            if quota is not None:
+                # Two uploads at once must not both fit into the same room.
+                _lock_workspace(conn, self._ws)
+                found = conn.execute(
+                    "SELECT id, width, height, color FROM files WHERE sha256 = %s", (sha256,)
+                ).fetchone()
+                if found:
+                    return StoredFile(**found)
+                used = conn.execute("SELECT coalesce(sum(size), 0) AS n FROM files").fetchone()["n"]
+                if used + size > quota:
+                    return None
             row = conn.execute(
                 "INSERT INTO files (workspace_id, id, sha256, mime, width, height, color, moving,"
                 " size, uploaded_by, data) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
@@ -1908,10 +1921,6 @@ class PgFileStore(_Repo):
             assert found is not None
             return found
         return StoredFile(file_id, picture.width, picture.height, picture.color)
-
-    def used(self) -> int:
-        with self._tx() as conn:
-            return conn.execute("SELECT coalesce(sum(size), 0) AS n FROM files").fetchone()["n"]
 
     def get(self, file_id: str, width: int | None) -> Served | None:
         with self._tx() as conn:

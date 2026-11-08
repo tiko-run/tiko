@@ -3,6 +3,8 @@ import type { FileSource } from '@/api/files'
 
 /** A picture added in this tab: shown from the local copy until the stored one has loaded. */
 export type Upload = { local: string; error?: string }
+/** What the element looked like when added, so copies of it made meanwhile are found. */
+export type Look = { w: number; h: number; color: string }
 
 const PARALLEL = 3
 
@@ -11,14 +13,17 @@ const PARALLEL = 3
  * screenshots does not hold every connection; a failed one waits for its retry.
  */
 export class Uploads {
-  private items = new Map<string, Upload & { file: Blob }>()
+  private items = new Map<string, Upload & { file: Blob; look: Look }>()
   private queue: string[] = []
   private running = 0
   private listeners = new Set<() => void>()
   private send: (file: Blob) => Promise<string>
-  private done: (id: string, file: string) => void
+  private done: (id: string, file: string, look: Look) => void
 
-  constructor(send: (file: Blob) => Promise<string>, done: (id: string, file: string) => void) {
+  constructor(
+    send: (file: Blob) => Promise<string>,
+    done: (id: string, file: string, look: Look) => void,
+  ) {
     this.send = send
     this.done = done
   }
@@ -30,8 +35,11 @@ export class Uploads {
 
   get = (id: string): Upload | undefined => this.items.get(id)
 
-  add(id: string, file: Blob) {
-    this.items.set(id, { file, local: URL.createObjectURL(file) })
+  /** Elements whose upload failed and waits for its retry. */
+  failed = () => [...this.items].filter(([, item]) => item.error).map(([id]) => id)
+
+  add(id: string, file: Blob, look: Look) {
+    this.items.set(id, { file, look, local: URL.createObjectURL(file) })
     this.queue.push(id)
     this.changed()
     this.next()
@@ -48,11 +56,23 @@ export class Uploads {
 
   /** The stored picture is on screen: the local copy can go. */
   forget(id: string) {
+    if (this.items.get(id)?.error) return
+    this.drop(id)
+  }
+
+  /** The element left the board: its upload, done or not, lets go of the file. */
+  drop(id: string) {
     const item = this.items.get(id)
-    if (!item || item.error) return
+    if (!item) return
     URL.revokeObjectURL(item.local)
     this.items.delete(id)
+    this.queue = this.queue.filter((queued) => queued !== id)
     this.changed()
+  }
+
+  /** The board closes: nothing it uploads is shown any more. */
+  dispose() {
+    for (const id of [...this.items.keys()]) this.drop(id)
   }
 
   private next() {
@@ -62,8 +82,12 @@ export class Uploads {
       if (!item) continue
       this.running++
       this.send(item.file)
-        .then((file) => this.done(id, file))
+        .then((file) => {
+          if (this.items.has(id)) this.done(id, file, item.look)
+        })
         .catch((error: unknown) => {
+          // Dropped meanwhile: a late failure must not bring the element's upload back.
+          if (!this.items.has(id)) return
           const message = error instanceof Error ? error.message : 'Upload failed'
           this.items.set(id, { ...item, error: message })
           this.changed()

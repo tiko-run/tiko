@@ -302,6 +302,10 @@ export function useLiveBoard(
     if (synced.current) binding.current?.push(nodes, edges)
   }, [nodes, edges, status])
 
+  const patchData = useCallback(
+    (id: string, patch: Record<string, unknown>) => binding.current?.patchData(id, patch) ?? false,
+    [],
+  )
   const undo = useCallback(() => void history.current?.undo(), [])
   const redo = useCallback(() => void history.current?.redo(), [])
   return {
@@ -316,6 +320,7 @@ export function useLiveBoard(
     editable: EDITABLE.includes(status),
     undo,
     redo,
+    patchData,
     selections,
     drags,
     glide,

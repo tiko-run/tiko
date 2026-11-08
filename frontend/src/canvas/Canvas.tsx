@@ -106,6 +106,7 @@ import { readViewport, saveViewport } from '@/live/viewport'
 import type {
   AppEdge,
   AppNode,
+  ImageData,
   ModuleNode as ModuleNodeType,
   TaskCardNode as TaskCardNodeType,
   TimerData,
@@ -145,7 +146,7 @@ import { BoardTimers } from '@/timers/BoardTimers'
 import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { uploadFile } from '@/api/files'
-import { placedSize, readPicture, rowAround, sortFiles } from '@/canvas/images'
+import { mapLimited, placedSize, readPicture, rowAround, sortFiles } from '@/canvas/images'
 import { ImageNode } from '@/canvas/nodes/ImageNode'
 import { ImagesContext, Uploads, type ImagesHost } from '@/canvas/uploads'
 import { useTheme } from '@/lib/theme'
@@ -490,17 +491,32 @@ export function BoardCanvas({
     setEdges((current) => [...current.map((e) => ({ ...e, selected: false })), ...copy.edges])
   }
 
-  const updateNodeData = flow.updateNodeData
-  const uploads = useMemo(
-    () =>
-      guest
-        ? null
-        : new Uploads(
-            (file) => uploadFile(board.id, file).then((stored) => stored.id),
-            (id, file) => updateNodeData(id, { file }),
-          ),
-    [guest, board.id, updateNodeData],
-  )
+  const { patchData } = live
+  const uploads = useMemo(() => {
+    if (guest) return null
+    const store: Uploads = new Uploads(
+      (file) => uploadFile(board.id, file).then((stored) => stored.id),
+      (id, file, look) => {
+        // Outside the undo history: Undo takes back the person's edit, not the upload. Copies
+        // made while it ran look the same and get the file too.
+        for (const node of getNodes()) {
+          if (node.type !== 'image' || node.data.file) continue
+          const copy =
+            node.data.w === look.w && node.data.h === look.h && node.data.color === look.color
+          if (node.id === id || copy) patchData(node.id, { file })
+        }
+        if (!getNodes().some((node) => node.id === id)) store.drop(id)
+      },
+    )
+    return store
+  }, [guest, board.id, patchData, getNodes])
+  useEffect(() => () => uploads?.dispose(), [uploads])
+  // A failed upload of an element that is gone has nothing left to retry for.
+  useEffect(() => {
+    if (!uploads) return
+    const here = new Set(nodes.map((node) => node.id))
+    for (const id of uploads.failed()) if (!here.has(id)) uploads.drop(id)
+  }, [nodes, uploads])
   const guestToken = guest?.token
   const images = useMemo<ImagesHost>(
     () => ({ source: guestToken ? { token: guestToken } : { boardId: board.id }, uploads }),
@@ -510,7 +526,8 @@ export function BoardCanvas({
   // Each picture shows at once from the file; the upload runs behind it.
   const addImages = async (files: File[], screen: XYPosition) => {
     const { pictures, refused } = sortFiles(files)
-    const read = await Promise.all(pictures.map((file) => readPicture(file).catch(() => null)))
+    // Two at a time: each decode holds the whole picture in memory for a moment.
+    const read = await mapLimited(pictures, 2, (file) => readPicture(file).catch(() => null))
     const ready = pictures.flatMap((file, i) => {
       const picture = read[i]
       if (!picture) refused.push(`${file.name || 'Picture'}: cannot be read`)
@@ -538,7 +555,7 @@ export function BoardCanvas({
         added.map((n) => n.id),
       ),
     )
-    ready.forEach(({ file }, i) => uploads.add(added[i].id, file))
+    ready.forEach(({ file }, i) => uploads.add(added[i].id, file, added[i].data as ImageData))
   }
 
   const addPastedNote = (text: string, screen: XYPosition) => {

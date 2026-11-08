@@ -13,6 +13,8 @@ import {
 
 /** Transaction origin of this tab's own edits: what its undo history covers. */
 export const LOCAL = 'local'
+/** Origin of what this tab writes but nobody did: a finished upload is not an edit to undo. */
+export const UNTRACKED = 'untracked'
 
 type Content = Omit<StoredNode, 'order'>
 type Seen = { text: string; content: Content }
@@ -213,6 +215,19 @@ export class LiveBinding {
     }
 
     if (ops.length) this.doc.transact(() => ops.forEach((op) => op()), LOCAL)
+  }
+
+  /**
+   * Sets fields of a node's data outside the undo history; the canvas takes them in as it
+   * takes in other people's changes. False when the node is not on the board.
+   */
+  patchData(id: string, patch: Record<string, unknown>): boolean {
+    const data = this.nodes.get(id)?.get('data')
+    if (!this.canWrite || !(data instanceof Y.Map)) return false
+    this.doc.transact(() => {
+      for (const [field, value] of Object.entries(patch)) data.set(field, value)
+    }, UNTRACKED)
+    return true
   }
 
   /**

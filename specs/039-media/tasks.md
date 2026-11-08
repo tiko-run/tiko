@@ -20,6 +20,7 @@
 - [ ] T015 Resizing a turned picture keeps its proportions (FR-011)
 - [ ] T016 The board keeps the server's average colour after the upload (FR-013)
 - [ ] T017 Measure FR-007 and FR-008 again with the CPU slowed four times (FR-014)
+- [ ] T020 Serve a file through a board only when the board refers to it, counting elements not saved yet; a still local preview for a GIF while it uploads (FR-016)
 - [ ] T019 Step down to a smaller copy when a picture needs four times fewer pixels; measure 20 stretched 4K pictures for frames and memory, compared with Miro on the same pictures (FR-015)
 
 ## Slice 3: stickers
@@ -30,3 +31,4 @@
 ## Slice 4: files-cleanup
 
 - [ ] T018 Remove files no element refers to, some time after their last element is gone; the quota counts what is left (FR-012)
+- [ ] T021 A request budget for pictures served through a public link (FR-017)

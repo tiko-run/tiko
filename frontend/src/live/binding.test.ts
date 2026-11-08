@@ -263,3 +263,23 @@ test('edits made offline on both sides merge with nothing doubled and nothing lo
     expect(tab.edges.map((edge) => edge.id)).toEqual(['e1'])
   }
 })
+
+test('a patch outside the undo history stays when the edit before it is undone', () => {
+  const picture = {
+    id: 'p',
+    type: 'image',
+    position: { x: 0, y: 0 },
+    data: { w: 10, h: 10, color: '#000000' },
+  } as AppNode
+  ann.set([...ann.nodes, picture])
+  ann.history.stopCapturing()
+  ann.set(ann.nodes.map((n) => (n.id === 'a' ? { ...n, position: { x: 50, y: 0 } } : n)))
+  ann.history.stopCapturing()
+  expect(ann.live.patchData('p', { file: 'f'.repeat(32) })).toBe(true)
+  ann.pull()
+  ann.history.undo()
+  ann.pull()
+  expect(ann.nodes.find((n) => n.id === 'a')?.position.x).toBe(0)
+  expect((ann.nodes.find((n) => n.id === 'p')?.data as { file?: string }).file).toBe('f'.repeat(32))
+  expect(ann.live.patchData('gone', { file: 'x' })).toBe(false)
+})

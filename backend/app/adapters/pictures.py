@@ -1,7 +1,7 @@
 import io
 import warnings
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageCms, ImageOps, ImageSequence, UnidentifiedImageError
 
 from app.domain.errors import FileTooLarge, UnsupportedFile
 from app.domain.files import COPY_WIDTHS, MAX_PIXELS, Picture
@@ -9,7 +9,12 @@ from app.domain.files import COPY_WIDTHS, MAX_PIXELS, Picture
 FORMATS = {"PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp", "GIF": "image/gif"}
 # Metadata a picture may carry: camera, place, the software that made it.
 _META = ("exif", "xmp", "XML:com.adobe.xmp", "comment")
+# What a saved picture keeps of its info: how it is drawn, nothing about where it came from.
+_KEPT = ("transparency", "duration", "loop", "background")
 COPY_QUALITY = 90
+# WebP cannot be taller or wider than this; a copy past it is left out and the original serves.
+WEBP_MAX_SIDE = 16383
+_SRGB = ImageCms.createProfile("sRGB")
 
 
 def _open(data: bytes) -> Image.Image:
@@ -36,21 +41,48 @@ def _has_meta(image: Image.Image) -> bool:
     )
 
 
-def _without_meta(image: Image.Image, upright: Image.Image) -> bytes:
+def _bare(frame: Image.Image) -> Image.Image:
+    frame.info = {key: frame.info[key] for key in _KEPT if key in frame.info}
+    return frame
+
+
+def _without_meta(image: Image.Image, moving: bool) -> bytes:
     out = io.BytesIO()
     kind = image.format or "PNG"
     extra = {"icc_profile": image.info["icc_profile"]} if "icc_profile" in image.info else {}
-    if kind == "JPEG" or kind == "WEBP":
+    if kind in ("JPEG", "WEBP"):
         extra |= {"quality": 95}
-    upright.save(out, kind, **extra)
+    if "transparency" in image.info:
+        extra |= {"transparency": image.info["transparency"]}
+    if moving:
+        frames = [_bare(frame.copy()) for frame in ImageSequence.Iterator(image)]
+        frames[0].save(
+            out,
+            kind,
+            save_all=True,
+            append_images=frames[1:],
+            duration=[frame.info.get("duration", 100) for frame in frames],
+            loop=image.info.get("loop", 0),
+            **extra,
+        )
+    else:
+        _bare(ImageOps.exif_transpose(image)).save(out, kind, **extra)
     return out.getvalue()
 
 
 def _flat(image: Image.Image) -> Image.Image:
-    """The first frame in a mode WebP takes, keeping transparency."""
+    """The first frame in a mode WebP takes, keeping transparency, in sRGB as browsers assume."""
     image.seek(0)
     see_through = image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info
-    return image.convert("RGBA" if see_through else "RGB")
+    flat = image.convert("RGBA" if see_through else "RGB")
+    icc = image.info.get("icc_profile")
+    if icc:
+        try:
+            source = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+            flat = ImageCms.profileToProfile(flat, source, _SRGB, outputMode=flat.mode) or flat
+        except (ImageCms.PyCMSError, OSError):
+            pass
+    return flat
 
 
 def _webp(image: Image.Image) -> bytes:
@@ -80,12 +112,12 @@ class PillowPictures:
         smaller = upright
         for copy_width in widths:
             size = (copy_width, max(1, round(height * copy_width / width)))
+            if size[1] > WEBP_MAX_SIDE:
+                continue
             # Each copy from the one before it: a 4K picture is read in full only once.
             smaller = smaller.resize(size, Image.Resampling.LANCZOS, reducing_gap=3.0)
             copies[copy_width] = _webp(smaller)
-        original = data
-        if not moving and _has_meta(image):
-            original = _without_meta(image, ImageOps.exif_transpose(image))
+        original = _without_meta(image, moving) if _has_meta(image) else data
         return Picture(
             mime=FORMATS[image.format],
             data=original,

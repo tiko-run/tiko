@@ -61,9 +61,10 @@ class Files:
             return found
         picture = self._maker.make(data)
         size = len(picture.data) + sum(len(copy) for copy in picture.copies.values())
-        if self._quota is not None and self._store.used() + size > self._quota:
+        stored = self._store.add(sha, picture, size, uploaded_by, self._quota)
+        if stored is None:
             raise FileQuota("There is no room for more pictures in this workspace.")
-        return self._store.add(sha, picture, size, uploaded_by)
+        return stored
 
     def open(self, file_id: str, width: int | None) -> Served:
         """The smallest copy at least `width` wide, else the original; without a width, the
