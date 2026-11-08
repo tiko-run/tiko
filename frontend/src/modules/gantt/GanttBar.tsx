@@ -14,7 +14,7 @@ import {
   type Span,
 } from '@/modules/gantt/timeline'
 import { useZoom } from '@/modules/expanded'
-import type { Guess } from '@/modules/gantt/follow'
+import { GUESS_EDGE, GUESS_FADE, type Guess } from '@/modules/gantt/follow'
 import { cn } from '@/lib/utils'
 
 const BAR_COLOR = {
@@ -37,17 +37,6 @@ type Props = {
   notes?: string[]
   onSpan: (span: Span) => void
 }
-
-const GUESS_FADE = {
-  start: {
-    maskImage: 'linear-gradient(to right, rgb(0 0 0 / 0.35), #000 32px)',
-    borderLeftStyle: 'dashed',
-  },
-  end: {
-    maskImage: 'linear-gradient(to left, rgb(0 0 0 / 0.35), #000 32px)',
-    borderRightStyle: 'dashed',
-  },
-} as const
 
 /** A row's bar: drag the body to move it, an end to change that date, in whole days. */
 export function GanttBar({ span, axis, label, task, summary, guess, notes, onSpan }: Props) {
@@ -188,7 +177,7 @@ export function GanttBar({ span, axis, label, task, summary, guess, notes, onSpa
               ? 'bg-secondary text-secondary-foreground border'
               : 'bg-card text-card-foreground border',
           missing && 'border-dashed opacity-70',
-          guess && (guess === 'start' ? 'border-l-2' : 'border-r-2') + ' border-current',
+          guess && GUESS_EDGE[guess],
           task?.status_category === 'done' && 'line-through',
           box.clippedStart && 'rounded-l-none',
           box.clippedEnd && 'rounded-r-none',

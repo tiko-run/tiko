@@ -519,6 +519,7 @@ export function GanttModule({
                     assignees={assignees}
                     below={content.people === 'below'}
                     label={stagesLabel(row, taskOf(row))}
+                    {...trackerNotes(row, hasChildren, task, off)}
                     onRow={(next) => onChange(updateRow(content, row.id, () => next))}
                   />
                 ) : (

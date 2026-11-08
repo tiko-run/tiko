@@ -11,6 +11,19 @@ export const GUESS_DAYS = 6
 export type Guess = 'start' | 'end'
 export type Tracked = { span: Span; guess?: Guess }
 
+/** The side the tracker has no date for, faded with a dashed edge. */
+export const GUESS_FADE = {
+  start: {
+    maskImage: 'linear-gradient(to right, rgb(0 0 0 / 0.35), #000 32px)',
+    borderLeftStyle: 'dashed',
+  },
+  end: {
+    maskImage: 'linear-gradient(to left, rgb(0 0 0 / 0.35), #000 32px)',
+    borderRightStyle: 'dashed',
+  },
+} as const
+export const GUESS_EDGE = { start: 'border-l-2 border-current', end: 'border-r-2 border-current' }
+
 /** The dates the tracker holds for a task, a missing side filled in; null when it has none. */
 export function trackerSpan(task: Task | undefined): Tracked | null {
   if (!task || task.state !== 'ok') return null

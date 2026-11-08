@@ -1110,3 +1110,11 @@ test('a guest who cannot write leaves the board as it is', () => {
   const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } }, true)
   expect(host.syncContent).not.toHaveBeenCalled()
 })
+
+test('with Planning on a following bar marks its guessed side as with Planning off', () => {
+  renderGantt({}, following, PLANNING, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  const bar = screen.getByRole('slider', { name: /stage of DEMO-1/ })
+  expect(bar.getAttribute('aria-valuetext')).toBe('Sat Oct 24 – Fri Oct 30 · 7 days')
+  expect(bar.getAttribute('data-guess')).toBe('start')
+  expect(screen.getByText('Start is a guess: the tracker has only a due date')).toBeTruthy()
+})

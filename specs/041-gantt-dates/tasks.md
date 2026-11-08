@@ -12,7 +12,7 @@
 ## Slice 2: gantt-follow
 
 - [x] T007 Row field for following the tracker, set on rows added from a task; old rows keep their dates; backend validation in `modules/gantt.py`
-- [x] T008 Following bar drawn from the task's dates by Decision 5; the guessed end faded and dashed, named in the tooltip (Planning on draws stages, so the guess shows only with Planning off)
+- [x] T008 Following bar drawn from the task's dates by Decision 5; the guessed end faded and dashed, named in the tooltip, with Planning on and off
 - [x] T009 Dragging or resizing a following bar keeps the dragged dates as the row's own; toast with Undo
 - [x] T010 Dashed frame of the tracker's dates on rows with their own dates, clickable around the bar with Planning on and off; the tracker's dates in the bar's tooltip; Follow tracker dates; the row's switch
 - [x] T011 A refresh with new dates moves following bars for everyone and saves the board; parent rows keep spanning children; a row cut into stages stops following

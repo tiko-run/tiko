@@ -43,7 +43,7 @@
 - **FR-003**: The GitHub adapter MUST read `due` from the issue's milestone due date.
 - **FR-004**: The demo adapter MUST give its sample tasks both dates, a due date only, or none.
 - **FR-005**: A Gantt row MUST store whether it follows the tracker; a row added from a task MUST follow it, and a row saved before this feature MUST keep its own dates. Older boards read unchanged.
-- **FR-006**: A following row MUST draw its bar from the task's dates by the rules of Decision 5, with the filled-in end faded and dashed and named a guess in the tooltip.
+- **FR-006**: A following row MUST draw its bar from the task's dates by the rules of Decision 5, with the filled-in end faded and dashed and named a guess in the tooltip, with Planning on and off.
 - **FR-007**: Dragging or resizing a following bar MUST switch the row to its own dates with a toast and Undo; nothing MUST be sent to the tracker.
 - **FR-008**: A row with its own dates whose task's dates differ MUST show the frame of Decision 7 with the tracker's dates and a way to follow them, with Planning on and off.
 - **FR-009**: When a refresh changes a task's dates, every following bar of that task MUST move for everyone on the board, and the board MUST save the new dates.
@@ -53,7 +53,7 @@
 ## Slices
 
 1. `task-dates`: FR-001 – FR-004. The two dates on a task, the Jira field rule and the Settings choice, GitHub milestones, demo dates, the dates in a card's details.
-2. `gantt-follow`: FR-005 – FR-010. Following rows, filled-in ends, taking a bar off the tracker by dragging, the difference mark, moving on refresh, the guide and the changelog.
+2. `gantt-follow`: FR-005 – FR-011. Following rows, filled-in ends, taking a bar off the tracker by dragging, the difference mark, moving on refresh, the guide and the changelog.
 
 ## Out of scope
 
