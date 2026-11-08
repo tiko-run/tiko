@@ -1,7 +1,7 @@
 import { createContext, useContext, useSyncExternalStore } from 'react'
-import type { FileSource } from '@/api/files'
+import type { FileSource, StoredFile } from '@/api/files'
 
-/** A picture added in this tab: shown from the local copy until the stored one has loaded. */
+/** A picture added in this tab: shown from the local copy (a still one for a GIF) until the stored one has loaded. */
 export type Upload = { local: string; error?: string }
 /** What the element looked like when added, so copies of it made meanwhile are found. */
 export type Look = { w: number; h: number; color: string }
@@ -17,12 +17,12 @@ export class Uploads {
   private queue: string[] = []
   private running = 0
   private listeners = new Set<() => void>()
-  private send: (file: Blob) => Promise<string>
-  private done: (id: string, file: string, look: Look) => void
+  private send: (file: Blob) => Promise<StoredFile>
+  private done: (id: string, stored: StoredFile, look: Look) => void
 
   constructor(
-    send: (file: Blob) => Promise<string>,
-    done: (id: string, file: string, look: Look) => void,
+    send: (file: Blob) => Promise<StoredFile>,
+    done: (id: string, stored: StoredFile, look: Look) => void,
   ) {
     this.send = send
     this.done = done
@@ -38,8 +38,9 @@ export class Uploads {
   /** Elements whose upload failed and waits for its retry. */
   failed = () => [...this.items].filter(([, item]) => item.error).map(([id]) => id)
 
-  add(id: string, file: Blob, look: Look) {
-    this.items.set(id, { file, look, local: URL.createObjectURL(file) })
+  add(id: string, file: Blob, look: Look, preview: Blob = file) {
+    this.drop(id)
+    this.items.set(id, { file, look, local: URL.createObjectURL(preview) })
     this.queue.push(id)
     this.changed()
     this.next()
@@ -82,8 +83,8 @@ export class Uploads {
       if (!item) continue
       this.running++
       this.send(item.file)
-        .then((file) => {
-          if (this.items.has(id)) this.done(id, file, item.look)
+        .then((stored) => {
+          if (this.items.has(id)) this.done(id, stored, item.look)
         })
         .catch((error: unknown) => {
           // Dropped meanwhile: a late failure must not bring the element's upload back.
@@ -106,7 +107,12 @@ export class Uploads {
   }
 }
 
-export type ImagesHost = { source: FileSource; uploads: Uploads | null }
+export type ImagesHost = {
+  source: FileSource
+  uploads: Uploads | null
+  /** Uploads a file again for an element whose upload never finished. */
+  again?: (id: string, file: File) => void
+}
 
 export const ImagesContext = createContext<ImagesHost | null>(null)
 

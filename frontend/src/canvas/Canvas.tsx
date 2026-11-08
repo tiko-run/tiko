@@ -495,15 +495,22 @@ export function BoardCanvas({
   const uploads = useMemo(() => {
     if (guest) return null
     const store: Uploads = new Uploads(
-      (file) => uploadFile(board.id, file).then((stored) => stored.id),
-      (id, file, look) => {
+      (file) => uploadFile(board.id, file),
+      (id, stored, look) => {
         // Outside the undo history: Undo takes back the person's edit, not the upload. Copies
-        // made while it ran look the same and get the file too.
+        // made while it ran look the same and get the file too. The server's colour is kept,
+        // so everyone sees the same tone before the picture loads.
+        const patch = {
+          file: stored.id,
+          color: stored.color,
+          moving: stored.moving || undefined,
+          since: undefined,
+        }
         for (const node of getNodes()) {
           if (node.type !== 'image' || node.data.file) continue
           const copy =
             node.data.w === look.w && node.data.h === look.h && node.data.color === look.color
-          if (node.id === id || copy) patchData(node.id, { file })
+          if (node.id === id || copy) patchData(node.id, patch)
         }
         if (!getNodes().some((node) => node.id === id)) store.drop(id)
       },
@@ -519,8 +526,20 @@ export function BoardCanvas({
   }, [nodes, uploads])
   const guestToken = guest?.token
   const images = useMemo<ImagesHost>(
-    () => ({ source: guestToken ? { token: guestToken } : { boardId: board.id }, uploads }),
-    [guestToken, board.id, uploads],
+    () => ({
+      source: guestToken ? { token: guestToken } : { boardId: board.id },
+      uploads,
+      again: (id, picked) => {
+        const node = getNodes().find((n) => n.id === id)
+        const { pictures, refused } = sortFiles([picked])
+        if (refused.length)
+          toast.error('Not added', { description: refused[0], duration: ERROR_MS })
+        if (node?.type !== 'image' || !pictures.length || !uploads) return
+        patchData(id, { since: new Date().toISOString() })
+        uploads.add(id, pictures[0], node.data)
+      },
+    }),
+    [guestToken, board.id, uploads, getNodes, patchData],
   )
 
   // Each picture shows at once from the file; the upload runs behind it.
@@ -546,7 +565,12 @@ export function BoardCanvas({
           position: corners[i],
           ...sizes[i],
           selected: true,
-          data: { w: picture.width, h: picture.height, color: picture.color },
+          data: {
+            w: picture.width,
+            h: picture.height,
+            color: picture.color,
+            since: new Date().toISOString(),
+          },
         }) as AppNode,
     )
     setNodes((current) =>
@@ -555,7 +579,9 @@ export function BoardCanvas({
         added.map((n) => n.id),
       ),
     )
-    ready.forEach(({ file }, i) => uploads.add(added[i].id, file, added[i].data as ImageData))
+    ready.forEach(({ file, picture }, i) =>
+      uploads.add(added[i].id, file, added[i].data as ImageData, picture.still),
+    )
   }
 
   const addPastedNote = (text: string, screen: XYPosition) => {

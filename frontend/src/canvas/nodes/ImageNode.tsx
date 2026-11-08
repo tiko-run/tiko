@@ -1,7 +1,9 @@
 import { useStore, type NodeProps } from '@xyflow/react'
-import { ImageOff, RotateCcw } from 'lucide-react'
+import { ImageOff, ImagePlus, RotateCcw } from 'lucide-react'
 import { memo, useEffect, useState, type ReactNode } from 'react'
 import { fileUrl } from '@/api/files'
+import { reducedMotion } from '@/canvas/fly'
+import { useImagePicker } from '@/canvas/ImagePicker'
 import { copyWidth, PAST_COPIES } from '@/canvas/images'
 import { Handles } from '@/canvas/nodes/Handles'
 import { Resizer } from '@/canvas/nodes/Resizer'
@@ -16,17 +18,41 @@ const pixelRatio = () => (typeof window === 'undefined' ? 1 : window.devicePixel
 // A copy that failed to load is asked again this many times, a little later each time.
 const RETRIES = 3
 const RETRY_MS = 2000
+// A copy this many times sharper than the screen needs gives way to a smaller one.
+const STEP_DOWN = 4
+// A moving picture plays only this wide on screen and up; smaller, its first frame shows.
+const PLAY_PX = 160
+// An upload not stored after this long is taken as one that never finished.
+const STALE_MS = 2 * 60 * 1000
+
+/** Whether an element still waiting for its file has waited too long. */
+function useStale(waiting: boolean, since: string | undefined) {
+  const due = since ? Date.parse(since) + STALE_MS : 0
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    if (!waiting || now >= due) return
+    const timer = setTimeout(() => setNow(Date.now()), due - now)
+    return () => clearTimeout(timer)
+  }, [waiting, due, now])
+  return waiting && now >= due
+}
 
 function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) {
   const readOnly = useReadOnly()
-  const { source, uploads } = useImages()
+  const { source, uploads, again } = useImages()
   const upload = useUpload(id)
   const onBoard = width ?? data.w
-  // A number, so only a step to another copy redraws the element, not every zoom tick.
+  // Numbers and flags, so only a step to another copy redraws the element, not every zoom tick.
   const wanted = useStore((state) => copyWidth(onBoard, state.transform[2], pixelRatio()))
-  // Zooming back out keeps the sharper copy already loaded instead of fetching a smaller one.
+  const large = useStore((state) => onBoard * state.transform[2] >= PLAY_PX)
+  const playing = Boolean(data.moving) && large && !reducedMotion()
+  // Zooming out a little keeps the sharper copy already loaded; far out, a smaller one takes
+  // its place, so a board of big pictures does not hold every original in memory.
   const [loadedWidth, setLoadedWidth] = useState(0)
-  const step = Math.max(loadedWidth, wanted)
+  const step = wanted * STEP_DOWN <= loadedWidth ? wanted : Math.max(loadedWidth, wanted)
+  const local = upload?.local
+  const stale = useStale(!data.file && !local, data.since)
+  const picker = useImagePicker((files) => again?.(id, files[0]))
   // The last copy that loaded stays under the next one until that one has loaded too.
   const [shown, setShown] = useState<string | null>(null)
   const [failure, setFailure] = useState<{ src: string; count: number } | null>(null)
@@ -36,9 +62,8 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
 
   // Past the widest copy the server answers with the original, or a still copy for a GIF.
   const src = data.file
-    ? fileUrl(source, data.file, Number.isFinite(step) ? step : PAST_COPIES)
+    ? fileUrl(source, data.file, Number.isFinite(step) ? step : PAST_COPIES, playing)
     : null
-  const local = upload?.local
   const failing = src !== null && failure?.src === src ? failure.count : 0
   const broken = failing > RETRIES
   useEffect(() => {
@@ -69,7 +94,7 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
             hidden={shown !== src}
             onLoad={() => {
               setShown(src)
-              setLoadedWidth(step)
+              if (!playing) setLoadedWidth(step)
               uploads?.forget(id)
             }}
             onError={() =>
@@ -77,7 +102,21 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
             }
           />
         )}
-        {!data.file && !local && <Note>Uploading…</Note>}
+        {!data.file && !local && !stale && <Note>Uploading…</Note>}
+        {stale && (
+          <Note>
+            Upload did not finish
+            {!readOnly && again && (
+              <>
+                {picker.input}
+                <Button size="sm" variant="secondary" className="nodrag" onClick={picker.open}>
+                  <ImagePlus aria-hidden />
+                  Pick the file again
+                </Button>
+              </>
+            )}
+          </Note>
+        )}
         {broken && (
           <Note>
             <ImageOff className="size-5" aria-hidden />

@@ -280,6 +280,7 @@ test('a patch outside the undo history stays when the edit before it is undone',
   ann.history.undo()
   ann.pull()
   expect(ann.nodes.find((n) => n.id === 'a')?.position.x).toBe(0)
-  expect((ann.nodes.find((n) => n.id === 'p')?.data as { file?: string }).file).toBe('f'.repeat(32))
+  const data = ann.nodes.find((n) => n.id === 'p')?.data as { file?: string } | undefined
+  expect(data?.file).toBe('f'.repeat(32))
   expect(ann.live.patchData('gone', { file: 'x' })).toBe(false)
 })

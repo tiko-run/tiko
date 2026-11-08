@@ -47,3 +47,14 @@ test('a side does not pass its opposite side', () => {
 test('grabbing a grip off its line does not make the box jump', () => {
   close(resizeTurned(box, 45, ['right'], { x: 0, y: 0 }, min), box)
 })
+
+test('a turned picture keeps its proportions from a side and from a corner', () => {
+  const side = resizeTurned(box, 30, ['right'], { x: 100, y: 0 }, min, true)
+  expect(side.width / side.height).toBeCloseTo(2)
+  const corner = resizeTurned(box, 90, ['bottom', 'right'], { x: -20, y: 200 }, min, true)
+  expect(corner.width / corner.height).toBeCloseTo(2)
+  expect(corner.width).toBeGreaterThan(box.width)
+  const small = resizeTurned(box, 45, ['top', 'left'], { x: 500, y: 500 }, min, true)
+  expect(small.height).toBeGreaterThanOrEqual(20)
+  expect(small.width / small.height).toBeCloseTo(2)
+})

@@ -45,6 +45,7 @@ function TurnedResizer({
   rotation,
   minWidth = 10,
   minHeight = 10,
+  keepAspectRatio = false,
 }: Omit<NodeResizerProps, 'isVisible'> & { rotation: number }) {
   const id = useNodeId()!
   const zoom = useStore((state) => state.transform[2])
@@ -75,10 +76,14 @@ function TurnedResizer({
     if (!from) return
     const pointer = screenToFlowPosition({ x: event.clientX, y: event.clientY })
     const travel = { x: pointer.x - from.pointer.x, y: pointer.y - from.pointer.y }
-    const next = resizeTurned(from.box, rotation, from.sides, travel, {
-      width: minWidth,
-      height: minHeight,
-    })
+    const next = resizeTurned(
+      from.box,
+      rotation,
+      from.sides,
+      travel,
+      { width: minWidth, height: minHeight },
+      keepAspectRatio,
+    )
     updateNode(id, {
       position: {
         x: from.position.x + next.x - from.box.x,
