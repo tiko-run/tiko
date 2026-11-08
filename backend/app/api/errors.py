@@ -27,6 +27,7 @@ from app.domain.errors import (
     NotFound,
     OwnerRequired,
     SecretKeyMissing,
+    StickerLimit,
     TaskNotFound,
     TooManyAttempts,
     TooManyRepositories,
@@ -73,6 +74,7 @@ _STATUS = {
     FileTooLarge: 413,
     UnsupportedFile: 415,
     FileQuota: 507,
+    StickerLimit: 409,
 }
 
 

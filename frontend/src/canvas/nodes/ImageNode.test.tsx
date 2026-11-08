@@ -92,8 +92,8 @@ test('a small GIF shows a still copy', () => {
     id: 'pic',
     type: 'image',
     position: { x: 0, y: 0 },
-    width: 100,
-    height: 75,
+    width: 60,
+    height: 45,
     data: { w: 400, h: 300, color: '#000000', moving: true, file: 'c'.repeat(32) },
   }
   const { container } = render(

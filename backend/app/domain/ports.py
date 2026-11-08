@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         StageType,
         TimeOff,
     )
+    from app.domain.stickers import PackSticker, Sticker
     from app.domain.tasks import SearchResult, Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -591,6 +592,44 @@ class FileStore(Protocol):
 
     def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
         """None unless the board may serve the file."""
+        ...
+
+
+class StickerArt(Protocol):
+    """The built-in stickers: drawn on request, since the set is kept as vector animations."""
+
+    def catalog(self) -> list[Sticker]: ...
+
+    def still(self, code: str) -> bytes | None:
+        """A small still WebP for the panel; None for a code not in the set."""
+        ...
+
+    def moving(self, code: str) -> bytes | None:
+        """The animated WebP that goes on a board; the same bytes for the same code."""
+        ...
+
+    def playing(self, code: str) -> bytes | None:
+        """The still's size, animated: the panel plays the sticker under the pointer."""
+        ...
+
+
+class StickerPack(Protocol):
+    """The stickers people of the current workspace saved from its pictures."""
+
+    def list(self) -> list[PackSticker]: ...
+
+    def get(self, sticker_id: str) -> PackSticker | None: ...
+
+    def add(self, file_id: str, name: str, created_by: str, limit: int) -> PackSticker | None:
+        """Saves the file; the one saved already is returned. None past `limit` stickers, and
+        NotFound for a file not in the workspace."""
+        ...
+
+    def remove(self, sticker_id: str) -> bool: ...
+
+    def picture(self, sticker_id: str, width: int | None, moving: bool) -> Served | None:
+        """Moving, the animated WebP of a moving sticker; else drawn still, the smallest copy
+        at least `width` wide, else its widest."""
         ...
 
 

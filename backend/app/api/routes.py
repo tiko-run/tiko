@@ -16,6 +16,7 @@ from app.api import (
     privacy,
     public,
     settings,
+    stickers,
     tasks,
     version,
 )
@@ -29,6 +30,7 @@ router.include_router(planning.router)
 router.include_router(invites.router)
 router.include_router(boards.router)
 router.include_router(files.boards)
+router.include_router(stickers.router)
 router.include_router(folders.router)
 router.include_router(public.router)
 router.include_router(files.public)

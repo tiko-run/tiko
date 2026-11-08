@@ -14,6 +14,7 @@
 | pycrdt | MIT | Shared document (CRDT) of a live board on the server; bundles Yrs (MIT) |
 | psycopg 3 (`psycopg[binary]`) | LGPL-3.0 | Postgres driver; the wheel bundles libpq (PostgreSQL License) |
 | psycopg_pool | LGPL-3.0 | Postgres connection pool |
+| rlottie-python | LGPL-2.1 | Draws the built-in stickers from Lottie to animated WebP; the wheel bundles [rlottie](https://github.com/Samsung/rlottie) (MIT) |
 | Pillow | MIT-CMU (HPND) | Reads pictures put on boards, removes their metadata and makes their smaller WebP copies; the wheel bundles libwebp, libjpeg-turbo, libpng and zlib (BSD-style licenses) |
 | PostgreSQL (`postgres:18` Docker image) | PostgreSQL License | The database in the compose files, unchanged |
 | React | MIT | UI |
@@ -59,6 +60,10 @@ Full list with versions: lock files (`backend/uv.lock`, `frontend/package-lock.j
 |---|---|---|---|
 
 ## Templates
+
+## Stickers
+
+The built-in stickers are [Noto Animated Emoji](https://googlefonts.github.io/noto-emoji-animation/) by Google, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Kept in `backend/app/adapters/stickers/noto/` as Lottie packed with xz, with a catalog of their names and sections; fetched by `scripts/fetch-noto-stickers.py`. tiko draws them to animated WebP at 30 fps and starts each loop on its most recognisable frame; the drawings themselves are not changed. Credited in the user guide where stickers are described.
 
 ## Music
 

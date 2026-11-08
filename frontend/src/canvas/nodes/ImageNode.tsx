@@ -1,7 +1,8 @@
 import { useStore, type NodeProps } from '@xyflow/react'
 import { ImageOff, ImagePlus, RotateCcw } from 'lucide-react'
-import { memo, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { memo, useEffect, useState, type ReactNode } from 'react'
 import { fileUrl } from '@/api/files'
+import { useReducedMotion } from '@/lib/motion'
 import { useImagePicker } from '@/canvas/ImagePicker'
 import { copyWidth, PAST_COPIES } from '@/canvas/images'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -20,7 +21,7 @@ const RETRY_MS = 2000
 // A copy this many times sharper than the screen needs gives way to a smaller one.
 const STEP_DOWN = 4
 // A moving picture plays only this wide on screen and up; smaller, its first frame shows.
-const PLAY_PX = 160
+const PLAY_PX = 80
 // An upload not stored after this long is taken as one that never finished.
 const STALE_MS = 2 * 60 * 1000
 
@@ -35,18 +36,6 @@ function useStale(waiting: boolean, since: string | undefined) {
     return () => clearTimeout(timer)
   }, [waiting, due, now])
   return waiting && now >= due
-}
-
-const REDUCED = '(prefers-reduced-motion: reduce)'
-const subscribeMotion = (change: () => void) => {
-  const query = window.matchMedia?.(REDUCED)
-  query?.addEventListener('change', change)
-  return () => query?.removeEventListener('change', change)
-}
-
-/** Follows the system setting, so a GIF stops the moment someone asks for less motion. */
-function useReducedMotion() {
-  return useSyncExternalStore(subscribeMotion, () => window.matchMedia?.(REDUCED).matches ?? false)
 }
 
 function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) {
@@ -96,7 +85,8 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
       />
       <div
         className={cn('relative h-full w-full overflow-hidden', selected && 'ring-primary ring-2')}
-        style={{ background: data.color }}
+        // The tone only holds the place: a transparent picture shows the board through it.
+        style={{ background: shown || local ? undefined : data.color }}
       >
         {local && !shown && <Picture src={local} />}
         {shown && shown !== src && <Picture src={shown} />}

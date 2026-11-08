@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { fetchJson } from '@/api/client'
 
-const storedSchema = z.object({
+export const storedSchema = z.object({
   id: z.string(),
   width: z.number(),
   height: z.number(),

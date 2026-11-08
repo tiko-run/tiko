@@ -240,6 +240,11 @@ def test_a_moving_webp_loses_its_exif_and_keeps_moving(client):
     served = client.get(f"/api/boards/{board_id}/files/{file_id}")
     assert b"Camera maker" not in served.content
     assert opened(served).n_frames == 2
+    # It plays at its own pace, not at a default one.
+    played = opened(client.get(f"/api/boards/{board_id}/files/{file_id}", params={"move": 1}))
+    played.seek(1)
+    played.load()
+    assert played.info["duration"] == 200
 
 
 def test_a_wide_gamut_picture_gets_srgb_copies(client):

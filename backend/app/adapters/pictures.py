@@ -110,6 +110,8 @@ def _motion(image: Image.Image) -> bytes:
     frames, durations = [], []
     icc = image.info.get("icc_profile")
     for frame in ImageSequence.Iterator(image):
+        # A WebP frame tells its duration only once it is loaded.
+        frame.load()
         durations.append(frame.info.get("duration", 100))
         frame = _srgb(frame.convert("RGBA"), icc)
         frames.append(frame.resize(size, Image.Resampling.LANCZOS) if scale < 1 else frame)

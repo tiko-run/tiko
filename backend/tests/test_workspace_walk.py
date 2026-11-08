@@ -56,6 +56,7 @@ def bodies(own: dict) -> dict[tuple[str, str], dict]:
         ("POST", "/api/tasks/resolve"): {"ref": "DEMO-1"},
         ("PATCH", "/api/folders/{folder_id}"): {"name": "Taken"},
         ("PUT", "/api/boards/{board_id}/folder"): {"folder_id": own["folder_id"]},
+        ("POST", "/api/stickers/pack"): {"file": own.get("file_id", "nope")},
     }
 
 
@@ -99,6 +100,9 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             headers={"content-type": "image/png"},
         )
     )["id"]
+    sticker = ok(
+        client.post("/api/stickers/pack", json={"file": file_id, "name": f"sticker-{tag}"})
+    )
     trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
     assert client.delete(f"/api/boards/{trashed}").is_success
     return {
@@ -113,6 +117,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "folder_id": folder,
         "key": "DEMO-1",
         "file_id": file_id,
+        "sticker_id": sticker["id"],
+        "code": "1f525",
         "token": token,
         "workspace": me["workspace"]["id"],
         "markers": [
@@ -125,6 +131,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             f"folder-{tag}",
             folder,
             f"trashed-{tag}",
+            f"sticker-{tag}",
+            sticker["id"],
             trashed,
             day,
             me["id"],
@@ -221,6 +229,7 @@ def test_nothing_of_a_trashed_board_reaches_anyone(app):
         own["server"] = client is admin
         target = {name: "nope" for name in ("person_id", "off_id", "type_id", "field_id")}
         target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1", "file_id": "nope"}
+        target |= {"sticker_id": "nope", "code": "1f525"}
         target |= own | {"markers": ["trashed-board", "note-trashed", board, token]}
         owner_like = client in (ann, admin)
 

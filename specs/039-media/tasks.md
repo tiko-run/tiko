@@ -25,8 +25,9 @@
 
 ## Slice 3: stickers
 
-- [ ] T012 Noto Animated Emoji as WebP in the repository, `THIRD_PARTY.md`, credit in the panel
-- [ ] T013 Sticker panel: built-in set, workspace pack, "Save to stickers" on an image; smoothness with the CPU slowed four times
+- [x] T012 Noto Animated Emoji as xz-packed Lottie in the repository, drawn to animated WebP by the server; `THIRD_PARTY.md` and the guide credit it
+- [x] T013 Sticker panel: built-in set, workspace pack, "Save to stickers" on an image; smoothness with the CPU slowed four times
+- [x] T022 An animated WebP keeps its frame timing; a transparent picture shows no tone behind it once loaded; moving pictures play from 80 px on screen
 
 ## Slice 4: files-cleanup
 

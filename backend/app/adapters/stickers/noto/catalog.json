@@ -1,0 +1,5555 @@
+[
+ {
+  "code": "1f600",
+  "name": "smile",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f603",
+  "name": "smile with big eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f604",
+  "name": "grin",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f601",
+  "name": "grinning",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f606",
+  "name": "laughing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f605",
+  "name": "grin sweat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f602",
+  "name": "joy",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f923",
+  "name": "rofl",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62d",
+  "name": "loudly crying",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f609",
+  "name": "wink",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f617",
+  "name": "kissing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f619",
+  "name": "kissing smiling eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61a",
+  "name": "kissing closed eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f618",
+  "name": "kissing heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f970",
+  "name": "heart face",
+  "tags": [
+   "3 hearts"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60d",
+  "name": "heart eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f929",
+  "name": "star struck",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f973",
+  "name": "partying face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae0",
+  "name": "melting",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f643",
+  "name": "upside down face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f642",
+  "name": "slightly happy",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f972",
+  "name": "happy cry",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f979",
+  "name": "holding back tears",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60a",
+  "name": "blush",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "263a_fe0f",
+  "name": "warm smile",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60c",
+  "name": "relieved",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f642_200d_2195_fe0f",
+  "name": "head nod",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f642_200d_2194_fe0f",
+  "name": "head shake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60f",
+  "name": "smirk",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f924",
+  "name": "drool",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60b",
+  "name": "yum",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61b",
+  "name": "stuck out tongue",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61d",
+  "name": "squinting tongue",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61c",
+  "name": "winky tongue",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92a",
+  "name": "zany face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faea",
+  "name": "distorted face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f614",
+  "name": "pensive",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f97a",
+  "name": "pleading",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62c",
+  "name": "grimacing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f611",
+  "name": "expressionless",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f610",
+  "name": "neutral face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f636",
+  "name": "mouth none",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f636_200d_1f32b_fe0f",
+  "name": "face in clouds",
+  "tags": [
+   "lost"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae5",
+  "name": "dotted line face",
+  "tags": [
+   "invisible"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f910",
+  "name": "zipper face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae1",
+  "name": "salute",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f914",
+  "name": "thinking face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92b",
+  "name": "shushing face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae2",
+  "name": "hand over mouth",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92d",
+  "name": "smiling eyes with hand over mouth",
+  "tags": [
+   "chuckling"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f971",
+  "name": "yawn",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f917",
+  "name": "hug face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae3",
+  "name": "peeking",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f631",
+  "name": "screaming",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f928",
+  "name": "raised eyebrow",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9d0",
+  "name": "monocle",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f612",
+  "name": "unamused",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f644",
+  "name": "rolling eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62e_200d_1f4a8",
+  "name": "exhale",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f624",
+  "name": "triumph",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f620",
+  "name": "angry",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f621",
+  "name": "rage",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92c",
+  "name": "cursing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61e",
+  "name": "sad",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f613",
+  "name": "sweat",
+  "tags": [
+   "downcast"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f61f",
+  "name": "worried",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f625",
+  "name": "concerned",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f622",
+  "name": "cry",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2639_fe0f",
+  "name": "big frown",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f641",
+  "name": "frown",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae4",
+  "name": "diagonal mouth",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f615",
+  "name": "slightly frowning",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f630",
+  "name": "anxious with sweat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f628",
+  "name": "scared",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f627",
+  "name": "anguished",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f626",
+  "name": "gasp",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62e",
+  "name": "mouth open",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62f",
+  "name": "surprised",
+  "tags": [
+   "hushed"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f632",
+  "name": "astonished",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f633",
+  "name": "flushed",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92f",
+  "name": "mind blown",
+  "tags": [
+   "exploding head"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f616",
+  "name": "scrunched mouth",
+  "tags": [
+   "confounded",
+   "zigzag mouth"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f623",
+  "name": "scrunched eyes",
+  "tags": [
+   "persevering"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f629",
+  "name": "weary",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62b",
+  "name": "distraught",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f635",
+  "name": "x eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f635_200d_1f4ab",
+  "name": "dizzy face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae8",
+  "name": "shaking face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f974",
+  "name": "woozy",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f975",
+  "name": "hot face",
+  "tags": [
+   "sweat face"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f976",
+  "name": "cold face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f922",
+  "name": "sick",
+  "tags": [
+   "nauseated"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f92e",
+  "name": "vomit",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae9",
+  "name": "tired",
+  "tags": [
+   "bags under eyes"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f634",
+  "name": "sleep",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f62a",
+  "name": "sleepy",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f927",
+  "name": "sneeze",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f912",
+  "name": "thermometer face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f915",
+  "name": "bandage face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f637",
+  "name": "mask",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f925",
+  "name": "liar",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f607",
+  "name": "halo",
+  "tags": [
+   "innocent"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f920",
+  "name": "cowboy",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f911",
+  "name": "money face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f913",
+  "name": "nerd face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f60e",
+  "name": "sunglasses face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f978",
+  "name": "disguise",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f921",
+  "name": "clown",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4a9",
+  "name": "poop",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f608",
+  "name": "imp smile",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f47f",
+  "name": "imp frown",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f47b",
+  "name": "ghost",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f480",
+  "name": "skull",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f916",
+  "name": "robot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f479",
+  "name": "ogre",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2603_fe0f",
+  "name": "snowman with snow",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "26c4",
+  "name": "snowman",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f47d",
+  "name": "alien",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f47e",
+  "name": "alien monster",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31a",
+  "name": "moon face new",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31d",
+  "name": "moon face full",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31e",
+  "name": "sun with face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31b",
+  "name": "moon face first quarter",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31c",
+  "name": "moon face last quarter",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63a",
+  "name": "smiley cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f638",
+  "name": "smile cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f639",
+  "name": "joy cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63b",
+  "name": "heart eyes cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63c",
+  "name": "smirk cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63d",
+  "name": "kissing cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f640",
+  "name": "scream cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63f",
+  "name": "crying cat face",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f63e",
+  "name": "pouting cat",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f648",
+  "name": "see no evil monkey",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f649",
+  "name": "hear no evil monkey",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64a",
+  "name": "speak no evil monkey",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2b50",
+  "name": "star",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f31f",
+  "name": "glowing star",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2728",
+  "name": "sparkles",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "26a1",
+  "name": "electricity",
+  "tags": [
+   "zap",
+   "lightning"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4a5",
+  "name": "collision",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faef",
+  "name": "fight",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f573_fe0f",
+  "name": "hole",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f525",
+  "name": "fire",
+  "tags": [
+   "burn",
+   "lit"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4af",
+  "name": "100",
+  "tags": [
+   "one hundred",
+   "hundred",
+   "points"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f389",
+  "name": "party popper",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f38a",
+  "name": "confetti ball",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2764_fe0f",
+  "name": "red heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9e1",
+  "name": "orange heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49b",
+  "name": "yellow heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49a",
+  "name": "green heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fa75",
+  "name": "light blue heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f499",
+  "name": "blue heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49c",
+  "name": "purple heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90e",
+  "name": "brown heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f5a4",
+  "name": "black heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fa76",
+  "name": "grey heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90d",
+  "name": "white heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fa77",
+  "name": "pink heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f498",
+  "name": "cupid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49d",
+  "name": "gift heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f496",
+  "name": "sparkling heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f497",
+  "name": "heart grow",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f493",
+  "name": "beating heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49e",
+  "name": "revolving hearts",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f495",
+  "name": "two hearts",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f48c",
+  "name": "love letter",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f49f",
+  "name": "heart box",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2665_fe0f",
+  "name": "heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2763_fe0f",
+  "name": "heart exclamation point",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2764_fe0f_200d_1fa79",
+  "name": "bandaged heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f494",
+  "name": "broken heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "2764_fe0f_200d_1f525",
+  "name": "fire heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f48b",
+  "name": "kiss",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fac2",
+  "name": "hugging",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f5e3_fe0f",
+  "name": "speaking head",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f463",
+  "name": "footprints",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fac6",
+  "name": "fingerprint",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9e0",
+  "name": "brain",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fac0",
+  "name": "anatomical heart",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fa78",
+  "name": "blood",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9a0",
+  "name": "microbe",
+  "tags": [
+   "virus"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b4",
+  "name": "bone",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f440",
+  "name": "eyes",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f441_fe0f",
+  "name": "eye",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fae6",
+  "name": "biting lip",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443_1f3fb",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443_1f3fc",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443_1f3fd",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443_1f3fe",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f443_1f3ff",
+  "name": "nose",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442_1f3fb",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442_1f3fc",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442_1f3fd",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442_1f3fe",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f442_1f3ff",
+  "name": "ear",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb_1f3fb",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb_1f3fc",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb_1f3fd",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb_1f3fe",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bb_1f3ff",
+  "name": "hearing aid",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6_1f3fb",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6_1f3fc",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6_1f3fd",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6_1f3fe",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b6_1f3ff",
+  "name": "foot",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5_1f3fb",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5_1f3fc",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5_1f3fd",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5_1f3fe",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9b5_1f3ff",
+  "name": "leg",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9bf",
+  "name": "leg mechanical",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f9be",
+  "name": "arm mechanical",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa_1f3fb",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa_1f3fc",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa_1f3fd",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa_1f3fe",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f4aa_1f3ff",
+  "name": "muscle",
+  "tags": [
+   "flex",
+   "bicep",
+   "strong"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f_1f3fb",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f_1f3fc",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f_1f3fd",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f_1f3fe",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44f_1f3ff",
+  "name": "clap",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d_1f3fb",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d_1f3fc",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d_1f3fd",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d_1f3fe",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44d_1f3ff",
+  "name": "thumbs up",
+  "tags": [
+   "+1"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e_1f3fb",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e_1f3fc",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e_1f3fd",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e_1f3fe",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44e_1f3ff",
+  "name": "thumbs down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6_1f3fb",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6_1f3fc",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6_1f3fd",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6_1f3fe",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf6_1f3ff",
+  "name": "heart hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c_1f3fb",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c_1f3fc",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c_1f3fd",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c_1f3fe",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64c_1f3ff",
+  "name": "raising hands",
+  "tags": [
+   "hooray"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450_1f3fb",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450_1f3fc",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450_1f3fd",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450_1f3fe",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f450_1f3ff",
+  "name": "open hands",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932_1f3fb",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932_1f3fc",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932_1f3fd",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932_1f3fe",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f932_1f3ff",
+  "name": "palms up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c_1f3fb",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c_1f3fc",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c_1f3fd",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c_1f3fe",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91c_1f3ff",
+  "name": "fist rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b_1f3fb",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b_1f3fc",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b_1f3fd",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b_1f3fe",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91b_1f3ff",
+  "name": "fist leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a_1f3fb",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a_1f3fc",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a_1f3fd",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a_1f3fe",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270a_1f3ff",
+  "name": "raised fist",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a_1f3fb",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a_1f3fc",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a_1f3fd",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a_1f3fe",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44a_1f3ff",
+  "name": "fist",
+  "tags": [
+   "bump"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3_1f3fb",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3_1f3fc",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3_1f3fd",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3_1f3fe",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf3_1f3ff",
+  "name": "palm down",
+  "tags": [
+   "drop"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4_1f3fb",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4_1f3fc",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4_1f3fd",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4_1f3fe",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf4_1f3ff",
+  "name": "palm up",
+  "tags": [
+   "throw"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fb",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fc",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fd",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fe",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3ff",
+  "name": "rightwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2_1f3fb",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2_1f3fc",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2_1f3fd",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2_1f3fe",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf2_1f3ff",
+  "name": "leftwards hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8_1f3fb",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8_1f3fc",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8_1f3fd",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8_1f3fe",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf8_1f3ff",
+  "name": "push rightwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7_1f3fb",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7_1f3fc",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7_1f3fd",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7_1f3fe",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf7_1f3ff",
+  "name": "push leftwards",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b_1f3fb",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b_1f3fc",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b_1f3fd",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b_1f3fe",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44b_1f3ff",
+  "name": "wave",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a_1f3fb",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a_1f3fc",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a_1f3fd",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a_1f3fe",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91a_1f3ff",
+  "name": "back hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_fe0f",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_1f3fb",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_1f3fc",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_1f3fd",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_1f3fe",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f590_1f3ff",
+  "name": "palm",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b_1f3fb",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b_1f3fc",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b_1f3fd",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b_1f3fe",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270b_1f3ff",
+  "name": "raised hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596_1f3fb",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596_1f3fc",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596_1f3fd",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596_1f3fe",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f596_1f3ff",
+  "name": "vulcan",
+  "tags": [
+   "prosper",
+   "spock"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f_1f3fb",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f_1f3fc",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f_1f3fd",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f_1f3fe",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91f_1f3ff",
+  "name": "love you gesture",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918_1f3fb",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918_1f3fc",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918_1f3fd",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918_1f3fe",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f918_1f3ff",
+  "name": "metal",
+  "tags": [
+   "horns"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_fe0f",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_1f3fb",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_1f3fc",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_1f3fd",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_1f3fe",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270c_1f3ff",
+  "name": "victory",
+  "tags": [
+   "v",
+   "peace hand"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e_1f3fb",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e_1f3fc",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e_1f3fd",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e_1f3fe",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91e_1f3ff",
+  "name": "crossed fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0_1f3fb",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0_1f3fc",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0_1f3fd",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0_1f3fe",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf0_1f3ff",
+  "name": "hand with index finger and thumb crossed",
+  "tags": [
+   "snap",
+   "finger heart"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919_1f3fb",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919_1f3fc",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919_1f3fd",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919_1f3fe",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f919_1f3ff",
+  "name": "call me hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c_1f3fb",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c_1f3fc",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c_1f3fd",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c_1f3fe",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90c_1f3ff",
+  "name": "pinched fingers",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f_1f3fb",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f_1f3fc",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f_1f3fd",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f_1f3fe",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f90f_1f3ff",
+  "name": "pinch",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c_1f3fb",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c_1f3fc",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c_1f3fd",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c_1f3fe",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f44c_1f3ff",
+  "name": "ok",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5_1f3fb",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5_1f3fc",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5_1f3fd",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5_1f3fe",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf5_1f3ff",
+  "name": "pointing",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449_1f3fb",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449_1f3fc",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449_1f3fd",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449_1f3fe",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f449_1f3ff",
+  "name": "point right",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448_1f3fb",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448_1f3fc",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448_1f3fd",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448_1f3fe",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f448_1f3ff",
+  "name": "point left",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_fe0f",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_1f3fb",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_1f3fc",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_1f3fd",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_1f3fe",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "261d_1f3ff",
+  "name": "index finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446_1f3fb",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446_1f3fc",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446_1f3fd",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446_1f3fe",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f446_1f3ff",
+  "name": "point up",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447_1f3fb",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447_1f3fc",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447_1f3fd",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447_1f3fe",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f447_1f3ff",
+  "name": "point down",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595_1f3fb",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595_1f3fc",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595_1f3fd",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595_1f3fe",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f595_1f3ff",
+  "name": "middle finger",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_fe0f",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_1f3fb",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_1f3fc",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_1f3fd",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_1f3fe",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "270d_1f3ff",
+  "name": "writing hand",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933_1f3fb",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933_1f3fc",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933_1f3fd",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933_1f3fe",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f933_1f3ff",
+  "name": "selfie",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f_1f3fb",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f_1f3fc",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f_1f3fd",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f_1f3fe",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f64f_1f3ff",
+  "name": "folded hands",
+  "tags": [
+   "please",
+   "pray",
+   "hope",
+   "wish",
+   "thank you",
+   "high five"
+  ],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485_1f3fb",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485_1f3fc",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485_1f3fd",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485_1f3fe",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f485_1f3ff",
+  "name": "nail care",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d_1f3fb",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fb_200d_1faf2_1f3fc",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fb_200d_1faf2_1f3fd",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fb_200d_1faf2_1f3fe",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fb_200d_1faf2_1f3ff",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fc_200d_1faf2_1f3fb",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d_1f3fc",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fc_200d_1faf2_1f3fd",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fc_200d_1faf2_1f3fe",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fc_200d_1faf2_1f3ff",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fd_200d_1faf2_1f3fb",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fd_200d_1faf2_1f3fc",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d_1f3fd",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fd_200d_1faf2_1f3fe",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fd_200d_1faf2_1f3ff",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fe_200d_1faf2_1f3fb",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fe_200d_1faf2_1f3fc",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fe_200d_1faf2_1f3fd",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d_1f3fe",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3fe_200d_1faf2_1f3ff",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3ff_200d_1faf2_1f3fb",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3ff_200d_1faf2_1f3fc",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3ff_200d_1faf2_1f3fd",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1faf1_1f3ff_200d_1faf2_1f3fe",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1f91d_1f3ff",
+  "name": "handshake",
+  "tags": [],
+  "category": "Smileys and emotions"
+ },
+ {
+  "code": "1fa82",
+  "name": "parachute",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1fac8",
+  "name": "hairy creature",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483_1f3fb",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483_1f3fc",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483_1f3fd",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483_1f3fe",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f483_1f3ff",
+  "name": "dancer woman",
+  "tags": [],
+  "category": "People"
+ },
+ {
+  "code": "1f490",
+  "name": "bouquet",
+  "tags": [
+   "flowers"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f339",
+  "name": "rose",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f940",
+  "name": "wilted flower",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f337",
+  "name": "tulip",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fab7",
+  "name": "lotus",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f338",
+  "name": "cherry blossom",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fabb",
+  "name": "hyacinth",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f33c",
+  "name": "blossom",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f342",
+  "name": "fallen leaf",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f341",
+  "name": "maple leaf",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f344",
+  "name": "mushroom",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f33f",
+  "name": "herb",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f331",
+  "name": "plant",
+  "tags": [
+   "seed"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f343",
+  "name": "leaves",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f340",
+  "name": "luck",
+  "tags": [
+   "four leaf clover"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f335",
+  "name": "cactus",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fabe",
+  "name": "leafless tree",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f332",
+  "name": "evergreen tree",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1faa8",
+  "name": "rock",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f6d8",
+  "name": "debris",
+  "tags": [
+   "landslide"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30b",
+  "name": "volcano",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f3de_fe0f",
+  "name": "national park",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f305",
+  "name": "sunrise",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f304",
+  "name": "sunrise over mountains",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30a",
+  "name": "ocean",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f32c_fe0f",
+  "name": "wind face",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "2744_fe0f",
+  "name": "snowflake",
+  "tags": [
+   "winter",
+   "cold"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f300",
+  "name": "cyclone",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f32a_fe0f",
+  "name": "tornado",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f308",
+  "name": "rainbow",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f4a7",
+  "name": "droplet",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "2601_fe0f",
+  "name": "cloud",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f327_fe0f",
+  "name": "rain cloud",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f329_fe0f",
+  "name": "cloud with lightning",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "26c5",
+  "name": "partly sunny",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fa90",
+  "name": "ringed planet",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30d",
+  "name": "globe showing Europe Africa",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30e",
+  "name": "globe showing Americas",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30f",
+  "name": "globe showing Asia Australia",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f30c",
+  "name": "milky way",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "2604_fe0f",
+  "name": "comet",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f981",
+  "name": "lion face",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f43a",
+  "name": "wolf",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f43b",
+  "name": "bear face",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f43c",
+  "name": "panda",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f98a",
+  "name": "fox face",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f42e",
+  "name": "cow face",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f984",
+  "name": "unicorn",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f98e",
+  "name": "lizard",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f409",
+  "name": "dragon",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f996",
+  "name": "t rex",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f995",
+  "name": "dinosaur",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f422",
+  "name": "turtle",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f40a",
+  "name": "crocodile",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f40d",
+  "name": "snake",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f438",
+  "name": "frog",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f407",
+  "name": "rabbit",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f400",
+  "name": "rat",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f429",
+  "name": "poodle",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f415",
+  "name": "dog",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9ae",
+  "name": "guide dog",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f415_200d_1f9ba",
+  "name": "service dog",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f416",
+  "name": "pig",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f40e",
+  "name": "racehorse",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1facf",
+  "name": "donkey",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f402",
+  "name": "ox",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f410",
+  "name": "goat",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9a5",
+  "name": "sloth",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f998",
+  "name": "kangaroo",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f405",
+  "name": "tiger",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f412",
+  "name": "monkey",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f98d",
+  "name": "gorilla",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9a7",
+  "name": "orangutan",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f43f_fe0f",
+  "name": "chipmunk",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f99d",
+  "name": "raccoon",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f994",
+  "name": "hedgehog",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9a6",
+  "name": "otter",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f987",
+  "name": "bat",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f426",
+  "name": "bird",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f426_200d_2b1b",
+  "name": "black bird",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f413",
+  "name": "rooster",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f423",
+  "name": "hatching chick",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f424",
+  "name": "baby chick",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f425",
+  "name": "hatched chick",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f985",
+  "name": "eagle",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f989",
+  "name": "owl",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f54a_fe0f",
+  "name": "peace",
+  "tags": [
+   "dove"
+  ],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fabf",
+  "name": "goose",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9a9",
+  "name": "flamingo",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f99a",
+  "name": "peacock",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f426_200d_1f525",
+  "name": "phoenix",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f427",
+  "name": "penguin",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f9ad",
+  "name": "seal",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f988",
+  "name": "shark",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1facd",
+  "name": "orca",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f42c",
+  "name": "dolphin",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f433",
+  "name": "whale",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f41f",
+  "name": "fish",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f421",
+  "name": "blowfish",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f99e",
+  "name": "lobster",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f980",
+  "name": "crab",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f419",
+  "name": "octopus",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fabc",
+  "name": "jellyfish",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fae7",
+  "name": "bubbles",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f982",
+  "name": "scorpion",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f577_fe0f",
+  "name": "spider",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f40c",
+  "name": "snail",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f41c",
+  "name": "ant",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f997",
+  "name": "cricket",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f99f",
+  "name": "mosquito",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fab3",
+  "name": "cockroach",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fab0",
+  "name": "fly",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f41d",
+  "name": "bee",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f41e",
+  "name": "lady bug",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f98b",
+  "name": "butterfly",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f41b",
+  "name": "bug",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1fab1",
+  "name": "worm",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f43e",
+  "name": "paw prints",
+  "tags": [],
+  "category": "Animals and nature"
+ },
+ {
+  "code": "1f353",
+  "name": "strawberry",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f352",
+  "name": "cherries",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f34e",
+  "name": "red apple",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f345",
+  "name": "tomato",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f349",
+  "name": "watermelon",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f34a",
+  "name": "tangerine",
+  "tags": [
+   "orange",
+   "mandarin"
+  ],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f955",
+  "name": "carrot",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f96d",
+  "name": "mango",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f34d",
+  "name": "pineapple",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f33d",
+  "name": "ear of corn",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f34b",
+  "name": "lemon",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f348",
+  "name": "melon",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f350",
+  "name": "pear",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fadb",
+  "name": "pea pod",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f96c",
+  "name": "leafy green",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fad1",
+  "name": "bell pepper",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f95d",
+  "name": "kiwi fruit",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f951",
+  "name": "avocado",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f966",
+  "name": "broccoli",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f952",
+  "name": "cucumber",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fad0",
+  "name": "blueberries",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f347",
+  "name": "grapes",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fadc",
+  "name": "root vegetable",
+  "tags": [
+   "beet",
+   "turnip"
+  ],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f954",
+  "name": "potato",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c5",
+  "name": "onion",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fada",
+  "name": "ginger",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c4",
+  "name": "garlic",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fad8",
+  "name": "beans",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f35e",
+  "name": "bread",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f95e",
+  "name": "pancakes",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f373",
+  "name": "cooking",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c0",
+  "name": "cheese wedge",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f953",
+  "name": "bacon",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f357",
+  "name": "poultry leg",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f354",
+  "name": "hamburger",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f32d",
+  "name": "hot dog",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f968",
+  "name": "pretzel",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f355",
+  "name": "pizza",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f32e",
+  "name": "taco",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f32f",
+  "name": "burrito",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f35d",
+  "name": "spaghetti",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f957",
+  "name": "green salad",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f35c",
+  "name": "steaming bowl",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f362",
+  "name": "oden",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f361",
+  "name": "dango",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f368",
+  "name": "ice cream",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f366",
+  "name": "soft ice cream",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f967",
+  "name": "pie",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f369",
+  "name": "doughnut",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f36a",
+  "name": "cookie",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c2",
+  "name": "salt",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f37f",
+  "name": "popcorn",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9cb",
+  "name": "bubble tea",
+  "tags": [
+   "milk tea"
+  ],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c3",
+  "name": "beverage box",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f37c",
+  "name": "baby bottle",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f375",
+  "name": "teacup without handle",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "2615",
+  "name": "hot beverage",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fad6",
+  "name": "teapot",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f9c9",
+  "name": "mate",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f37b",
+  "name": "clinking beer mugs",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f942",
+  "name": "clinking glasses",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f37e",
+  "name": "bottle with popping cork",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f377",
+  "name": "wine glass",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1fad7",
+  "name": "pour",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f379",
+  "name": "tropical drink",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f962",
+  "name": "chopsticks",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f37d_fe0f",
+  "name": "fork and knife with plate",
+  "tags": [],
+  "category": "Food and drink"
+ },
+ {
+  "code": "1f6d1",
+  "name": "stop sign",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6a7",
+  "name": "construction",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6a8",
+  "name": "police car light",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "26fd",
+  "name": "fuel pump",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6df",
+  "name": "ring buoy",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "2693",
+  "name": "anchor",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6a6",
+  "name": "vertical traffic light",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6b2",
+  "name": "bicycle",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3cd_fe0f",
+  "name": "motorcycle",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f697",
+  "name": "automobile",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f69a",
+  "name": "delivery truck",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f69c",
+  "name": "tractor",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3ce_fe0f",
+  "name": "racing car",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f695",
+  "name": "taxi",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f68c",
+  "name": "bus",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f682",
+  "name": "locomotive",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "26f5",
+  "name": "sailboat",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6f6",
+  "name": "canoe",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6f8",
+  "name": "flying saucer",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f680",
+  "name": "rocket",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "2708_fe0f",
+  "name": "airplane",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6eb",
+  "name": "airplane departure",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f6ec",
+  "name": "airplane arrival",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3a2",
+  "name": "roller coaster",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3a1",
+  "name": "ferris wheel",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3a0",
+  "name": "carousel horse",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f5ff",
+  "name": "moai",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3da_fe0f",
+  "name": "derelict house",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3e0",
+  "name": "house",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f3d5_fe0f",
+  "name": "camping",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f307",
+  "name": "sunset",
+  "tags": [],
+  "category": "Travel and places"
+ },
+ {
+  "code": "1f388",
+  "name": "balloon",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f382",
+  "name": "birthday cake",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f381",
+  "name": "wrapped gift",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f386",
+  "name": "fireworks",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa94",
+  "name": "diya lamp",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa85",
+  "name": "pi\u00f1ata",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1faa9",
+  "name": "mirror ball",
+  "tags": [
+   "disco ball"
+  ],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f947",
+  "name": "gold medal",
+  "tags": [
+   "1st place medal"
+  ],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f948",
+  "name": "silver medal",
+  "tags": [
+   "2nd place medal"
+  ],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f949",
+  "name": "bronze medal",
+  "tags": [
+   "3rd place medal"
+  ],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3c6",
+  "name": "trophy",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "26bd",
+  "name": "soccer ball",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "26be",
+  "name": "baseball",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f94e",
+  "name": "softball",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3c0",
+  "name": "basketball",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3c9",
+  "name": "rugby football",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3be",
+  "name": "tennis",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3f8",
+  "name": "badminton",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f94d",
+  "name": "lacrosse",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3cf",
+  "name": "cricket game",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3d1",
+  "name": "field hockey",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3d2",
+  "name": "ice hockey",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3bf",
+  "name": "skis",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "26f8_fe0f",
+  "name": "ice skate",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f6fc",
+  "name": "roller skates",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa70",
+  "name": "ballet shoes",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f6f9",
+  "name": "skateboard",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "26f3",
+  "name": "flag in hole",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3af",
+  "name": "direct hit",
+  "tags": [
+   "target"
+  ],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f94f",
+  "name": "flying disc",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa83",
+  "name": "boomerang",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa81",
+  "name": "kite",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3a3",
+  "name": "fishing pole",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f94b",
+  "name": "martial arts uniform",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b1",
+  "name": "8 ball",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3d3",
+  "name": "ping pong",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b3",
+  "name": "bowling",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "265f_fe0f",
+  "name": "chess pawn",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b2",
+  "name": "die",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b0",
+  "name": "slot machine",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa84",
+  "name": "wand",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f4f7",
+  "name": "camera",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f4f8",
+  "name": "camera flash",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fadf",
+  "name": "splatter",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b7",
+  "name": "saxophone",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3ba",
+  "name": "trumpet",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa8a",
+  "name": "trombone",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3b8",
+  "name": "guitar",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa95",
+  "name": "banjo",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3bb",
+  "name": "violin",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa89",
+  "name": "harp",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f941",
+  "name": "drum",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1fa87",
+  "name": "maracas",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f4fa",
+  "name": "television",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f39e_fe0f",
+  "name": "film",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3ac",
+  "name": "clapper",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f3ad",
+  "name": "performing arts",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f39f_fe0f",
+  "name": "admission tickets",
+  "tags": [],
+  "category": "Activities and events"
+ },
+ {
+  "code": "1f4df",
+  "name": "pager",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f50c",
+  "name": "electric plug",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f50b",
+  "name": "battery full",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1faab",
+  "name": "battery low",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4bf",
+  "name": "optical disk",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4bb",
+  "name": "laptop computer",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f5a8_fe0f",
+  "name": "printer",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1fa8e",
+  "name": "treasure",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1fa99",
+  "name": "coin",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f48e",
+  "name": "gem stone",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4b8",
+  "name": "money with wings",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "2696_fe0f",
+  "name": "balance scale",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f6d2",
+  "name": "shopping cart",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4a1",
+  "name": "light bulb",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f9f9",
+  "name": "broom",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f9e6",
+  "name": "socks",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f393",
+  "name": "graduation cap",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f451",
+  "name": "crown",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f48d",
+  "name": "ring",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1faad",
+  "name": "fan",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "2602_fe0f",
+  "name": "umbrella",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f460",
+  "name": "high heeled shoe",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f45f",
+  "name": "running shoe",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f321_fe0f",
+  "name": "thermometer",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1fa7a",
+  "name": "stethoscope",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f6e0_fe0f",
+  "name": "hammer and wrench",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1fa8f",
+  "name": "shovel",
+  "tags": [
+   "dig"
+  ],
+  "category": "Objects"
+ },
+ {
+  "code": "2699_fe0f",
+  "name": "gear",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "26d3_fe0f_200d_1f4a5",
+  "name": "broken chain",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "26d3_fe0f",
+  "name": "chains",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f587_fe0f",
+  "name": "linked paperclips",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "2702_fe0f",
+  "name": "scissors",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "270f_fe0f",
+  "name": "pencil",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4da",
+  "name": "books",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4ca",
+  "name": "bar chart",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4c8",
+  "name": "chart increasing",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4c9",
+  "name": "chart decreasing",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f5d1_fe0f",
+  "name": "wastebasket",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4e6",
+  "name": "package",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f5f3_fe0f",
+  "name": "ballot box",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "23f0",
+  "name": "alarm clock",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "231b",
+  "name": "hourglass done",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "23f3",
+  "name": "hourglass not done",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f6ce_fe0f",
+  "name": "bellhop bell",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f514",
+  "name": "bell",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4e3",
+  "name": "megaphone",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f50e",
+  "name": "magnifying glass tilted right",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f52e",
+  "name": "crystal ball",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f4a3",
+  "name": "bomb",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1faa4",
+  "name": "mouse trap",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "1f512",
+  "name": "locked",
+  "tags": [],
+  "category": "Objects"
+ },
+ {
+  "code": "2660_fe0f",
+  "name": "spade",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2648",
+  "name": "Aries",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2649",
+  "name": "Taurus",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264a",
+  "name": "Gemini",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264b",
+  "name": "Cancer",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264c",
+  "name": "Leo",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264d",
+  "name": "Virgo",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264e",
+  "name": "Libra",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "264f",
+  "name": "Scorpio",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2650",
+  "name": "Sagittarius",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2651",
+  "name": "Capricorn",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2652",
+  "name": "Aquarius",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2653",
+  "name": "Pisces",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "26ce",
+  "name": "Ophiuchus",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f5ef_fe0f",
+  "name": "anger bubble",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f4ac",
+  "name": "speech bubble",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2757",
+  "name": "exclamation",
+  "tags": [
+   "exclamation mark"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "2753",
+  "name": "question",
+  "tags": [
+   "question mark",
+   "?"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "2049_fe0f",
+  "name": "exclamation question mark",
+  "tags": [
+   "!?"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "203c_fe0f",
+  "name": "exclamation double",
+  "tags": [
+   "!!"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "274c",
+  "name": "cross mark",
+  "tags": [
+   "x"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f198",
+  "name": "sos",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2668_fe0f",
+  "name": "hot springs",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f4f4",
+  "name": "phone off",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2622_fe0f",
+  "name": "radioactive",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2623_fe0f",
+  "name": "biohazard",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "26a0_fe0f",
+  "name": "warning",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2705",
+  "name": "check mark",
+  "tags": [
+   "check mark green"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f195",
+  "name": "new",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f193",
+  "name": "free",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f199",
+  "name": "up!",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f197",
+  "name": "ok button",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f192",
+  "name": "cool",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f6ae",
+  "name": "litter",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "262e_fe0f",
+  "name": "peace symbol",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "262f_fe0f",
+  "name": "yin yang",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "267e_fe0f",
+  "name": "infinity",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f3b6",
+  "name": "musical notes",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "2795",
+  "name": "plus sign",
+  "tags": [
+   "+"
+  ],
+  "category": "Symbols"
+ },
+ {
+  "code": "2122_fe0f",
+  "name": "trade mark",
+  "tags": [],
+  "category": "Symbols"
+ },
+ {
+  "code": "1f3c1",
+  "name": "chequered flag",
+  "tags": [],
+  "category": "Flags"
+ },
+ {
+  "code": "1f6a9",
+  "name": "triangular flag",
+  "tags": [],
+  "category": "Flags"
+ },
+ {
+  "code": "1f3f4",
+  "name": "black flag",
+  "tags": [],
+  "category": "Flags"
+ },
+ {
+  "code": "1f3f3_fe0f",
+  "name": "white flag",
+  "tags": [],
+  "category": "Flags"
+ }
+]

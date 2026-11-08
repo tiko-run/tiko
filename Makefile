@@ -62,9 +62,10 @@ smoke:  ## main scenario against a running stack (make up first)
 NPM_LICENSES := MIT;MIT-0;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;CC-BY-4.0;BlueOak-1.0.0;Unlicense;OFL-1.1;Python-2.0;MPL-2.0
 
 licenses:  ## fail on dependency licenses that block AGPL-3.0 and dual licensing
-	# psycopg is LGPL-3.0, weak copyleft that rule 9 allows; partial matching on GPL would fail it.
+	# psycopg is LGPL-3.0 and rlottie-python LGPL-2.1, weak copyleft that rule 9 allows; partial
+	# matching on GPL would fail them, and rlottie-python's metadata holds the whole license text.
 	cd backend && uv run -q --with pip-licenses pip-licenses --from=mixed --partial-match \
-		--ignore-packages psycopg psycopg-binary psycopg-pool \
+		--ignore-packages psycopg psycopg-binary psycopg-pool rlottie-python \
 		--fail-on="GPL;SSPL;Server Side Public;Business Source;BUSL;Commons Clause;Elastic License" >/dev/null
 	cd frontend && npx --yes license-checker-rseidelsohn --production --excludePrivatePackages --summary \
 		--onlyAllow="$(NPM_LICENSES)"

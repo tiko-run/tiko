@@ -5,6 +5,8 @@ import type { FileSource, StoredFile } from '@/api/files'
 export type Upload = { local: string; error?: string }
 /** What the element looked like when added, so copies of it made meanwhile are found. */
 export type Look = { w: number; h: number; color: string }
+/** What is sent: a picture from the device, or a built-in sticker the server draws. */
+export type Payload = Blob | { sticker: string }
 
 const PARALLEL = 3
 
@@ -13,16 +15,19 @@ const PARALLEL = 3
  * screenshots does not hold every connection; a failed one waits for its retry.
  */
 export class Uploads {
-  private items = new Map<string, Upload & { file: Blob; look: Look; generation: number }>()
+  private items = new Map<
+    string,
+    Upload & { file: Payload; look: Look; generation: number; own: boolean }
+  >()
   private generations = 0
   private queue: string[] = []
   private running = 0
   private listeners = new Set<() => void>()
-  private send: (file: Blob) => Promise<StoredFile>
+  private send: (file: Payload) => Promise<StoredFile>
   private done: (id: string, stored: StoredFile, look: Look) => void
 
   constructor(
-    send: (file: Blob) => Promise<StoredFile>,
+    send: (file: Payload) => Promise<StoredFile>,
     done: (id: string, stored: StoredFile, look: Look) => void,
   ) {
     this.send = send
@@ -39,12 +44,15 @@ export class Uploads {
   /** Elements whose upload failed and waits for its retry. */
   failed = () => [...this.items].filter(([, item]) => item.error).map(([id]) => id)
 
-  add(id: string, file: Blob, look: Look, preview: Blob = file) {
+  /** `preview` is a picture to show meanwhile, or the address of one. */
+  add(id: string, file: Payload, look: Look, preview: Blob | string = file as Blob) {
     this.drop(id)
+    const own = typeof preview !== 'string'
     this.items.set(id, {
       file,
       look,
-      local: URL.createObjectURL(preview),
+      local: own ? URL.createObjectURL(preview) : preview,
+      own,
       generation: ++this.generations,
     })
     this.queue.push(id)
@@ -71,7 +79,7 @@ export class Uploads {
   drop(id: string) {
     const item = this.items.get(id)
     if (!item) return
-    URL.revokeObjectURL(item.local)
+    if (item.own) URL.revokeObjectURL(item.local)
     this.items.delete(id)
     this.queue = this.queue.filter((queued) => queued !== id)
     this.changed()

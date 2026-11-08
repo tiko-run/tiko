@@ -32,7 +32,7 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 
 ## Pictures
 
-Pictures on boards live in the same Postgres database as the boards, so the backups above and your own dumps take them along, and nothing else needs a volume. A picture pasted on ten boards is kept once per workspace. Next to the original tiko keeps up to three smaller copies, 512, 1024 and 2048 pixels wide, which the board loads instead of the original. Photos are kept without their location and camera data.
+Pictures on boards live in the same Postgres database as the boards, so the backups above and your own dumps take them along, and nothing else needs a volume. A picture pasted on ten boards is kept once per workspace. Next to the original tiko keeps up to three smaller copies, 512, 1024 and 2048 pixels wide, which the board loads instead of the original. Photos are kept without their location and camera data. A built-in sticker is kept like a picture the first time someone in the workspace puts it on a board, about 300 KB; saving a picture to the workspace's stickers keeps no second copy.
 
 A picture whose element was deleted stays in the database for now. `TIKO_FILES_QUOTA_MB` caps how much a workspace keeps, copies included: past it, a new picture is refused with a message and nothing already on a board is touched. Without it there is no limit, except 20 MB per workspace on a [demo](../demo/).
 
