@@ -172,3 +172,7 @@ class UnsupportedFile(DomainError):
 
 class FileQuota(DomainError):
     code = "file_quota"
+
+
+class StickerLimit(DomainError):
+    code = "sticker_limit"

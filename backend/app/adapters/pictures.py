@@ -110,6 +110,8 @@ def _motion(image: Image.Image) -> bytes:
     frames, durations = [], []
     icc = image.info.get("icc_profile")
     for frame in ImageSequence.Iterator(image):
+        # A WebP frame tells its duration only once it is loaded.
+        frame.load()
         durations.append(frame.info.get("duration", 100))
         frame = _srgb(frame.convert("RGBA"), icc)
         frames.append(frame.resize(size, Image.Resampling.LANCZOS) if scale < 1 else frame)
@@ -154,7 +156,9 @@ class PillowPictures:
             smaller = smaller.resize(size, Image.Resampling.LANCZOS, reducing_gap=3.0)
             copies[copy_width] = _webp(smaller)
         original = _without_meta(image, moving) if _has_meta(image) else data
-        motion = _motion(image) if moving else None
+        # An animated WebP narrow enough plays as it is: a copy of it would only weigh as much.
+        light = image.format == "WEBP" and width <= MOTION_WIDTH
+        motion = _motion(image) if moving and not light else None
         return Picture(
             mime=FORMATS[image.format],
             data=original,

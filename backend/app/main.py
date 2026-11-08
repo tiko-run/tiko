@@ -23,6 +23,7 @@ from app.adapters.pictures import PillowPictures
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
+from app.adapters.stickers.lottie import LottieStickers
 from app.adapters.storage import copy_sqlite, demo_split
 from app.adapters.storage import postgres as storage
 from app.adapters.storage.update_backups import DumpUpdateBackups
@@ -56,6 +57,7 @@ from app.domain.settings import (
     SettingsService,
     normalize_base_url,
 )
+from app.domain.stickers import Stickers
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.domain.usage import Deploy, HostOs, Privacy
@@ -287,6 +289,8 @@ def create_app(
         PillowPictures(),
         settings.tiko_files_quota_mb or (DEMO_QUOTA_MB if settings.tiko_demo else None),
     )
+    art = LottieStickers(Path(settings.sticker_cache))
+    app.state.stickers = Stickers(art, storage.StickerPack(db), app.state.files)
     app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))
     env_password = settings.tiko_password and settings.tiko_password.get_secret_value()

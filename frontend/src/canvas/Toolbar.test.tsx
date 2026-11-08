@@ -38,6 +38,7 @@ function renderToolbar(
         onAddCards={onAddCards}
         onImages={vi.fn()}
         onAddModule={onAddModule}
+        onSticker={vi.fn()}
       />
     </QueryClientProvider>,
   )
@@ -252,6 +253,7 @@ test('the image button and I open the picker, and picked files are added', () =>
         onAddCards={vi.fn()}
         onImages={onImages}
         onAddModule={vi.fn()}
+        onSticker={vi.fn()}
       />
     </QueryClientProvider>,
   )

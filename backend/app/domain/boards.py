@@ -140,6 +140,8 @@ class ImageData(_Strict):
     moving: absent_or(bool) = None
     # When an upload started, so others can tell one that never finished from one on its way.
     since: absent_or(AwareDatetime) = None
+    # The built-in sticker it is, by emoji code: it is in the panel already, so it is not saved.
+    sticker: absent_or(Annotated[str, Field(pattern=r"^[0-9a-f_]{1,40}$")]) = None
 
 
 class ModuleData(_Strict):

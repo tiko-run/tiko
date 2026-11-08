@@ -7,6 +7,7 @@ import {
   LayoutTemplate,
   MousePointer2,
   Shapes,
+  Sticker,
   StickyNote,
   TicketPlus,
   Type,
@@ -17,6 +18,8 @@ import { getCalDav } from '@/api/caldav'
 import { searchTasks, type Task } from '@/api/tasks'
 import { CalDavPicker } from '@/canvas/CalDavPicker'
 import { useImagePicker } from '@/canvas/ImagePicker'
+import { StickerPicker } from '@/canvas/StickerPicker'
+import type { StickerChoice } from '@/canvas/stickers'
 import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
 import {
   errorMessage,
@@ -234,6 +237,8 @@ type Props = {
   onAddModule: (kind: string) => void
   /** Pictures picked from the device, placed in the middle of the view. */
   onImages: (files: File[]) => void
+  /** A sticker picked in the panel, placed in the middle of the view. */
+  onSticker: (choice: StickerChoice) => void
 }
 
 const ICON = { width: 20, height: 14 }
@@ -252,10 +257,19 @@ function ShapeIcon({ kind }: { kind: ShapeKind }) {
   )
 }
 
-export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImages }: Props) {
+export function Toolbar({
+  tool,
+  onTool,
+  onShape,
+  onAddCards,
+  onAddModule,
+  onImages,
+  onSticker,
+}: Props) {
   const [open, setOpen] = useState(false)
   const { input: imagePicker, open: pickImages } = useImagePicker(onImages)
   const [shapesOpen, setShapesOpen] = useState(false)
+  const [stickersOpen, setStickersOpen] = useState(false)
   const [modulesOpen, setModulesOpen] = useState(false)
   // The toolbar is on screen only on a board the person can edit, where the tour may start.
   useAutoTour()
@@ -268,6 +282,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImag
   useShortcut('shape', () => setShapesOpen(true))
   useShortcut('timer', () => onTool('timer'))
   useShortcut('image', pickImages)
+  useShortcut('sticker', () => setStickersOpen(true))
   useShortcut('card', () => setOpen(true))
   useShortcut('module', () => setModulesOpen(true))
   useCommands([
@@ -295,6 +310,15 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImag
       shortcut: 'image',
       keywords: 'picture screenshot photo gif upload',
       run: pickImages,
+    },
+    {
+      id: 'tool:sticker',
+      title: 'Add sticker',
+      group: 'Commands',
+      Icon: Sticker,
+      shortcut: 'sticker',
+      keywords: 'emoji gif animated',
+      run: () => setStickersOpen(true),
     },
     {
       id: 'tool:card',
@@ -388,6 +412,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImag
         <ImagePlus className="size-[18px]" strokeWidth={1.75} />
       </Button>
       {imagePicker}
+      <StickerPicker open={stickersOpen} onOpenChange={setStickersOpen} onPick={onSticker} />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

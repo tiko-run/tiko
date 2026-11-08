@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
+import type { FileSource } from '@/api/files'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { ImageNode } from '@/canvas/nodes/ImageNode'
 import type { AppNode, ImageData } from '@/canvas/types'
@@ -92,8 +93,8 @@ test('a small GIF shows a still copy', () => {
     id: 'pic',
     type: 'image',
     position: { x: 0, y: 0 },
-    width: 100,
-    height: 75,
+    width: 60,
+    height: 45,
     data: { w: 400, h: 300, color: '#000000', moving: true, file: 'c'.repeat(32) },
   }
   const { container } = render(
@@ -121,4 +122,39 @@ test('an upload that never finished offers to pick the file again', () => {
   const picked = new File(['png'], 'shot.png', { type: 'image/png' })
   fireEvent.change(screen.getByTestId('image-picker'), { target: { files: [picked] } })
   expect(again).toHaveBeenCalledWith('pic', picked)
+})
+
+test('a built-in sticker is drawn by its code, for a guest through the link', () => {
+  const node: AppNode = {
+    id: 'sticker',
+    type: 'image',
+    position: { x: 0, y: 0 },
+    width: 160,
+    height: 160,
+    data: { w: 256, h: 256, color: '#f5c542', moving: true, sticker: '1f525' },
+  }
+  const shown = (source: FileSource) => {
+    const { container, unmount } = render(
+      <ReactFlowProvider>
+        <ImagesContext.Provider value={{ source, uploads: null }}>
+          <div style={{ width: 800, height: 600 }}>
+            <ReactFlow
+              nodes={[node]}
+              nodeTypes={nodeTypes}
+              defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            />
+          </div>
+        </ImagesContext.Provider>
+      </ReactFlowProvider>,
+    )
+    const src = container.querySelector('img')?.getAttribute('src')
+    const uploading = container.textContent?.includes('Uploading')
+    unmount()
+    return { src, uploading }
+  }
+  expect(shown({ boardId: 'b1' })).toEqual({
+    src: '/api/stickers/1f525/picture?w=256&move=1',
+    uploading: false,
+  })
+  expect(shown({ token: 't1' }).src).toBe('/api/public/t1/stickers/1f525/picture?w=256&move=1')
 })
