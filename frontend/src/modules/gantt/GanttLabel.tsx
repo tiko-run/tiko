@@ -1,4 +1,5 @@
 import {
+  CalendarSync,
   ChevronDown,
   ChevronRight,
   ExternalLink,
@@ -6,6 +7,7 @@ import {
   ListIndentDecrease,
   ListIndentIncrease,
   ListPlus,
+  PinOff,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -46,6 +48,9 @@ type Props = {
   onMove: (rows: number, levels: number) => void
   /** Dropped outside the module, at this screen point. */
   onEject: (screen: { x: number; y: number }) => void
+  /** Whether the bar follows the tracker's dates; undefined for a row that cannot. */
+  follow?: boolean
+  onFollow?: (follow: boolean) => void
 }
 
 /** The row's label: drag it to reorder, or out of the module to put it back on the board. */
@@ -65,6 +70,8 @@ export function GanttLabel({
   onAddChild,
   onMove,
   onEject,
+  follow,
+  onFollow,
 }: Props) {
   const getZoom = useZoom()
   const readOnly = useReadOnly()
@@ -224,6 +231,13 @@ export function GanttLabel({
       )}
       <span className="bg-panel ml-auto hidden shrink-0 items-center group-hover/label:flex">
         {url && <RowAction label={`Open ${name} in the tracker`} Icon={ExternalLink} href={url} />}
+        {follow !== undefined && onFollow && (
+          <RowAction
+            label={follow ? `Keep own dates for ${name}` : `Follow tracker dates for ${name}`}
+            Icon={follow ? PinOff : CalendarSync}
+            onClick={() => onFollow(!follow)}
+          />
+        )}
         <RowAction label={`Add a task under ${name}`} Icon={ListPlus} onClick={onAddChild} />
         {depth > 0 && (
           <RowAction label={`Outdent ${name}`} Icon={ListIndentDecrease} onClick={onOutdent} />

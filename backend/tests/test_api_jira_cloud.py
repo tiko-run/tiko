@@ -35,7 +35,12 @@ def test_cloud_needs_the_email(cloud):
 
 def test_connect_resolve_and_refresh(cloud, fake):
     body = connect(cloud).json()
-    assert body["jira"] == {"base_url": CLOUD, "token_state": "set", "kind": "cloud"}
+    assert body["jira"] == {
+        "base_url": CLOUD,
+        "token_state": "set",
+        "kind": "cloud",
+        "start_field": None,
+    }
     task = cloud.post("/api/tasks/resolve", json={"ref": "dev-1"}).json()["task"]
     assert (task["source"], task["url"]) == ("jira", f"{CLOUD}/browse/DEV-1")
     link = cloud.post("/api/tasks/resolve", json={"ref": f"{CLOUD}/browse/DEV-2"}).json()

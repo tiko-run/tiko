@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DatesTip } from '@/modules/gantt/GanttBar'
+import { GUESS_EDGE, GUESS_FADE, type Guess } from '@/modules/gantt/follow'
 import type { Row } from '@/modules/gantt/rows'
 import { StagePeople, stagePeople, type Named } from '@/modules/gantt/StagePeople'
 import { awayDuring, awayLine } from '@/modules/gantt/timeoff'
@@ -57,6 +58,10 @@ type Props = {
   below: boolean
   /** The row's name and, for a task, its live status; the tooltip names both. */
   label: string
+  /** For a row without stages that follows the tracker: the side it has no date for. */
+  guess?: Guess
+  /** Where the bar's dates came from, under the dates in the tooltip. */
+  notes?: string[]
   onRow: (row: Row) => void
 }
 
@@ -74,7 +79,18 @@ const sameDates = (a: Row, b: Row) =>
   (a.stages ?? []).every((s, i) => s.start === b.stages?.[i]?.start && s.end === b.stages?.[i]?.end)
 
 /** A row cut into stages: drag across free days to add one, drag a stage to move or resize it. */
-export function GanttStages({ row, axis, types, people, assignees, below, label, onRow }: Props) {
+export function GanttStages({
+  row,
+  axis,
+  types,
+  people,
+  assignees,
+  below,
+  label,
+  guess,
+  notes,
+  onRow,
+}: Props) {
   const getZoom = useZoom()
   const [open, setOpen] = useState<string | null>(null)
   const [ghost, setGhost] = useState<Span | null>(null)
@@ -150,6 +166,9 @@ export function GanttStages({ row, axis, types, people, assignees, below, label,
           assignees={assignees}
           below={below}
           label={label}
+          // Only the bar of a row without stages can be drawn from the tracker.
+          guess={stage.id === BARE ? guess : undefined}
+          notes={stage.id === BARE ? notes : undefined}
           open={open === stage.id}
           onOpen={(next) => setOpen(next ? stage.id : null)}
           onRow={onRow}
@@ -182,6 +201,8 @@ type BarProps = {
   assignees: string[]
   below: boolean
   label: string
+  guess?: Guess
+  notes?: string[]
   open: boolean
   onOpen: (open: boolean) => void
   onRow: (row: Row) => void
@@ -198,6 +219,8 @@ function StageBar({
   assignees,
   below,
   label,
+  guess,
+  notes,
   open,
   onOpen,
   onRow,
@@ -287,12 +310,15 @@ function StageBar({
             className={cn(
               'peer absolute top-1.5 flex h-[22px] cursor-grab items-center overflow-hidden rounded-[4px] px-1.5 text-[12px] leading-[22px] font-semibold whitespace-nowrap select-none active:cursor-grabbing',
               !type && 'bg-card text-muted-foreground border font-medium',
+              guess && GUESS_EDGE[guess],
               box.clippedStart && 'rounded-l-none',
               box.clippedEnd && 'rounded-r-none',
             )}
+            data-guess={guess}
             style={{
               left: box.left,
               width: Math.max(box.width, 4),
+              ...(guess && GUESS_FADE[guess]),
               ...(type && stageColors(type.hue)),
               // Over the type's own inset ring, so the warning wins.
               ...(away.length > 0 && { boxShadow: 'inset 0 0 0 2px var(--destructive)' }),
@@ -346,7 +372,7 @@ function StageBar({
           span={span}
           axis={axis}
           note={`${names ? `${name} · ${names}` : name} · ${label}`}
-          warnings={away}
+          warnings={[...away, ...(notes ?? [])]}
           shown={dragging}
           left={box.left}
           right={box.left + box.width}

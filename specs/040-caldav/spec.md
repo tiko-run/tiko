@@ -27,7 +27,7 @@
    - Labels: `CATEGORIES`, without colour.
    - The list name stands where other trackers show the key, on the card and in its mini-card. A CalDAV task has no assignee row.
    - Rows: due date, start date, percent complete, "Repeats" for a task with `RRULE`, parent task title for a subtask (`RELATED-TO`). Dates in English and 24-hour time; a date-only due shows no time.
-   - Dates for the gantt (spec 041-gantt-dates): `DTSTART` fills `Task.start` and `DUE` fills `Task.due`, as calendar days with the field names `DTSTART` and `DUE`. A date with a time or a time zone becomes its day in the instance's time zone. When `DTSTART` is after `DUE`, only the due date is kept. A missing date stays empty; the gantt fills it in itself.
+   - Dates for the gantt (spec 041-gantt-dates): `DTSTART` fills `Task.start` and `DUE` fills `Task.due`, as calendar days with the field names `DTSTART` and `DUE`. A date with a time keeps the day it is written with, in its own time zone, as spec 041 does for every tracker. When `DTSTART` is after `DUE`, only the due date is kept. A missing date stays empty; the gantt fills it in itself.
    - Updated: `LAST-MODIFIED`.
    - Link: on Nextcloud the card opens the task in the Nextcloud Tasks app; on other servers it has no link and "Open in" is hidden.
    - A repeating task shows as one card for the series; occurrences are not expanded.

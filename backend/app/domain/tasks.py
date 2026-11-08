@@ -1,9 +1,9 @@
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Literal, NamedTuple, NoReturn
 from urllib.parse import parse_qs, urlparse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.domain.errors import DomainError, HostMismatch, InvalidRef
 from app.domain.ports import SnapshotRepo, TaskProvider
@@ -33,6 +33,17 @@ def task_ref(source: str, key: str) -> str:
 def split_ref(ref: str) -> tuple[str, str]:
     source, _, key = ref.partition(":")
     return source, key
+
+
+def tracker_day(value: object) -> date | None:
+    """The day of a tracker's date or date-time as the tracker writes it; None if unreadable."""
+    # The written day is the one people saw in the tracker, whatever the offset after it.
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value[:10])
+    except ValueError:
+        return None
 
 
 class TaskLabel(BaseModel):
@@ -65,6 +76,23 @@ class Task(BaseModel):
     # What only some trackers have, shown in the mini-card: chips and extra rows.
     labels: list[TaskLabel] = []
     rows: list[TaskRow] = []
+    # Days as the tracker shows them, and the tracker's own field each came from, such as
+    # "duedate" or "DTSTART": a write-back goes to the field the date was read from.
+    start: date | None = None
+    due: date | None = None
+    start_field: str | None = None
+    due_field: str | None = None
+
+    @model_validator(mode="after")
+    def _start_before_due(self) -> "Task":
+        # A start after the due is a typo in the tracker; the due is the date people promised.
+        if self.start and self.due and self.start > self.due:
+            self.start = self.start_field = None
+        if self.start is None:
+            self.start_field = None
+        if self.due is None:
+            self.due_field = None
+        return self
 
     @property
     def ref(self) -> str:

@@ -349,6 +349,13 @@ def _fmt(value: date | datetime) -> str:
     return f"{value.day} {value.strftime('%b %Y')}"
 
 
+def _day(value: date | datetime | None) -> date | None:
+    # The day as the task writes it, in its own time zone: the day its clients show.
+    if isinstance(value, datetime):
+        return value.date()
+    return value
+
+
 def _when(todo, name: str) -> date | datetime | None:
     prop = todo.get(name)
     value = getattr(prop, "dt", None)
@@ -446,6 +453,10 @@ def to_task(todo, href: str, task_list: TaskList, titles: dict[str, str]) -> Tas
         rows.append(TaskRow(label="Part of", value=title))
     modified = _when(todo, "LAST-MODIFIED")
     return Task(
+        start=_day(start),
+        due=_day(due),
+        start_field="DTSTART" if start is not None else None,
+        due_field="DUE" if due is not None else None,
         source=CALDAV,
         key=uid,
         summary=_text(todo, "SUMMARY") or "Untitled task",

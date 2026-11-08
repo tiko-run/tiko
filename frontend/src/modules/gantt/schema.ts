@@ -20,6 +20,8 @@ export const ganttSchema = z.object({
         end: isoDate,
         parent: z.string().optional(),
         collapsed: z.boolean().optional(),
+        // Draws the task's dates from the tracker; absent keeps the row's own.
+        follow: z.boolean().optional(),
         stages: z
           .array(
             z.object({

@@ -129,7 +129,12 @@ def test_a_visitor_works_on_the_demo_tasks_next_to_a_tracker(jira_app):
     ann = visitor(jira_app)
     settings = ann.get("/api/settings").json()
     assert settings["provider"] == "demo" and settings["locked"] == []
-    assert settings["jira"] == {"base_url": None, "token_state": "none", "kind": None}
+    assert settings["jira"] == {
+        "base_url": None,
+        "token_state": "none",
+        "kind": None,
+        "start_field": None,
+    }
     assert ann.get("/api/me/tracker").json() == {
         "provider": "demo",
         "base_url": None,

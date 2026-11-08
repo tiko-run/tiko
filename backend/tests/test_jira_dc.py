@@ -27,7 +27,7 @@ def test_resolve_maps_fields():
     assert task.status_category == "done"
     assert task.assignee_name == "Alex Rivera"
     assert task.url == f"{BASE}/browse/DEV-2"
-    assert fake.requests[0].url.path == "/jira/rest/api/2/issue/DEV-2"
+    assert fake.requests[-1].url.path == "/jira/rest/api/2/issue/DEV-2"
     assert provider(fake).base_host == "jira.example.com"
 
 

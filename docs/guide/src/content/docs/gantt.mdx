@@ -15,7 +15,17 @@ Add a Gantt from the modules tool (`M`) to plan tasks on a timeline right on the
 - Draw dependency lines between bars. A line turns amber when a task starts before the one it depends on ends.
 - Select the Gantt and click **+** at either end of the timeline to add a step of its scale: a week on Days, a month on Weeks, a quarter on Months, a year on Quarters.
 
-Plan dates stay on the board, not in your tracker.
+## Dates from your tracker
+
+A task added to the Gantt takes its start and due dates from your tracker and moves when they change there, for everyone on the board. Which fields they come from is on each tracker's page, such as [Jira](/jira-data-center/#start-and-due-dates).
+
+- When the tracker has only one of the dates, the bar is a week long from it, and the missing end is drawn faded with a dashed edge. Hover the bar to see which end is a guess.
+- Drag a bar, and it keeps the dates you gave it instead of the tracker's. Undo in the message that appears, or the calendar button on the row, makes it follow the tracker again.
+- A bar with its own dates gets a dashed amber frame where the tracker has the task, when the two differ. Click the frame to see the tracker's dates and follow them.
+- Tasks planned before this keep their own dates and show the frame where they differ.
+- A parent row still spans its children, and a row cut into [stages](/gantt/stages/) keeps the plan you made of them: both show the frame instead of moving. For a row with stages, **Fit stages to tracker dates** in the frame lines them up inside the tracker's dates in equal shares, ready for you to adjust. With [working days only](/gantt/working-time/) on, the shares count working days.
+
+tiko does not change dates in your tracker: plan dates you move stay on the board.
 
 ## Expand
 

@@ -19,6 +19,11 @@ export const taskSchema = z.object({
   // What only some trackers have, for the mini-card: chips and extra rows.
   labels: z.array(z.object({ name: z.string(), color: z.string() })).optional(),
   rows: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+  // Days as the tracker shows them, and the tracker's own field each came from.
+  start: z.string().nullable().optional(),
+  due: z.string().nullable().optional(),
+  start_field: z.string().nullable().optional(),
+  due_field: z.string().nullable().optional(),
 })
 
 export type Task = z.infer<typeof taskSchema>

@@ -17,6 +17,9 @@ import { PlanningContext, type PlanningState } from '@/planning/context'
 
 const nodeTypes = { module: ModuleNode }
 
+const toast = vi.hoisted(() => vi.fn())
+vi.mock('sonner', () => ({ toast }))
+
 beforeAll(() => {
   // xyflow measures nodes and bars capture the pointer; jsdom has neither.
   globalThis.ResizeObserver ??= class {
@@ -102,7 +105,13 @@ function renderGantt(
   tasks: Record<string, Task> = { 'DEMO-1': task },
   readOnly = false,
 ) {
-  const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
+  const full: ModuleHost = {
+    addTasks: vi.fn(),
+    ejectCard: vi.fn(),
+    ejectNote: vi.fn(),
+    syncContent: vi.fn(),
+    ...host,
+  }
   render(
     <div style={{ width: 1200, height: 800 }}>
       <QueryClientProvider client={new QueryClient()}>
@@ -986,4 +995,148 @@ test('a click with working days only adds five working days', () => {
 test('working days are ignored with Planning off', () => {
   renderGantt({}, WORK)
   expect(screen.getByText('10')).toBeTruthy()
+})
+
+const following: GanttContent = {
+  ...content,
+  rows: [{ ...content.rows[0], follow: true }, content.rows[1]],
+}
+
+test('a following bar shows the tracker dates and the board keeps them outside undo', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  // Only a due date: the start is a week before it, and drawn as a guess.
+  expect(bar.getAttribute('aria-valuetext')).toBe('Sat Oct 24 – Fri Oct 30 · 7 days')
+  expect(bar.getAttribute('data-guess')).toBe('start')
+  expect(screen.getByText('Start is a guess: the tracker has only a due date')).toBeTruthy()
+  const synced = (host.syncContent as ReturnType<typeof vi.fn>).mock.lastCall!
+  expect(synced[0]).toBe('g')
+  expect((synced[1] as GanttContent).rows[0]).toMatchObject({
+    start: '2026-10-24',
+    end: '2026-10-30',
+    follow: true,
+  })
+})
+
+test('dragging a following bar keeps the dragged dates, and Undo follows the tracker again', () => {
+  toast.mockClear()
+  renderGantt({}, following, OFF, {
+    'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-09' },
+  })
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  // About ten days to the right.
+  fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 })
+  fireEvent.pointerMove(bar, { clientX: 187, pointerId: 1 })
+  fireEvent.pointerUp(bar, { pointerId: 1 })
+  expect(rows()[0]).toMatchObject({ start: '2026-10-15', end: '2026-10-19' })
+  expect(rows()[0].follow).toBeUndefined()
+  const [message, options] = toast.mock.lastCall!
+  expect(message).toBe('The bar keeps your dates now, not the tracker’s')
+  act(() => options.action.onClick())
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a row with its own dates shows the tracker dates beside it and can follow them', () => {
+  renderGantt({}, content, OFF, {
+    'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' },
+  })
+  // The bar says it in words; the frame shows where, and its free part opens the choice.
+  expect(screen.getByText('Tracker: Mon Oct 5 – Tue Oct 20')).toBeTruthy()
+  expect(document.querySelector('[data-tracker-dates]')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Tracker dates: Mon Oct 5 – Tue Oct 20' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Follow tracker dates' }))
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a row cut into stages keeps its own dates and shows the tracker ones beside it', () => {
+  const staged: GanttContent = {
+    ...content,
+    rows: [
+      {
+        ...content.rows[0],
+        follow: true,
+        stages: [{ id: 's', type: 'dev', start: '2026-10-05', end: '2026-10-09', people: [] }],
+      },
+    ],
+  }
+  const host = renderGantt({}, staged, OFF, {
+    'DEMO-1': { ...task, start: '2026-11-02', due: '2026-11-20' },
+  })
+  expect(host.syncContent).not.toHaveBeenCalled()
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  expect(bar.getAttribute('aria-valuetext')).toBe('Mon Oct 5 – Fri Oct 9 · 5 days')
+  expect(screen.queryByRole('button', { name: /^Keep own dates for/ })).toBeNull()
+})
+
+test('stages fit into the tracker dates in equal shares at one press', () => {
+  const staged: GanttContent = {
+    ...content,
+    rows: [
+      {
+        ...content.rows[0],
+        start: '2026-10-05',
+        end: '2026-10-30',
+        stages: [
+          { id: 's1', type: 'dev', start: '2026-10-05', end: '2026-10-09', people: [] },
+          { id: 's2', type: 'qa', start: '2026-10-20', end: '2026-10-21', people: ['ann'] },
+          { id: 's3', type: 'ops', start: '2026-10-25', end: '2026-10-30', people: [] },
+        ],
+      },
+    ],
+  }
+  renderGantt({}, staged, OFF, { 'DEMO-1': { ...task, start: '2026-11-02', due: '2026-11-11' } })
+  fireEvent.click(screen.getByRole('button', { name: /^Tracker dates:/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Fit stages to tracker dates' }))
+  // Ten days for three stages: the day left over goes to the first.
+  expect(rows()[0].stages!.map((s) => [s.start, s.end, s.people])).toEqual([
+    ['2026-11-02', '2026-11-05', []],
+    ['2026-11-06', '2026-11-08', ['ann']],
+    ['2026-11-09', '2026-11-11', []],
+  ])
+  expect([rows()[0].start, rows()[0].end]).toEqual(['2026-11-02', '2026-11-11'])
+  expect(rows()[0].follow).toBeUndefined()
+  expect(document.querySelector('[data-tracker-dates]')).toBeNull()
+})
+
+test('a row stops and starts following from its own button', () => {
+  renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-09' } })
+  fireEvent.click(screen.getByRole('button', { name: /^Keep own dates for/ }))
+  expect(rows()[0].follow).toBeUndefined()
+  fireEvent.click(screen.getByRole('button', { name: /^Follow tracker dates for/ }))
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a guest who cannot write leaves the board as it is', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } }, true)
+  expect(host.syncContent).not.toHaveBeenCalled()
+})
+
+test('with Planning on a following bar marks its guessed side as with Planning off', () => {
+  renderGantt({}, following, PLANNING, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  const bar = screen.getByRole('slider', { name: /stage of DEMO-1/ })
+  expect(bar.getAttribute('aria-valuetext')).toBe('Sat Oct 24 – Fri Oct 30 · 7 days')
+  expect(bar.getAttribute('data-guess')).toBe('start')
+  expect(screen.getByText('Start is a guess: the tracker has only a due date')).toBeTruthy()
+})
+
+test('tracker dates are written when this tab’s tracker data changes, not on every edit', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  expect(host.syncContent).toHaveBeenCalledTimes(1)
+  // An edit of another row leaves the stored dates as they are: someone else may have newer ones.
+  fireEvent.click(screen.getByRole('button', { name: 'Indent Design review' }))
+  expect(host.syncContent).toHaveBeenCalledTimes(1)
+})
+
+test('a viewer who cannot edit reads the tracker dates without a reason about children', () => {
+  renderGantt(
+    {},
+    content,
+    OFF,
+    { 'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' } },
+    true,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /^Tracker dates:/ }))
+  expect(screen.getByText('Mon Oct 5 – Tue Oct 20')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Follow tracker dates' })).toBeNull()
+  expect(screen.queryByText('Rows with children keep their own dates.')).toBeNull()
 })

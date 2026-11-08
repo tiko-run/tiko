@@ -19,6 +19,11 @@ def provider(fake: FakeJiraCloud, email: str = EMAIL) -> JiraCloudProvider:
     return JiraCloudProvider(lambda: creds, httpx.Client(transport=httpx.MockTransport(fake)))
 
 
+def tracker_calls(fake: FakeJiraCloud) -> list[str]:
+    """Paths asked for tasks; the list of fields is asked once per site and kept a while."""
+    return [r.url.path for r in fake.requests if r.url.path != "/rest/api/2/field"]
+
+
 def client(handler) -> httpx.Client:
     return httpx.Client(transport=httpx.MockTransport(handler))
 
@@ -43,14 +48,14 @@ def test_poll_reads_by_bulkfetch_and_marks_missing_keys():
     fake = FakeJiraCloud()
     tasks = provider(fake).poll(["DEV-1", "DEV-9"])
     assert [(t.key, t.state) for t in tasks] == [("DEV-1", "ok"), ("DEV-9", "not_found")]
-    assert [r.url.path for r in fake.requests] == ["/rest/api/3/issue/bulkfetch"]
+    assert tracker_calls(fake) == ["/rest/api/3/issue/bulkfetch"]
 
 
 def test_poll_of_a_big_board_is_one_request():
     fake = FakeJiraCloud({f"DEV-{n}": issue(f"DEV-{n}") for n in range(1, 301)})
     tasks = provider(fake).poll([f"DEV-{n}" for n in range(1, 301)])
     assert all(t.state == "ok" for t in tasks)
-    assert len(fake.requests) == 1
+    assert len(tracker_calls(fake)) == 1
 
 
 def test_rate_limit_waits_as_asked():
@@ -75,8 +80,7 @@ def test_search_checks_the_query_then_reads_one_page():
     fake = FakeJiraCloud()
     tasks, total, estimated = provider(fake).search("project = DEV", 10)
     assert ([t.key for t in tasks], total, estimated) == (["DEV-1", "DEV-2"], 2, False)
-    paths = [r.url.path for r in fake.requests]
-    assert paths == ["/rest/api/3/jql/parse", "/rest/api/2/search/jql"]
+    assert tracker_calls(fake) == ["/rest/api/3/jql/parse", "/rest/api/2/search/jql"]
 
 
 def test_search_past_the_page_is_an_estimate():

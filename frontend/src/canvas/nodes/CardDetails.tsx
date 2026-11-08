@@ -7,6 +7,7 @@ import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { sourceName } from '@/sources/registry'
 import { SourceMark } from '@/sources/SourceMark'
 import { useTaskLinkProps } from '@/lib/task-links'
+import { formatDate, parseDay } from '@/modules/gantt/timeline'
 
 type Props = {
   task: Task
@@ -41,6 +42,12 @@ function LabelChip({ name, color }: { name: string; color: string }) {
   )
 }
 
+/** "Mon Nov 30", with the year when it is not this one. */
+function trackerDate(iso: string) {
+  const day = parseDay(iso)
+  return formatDate(day, Number(iso.slice(0, 4)) !== new Date().getFullYear())
+}
+
 /** Mini-card: who has the task, when it last moved, what its tracker adds, and a way there. */
 export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
   const linkProps = useTaskLinkProps()
@@ -54,6 +61,8 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
       : [['Assignee', task.assignee_name ?? 'Unassigned'] as [string, string]]),
     // A tracker without priorities gets no empty row.
     ...(task.priority_name ? [['Priority', task.priority_name] as [string, string]] : []),
+    ...(task.start ? [['Start', trackerDate(task.start)] as [string, string]] : []),
+    ...(task.due ? [['Due', trackerDate(task.due)] as [string, string]] : []),
     ['Updated', updated],
     ...(task.rows ?? []).map((row): [string, string] => [row.label, row.value]),
   ]

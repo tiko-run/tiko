@@ -1,7 +1,15 @@
 import type { StageType } from '@/api/planning'
 import type { Row } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
-import { formatDay, parseDay, type Day, type Grip, type Span } from '@/modules/gantt/timeline'
+import {
+  formatDay,
+  isWeekend,
+  parseDay,
+  type Axis,
+  type Day,
+  type Grip,
+  type Span,
+} from '@/modules/gantt/timeline'
 import { newId } from '@/lib/id'
 
 export type Stage = NonNullable<Row['stages']>[number]
@@ -186,4 +194,28 @@ export function fitLeaves(content: GanttContent): GanttContent {
     return { ...row, start, end }
   })
   return changed ? { ...content, rows } : content
+}
+
+/**
+ * The row's stages in their order, side by side and in equal shares of the days the span
+ * counts (with working days only, weekends and days off are left out), the days left over
+ * going to the first ones; null when there are fewer such days than stages.
+ */
+export function spreadStages(row: Row, span: Span, axis?: Axis): Row | null {
+  const stages = row.stages ?? []
+  const days: Day[] = []
+  for (let day = span.start; day <= span.end; day++) {
+    if (!axis?.working || (!isWeekend(day) && !axis.off.has(day))) days.push(day)
+  }
+  if (stages.length === 0 || days.length < stages.length) return null
+  const share = Math.floor(days.length / stages.length)
+  const extra = days.length % stages.length
+  let at = 0
+  const spread = stages.map((stage, i) => {
+    const length = share + (i < extra ? 1 : 0)
+    const placed = { ...stage, start: formatDay(days[at]), end: formatDay(days[at + length - 1]) }
+    at += length
+    return placed
+  })
+  return withStages(row, spread)
 }

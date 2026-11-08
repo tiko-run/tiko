@@ -1,4 +1,5 @@
 import re
+from datetime import date, timedelta
 
 from app.domain.errors import InvalidJql, TaskNotFound
 from app.domain.jql import JqlField, JqlValue, JqlVocabulary
@@ -60,6 +61,29 @@ _SEED = [
     ("DEMO-12", "Epic", "Migrate CI runners", "Backlog", "Alex Rivera", "High"),
 ]
 
+# Days from today, so a Gantt shows them near now: both dates, one of them, or none.
+_DATES: dict[str, tuple[int | None, int | None]] = {
+    "DEMO-1": (-7, 7),
+    "DEMO-2": (None, 3),
+    "DEMO-3": (-21, -10),
+    "DEMO-4": (-14, 45),
+    "DEMO-6": (-2, None),
+    "DEMO-7": (None, 1),
+    "DEMO-9": (10, 24),
+    "DEMO-12": (20, 60),
+}
+
+
+def _dates(key: str) -> dict:
+    start, due = _DATES.get(key, (None, None))
+    today = date.today()
+    return {
+        "start": today + timedelta(days=start) if start is not None else None,
+        "start_field": "startdate" if start is not None else None,
+        "due": today + timedelta(days=due) if due is not None else None,
+        "due_field": "duedate" if due is not None else None,
+    }
+
 
 class DemoTaskProvider:
     base_host = DEMO_HOST
@@ -108,6 +132,7 @@ class DemoTaskProvider:
             url=f"https://{DEMO_HOST}/browse/{key}",
             fetched_at=now_iso(),
             **fields,
+            **_dates(key),
         )
 
     def resolve(self, key: str) -> Task:

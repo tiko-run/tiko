@@ -500,3 +500,13 @@ def test_a_nat64_address_counts_as_private():
             allow_private=False,
             table={"nat.example.com": "64:ff9b::7f00:1"},
         ).check()
+
+
+def test_dates_for_the_gantt_come_from_dtstart_and_due():
+    task = card("DTSTART;VALUE=DATE:20261110", "DUE;TZID=Europe/Berlin:20261112T233000")
+    assert (task.start.isoformat(), task.start_field) == ("2026-11-10", "DTSTART")
+    assert (task.due.isoformat(), task.due_field) == ("2026-11-12", "DUE")
+    late = card("DTSTART;VALUE=DATE:20261120", "DUE;VALUE=DATE:20261112")
+    assert late.start is None and late.due.isoformat() == "2026-11-12"
+    none = card()
+    assert none.start is None and none.due is None and none.due_field is None

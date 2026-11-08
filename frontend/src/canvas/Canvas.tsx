@@ -899,8 +899,9 @@ export function BoardCanvas({
         }
         setNodes((current) => reparent([...current, node], [node.id]))
       },
+      syncContent: (id, content) => patchData(id, { content }),
     }),
-    [screenToFlowPosition, setNodes],
+    [screenToFlowPosition, setNodes, patchData],
   )
 
   const addModule = (kind: string, screen: XYPosition) => {

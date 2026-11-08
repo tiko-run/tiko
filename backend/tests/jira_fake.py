@@ -44,6 +44,8 @@ class FakeJira:
         # Like a Jira that validates JQL even with validateQuery=false.
         self.strict_only = strict_only
         self.html = False
+        # The site's fields as GET /field lists them.
+        self.fields: list[dict] = []
         self.requests: list[httpx.Request] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
@@ -78,6 +80,8 @@ class FakeJira:
                     ]
                 },
             )
+        if path.endswith("/rest/api/2/field"):
+            return httpx.Response(200, json=self.fields)
         if path.endswith("/myself"):
             return httpx.Response(200, json={"name": "alex", "displayName": "Alex Rivera"})
         if "/issue/" in path:

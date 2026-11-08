@@ -14,6 +14,7 @@ import {
   type Span,
 } from '@/modules/gantt/timeline'
 import { useZoom } from '@/modules/expanded'
+import { GUESS_EDGE, GUESS_FADE, type Guess } from '@/modules/gantt/follow'
 import { cn } from '@/lib/utils'
 
 const BAR_COLOR = {
@@ -30,11 +31,15 @@ type Props = {
   task?: Task
   /** A parent's bar: spans its children and follows them instead of being dragged. */
   summary?: boolean
+  /** The side the tracker has no date for, drawn faded so a guess never passes for a date. */
+  guess?: Guess
+  /** Where the dates came from, under the dates in the tooltip. */
+  notes?: string[]
   onSpan: (span: Span) => void
 }
 
 /** A row's bar: drag the body to move it, an end to change that date, in whole days. */
-export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
+export function GanttBar({ span, axis, label, task, summary, guess, notes, onSpan }: Props) {
   const getZoom = useZoom()
   const drag = useRef<{ x: number; zoom: number; grip: Grip; span: Span } | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -104,6 +109,7 @@ export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
       shown={dragging}
       left={box.left}
       right={box.left + box.width}
+      warnings={notes}
     />
   )
 
@@ -171,11 +177,17 @@ export function GanttBar({ span, axis, label, task, summary, onSpan }: Props) {
               ? 'bg-secondary text-secondary-foreground border'
               : 'bg-card text-card-foreground border',
           missing && 'border-dashed opacity-70',
+          guess && GUESS_EDGE[guess],
           task?.status_category === 'done' && 'line-through',
           box.clippedStart && 'rounded-l-none',
           box.clippedEnd && 'rounded-r-none',
         )}
-        style={{ left: box.left, width: Math.max(box.width, 4) }}
+        data-guess={guess}
+        style={{
+          left: box.left,
+          width: Math.max(box.width, 4),
+          ...(guess && GUESS_FADE[guess]),
+        }}
       >
         {content}
         {!box.clippedStart && (

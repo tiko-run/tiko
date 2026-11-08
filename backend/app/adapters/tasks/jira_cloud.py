@@ -17,10 +17,12 @@ class JiraCloudProvider(JiraDcProvider):
         pair = f"{creds.email}:{creds.token.get_secret_value()}".encode()
         return f"Basic {base64.b64encode(pair).decode()}"
 
-    def _fetch(self, keys: list[str]) -> tuple[str, list[dict]]:
+    def _fetch(self, keys: list[str], starts: list[str]) -> tuple[str, list[dict]]:
         # Cloud's search drops unknown keys silently; bulkfetch does the same and reads by key.
         base_url, response = self._request(
-            "POST", "/rest/api/3/issue/bulkfetch", json={"issueIdsOrKeys": keys, "fields": FIELDS}
+            "POST",
+            "/rest/api/3/issue/bulkfetch",
+            json={"issueIdsOrKeys": keys, "fields": FIELDS + starts},
         )
         if response.status_code != 200:
             raise JiraUnavailable(f"Jira returned {response.status_code}")
@@ -38,15 +40,20 @@ class JiraCloudProvider(JiraDcProvider):
         for query in query_answer(response).get("queries") or []:
             if isinstance(query, dict) and query.get("errors"):
                 raise InvalidJql(" ".join(query["errors"]))
+        starts = self._starts() if limit else []
         # A full page whatever the limit: when it is the last one, the count is exact.
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search/jql",
-            json={"jql": jql, "fields": FIELDS if limit else ["id"], "maxResults": MAX_SEARCH},
+            json={
+                "jql": jql,
+                "fields": FIELDS + starts if limit else ["id"],
+                "maxResults": MAX_SEARCH,
+            },
         )
         body = query_answer(response)
         issues = body.get("issues") if isinstance(body.get("issues"), list) else []
-        tasks = [_task(base_url, issue) for issue in issues[:limit]]
+        tasks = [_task(base_url, issue, starts) for issue in issues[:limit]]
         if body.get("isLast", True):
             return SearchResult(tasks, len(issues))
         # Cloud's search has no total; past the first page there is only an estimate.
