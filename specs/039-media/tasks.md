@@ -31,5 +31,5 @@
 
 ## Slice 4: files-cleanup
 
-- [ ] T018 Remove files no element refers to, some time after their last element is gone; the quota counts what is left (FR-012)
-- [ ] T021 A request budget for pictures served through a public link (FR-017)
+- [x] T018 Remove files no element refers to, some time after their last element is gone; the quota counts what is left (FR-012)
+- [x] T021 A request budget for pictures served through a public link (FR-017)
