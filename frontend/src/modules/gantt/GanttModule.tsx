@@ -491,11 +491,11 @@ export function GanttModule({
                   readOnly || hasChildren || !row.stages?.length
                     ? undefined
                     : () => {
-                        const next = spreadStages(row, off.span)
+                        const next = spreadStages(row, off.span, axis)
                         if (next) onChange(updateRow(content, row.id, () => next))
                       }
                 }
-                canSpread={(row.stages?.length ?? 0) <= off.span.end - off.span.start + 1}
+                canSpread={spreadStages(row, off.span, axis) !== null}
                 onFollow={
                   readOnly || hasChildren || row.stages?.length
                     ? undefined
@@ -695,7 +695,7 @@ function DriftGhost({
               <p className="text-muted-foreground text-[12px]">
                 {canSpread
                   ? 'Stages share the dates equally, then adjust them as you need.'
-                  : 'The tracker dates are shorter than one day per stage.'}
+                  : 'The tracker dates have fewer days than the row has stages.'}
               </p>
             </>
           ) : (
