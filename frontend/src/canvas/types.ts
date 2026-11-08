@@ -54,6 +54,8 @@ export type ImageData = {
   moving?: boolean
   /** When the upload started; gone once the file is stored. */
   since?: string
+  /** The built-in sticker it is, by emoji code. */
+  sticker?: string
 } & Turned
 export type ImageNode = Node<ImageData, 'image'>
 

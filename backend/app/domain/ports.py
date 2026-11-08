@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         StageType,
         TimeOff,
     )
+    from app.domain.stickers import PackSticker, Sticker
     from app.domain.tasks import SearchResult, Task
     from app.domain.updates import Release, UpdaterStatus
 
@@ -591,6 +592,37 @@ class FileStore(Protocol):
 
     def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
         """None unless the board may serve the file."""
+        ...
+
+
+class StickerArt(Protocol):
+    """The built-in stickers: drawn on request, the same for every workspace."""
+
+    def catalog(self) -> list[Sticker]: ...
+
+    def picture(self, code: str, large: bool, moving: bool) -> bytes | None:
+        """The sticker as WebP: small for the panel or large for a board, still or playing;
+        the same bytes for the same request. None for a code not in the set."""
+        ...
+
+
+class StickerPack(Protocol):
+    """The stickers people of the current workspace saved from its pictures."""
+
+    def list(self) -> list[PackSticker]: ...
+
+    def get(self, sticker_id: str) -> PackSticker | None: ...
+
+    def add(self, file_id: str, name: str, created_by: str, limit: int) -> PackSticker | None:
+        """Saves the file; the one saved already is returned. None past `limit` stickers, and
+        NotFound for a file not in the workspace."""
+        ...
+
+    def remove(self, sticker_id: str) -> bool: ...
+
+    def picture(self, sticker_id: str, width: int | None, moving: bool) -> Served | None:
+        """Moving, the animated WebP of a moving sticker; else drawn still, the smallest copy
+        at least `width` wide, else its widest."""
         ...
 
 

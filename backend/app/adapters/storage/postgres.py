@@ -43,6 +43,7 @@ from app.domain.planning import (
     StageType,
     TimeOff,
 )
+from app.domain.stickers import PackSticker
 from app.domain.tasks import Task, now_iso
 from app.domain.workspaces import current_workspace
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
@@ -1968,6 +1969,83 @@ class PgFileStore(_Repo):
         return Served(bytes(data["data"]), row["mime"])
 
 
+_PACK = (
+    "SELECT s.id, s.name, f.id AS file_id, f.width, f.height, f.color, f.moving"
+    " FROM stickers s JOIN files f ON f.id = s.file_id"
+)
+
+
+def _pack_sticker(row: dict) -> PackSticker:
+    file = StoredFile(row["file_id"], row["width"], row["height"], row["color"], row["moving"])
+    return PackSticker(row["id"], row["name"], file)
+
+
+class PgStickerPack(_Repo):
+    def list(self) -> list[PackSticker]:
+        with self._tx() as conn:
+            rows = conn.execute(_PACK + " ORDER BY s.created_at DESC, s.id").fetchall()
+        return [_pack_sticker(row) for row in rows]
+
+    def get(self, sticker_id: str) -> PackSticker | None:
+        with self._tx() as conn:
+            row = conn.execute(_PACK + " WHERE s.id = %s", (sticker_id,)).fetchone()
+        return _pack_sticker(row) if row else None
+
+    def add(self, file_id: str, name: str, created_by: str, limit: int) -> PackSticker | None:
+        with self._tx() as conn:
+            # Two saves at once must not both pass the limit.
+            _lock_workspace(conn, self._ws)
+            found = conn.execute(_PACK + " WHERE s.file_id = %s", (file_id,)).fetchone()
+            if found:
+                return _pack_sticker(found)
+            if conn.execute("SELECT 1 FROM files WHERE id = %s", (file_id,)).fetchone() is None:
+                raise NotFound("picture not found")
+            if conn.execute("SELECT count(*) AS n FROM stickers").fetchone()["n"] >= limit:
+                return None
+            sticker_id = uuid.uuid4().hex
+            conn.execute(
+                "INSERT INTO stickers (workspace_id, id, file_id, name, created_by)"
+                " VALUES (%s, %s, %s, %s, %s)",
+                (self._ws, sticker_id, file_id, name, created_by),
+            )
+            row = conn.execute(_PACK + " WHERE s.id = %s", (sticker_id,)).fetchone()
+        return _pack_sticker(row)
+
+    def remove(self, sticker_id: str) -> bool:
+        with self._tx() as conn:
+            gone = conn.execute("DELETE FROM stickers WHERE id = %s", (sticker_id,)).rowcount
+        return gone > 0
+
+    def picture(self, sticker_id: str, width: int | None, moving: bool) -> Served | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                "SELECT f.id, f.mime, f.moving, f.motion IS NOT NULL AS has_motion"
+                " FROM stickers s JOIN files f ON f.id = s.file_id WHERE s.id = %s",
+                (sticker_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            if moving and row["moving"]:
+                # A light animated WebP plays as it is; a GIF from its animated copy.
+                column = "motion" if row["has_motion"] else "data"
+                kind = "image/webp" if row["has_motion"] else row["mime"]
+                played = conn.execute(
+                    f"SELECT {column} AS b FROM files WHERE id = %s", (row["id"],)
+                )
+                return Served(bytes(played.fetchone()["b"]), kind)
+            # The narrowest copy wide enough, else the widest; a small still picture has none.
+            copy = conn.execute(
+                "SELECT data FROM file_copies WHERE file_id = %s"
+                " ORDER BY width >= %s DESC, CASE WHEN width >= %s THEN width ELSE -width END"
+                " LIMIT 1",
+                (row["id"], width or 0, width or 0),
+            ).fetchone()
+            if copy:
+                return Served(bytes(copy["data"]), "image/webp")
+            data = conn.execute("SELECT data FROM files WHERE id = %s", (row["id"],)).fetchone()
+        return Served(bytes(data["data"]), row["mime"])
+
+
 def _index_files(conn: psycopg.Connection, ws: str, board_id: str, doc: BoardDoc) -> None:
     """Lets the board serve the pictures its saved document shows; only ever adds."""
     files = image_files(doc)
@@ -2001,3 +2079,4 @@ InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces
 FileStore = PgFileStore
+StickerPack = PgStickerPack

@@ -20,6 +20,7 @@ import {
   Minimize2,
   PenLine,
   Shapes,
+  Sticker,
   StickyNote,
   Ticket,
   Trash2,
@@ -156,6 +157,10 @@ type Props = {
   onAddTimer?: () => void
   onDuplicate: () => void
   onDelete: () => void
+  /** Saves a stored picture to the workspace's stickers. */
+  onSaveSticker?: (file: string) => void
+  /** Files in the workspace's stickers already. */
+  savedStickers?: Set<string>
   /** The selected module's own controls, right after its name; null when it has none. */
   controls?: (side: 'top' | 'bottom') => ReactNode
 }
@@ -172,6 +177,8 @@ export function SelectionBar({
   onAddTimer,
   onDuplicate,
   onDelete,
+  onSaveSticker,
+  savedStickers,
   controls,
 }: Props) {
   const box = useScreenBox(nodes.map((n) => n.id))
@@ -221,6 +228,13 @@ export function SelectionBar({
   const choices = fillChoices(nodes)
   const fills = fillsOf(nodes)
   const cards = nodes.filter((n) => n.type === 'task_card')
+  // One stored picture can go to the workspace's stickers: not one still uploading, a built-in
+  // sticker or one in the pack already.
+  const single = nodes.length === 1 ? nodes[0] : null
+  const savable =
+    single?.type === 'image' && !single.data.sticker && !savedStickers?.has(single.data.file ?? '')
+      ? single.data.file
+      : undefined
   const expanded = cards.filter((n) => !n.data.collapsed).length
   const opacities = shares(nodes, 'opacity') ? stylesOf(nodes, 'opacity') : []
   const strokes = shares(nodes, 'stroke') ? stylesOf(nodes, 'stroke') : []
@@ -496,6 +510,13 @@ export function SelectionBar({
         </>
       )}
       <Divider />
+      {onSaveSticker && savable && (
+        <IconButton
+          Icon={Sticker}
+          label="Save to stickers"
+          onClick={() => onSaveSticker(savable)}
+        />
+      )}
       {onAddTimer && <IconButton Icon={AlarmClock} label="Add reminder" onClick={onAddTimer} />}
       <IconButton
         Icon={Copy}
