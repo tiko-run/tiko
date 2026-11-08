@@ -60,7 +60,8 @@ function TurnedResizer({
 
   const down = (sides: Side[]) => (event: PointerEvent) => {
     const node = store.getState().nodeLookup.get(id)
-    if (!node || event.button !== 0) return
+    // Not measured yet, as right after a paste: there is no box to resize from.
+    if (!node || event.button !== 0 || !node.measured.width || !node.measured.height) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     const { x, y } = node.internals.positionAbsolute

@@ -53,7 +53,8 @@ export function resizeTurned(
     const along = sides.includes('top') || sides.includes('bottom')
     let w = right - left
     let h = bottom - top
-    if (across && (!along || w / box.width >= h / box.height)) h = w / ratio
+    const leadsAcross = Math.abs(local.x) / box.width >= Math.abs(local.y) / box.height
+    if (across && (!along || leadsAcross)) h = w / ratio
     else w = h * ratio
     if (w < min.width) [w, h] = [min.width, min.width / ratio]
     if (h < min.height) [w, h] = [min.height * ratio, min.height]

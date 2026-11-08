@@ -13,7 +13,8 @@ const PARALLEL = 3
  * screenshots does not hold every connection; a failed one waits for its retry.
  */
 export class Uploads {
-  private items = new Map<string, Upload & { file: Blob; look: Look }>()
+  private items = new Map<string, Upload & { file: Blob; look: Look; generation: number }>()
+  private generations = 0
   private queue: string[] = []
   private running = 0
   private listeners = new Set<() => void>()
@@ -40,7 +41,12 @@ export class Uploads {
 
   add(id: string, file: Blob, look: Look, preview: Blob = file) {
     this.drop(id)
-    this.items.set(id, { file, look, local: URL.createObjectURL(preview) })
+    this.items.set(id, {
+      file,
+      look,
+      local: URL.createObjectURL(preview),
+      generation: ++this.generations,
+    })
     this.queue.push(id)
     this.changed()
     this.next()
@@ -84,11 +90,11 @@ export class Uploads {
       this.running++
       this.send(item.file)
         .then((stored) => {
-          if (this.items.has(id)) this.done(id, stored, item.look)
+          if (this.current(id, item.generation)) this.done(id, stored, item.look)
         })
         .catch((error: unknown) => {
-          // Dropped meanwhile: a late failure must not bring the element's upload back.
-          if (!this.items.has(id)) return
+          // Dropped or replaced meanwhile: a late answer must not touch the element.
+          if (!this.current(id, item.generation)) return
           const message = error instanceof Error ? error.message : 'Upload failed'
           this.items.set(id, { ...item, error: message })
           this.changed()
@@ -98,6 +104,10 @@ export class Uploads {
           this.next()
         })
     }
+  }
+
+  private current(id: string, generation: number) {
+    return this.items.get(id)?.generation === generation
   }
 
   private changed() {
@@ -111,7 +121,7 @@ export type ImagesHost = {
   source: FileSource
   uploads: Uploads | null
   /** Uploads a file again for an element whose upload never finished. */
-  again?: (id: string, file: File) => void
+  again?: (id: string, file: File) => void | Promise<void>
 }
 
 export const ImagesContext = createContext<ImagesHost | null>(null)

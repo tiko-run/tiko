@@ -1,8 +1,7 @@
 import { useStore, type NodeProps } from '@xyflow/react'
 import { ImageOff, ImagePlus, RotateCcw } from 'lucide-react'
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { fileUrl } from '@/api/files'
-import { reducedMotion } from '@/canvas/fly'
 import { useImagePicker } from '@/canvas/ImagePicker'
 import { copyWidth, PAST_COPIES } from '@/canvas/images'
 import { Handles } from '@/canvas/nodes/Handles'
@@ -31,10 +30,23 @@ function useStale(waiting: boolean, since: string | undefined) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     if (!waiting || now >= due) return
-    const timer = setTimeout(() => setNow(Date.now()), due - now)
+    // From the clock, not from `now`: a retry moves `due` past a `now` taken long ago.
+    const timer = setTimeout(() => setNow(Date.now()), Math.max(0, due - Date.now()))
     return () => clearTimeout(timer)
   }, [waiting, due, now])
   return waiting && now >= due
+}
+
+const REDUCED = '(prefers-reduced-motion: reduce)'
+const subscribeMotion = (change: () => void) => {
+  const query = window.matchMedia?.(REDUCED)
+  query?.addEventListener('change', change)
+  return () => query?.removeEventListener('change', change)
+}
+
+/** Follows the system setting, so a GIF stops the moment someone asks for less motion. */
+function useReducedMotion() {
+  return useSyncExternalStore(subscribeMotion, () => window.matchMedia?.(REDUCED).matches ?? false)
 }
 
 function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) {
@@ -45,7 +57,8 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
   // Numbers and flags, so only a step to another copy redraws the element, not every zoom tick.
   const wanted = useStore((state) => copyWidth(onBoard, state.transform[2], pixelRatio()))
   const large = useStore((state) => onBoard * state.transform[2] >= PLAY_PX)
-  const playing = Boolean(data.moving) && large && !reducedMotion()
+  const calm = useReducedMotion()
+  const playing = Boolean(data.moving) && large && !calm
   // Zooming out a little keeps the sharper copy already loaded; far out, a smaller one takes
   // its place, so a board of big pictures does not hold every original in memory.
   const [loadedWidth, setLoadedWidth] = useState(0)

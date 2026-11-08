@@ -108,7 +108,7 @@ export function averageColor(pixels: Uint8ClampedArray) {
 
 const SAMPLE = 16
 
-/** A GIF's first frame, so its local preview stays still while it uploads. */
+/** The first frame of a picture that may move. */
 async function firstFrame(bitmap: ImageBitmap) {
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
   canvas.getContext('2d')?.drawImage(bitmap, 0, 0)
@@ -128,7 +128,8 @@ export async function readPicture(file: Blob) {
       width: bitmap.width,
       height: bitmap.height,
       color: pixels ? averageColor(pixels) : '#808080',
-      still: file.type === 'image/gif' ? await firstFrame(bitmap) : undefined,
+      // A GIF or WebP may move; its local preview stays still while it uploads.
+      still: ['image/gif', 'image/webp'].includes(file.type) ? await firstFrame(bitmap) : undefined,
     }
   } finally {
     bitmap.close()

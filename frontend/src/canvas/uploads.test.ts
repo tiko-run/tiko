@@ -63,4 +63,19 @@ describe('Uploads', () => {
     expect(uploads.failed()).toEqual([])
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:1')
   })
+
+  it('ignores the answer of an upload the element has since replaced', async () => {
+    const pending: ((file: StoredFile) => void)[] = []
+    const send = vi.fn(() => new Promise<StoredFile>((resolve) => pending.push(resolve)))
+    const done = vi.fn()
+    const uploads = new Uploads(send, done)
+    uploads.add('a', blob(), LOOK)
+    uploads.add('a', blob(), LOOK)
+    pending[0](stored('old'))
+    await settle()
+    expect(done).not.toHaveBeenCalled()
+    pending[1](stored('new'))
+    await settle()
+    expect(done).toHaveBeenCalledWith('a', stored('new'), LOOK)
+  })
 })

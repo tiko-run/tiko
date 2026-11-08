@@ -18,6 +18,9 @@ MOTION_QUALITY = 80
 # WebP cannot be taller or wider than this; a copy past it is left out and the original serves.
 WEBP_MAX_SIDE = 16383
 _SRGB = ImageCms.createProfile("sRGB")
+# Every frame of a moving picture is decoded in turn: a small GIF with thousands of large
+# frames would otherwise fill the worker's memory.
+MAX_FRAME_PIXELS = 100_000_000
 
 
 def _open(data: bytes) -> Image.Image:
@@ -28,6 +31,8 @@ def _open(data: bytes) -> Image.Image:
             width, height = image.size
             if width * height > MAX_PIXELS:
                 raise FileTooLarge("The picture is over 50 megapixels.")
+            if width * height * getattr(image, "n_frames", 1) > MAX_FRAME_PIXELS:
+                raise FileTooLarge("The animation is too long or too large.")
             image.load()
     except (Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
         raise FileTooLarge("The picture is over 50 megapixels.") from exc
@@ -73,19 +78,22 @@ def _without_meta(image: Image.Image, moving: bool) -> bytes:
     return out.getvalue()
 
 
+def _srgb(frame: Image.Image, icc: bytes | None) -> Image.Image:
+    """The frame in sRGB, as browsers assume for a picture without a profile."""
+    if not icc:
+        return frame
+    try:
+        source = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+        return ImageCms.profileToProfile(frame, source, _SRGB, outputMode=frame.mode) or frame
+    except (ImageCms.PyCMSError, OSError):
+        return frame
+
+
 def _flat(image: Image.Image) -> Image.Image:
-    """The first frame in a mode WebP takes, keeping transparency, in sRGB as browsers assume."""
+    """The first frame in a mode WebP takes, keeping transparency, in sRGB."""
     image.seek(0)
     see_through = image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info
-    flat = image.convert("RGBA" if see_through else "RGB")
-    icc = image.info.get("icc_profile")
-    if icc:
-        try:
-            source = ImageCms.ImageCmsProfile(io.BytesIO(icc))
-            flat = ImageCms.profileToProfile(flat, source, _SRGB, outputMode=flat.mode) or flat
-        except (ImageCms.PyCMSError, OSError):
-            pass
-    return flat
+    return _srgb(image.convert("RGBA" if see_through else "RGB"), image.info.get("icc_profile"))
 
 
 def _webp(image: Image.Image) -> bytes:
@@ -100,9 +108,10 @@ def _motion(image: Image.Image) -> bytes:
     scale = min(1.0, MOTION_WIDTH / width, WEBP_MAX_SIDE / height)
     size = (max(1, round(width * scale)), max(1, round(height * scale)))
     frames, durations = [], []
+    icc = image.info.get("icc_profile")
     for frame in ImageSequence.Iterator(image):
         durations.append(frame.info.get("duration", 100))
-        frame = frame.convert("RGBA")
+        frame = _srgb(frame.convert("RGBA"), icc)
         frames.append(frame.resize(size, Image.Resampling.LANCZOS) if scale < 1 else frame)
     out = io.BytesIO()
     frames[0].save(

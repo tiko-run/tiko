@@ -285,7 +285,7 @@ export function BoardCanvas({
     [mixed, board.default_source],
   )
   const flow = useReactFlow<AppNode, AppEdge>()
-  const { screenToFlowPosition, deleteElements, getNodes, getEdges } = flow
+  const { screenToFlowPosition, deleteElements, getNodes, getEdges, updateNode } = flow
   const theme = useTheme().resolved
   const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle')
   // Frames and shapes are drawn by dragging; the other creation tools place on a click.
@@ -529,17 +529,25 @@ export function BoardCanvas({
     () => ({
       source: guestToken ? { token: guestToken } : { boardId: board.id },
       uploads,
-      again: (id, picked) => {
-        const node = getNodes().find((n) => n.id === id)
+      again: async (id, picked) => {
         const { pictures, refused } = sortFiles([picked])
-        if (refused.length)
-          toast.error('Not added', { description: refused[0], duration: ERROR_MS })
-        if (node?.type !== 'image' || !pictures.length || !uploads) return
-        patchData(id, { since: new Date().toISOString() })
-        uploads.add(id, pictures[0], node.data)
+        const picture = pictures.length ? await readPicture(pictures[0]).catch(() => null) : null
+        if (refused.length || !picture)
+          toast.error('Not added', {
+            description: refused[0] ?? `${picked.name}: cannot be read`,
+            duration: ERROR_MS,
+          })
+        const node = getNodes().find((n) => n.id === id)
+        if (node?.type !== 'image' || !picture || !uploads) return
+        // The file picked may differ from the one that never arrived: the element takes its
+        // shape, keeping its width.
+        const look = { w: picture.width, h: picture.height, color: picture.color }
+        patchData(id, { ...look, since: new Date().toISOString() })
+        if (node.width) updateNode(id, { height: (node.width * look.h) / look.w })
+        uploads.add(id, pictures[0], look, picture.still)
       },
     }),
-    [guestToken, board.id, uploads, getNodes, patchData],
+    [guestToken, board.id, uploads, getNodes, patchData, updateNode],
   )
 
   // Each picture shows at once from the file; the upload runs behind it.

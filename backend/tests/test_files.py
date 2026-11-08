@@ -311,3 +311,12 @@ def test_a_gif_plays_from_a_lighter_animated_webp(client):
     still = opened(client.get(url, params={"w": 512, "move": 0}))
     assert getattr(still, "n_frames", 1) == 1
     assert upload(client, board_id, picture()).json()["moving"] is False
+
+
+def test_an_animation_too_long_to_decode_is_refused(client):
+    frames = [Image.new("L", (1000, 1000), i % 256) for i in range(120)]
+    out = io.BytesIO()
+    frames[0].save(out, "GIF", save_all=True, append_images=frames[1:], duration=40)
+    response = upload(client, board(client), out.getvalue(), "image/gif")
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "file_too_large"
