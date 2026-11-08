@@ -449,6 +449,7 @@ def test_an_ipv6_network_counts_as_one_address():
     assert demo.address_key("2001:db8:1:2:aaaa::1") == demo.address_key("2001:db8:1:2:bbbb::9")
     assert demo.address_key("2001:db8:1:2::1") != demo.address_key("2001:db8:1:3::1")
     assert demo.address_key("203.0.113.7") == "203.0.113.7"
+    assert demo.address_key("::ffff:203.0.113.7") == "203.0.113.7"
     assert demo.address_key("not an address") == "not an address"
 
 

@@ -56,6 +56,9 @@ def address_key(address: str) -> str:
         ip = ipaddress.ip_address(address.strip())
     except ValueError:
         return address
+    if ip.version == 6 and ip.ipv4_mapped:
+        # An IPv4 client as a dual-stack socket sees it: its own address, not a shared /64.
+        return str(ip.ipv4_mapped)
     if ip.version == 6:
         return str(ipaddress.ip_network((ip, 64), strict=False))
     return str(ip)

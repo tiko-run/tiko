@@ -314,6 +314,25 @@ def test_each_guest_has_a_budget_for_pictures_of_their_own():
         links.files_of("t", "2001:db8::ffff:1")
     now[0] = 61.0
     assert links.files_of("t", "203.0.113.7") == "b"
+    now[0] = 200.0
+    links.forget_guests()
+    assert [k for k in links._attempts._windows if k[0] == "pictures"] == []
+
+
+def test_both_picture_routes_spend_the_guests_budget(client, monkeypatch):
+    monkeypatch.setattr("app.domain.public.PICTURE_REQUESTS", 2)
+    board_id = client.post("/api/boards", json={"name": "Shared"}).json()["id"]
+    token = client.put(f"/api/boards/{board_id}/public", json={"public": True}).json()
+    token = token["public_token"]
+    guest = TestClient(client.app)
+    ann, bob = {"x-real-ip": "203.0.113.7"}, {"x-real-ip": "198.51.100.1"}
+    file_url = f"/api/public/{token}/files/missing"
+    sticker_url = f"/api/public/{token}/stickers/1f600/picture"
+    assert guest.get(file_url, headers=ann).status_code == 404
+    assert guest.get(sticker_url, headers=ann).status_code == 200
+    assert guest.get(sticker_url, headers=ann).status_code == 429
+    assert guest.get(file_url, headers=ann).status_code == 429
+    assert guest.get(sticker_url, headers=bob).status_code == 200
 
 
 def test_upgrade_leaves_every_board_private(client):

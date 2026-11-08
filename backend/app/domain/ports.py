@@ -209,6 +209,10 @@ class Attempts(Protocol):
         """Forgets the key's window."""
         ...
 
+    def forget(self, scope: str, before: float) -> None:
+        """Forgets the scope's windows opened at `before` or earlier."""
+        ...
+
 
 class KnownBrowsers(Protocol):
     """Browsers a person signed in from, by the hash of their cookie's token."""

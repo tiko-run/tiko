@@ -1591,6 +1591,12 @@ class PgAttempts(_Repo):
             )
         return None
 
+    def forget(self, scope: str, before: float) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "DELETE FROM attempt_windows WHERE scope = %s AND opened <= %s", (scope, before)
+            )
+
     def spend(self, scope: str, key: str, limit: int, window_s: float, at: float) -> float | None:
         with self._tx() as conn:
             _lock_key(conn, "windows", scope, key)
@@ -2007,7 +2013,13 @@ class PgStickerPack(_Repo):
             found = conn.execute(_PACK + " WHERE s.file_id = %s", (file_id,)).fetchone()
             if found:
                 return _pack_sticker(found)
-            if conn.execute("SELECT 1 FROM files WHERE id = %s", (file_id,)).fetchone() is None:
+            # Marked used at once: the cleanup may have counted it unused a while ago.
+            if (
+                conn.execute(
+                    "UPDATE files SET unused_since = NULL WHERE id = %s RETURNING id", (file_id,)
+                ).fetchone()
+                is None
+            ):
                 raise NotFound("picture not found")
             if conn.execute("SELECT count(*) AS n FROM stickers").fetchone()["n"] >= limit:
                 return None
@@ -2070,9 +2082,11 @@ def _index_files(conn: psycopg.Connection, ws: str, board_id: str, doc: BoardDoc
         )
 
 
-# Files a saved board shows, in the trash too, and files a sticker pack holds.
+# Files a saved board shows, in the trash too, and files a sticker pack holds. A document
+# without a list of nodes, copied in from an old file, shows nothing and must not stop the job.
 _USED_FILES = (
-    "SELECT n -> 'data' ->> 'file' AS id FROM boards b, jsonb_array_elements(b.doc -> 'nodes') n"
+    "SELECT n -> 'data' ->> 'file' AS id FROM boards b, jsonb_array_elements(CASE"
+    " WHEN jsonb_typeof(b.doc -> 'nodes') = 'array' THEN b.doc -> 'nodes' ELSE '[]' END) n"
     " WHERE n -> 'data' ->> 'file' IS NOT NULL UNION SELECT file_id FROM stickers"
 )
 

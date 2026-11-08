@@ -55,7 +55,7 @@ from app.domain.ports import (
     UnusedFiles,
     Updater,
 )
-from app.domain.public import PublicLinks
+from app.domain.public import PICTURE_WINDOW_S, PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
 from app.domain.settings import (
@@ -211,6 +211,15 @@ def create_app(
                 log.exception("housekeeping failed")
             await asyncio.sleep(HOUSEKEEPING_EVERY_S)
 
+    async def forget_guests(links: PublicLinks) -> None:
+        # Not left to the next guest's request: a quiet instance would keep the hashes for good.
+        while True:
+            try:
+                await anyio.to_thread.run_sync(links.forget_guests)
+            except Exception:
+                log.exception("forgetting guests' picture budgets failed")
+            await asyncio.sleep(PICTURE_WINDOW_S)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # One process cleans up for all of them.
@@ -223,6 +232,11 @@ def create_app(
             asyncio.create_task(
                 housekeeping(app.state.boards, app.state.folders, app.state.unused_files)
             )
+            if settings.tiko_worker == 0
+            else None
+        )
+        forgetter = (
+            asyncio.create_task(forget_guests(app.state.public_links))
             if settings.tiko_worker == 0
             else None
         )
@@ -255,6 +269,8 @@ def create_app(
             cleaner.cancel()
         if keeper:
             keeper.cancel()
+        if forgetter:
+            forgetter.cancel()
         if workers:
             await workers.close()
         # Open boards are saved and their sockets told to come back.

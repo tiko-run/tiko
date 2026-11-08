@@ -440,3 +440,26 @@ def test_a_deleted_picture_leaves_room_in_the_quota():
     assert clean(client, NOW) == 0
     assert clean(client, LATER) == 1
     assert upload(client, board_id, third).status_code == 201
+
+
+def test_a_picture_saved_to_the_pack_counts_as_used_from_then_on(client):
+    board_id = board(client)
+    file_id = upload(client, board_id, picture()).json()["id"]
+    assert clean(client, NOW) == 0
+    sticker = client.post("/api/stickers/pack", json={"file": file_id, "name": "Logo"}).json()
+    client.delete(f"/api/stickers/pack/{sticker['id']}")
+    # Out of the pack before the job saw it in: the week starts again, not from the upload.
+    assert clean(client, LATER) == 0
+    assert clean(client, LATER + timedelta(days=UNUSED_DAYS)) == 1
+
+
+def test_a_board_without_a_list_of_nodes_does_not_stop_the_cleanup(client):
+    board_id = board(client)
+    upload(client, board_id, picture())
+    with client.app.state.boards._db.jobs() as conn:
+        conn.execute(
+            """UPDATE boards SET doc = jsonb_set(doc, '{nodes}', 'null') WHERE id = %s""",
+            (board_id,),
+        )
+    assert clean(client, NOW) == 0
+    assert clean(client, LATER) == 1

@@ -108,6 +108,10 @@ class PublicLinks:
             raise NotFound("board not found")
         return found[0]
 
+    def forget_guests(self) -> None:
+        """Drops the picture budgets whose window is over, with the address hashes they hold."""
+        self._attempts.forget(_PICTURES, self._clock() - PICTURE_WINDOW_S)
+
     def board_for(self, person: Person, token: str, members: Members) -> str:
         """The board behind a link, for a signed-in person who can open it anyway. Anyone else
         gets the answer of a wrong link, so the link tells nothing more about the board. It is
