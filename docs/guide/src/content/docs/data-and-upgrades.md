@@ -30,6 +30,12 @@ The `db` service publishes no port; only the `api` container reaches it. Its pas
 
 - **Before every one-click update** the updater dumps the database to `data/backups/pre-update-<version>.dump` and keeps the 3 newest. See [Updates](../updates/).
 
+## Pictures
+
+Pictures on boards live in the same Postgres database as the boards, so the backups above and your own dumps take them along, and nothing else needs a volume. A picture pasted on ten boards is kept once per workspace. Next to the original tiko keeps up to three smaller copies, 512, 1024 and 2048 pixels wide, which the board loads instead of the original. Photos are kept without their location and camera data.
+
+A picture whose element was deleted stays in the database for now. `TIKO_FILES_QUOTA_MB` caps how much a workspace keeps, copies included: past it, a new picture is refused with a message and nothing already on a board is touched. Without it there is no limit, except 20 MB per workspace on a [demo](../demo/).
+
 ## Coming from an SQLite release
 
 Releases up to 2026.10.23 kept everything in one SQLite file, `data/app.db`. The first start on Postgres copies that file into the database: every account, board, setting, Planning list and public link, with the same passwords and links. The copy compares the row count of every table before it commits; if anything differs, nothing is kept and the file stays as it was. After a good copy the file is renamed to `data/app.db.copied-<date>` and kept.

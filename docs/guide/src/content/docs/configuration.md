@@ -14,6 +14,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_DEMO` | `1` lets anyone start without an account as a demo visitor on the demo tasks, and sign up to stay. See [Running a demo](../demo/) | off |
 | `TIKO_DEMO_LIMIT` | Demo visitors the instance keeps at once | `500` |
 | `TIKO_BOARD_LIMIT` | Boards a person may own, admins and demo visitors aside | no limit |
+| `TIKO_FILES_QUOTA_MB` | Megabytes of pictures a workspace may keep, copies included. See [Pictures](../data-and-upgrades/#pictures) | no limit; 20 on a demo |
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
 | `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
 | `TIKO_SOCKET_DIR` | A directory shared by both containers; the web container reaches the API over Unix sockets in it. See [A Unix socket between the containers](#a-unix-socket-between-the-containers) | empty: the network |

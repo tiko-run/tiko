@@ -26,6 +26,7 @@ Press `?` in the app to see this list. `⌘` is `Ctrl` on Windows and Linux.
 | `T` | Text |
 | `S` | Shapes |
 | `R` | Reminder |
+| `I` | Image |
 | `C` | Task card |
 | `M` | Modules |
 | `Esc` | Back to Select |

@@ -40,7 +40,7 @@ There is no mail on a demo, so a forgotten password cannot be reset by the perso
 
 ## Limits
 
-Two of them are yours to set, the rest are fixed:
+Three of them are yours to set, the rest are fixed:
 
 | Limit | Value |
 |---|---|
@@ -48,6 +48,7 @@ Two of them are yours to set, the rest are fixed:
 | Visitors on the instance | `TIKO_DEMO_LIMIT`, 500 when empty |
 | Boards per visitor | 3 |
 | Boards per person with an account, admins aside | `TIKO_BOARD_LIMIT`, no limit when empty |
+| Pictures per workspace | `TIKO_FILES_QUOTA_MB`, 20 MB when empty |
 
 A visitor who changed nothing is deleted an hour after their last request, and is the first to give up their place when the instance is full. A script that only presses the button therefore cannot keep people out: "The demo is full" shows only when that many visitors have real work on a board.
 
