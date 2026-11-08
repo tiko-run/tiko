@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from app.domain.accounts import Accounts, Person
+from app.domain.caldav import CalDavSource, NoCalDav
 from app.domain.errors import Forbidden, JiraNotConfigured
 from app.domain.invites import Invites
 from app.domain.members import BoardRole, Members
@@ -70,6 +71,8 @@ def providers(request: Request) -> dict[str, TaskProvider]:
     if not is_visitor(request) and (token := settings.github_token(person.id)):
         github = state.github_readers.of(person.id, token.get_secret_value())
     found = {demo_tasks.source_id: demo_tasks, github.source_id: github}
+    caldav = caldav_source(request)
+    found[caldav.source_id] = caldav
     if tracker(request) == "jira":
         try:
             jira = state.jira(settings.jira_credentials(person.id))
@@ -77,6 +80,16 @@ def providers(request: Request) -> dict[str, TaskProvider]:
             jira = NoTokenProvider(settings.base_url(), exc)
         found[jira.source_id] = jira
     return found
+
+
+def caldav_source(request: Request) -> CalDavSource:
+    """The person's own CalDAV reader, or a stand-in that asks them to connect one."""
+    if is_visitor(request):
+        return NoCalDav()
+    _, account = request.app.state.settings.caldav_account(current_person(request).id)
+    if account is None:
+        return NoCalDav()
+    return request.app.state.caldav_readers.of(current_person(request).id, account)
 
 
 def provider(request: Request) -> TaskProvider:

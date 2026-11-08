@@ -164,3 +164,10 @@ def test_an_arrow_to_a_bare_end_stays_in_the_picture():
     _, root = parsed(doc)
     x, _, width, _ = (int(v) for v in root.get("viewBox").split())
     assert x + width >= 900 + 40
+
+
+def test_a_caldav_card_is_drawn_without_its_long_id():
+    _, root = parsed(
+        board([node("c", "task_card", {"key": "stand-apple-1", "source": "caldav"}, 20, 30)])
+    )
+    assert "stand-apple-1" not in texts(root)

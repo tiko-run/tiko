@@ -8,6 +8,7 @@ Requires: installer
 
 ### Added
 
+- Your to-dos from Nextcloud, Thunderbird or Apple Reminders now sit on the board next to the tracker's tasks and stay current. Connect any CalDAV server in Settings → My tracker, choose which lists to show, and find tasks by their title in the card tool. tiko only reads them. A public instance sets `TIKO_CALDAV_PRIVATE_NETWORK=deny`. See [CalDAV tasks](https://docs.tiko.run/caldav/).
 - See when a task is due without opening the tracker: cards show the start and due dates from Jira, and the milestone's due date for GitHub issues. Jira projects that keep the start in different fields work without setup; an admin can pick the field in Settings → Task source. See [Start and due dates](https://docs.tiko.run/jira-data-center/#start-and-due-dates).
 - Plan with the dates your team already keeps: a task added to the Gantt takes its start and due dates from your tracker and moves when they change there. Move a bar, and it keeps your dates; a dashed frame shows where the tracker has the task when your plan says otherwise, and lines up a row's stages inside the tracker's dates at one click. Tasks planned before keep their dates. See [Dates from your tracker](https://docs.tiko.run/gantt/#dates-from-your-tracker).
 - Liven up a retro with stickers: press E for about 880 animated emoji, or save any picture of the board as your team's own sticker. Stickers play like GIFs and cost the board as little. See [Around the cards](https://docs.tiko.run/adding-tasks/#around-the-cards).

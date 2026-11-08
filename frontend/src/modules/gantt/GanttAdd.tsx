@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { getSettings } from '@/api/settings'
 import type { Task } from '@/api/tasks'
 import { keepOpenWhileSuggesting } from '@/canvas/JqlInput'
-import { AddCardForm } from '@/canvas/Toolbar'
+import { CardSources } from '@/canvas/Toolbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,7 +60,7 @@ export function GanttAdd({ disabled, onTasks, onPlain }: Props) {
           ))}
         </div>
         {source === 'tracker' ? (
-          <AddCardForm onAdd={onTasks} onDone={() => setOpen(false)} />
+          <CardSources onAdd={onTasks} onDone={() => setOpen(false)} />
         ) : (
           <PlainForm
             onAdd={(title) => {

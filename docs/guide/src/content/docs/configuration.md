@@ -15,6 +15,7 @@ Everything works without a `.env` file. To override defaults, copy [`.env.exampl
 | `TIKO_DEMO_LIMIT` | Demo visitors the instance keeps at once | `500` |
 | `TIKO_BOARD_LIMIT` | Boards a person may own, admins and demo visitors aside | no limit |
 | `TIKO_FILES_QUOTA_MB` | Megabytes of pictures a workspace may keep, copies included. See [Pictures](../data-and-upgrades/#pictures) | no limit; 20 on a demo |
+| `TIKO_CALDAV_PRIVATE_NETWORK` | `deny` stops people from connecting a CalDAV server on a private network, such as one at home. A public instance should set it. See [CalDAV tasks](../caldav/#a-server-on-your-home-network) | `allow`; `deny` on a demo |
 | `TIKO_METRICS_TOKEN` | Lets a monitoring system read `/metrics` with `Authorization: Bearer <token>`. See [Monitoring](../monitoring/) | unset, admins only |
 | `TIKO_METRICS_PORT` | A second port that serves `/metrics` to the token from its own thread, so it answers while the instance is overloaded. See [Monitoring](../monitoring/) | unset, no second port |
 | `TIKO_SOCKET_DIR` | A directory shared by both containers; the web container reaches the API over Unix sockets in it. See [A Unix socket between the containers](#a-unix-socket-between-the-containers) | empty: the network |

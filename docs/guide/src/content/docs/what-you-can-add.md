@@ -36,6 +36,10 @@ A link must point at the Jira tiko is connected to. Setup: [Jira Data Center](..
 
 There are no queries for GitHub. Setup: [GitHub Issues](../github-issues/).
 
+## CalDAV
+
+CalDAV tasks are found by their title: switch the card tool to **CalDAV** once you have [connected an account](../caldav/) and type a few words. A task's id is long and nobody types it, so there are no keys or queries for CalDAV.
+
 ## Demo tasks
 
 Keys `DEMO-1` to `DEMO-12`. A query like `project = DEMO` adds all twelve; words in quotes keep the tasks that contain them: `summary ~ "deploy"`.

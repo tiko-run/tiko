@@ -53,8 +53,12 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
   const linkProps = useTaskLinkProps()
   const done = task.status_category === 'done'
   const updated = relativeTime(task.updated)
+  // A CalDAV task has no assignee, and its list stands where other trackers show the key.
+  const caldav = task.source === 'caldav'
   const rows: [string, string | null][] = [
-    ['Assignee', task.assignee_name ?? 'Unassigned'],
+    ...(caldav && !task.assignee_name
+      ? []
+      : [['Assignee', task.assignee_name ?? 'Unassigned'] as [string, string]]),
     // A tracker without priorities gets no empty row.
     ...(task.priority_name ? [['Priority', task.priority_name] as [string, string]] : []),
     ...(task.start ? [['Start', trackerDate(task.start)] as [string, string]] : []),
@@ -71,7 +75,7 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
           <TypeIcon typeName={task.type_name} />
         </span>
         <span className={cn('text-primary font-mono text-xs tabular-nums', done && 'line-through')}>
-          {task.key}
+          {caldav ? task.type_name : task.key}
         </span>
         <StatusLozenge task={task} />
       </div>
@@ -103,13 +107,16 @@ export function CardDetails({ task, collapsed, onToggleCollapsed }: Props) {
           {collapsed ? <Maximize2 strokeWidth={1.75} /> : <Minimize2 strokeWidth={1.75} />}
           {collapsed ? 'Expand card' : 'Collapse card'}
         </Button>
-        <Button variant="outline" size="sm" asChild>
-          <a href={task.url} {...linkProps}>
-            <SourceMark source={task.source} />
-            Open in {sourceName(task.source)}
-            <ExternalLink strokeWidth={1.75} />
-          </a>
-        </Button>
+        {/* Some trackers give no page for a task, as most CalDAV servers do. */}
+        {task.url && (
+          <Button variant="outline" size="sm" asChild>
+            <a href={task.url} {...linkProps}>
+              <SourceMark source={task.source} />
+              Open in {sourceName(task.source)}
+              <ExternalLink strokeWidth={1.75} />
+            </a>
+          </Button>
+        )}
       </div>
     </div>
   )

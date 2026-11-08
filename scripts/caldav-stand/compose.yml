@@ -1,0 +1,27 @@
+# CalDAV servers for checking the CalDAV connector by hand and in the opt-in stand test.
+# Never shipped. Start: docker compose -f scripts/caldav-stand/compose.yml up -d
+# Nextcloud too: add --profile nextcloud; it also answers on https://localhost:8443 for macOS
+# and iOS, which send a password only over TLS.
+name: tiko-caldav-stand
+services:
+  radicale:
+    image: tomsquest/docker-radicale:3.9.0.0
+    ports: ["5232:5232"]
+    volumes:
+      - ./radicale/config:/config/config:ro
+      - ./radicale/users:/config/users:ro
+  nextcloud:
+    profiles: [nextcloud]
+    image: nextcloud:35.0.2-apache
+    ports: ["8089:80"]
+    environment:
+      SQLITE_DATABASE: nextcloud
+      NEXTCLOUD_ADMIN_USER: ann
+      NEXTCLOUD_ADMIN_PASSWORD: made-up-stand-password
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost host.docker.internal
+  nextcloud-https:
+    profiles: [nextcloud]
+    image: caddy:2.11.9-alpine
+    ports: ["8443:8443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro

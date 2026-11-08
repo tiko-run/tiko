@@ -72,6 +72,16 @@ class TrackerUnreachable(TrackerUnavailable):
     """No answer at all (network, VPN, timeout): nothing reached the tracker, so no backoff."""
 
 
+class CalDavRejected(TrackerUnavailable):
+    """The CalDAV server did not accept the user name or the password."""
+
+    code = "caldav_rejected"
+
+
+class CalDavAddressRefused(ValidationFailed):
+    code = "caldav_address_refused"
+
+
 class TooManyRepositories(DomainError):
     code = "too_many_repositories"
 

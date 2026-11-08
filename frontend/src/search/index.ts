@@ -1,3 +1,4 @@
+import { shortKey } from '@/sources/registry'
 import type { Task } from '@/api/tasks'
 import { taskRef } from '@/canvas/tasks-context'
 import type { AppNode, FrameData, ModuleData } from '@/canvas/types'
@@ -5,6 +6,11 @@ import { findModule } from '@/modules/registry'
 import { holderLabel } from '@/timers/attach'
 import { normalize, rank, type Searchable } from './match'
 import { compileFilters, FIELDS, passes, type Facets, type Filter } from './query'
+
+/** A card's key as search lists it; a CalDAV task by its list, its id means nothing. */
+function cardLabel(source: string | undefined, key: string, task: Task | undefined) {
+  return source === 'caldav' ? shortKey(source, key, task?.type_name) : key
+}
 
 export type EntryKind =
   'card' | 'sticky' | 'shape' | 'text' | 'frame' | 'timer' | 'module' | 'row' | 'milestone'
@@ -100,7 +106,7 @@ export function buildIndex(nodes: AppNode[], tasks: Record<string, Task>): Entry
         push({
           ...base,
           kind: 'card',
-          label: node.data.key,
+          label: cardLabel(task?.source ?? node.data.source, node.data.key, task),
           text: task && !live ? 'Not found' : (live?.summary ?? ''),
           context: join(live?.status_name, live?.assignee_name, frameOf(node)),
           typeName: live?.type_name,
@@ -157,7 +163,7 @@ function pushModule(
       id: `${id}:${i}`,
       target: id,
       kind: item.kind,
-      label: item.key,
+      label: item.key && cardLabel(task?.source ?? item.source, item.key, task),
       text,
       context: `in ${name}`,
       typeName: task?.type_name,

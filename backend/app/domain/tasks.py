@@ -12,6 +12,7 @@ KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]+-\d+$")
 _BROWSE_RE = re.compile(r"/browse/([A-Za-z][A-Za-z0-9_]+-\d+)/?$")
 
 GITHUB = "github"
+CALDAV = "caldav"
 _REPO = r"[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+"
 GITHUB_KEY_RE = re.compile(rf"^{_REPO}#[1-9]\d*$")
 # A link to an issue or a pull request, with whatever follows: a tab, a comment anchor.
@@ -98,8 +99,15 @@ class Task(BaseModel):
         return task_ref(self.source, self.key)
 
 
+def valid_uid(uid: str) -> bool:
+    """A CalDAV task's UID: any printable text without spaces, as the clients make them."""
+    return 0 < len(uid) <= 255 and uid.isprintable() and not any(c.isspace() for c in uid)
+
+
 def valid_key(source: str | None, key: str) -> bool:
     """Whether the key has the shape its tracker uses; a missing source is the instance's."""
+    if source == CALDAV:
+        return valid_uid(key)
     return bool((GITHUB_KEY_RE if source == GITHUB else KEY_RE).match(key))
 
 

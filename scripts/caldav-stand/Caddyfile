@@ -1,0 +1,8 @@
+# HTTPS in front of the stand's Nextcloud: macOS and iOS send a password only over TLS.
+# The certificate is Caddy's own, so the Mac asks once whether to trust it.
+localhost:8443 {
+	tls internal
+	redir /.well-known/caldav /remote.php/dav/ 301
+	redir /.well-known/carddav /remote.php/dav/ 301
+	reverse_proxy nextcloud:80
+}

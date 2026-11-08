@@ -3,7 +3,7 @@ title: Task trackers
 description: Which task trackers tiko supports today and which are planned.
 ---
 
-tiko reads tasks from your tracker and never changes them. Each person connects their own token, so a card shows only what that person's tracker access allows. Public GitHub issues need no token at all.
+tiko reads tasks from your tracker and never changes them. Each person connects their own token, so a card shows only what that person's tracker access allows. Public GitHub issues need no token at all, and a CalDAV account is connected by each person for themselves.
 
 | Tracker | Status |
 |---|---|
@@ -17,7 +17,7 @@ tiko reads tasks from your tracker and never changes them. Each person connects 
 | Todoist | Planned |
 | TickTick | Planned |
 | Windshift | Planned |
-| CalDAV servers such as Nextcloud and Radicale | Planned |
+| CalDAV servers such as Nextcloud and Radicale | Available, see [CalDAV tasks](../caldav/) |
 
 What the card tool takes for each tracker is in [What you can add](../what-you-can-add/).
 

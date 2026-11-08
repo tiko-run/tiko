@@ -7,8 +7,10 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, SecretStr, field_validator
 
+from app.domain.caldav import CalDavAccount
 from app.domain.errors import JiraNotConfigured, SecretUnreadable, ValidationFailed
 from app.domain.ports import CredentialRepo, SecretBox, SettingsRepo
+from app.domain.tasks import CALDAV
 
 Provider = Literal["demo", "jira"]
 TokenState = Literal["none", "set", "unreadable"]
@@ -286,7 +288,7 @@ class SettingsService:
         # Encryption is salted, so even the same token entered again stores a new value.
         return {
             kind: stored[0] if (stored := self._credentials.get(user_id, kind)) else None
-            for kind in ("jira", "github")
+            for kind in ("jira", "github", CALDAV)
         }
 
     def github_token_state(self, user_id: str) -> TokenState:
@@ -372,3 +374,44 @@ class SettingsService:
         return JiraCredentials(
             base_url=url, token=secret, email=cloud_email, kind="cloud", start_field=start_field
         )
+
+    def caldav_account(self, user_id: str) -> tuple[TokenState, CalDavAccount | None]:
+        """The person's own CalDAV account."""
+        # The address is stored with the password, so no instance setting can send it elsewhere.
+        stored = self._credentials.get(user_id, CALDAV)
+        if stored is None:
+            return "none", None
+        try:
+            body = json.loads(self._box.decrypt(stored[0]))
+            account = CalDavAccount(
+                address=str(body["address"]),
+                username=str(body["username"]),
+                password=SecretStr(str(body["password"])),
+                hidden=frozenset(str(item) for item in body.get("hidden") or []),
+            )
+        except (SecretUnreadable, ValueError, KeyError, TypeError):
+            return "unreadable", None
+        self._on_token(account.password.get_secret_value())
+        return "set", account
+
+    def set_caldav(self, user_id: str, account: CalDavAccount) -> None:
+        password = account.password.get_secret_value()
+        body = {
+            "address": account.address,
+            "username": account.username,
+            "password": password,
+            "hidden": sorted(account.hidden),
+        }
+        self._credentials.set(user_id, CALDAV, self._box.encrypt(json.dumps(body)), account.address)
+        self._on_token(password)
+
+    def connect_caldav(self, user_id: str, account: CalDavAccount) -> None:
+        """A new or changed account: what the old one read leaves the person's cache."""
+        self.set_caldav(user_id, account)
+        self._on_token_change(user_id, CALDAV)
+        self._on_change()
+
+    def remove_caldav(self, user_id: str) -> None:
+        self._credentials.delete(user_id, CALDAV)
+        self._on_token_change(user_id, CALDAV)
+        self._on_change()
