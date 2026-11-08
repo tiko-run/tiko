@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal, Protocol
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
     from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow
+    from app.domain.files import Picture, Served, StoredFile
     from app.domain.folders import Folder
     from app.domain.invites import Invite
     from app.domain.jql import JqlValue, JqlVocabulary
@@ -569,4 +570,28 @@ class InviteRepo(Protocol):
 
     def revoke(self, invite_id: str, now: str) -> bool:
         """False when no open invite has this id."""
+        ...
+
+
+class FileStore(Protocol):
+    """Pictures of the current workspace."""
+
+    def find(self, sha256: str) -> StoredFile | None: ...
+
+    def add(self, sha256: str, picture: Picture, size: int, uploaded_by: str) -> StoredFile:
+        """Stores the picture; one stored meanwhile with the same hash wins and is returned."""
+        ...
+
+    def used(self) -> int:
+        """Bytes the workspace's files and copies take."""
+        ...
+
+    def get(self, file_id: str, width: int | None) -> Served | None: ...
+
+
+class PictureMaker(Protocol):
+    def make(self, data: bytes) -> Picture:
+        """Reads the picture, turns it by its EXIF orientation, drops its metadata and makes
+        the copies. Raises UnsupportedFile for what is not a PNG, JPEG, WebP or GIF, and
+        FileTooLarge past MAX_PIXELS."""
         ...

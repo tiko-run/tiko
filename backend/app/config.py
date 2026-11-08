@@ -76,6 +76,8 @@ class Settings(BaseSettings):
     tiko_demo_limit: int | None = Field(default=None, ge=1)
     # Boards a person may own, admins aside. Empty: no limit.
     tiko_board_limit: int | None = Field(default=None, ge=1)
+    # Megabytes of pictures a workspace may keep. Empty: no limit, or 20 on a demo instance.
+    tiko_files_quota_mb: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def _database_set(self) -> Self:

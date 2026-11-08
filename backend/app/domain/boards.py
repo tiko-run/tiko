@@ -124,6 +124,20 @@ class TextData(_Strict):
     rotation: absent_or(Rotation) = None
 
 
+FileId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
+PictureSide = Annotated[int, Field(ge=1, le=100_000)]
+
+
+class ImageData(_Strict):
+    # Absent while the picture uploads: the board shows a placeholder of its size until then.
+    file: absent_or(FileId) = None
+    # The picture's own size and average colour, known before its bytes arrive.
+    w: PictureSide
+    h: PictureSide
+    color: str = Field(pattern=r"^#[0-9a-f]{6}$")
+    rotation: absent_or(Rotation) = None
+
+
 class ModuleData(_Strict):
     kind: str = Field(pattern=KIND_PATTERN)
     title: str | None = Field(default=None, max_length=200)
@@ -166,6 +180,11 @@ class ShapeNode(_NodeBase):
 class TextNode(_NodeBase):
     type: Literal["text"]
     data: TextData
+
+
+class ImageNode(_NodeBase):
+    type: Literal["image"]
+    data: ImageData
 
 
 class ModuleNode(_NodeBase):
@@ -219,6 +238,7 @@ Node = Annotated[
     | StickyNode
     | ShapeNode
     | TextNode
+    | ImageNode
     | ModuleNode
     | AnchorNode
     | TimerNode,

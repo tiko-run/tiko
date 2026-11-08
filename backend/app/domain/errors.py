@@ -150,3 +150,15 @@ class NotEnoughSpace(DomainError):
 
 class FolderLimit(DomainError):
     code = "folder_limit"
+
+
+class FileTooLarge(DomainError):
+    code = "file_too_large"
+
+
+class UnsupportedFile(DomainError):
+    code = "unsupported_file"
+
+
+class FileQuota(DomainError):
+    code = "file_quota"

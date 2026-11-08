@@ -10,6 +10,7 @@ from starlette.websockets import WebSocketDisconnect
 from app.config import Settings
 from app.main import create_app
 from tests.conftest import signed_in
+from tests.test_files import picture
 from tests.test_folders import join
 
 # Reached by a secret in the address, from anywhere by design: an invite or a public link.
@@ -91,6 +92,13 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
     link = client.put(f"/api/boards/{board_id}/public", json={"public": True})
     token = link.json()["public_token"] if link.is_success else "none"
     print("WALKTOKEN", tag, link.status_code)
+    file_id = ok(
+        client.post(
+            f"/api/boards/{board_id}/files",
+            content=picture(color=(len(tag), 9, 9)),
+            headers={"content-type": "image/png"},
+        )
+    )["id"]
     trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
     assert client.delete(f"/api/boards/{trashed}").is_success
     return {
@@ -104,6 +112,7 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "invite_id": invite,
         "folder_id": folder,
         "key": "DEMO-1",
+        "file_id": file_id,
         "token": token,
         "workspace": me["workspace"]["id"],
         "markers": [
@@ -211,7 +220,7 @@ def test_nothing_of_a_trashed_board_reaches_anyone(app):
         own = {"board_id": board, "user_id": ids[client], "folder_id": folder}
         own["server"] = client is admin
         target = {name: "nope" for name in ("person_id", "off_id", "type_id", "field_id")}
-        target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1"}
+        target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1", "file_id": "nope"}
         target |= own | {"markers": ["trashed-board", "note-trashed", board, token]}
         owner_like = client in (ann, admin)
 

@@ -19,6 +19,7 @@ from app.adapters import password_file
 from app.adapters.errors import sentry as error_reports
 from app.adapters.live.rooms import LiveRooms
 from app.adapters.live.workers import Workers
+from app.adapters.pictures import PillowPictures
 from app.adapters.releases.github import GitHubReleaseFeed
 from app.adapters.secrets.fernet import FernetSecretBox, NullSecretBox
 from app.adapters.stats.http import HttpStatsSender
@@ -40,6 +41,7 @@ from app.domain import demo, usage
 from app.domain.accounts import Accounts
 from app.domain.boards import purge_trash
 from app.domain.errors import NotFound
+from app.domain.files import DEMO_QUOTA_MB, Files
 from app.domain.invites import Invites
 from app.domain.members import Members
 from app.domain.planning import Planning
@@ -277,6 +279,11 @@ def create_app(
         forget_first_password=partial(password_file.remove, settings.password_file),
     )
     app.state.board_limit = settings.tiko_board_limit
+    app.state.files = Files(
+        storage.FileStore(db),
+        PillowPictures(),
+        settings.tiko_files_quota_mb or (DEMO_QUOTA_MB if settings.tiko_demo else None),
+    )
     app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))
     env_password = settings.tiko_password and settings.tiko_password.get_secret_value()
