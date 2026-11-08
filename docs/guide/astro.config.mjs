@@ -83,7 +83,7 @@ export default defineConfig({
                   'focus-and-reminders',
                 ],
               },
-              { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues'] },
+              { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues', 'caldav'] },
               {
                 label: 'Self-hosting',
                 items: ['configuration', 'data-and-upgrades', 'updates', 'security', 'privacy', 'monitoring', 'demo'],

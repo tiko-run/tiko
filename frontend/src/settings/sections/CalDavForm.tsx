@@ -114,8 +114,8 @@ function AccountForm({ account }: { account: CalDavAccount }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <p className="text-muted-foreground text-[13px]">
-        Tasks from Nextcloud, iCloud, Fastmail, Radicale or any CalDAV server, including the ones
-        you add in Thunderbird or Apple Reminders. tiko only reads them.{' '}
+        Tasks from Nextcloud, Radicale or another CalDAV server, including the ones you add in
+        Thunderbird or Apple Reminders. tiko only reads them.{' '}
         <a
           href={CALDAV_GUIDE}
           target="_blank"

@@ -24,7 +24,7 @@ class FernetSecretBox:
 
 class NullSecretBox:
     def encrypt(self, plain: str) -> str:
-        raise SecretKeyMissing("Set TIKO_SECRET_KEY in .env to store a Jira token.")
+        raise SecretKeyMissing("Set TIKO_SECRET_KEY in .env to store tokens and passwords.")
 
     def decrypt(self, token: str) -> str:
         raise SecretUnreadable("TIKO_SECRET_KEY is not set")

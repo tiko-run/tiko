@@ -334,3 +334,15 @@ def test_normalize_address(typed, address):
 def test_an_address_with_a_password_in_it_is_refused():
     with pytest.raises(ValidationFailed):
         normalize_address("https://ann:secret@cloud.example.com")
+
+
+def test_list_tasks_sorts_by_the_due_date_itself_and_knows_a_later_parent():
+    fake = FakeCalDav()
+    fake.lists["personal"].items = {
+        "c.ics": todo("child", "Book the train", "DUE:20261201T090000Z", "RELATED-TO:parent"),
+        "b.ics": todo("soon", "Call the dentist", "DUE;VALUE=DATE:20261112"),
+        "p.ics": todo("parent", "Plan the holidays"),
+    }
+    found = make(fake).list_tasks(PERSONAL, done=False, limit=50).tasks
+    assert [t.key for t in found] == ["soon", "child", "parent"]
+    assert rows(found[1])["Part of"] == "Plan the holidays"

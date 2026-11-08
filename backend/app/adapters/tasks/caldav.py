@@ -11,7 +11,7 @@ import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import NoReturn
 from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
@@ -536,16 +536,21 @@ class CalDavReader:
             if kept is None or not kept.info.shown:
                 raise TaskNotFound("This task list is not in your CalDAV account.")
             response, final = self._call("REPORT", list_id, _query("" if done else _OPEN), "1")
-            tasks = []
             _seen(kept, self._clock())
-            for href, todo in self._read(kept, response, final):
+            # Read in full first: a subtask may come before its parent.
+            found = self._read(kept, response, final)
+            ranked = []
+            for href, todo in found:
                 task = to_task(todo, href, kept.info, kept.titles)
                 if not done and task.status_category == "done":
                     continue
                 kept.hrefs[task.key] = href
-                tasks.append(task)
+                ranked.append(
+                    (task.status_category == "done", _due_key(todo), task.summary.lower(), task)
+                )
             # Open ones first, then by due date, then by title: the order of a to-do app.
-            tasks.sort(key=lambda t: (t.status_category == "done", _due_key(t), t.summary.lower()))
+            ranked.sort(key=lambda item: item[:3])
+            tasks = [item[3] for item in ranked]
             for task in tasks[:limit]:
                 kept.tasks[task.key] = task
             return ListTasks(tasks=tasks[:limit], total=len(tasks))
@@ -660,8 +665,16 @@ def _seen(kept: _List, now: float) -> None:
         kept.checked_at = now
 
 
-def _due_key(task: Task) -> str:
-    return next((row.value for row in task.rows if row.label == "Due"), "~")
+def _due_key(todo) -> datetime:
+    """The due date for sorting: a date alone counts as its midnight, no date sorts last."""
+    due = _when(todo, "DUE")
+    if due is None:
+        return datetime.max
+    if not isinstance(due, datetime):
+        return datetime(due.year, due.month, due.day)
+    if due.tzinfo is not None:
+        return due.astimezone(UTC).replace(tzinfo=None)
+    return due
 
 
 def _gone(key: str) -> Task:
