@@ -309,6 +309,7 @@ def test_upgrade_from_v2026_10_9_opens_as_admin(tmp_path, monkeypatch, capsys):
         "base_url": "https://jira.example.com",
         "token_state": "set",
         "kind": "dc",
+        "start_field": None,
     }
 
     # Once the admin exists, the variable no longer opens anything and the log says why.

@@ -1,9 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronDown } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { getSettings, saveSettings, type Settings } from '@/api/settings'
+import { getJiraDateFields, getSettings, saveSettings, type Settings } from '@/api/settings'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -18,6 +26,63 @@ function ServerNote({ name }: { name: string }) {
   )
 }
 
+// Radix radio items need a non-empty value; the API takes an empty one for Auto.
+const AUTO = 'auto'
+
+/** The Jira field a task's start is read from: Auto, or one of the site's date fields. */
+function StartField({
+  site,
+  value,
+  onChange,
+}: {
+  site: string
+  value: string
+  onChange: (id: string) => void
+}) {
+  // Kept per site, so fields of a site left a moment ago are never offered for the new one.
+  const fields = useQuery({ queryKey: ['jira-date-fields', site], queryFn: getJiraDateFields })
+  const chosen = fields.data?.find((field) => field.id === value)
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label id="start-field-label">Start date field</Label>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            aria-labelledby="start-field-label start-field-value"
+          >
+            <span id="start-field-value">{value ? (chosen?.name ?? value) : 'Auto'}</span>
+            <ChevronDown strokeWidth={1.75} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup
+            value={value || AUTO}
+            onValueChange={(id) => onChange(id === AUTO ? '' : id)}
+          >
+            <DropdownMenuRadioItem value={AUTO}>Auto</DropdownMenuRadioItem>
+            {fields.data?.map((field) => (
+              <DropdownMenuRadioItem key={field.id} value={field.id}>
+                {field.name}
+                <span className="text-muted-foreground ml-auto pl-3 font-mono text-[11px]">
+                  {field.id}
+                </span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <p className="text-muted-foreground text-[13px]">
+        Auto takes the first filled field named Start date or Target start, so projects that use
+        either work. Due dates always come from Due date.
+        {fields.isError && ' Connect your own token in My tracker to pick another field.'}
+      </p>
+    </div>
+  )
+}
+
 function TaskSourceForm({ settings }: { settings: Settings }) {
   const providerLocked = settings.locked.includes('provider')
   const urlLocked = settings.locked.includes('jira_base_url')
@@ -25,6 +90,10 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
   const [provider, setProvider] = useState(settings.provider)
   const [baseUrl, setBaseUrl] = useState(settings.jira.base_url ?? '')
   const [intervalS, setIntervalS] = useState(String(settings.refresh_interval_s))
+  const [startField, setStartField] = useState(settings.jira.start_field ?? '')
+  // A field belongs to the site it was read from: shown for the saved URL only.
+  const sameSite =
+    provider === 'jira' && !!settings.jira.base_url && baseUrl.trim() === settings.jira.base_url
 
   const save = useMutation({
     mutationFn: () =>
@@ -32,9 +101,12 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
         provider,
         refresh_interval_s: Number(intervalS),
         ...(baseUrl.trim() && { jira: { base_url: baseUrl.trim() } }),
+        ...(sameSite && { jira_start_field: startField }),
       }),
     onSuccess: (saved) => {
       queryClient.setQueryData(['settings'], saved)
+      // A new site clears the choice on the server; the form follows, so a later save keeps it.
+      setStartField(saved.jira.start_field ?? '')
       // Cards resolve through the selected provider, so re-read open boards.
       void queryClient.invalidateQueries({ queryKey: ['board'] })
       void queryClient.invalidateQueries({ queryKey: ['refresh'] })
@@ -129,6 +201,13 @@ function TaskSourceForm({ settings }: { settings: Settings }) {
           , so cards show what their own Jira access allows. Moving to another URL asks everyone to
           enter their token again.
         </p>
+        {sameSite && (
+          <StartField
+            site={settings.jira.base_url ?? ''}
+            value={startField}
+            onChange={setStartField}
+          />
+        )}
       </fieldset>
 
       {save.isError && (

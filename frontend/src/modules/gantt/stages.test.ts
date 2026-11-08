@@ -13,9 +13,10 @@ import {
   nextType,
   removeStage,
   shownStages,
+  spreadStages,
   updateStage,
 } from '@/modules/gantt/stages'
-import { parseDay } from '@/modules/gantt/timeline'
+import { makeAxis, parseDay } from '@/modules/gantt/timeline'
 import { shiftBranch } from '@/modules/gantt/tree'
 
 const d = parseDay
@@ -288,4 +289,46 @@ test('with weekends hidden a moved stage keeps the dates it was dragged to', () 
     false,
   )
   expect(spans(blocked)[0]).toEqual(['2026-10-08', '2026-10-12'])
+})
+
+test('stages spread over a span side by side, and not over one shorter than they are many', () => {
+  const row: Row = {
+    id: 'r',
+    title: '',
+    start: '2026-10-01',
+    end: '2026-10-03',
+    stages: [
+      { id: 'a', type: 't1', start: '2026-10-01', end: '2026-10-01', people: [] },
+      { id: 'b', type: 't2', start: '2026-10-03', end: '2026-10-03', people: [] },
+    ],
+  }
+  const spread = spreadStages(row, { start: d('2026-11-01'), end: d('2026-11-05') })!
+  expect(spread.stages!.map((s) => [s.id, s.start, s.end])).toEqual([
+    ['a', '2026-11-01', '2026-11-03'],
+    ['b', '2026-11-04', '2026-11-05'],
+  ])
+  expect([spread.start, spread.end]).toEqual(['2026-11-01', '2026-11-05'])
+  expect(spreadStages(row, { start: d('2026-11-01'), end: d('2026-11-01') })).toBeNull()
+})
+
+test('with working days only, stages share the working days and start and end on them', () => {
+  const row: Row = {
+    id: 'r',
+    title: '',
+    start: '2026-10-01',
+    end: '2026-10-02',
+    stages: [
+      { id: 'a', type: 't1', start: '2026-10-01', end: '2026-10-01', people: [] },
+      { id: 'b', type: 't2', start: '2026-10-02', end: '2026-10-02', people: [] },
+    ],
+  }
+  // Mon Nov 2 to Fri Nov 13, with Wed Nov 11 off: nine working days.
+  const axis = makeAxis({ start: d('2026-10-01'), end: d('2026-12-31') }, 900, true, ['2026-11-11'])
+  const spread = spreadStages(row, { start: d('2026-11-02'), end: d('2026-11-13') }, axis)!
+  expect(spread.stages!.map((s) => [s.start, s.end])).toEqual([
+    ['2026-11-02', '2026-11-06'],
+    ['2026-11-09', '2026-11-13'],
+  ])
+  // A weekend alone has no working day for a stage.
+  expect(spreadStages(row, { start: d('2026-11-07'), end: d('2026-11-08') }, axis)).toBeNull()
 })

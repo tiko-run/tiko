@@ -21,6 +21,10 @@ Keep `TIKO_SECRET_KEY` safe. If you change or lose it, enter the token again.
 
 Jira Data Center is usually reachable only from the corporate network, so the host running tiko must be able to reach it too. For a corporate certificate authority, see `JIRA_CA_BUNDLE` in [Configuration](../configuration/).
 
+## Start and due dates
+
+A card shows the task's start and due dates when Jira has them. The due date is Jira's own Due date. Jira has no start field of its own, so tiko reads the first filled field named Start date or Target start: projects that keep the start in different fields both work without setup. If your site keeps it in a field with another name, an admin picks that field in Settings → Task source → Start date field.
+
 ## Other trackers
 
 The full list, with what is planned, is in [Task trackers](../trackers/).

@@ -5,4 +5,5 @@ export const ModuleHostContext = createContext<ModuleHost>({
   addTasks: () => {},
   ejectCard: () => {},
   ejectNote: () => {},
+  syncContent: () => {},
 })

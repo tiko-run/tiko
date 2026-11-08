@@ -14,7 +14,7 @@ def test_defaults(client):
         "provider": "demo",
         "refresh_interval_s": 30,
         "secret_key_configured": False,
-        "jira": {"base_url": None, "token_state": "none", "kind": None},
+        "jira": {"base_url": None, "token_state": "none", "kind": None, "start_field": None},
         "public_links": True,
         "locked": [],
     }
@@ -32,6 +32,7 @@ def test_connect_and_resolve_real_card(jira_client):
         "base_url": "https://jira.example.com",
         "token_state": "set",
         "kind": "dc",
+        "start_field": None,
     }
     task = jira_client.post("/api/tasks/resolve", json={"ref": "dev-1"}).json()["task"]
     assert task["url"] == "https://jira.example.com/browse/DEV-1"

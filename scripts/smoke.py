@@ -374,7 +374,7 @@ check(not left, "no board left behind")
 
 status, body = call("GET", f"{API}/api/settings")
 check(
-    status == 200 and set(body["jira"]) == {"base_url", "token_state", "kind"},
+    status == 200 and set(body["jira"]) == {"base_url", "token_state", "kind", "start_field"},
     "settings hide token",
 )
 check(isinstance(body["secret_key_configured"], bool), "secret key state reported")
