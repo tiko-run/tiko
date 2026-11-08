@@ -131,6 +131,10 @@ GitHub counts requests per account, not per token: a second token of yours does 
 
 If GitHub rejects your token (it expired or you revoked it), public cards keep updating without it, private ones show the key, and the GitHub row says "GitHub rejected your token". Enter a new one in Settings → My tracker.
 
+## Due dates
+
+An issue has no dates of its own, so a card shows the due date of its milestone, as GitHub does in the issue list.
+
 ## Public links
 
 A guest of a board's public link sees GitHub cards of public repositories in full: they are public anyway. A card of a private repository shows a guest its key only, whoever's token reads it.

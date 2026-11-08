@@ -70,6 +70,8 @@ class SettingsIn(BaseModel):
     provider: Provider | None = None
     refresh_interval_s: int | None = Field(default=None, ge=30, le=300)
     jira: JiraIn | None = None
+    # The Jira field a task's start is read from; empty goes back to finding it by name.
+    jira_start_field: str | None = Field(default=None, max_length=100, pattern=r"^[\w.]*$")
     public_links: bool | None = None
 
 
@@ -77,6 +79,7 @@ class JiraView(BaseModel):
     base_url: str | None
     token_state: TokenState
     kind: JiraKind | None = None
+    start_field: str | None = None
 
 
 LockedField = Literal["provider", "jira_base_url"]
@@ -100,6 +103,8 @@ class JiraCredentials:
     # Jira Cloud signs in with the account's e-mail next to its API token.
     email: str | None = None
     kind: JiraKind = "dc"
+    # The admin's choice of the start date field; None finds it by name.
+    start_field: str | None = None
 
 
 class SettingsService:
@@ -213,6 +218,7 @@ class SettingsService:
                 base_url=values.get("jira_base_url"),
                 token_state=self.token_state(user_id),
                 kind=self.jira_kind(),
+                start_field=values.get("jira_start_field") or None,
             ),
             public_links=values.get("public_links") != "0",
             locked=sorted(self._env),
@@ -241,6 +247,11 @@ class SettingsService:
             values["refresh_interval_s"] = str(change.refresh_interval_s)
         if change.jira is not None:
             values["jira_base_url"] = change.jira.base_url
+            # A field id means nothing on another site.
+            if change.jira.base_url != current.get("jira_base_url"):
+                values["jira_start_field"] = None
+        if change.jira_start_field is not None:
+            values["jira_start_field"] = change.jira_start_field or None
         if change.public_links is not None:
             values["public_links"] = "1" if change.public_links else "0"
         self._repo.set_many(values)
@@ -347,13 +358,17 @@ class SettingsService:
             raise JiraNotConfigured("An admin sets the Jira URL in Settings first.")
         if secret is None:
             raise JiraNotConfigured("Connect your Jira token in Settings → My tracker.")
+        # The choice belongs to the site it was made on, not to one an admin is testing.
+        start_field = self._values().get("jira_start_field") if url == stored_url else None
         kind = self.jira_kind(url) or "dc"
         if kind == "dc":
-            return JiraCredentials(base_url=url, token=secret)
+            return JiraCredentials(base_url=url, token=secret, start_field=start_field)
         self._require_https_for_cloud(url)
         cloud_email = (email or "").strip() or stored_email
         if not cloud_email and plain is not None:
             raise ValidationFailed("email: enter the e-mail of your Atlassian account")
         if not cloud_email:
             raise JiraNotConfigured("Connect your Jira token in Settings → My tracker.")
-        return JiraCredentials(base_url=url, token=secret, email=cloud_email, kind="cloud")
+        return JiraCredentials(
+            base_url=url, token=secret, email=cloud_email, kind="cloud", start_field=start_field
+        )

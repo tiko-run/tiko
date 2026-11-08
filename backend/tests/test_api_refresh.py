@@ -44,7 +44,10 @@ def test_only_open_board_keys_are_polled(jira_client, fake_jira):
         "error": None,
         "note": None,
     }
-    assert len(fake_jira.requests) == 1
+    # The site's field list is asked once and kept; the tasks come in one search.
+    assert [r.url.path for r in fake_jira.requests if r.url.path.endswith("/search")] == [
+        "/rest/api/2/search"
+    ]
 
 
 def test_rate_limited_refresh(jira_client, fake_jira):

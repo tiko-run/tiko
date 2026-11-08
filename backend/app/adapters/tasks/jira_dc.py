@@ -2,6 +2,7 @@ import html
 import re
 import time
 from collections.abc import Callable
+from typing import NamedTuple
 from urllib.parse import quote, urlparse
 
 import httpx
@@ -16,9 +17,16 @@ from app.domain.errors import (
 )
 from app.domain.jql import JqlField, JqlValue, JqlVocabulary
 from app.domain.settings import JiraCredentials
-from app.domain.tasks import SearchResult, StatusCategory, Task, now_iso
+from app.domain.tasks import SearchResult, StatusCategory, Task, now_iso, tracker_day
 
-FIELDS = ["summary", "status", "issuetype", "assignee", "priority", "updated"]
+DUE_FIELD = "duedate"
+FIELDS = ["summary", "status", "issuetype", "assignee", "priority", "updated", DUE_FIELD]
+# Jira has no start field of its own; these are the names Jira Software and Plans give it,
+# in the order they are tried.
+START_NAMES = ("start date", "target start")
+DATE_TYPES = ("date", "datetime")
+# A site's fields change only when an admin adds one.
+DATE_FIELDS_TTL_S = 600
 SEARCH_CHUNK = 500
 SOURCE_ID = "jira"
 _KEY_IN_ERROR = re.compile(r"'([A-Z][A-Z0-9_]+-\d+)'")
@@ -38,10 +46,41 @@ def _name(value: dict | None, field: str = "name") -> str | None:
     return value.get(field) if value else None
 
 
-def to_task(base_url: str, issue: dict) -> Task:
+class DateField(NamedTuple):
+    id: str
+    name: str
+
+
+class JiraDateFields:
+    """The date fields of each Jira site, kept across the providers built per request."""
+
+    def __init__(self) -> None:
+        self._sites: dict[str, tuple[float, list[DateField]]] = {}
+
+    def get(self, base_url: str) -> list[DateField] | None:
+        cached = self._sites.get(base_url)
+        return cached[1] if cached and cached[0] > time.monotonic() else None
+
+    def put(self, base_url: str, fields: list[DateField]) -> None:
+        self._sites[base_url] = (time.monotonic() + DATE_FIELDS_TTL_S, fields)
+
+
+def start_fields(fields: list[DateField], chosen: str | None) -> list[str]:
+    """The fields a task's start is read from, first filled wins: the admin's choice while the
+    site has it, else every field named as in START_NAMES, so projects that fill different
+    ones all work."""
+    if chosen and any(f.id == chosen for f in fields):
+        return [chosen]
+    named = [f for f in fields if f.name.strip().lower() in START_NAMES]
+    return [f.id for f in sorted(named, key=lambda f: START_NAMES.index(f.name.strip().lower()))]
+
+
+def to_task(base_url: str, issue: dict, starts: list[str] | tuple[str, ...] = ()) -> Task:
     fields = issue["fields"]
     status = fields.get("status") or {}
     category = (status.get("statusCategory") or {}).get("key", "new")
+    start_field = next((f for f in starts if tracker_day(fields.get(f))), None)
+    due = tracker_day(fields.get(DUE_FIELD))
     return Task(
         source=SOURCE_ID,
         key=issue["key"],
@@ -54,6 +93,10 @@ def to_task(base_url: str, issue: dict) -> Task:
         updated=fields.get("updated"),
         url=f"{base_url}/browse/{issue['key']}",
         fetched_at=now_iso(),
+        start=tracker_day(fields.get(start_field)) if start_field else None,
+        start_field=start_field,
+        due=due,
+        due_field=DUE_FIELD if due else None,
     )
 
 
@@ -83,9 +126,9 @@ def query_answer(response: httpx.Response) -> dict:
     return _json(response)
 
 
-def _task(base_url: str, issue: dict) -> Task:
+def _task(base_url: str, issue: dict, starts: list[str] | tuple[str, ...] = ()) -> Task:
     try:
-        return to_task(base_url, issue)
+        return to_task(base_url, issue, starts)
     except (KeyError, TypeError, AttributeError) as exc:
         raise JiraUnavailable("Jira returned an issue in an unexpected format.") from exc
 
@@ -99,10 +142,51 @@ class JiraDcProvider:
     # Keys read in one request of a poll.
     poll_chunk = SEARCH_CHUNK
 
-    def __init__(self, credentials: Callable[[], JiraCredentials], client: httpx.Client) -> None:
+    def __init__(
+        self,
+        credentials: Callable[[], JiraCredentials],
+        client: httpx.Client,
+        date_fields: JiraDateFields | None = None,
+    ) -> None:
         self._credentials = credentials
         self._client = client
         self._vocabulary: tuple[str, float, JqlVocabulary] | None = None
+        self._date_fields = date_fields or JiraDateFields()
+
+    def date_fields(self) -> list[DateField]:
+        """The site's date fields; none when Jira does not list them, so tasks still load."""
+        base_url = self._credentials().base_url
+        cached = self._date_fields.get(base_url)
+        if cached is not None:
+            return cached
+        try:
+            _, response = self._request("GET", "/rest/api/2/field")
+        except (JiraUnavailable, JiraUnreachable):
+            # Asked again next time: a site that is down now may list them in a minute.
+            return []
+        try:
+            body = response.json() if response.status_code == 200 else None
+        except ValueError:
+            body = None
+        fields = (
+            [
+                DateField(item["id"], item["name"])
+                for item in body
+                if isinstance(item, dict)
+                and isinstance(item.get("id"), str)
+                and isinstance(item.get("name"), str)
+                # Jira's own date fields (created, due date, resolved) never hold a start.
+                and item.get("custom") is True
+                and (item.get("schema") or {}).get("type") in DATE_TYPES
+            ]
+            if isinstance(body, list)
+            else []
+        )
+        self._date_fields.put(base_url, fields)
+        return fields
+
+    def _starts(self) -> list[str]:
+        return start_fields(self.date_fields(), self._credentials().start_field)
 
     @property
     def base_host(self) -> str:
@@ -145,17 +229,18 @@ class JiraDcProvider:
         return body.get("displayName") or body.get("name") or "unknown user"
 
     def resolve(self, key: str) -> Task:
+        starts = self._starts()
         base_url, response = self._request(
-            "GET", f"/rest/api/2/issue/{quote(key)}", params={"fields": ",".join(FIELDS)}
+            "GET", f"/rest/api/2/issue/{quote(key)}", params={"fields": ",".join(FIELDS + starts)}
         )
         # Jira DC answers 404 both for missing issues and for issues the token cannot see.
         if response.status_code == 404:
             raise TaskNotFound(f"{key} not found or you have no access")
         if response.status_code != 200:
             raise JiraUnavailable(f"Jira returned {response.status_code}")
-        return _task(base_url, _json(response))
+        return _task(base_url, _json(response), starts)
 
-    def _fetch(self, keys: list[str]) -> tuple[str, list[dict]]:
+    def _fetch(self, keys: list[str], starts: list[str]) -> tuple[str, list[dict]]:
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search",
@@ -163,7 +248,7 @@ class JiraDcProvider:
             # Jira DC's POST /search takes a boolean here and rejects "warn" with a 400.
             json={
                 "jql": f"key in ({','.join(keys)})",
-                "fields": FIELDS,
+                "fields": FIELDS + starts,
                 "maxResults": len(keys),
                 "validateQuery": False,
             },
@@ -174,7 +259,7 @@ class JiraDcProvider:
             bad = set(_KEY_IN_ERROR.findall(messages))
             rest = [key for key in keys if key not in bad]
             if bad and rest and len(rest) < len(keys):
-                return self._fetch(rest)
+                return self._fetch(rest, starts)
             if bad and not rest:
                 return base_url, []
         if response.status_code != 200:
@@ -183,14 +268,17 @@ class JiraDcProvider:
         return base_url, issues if isinstance(issues, list) else []
 
     def search(self, jql: str, limit: int) -> SearchResult:
+        starts = self._starts()
         base_url, response = self._request(
             "POST",
             "/rest/api/2/search",
-            json={"jql": jql, "fields": FIELDS, "maxResults": limit},
+            json={"jql": jql, "fields": FIELDS + starts, "maxResults": limit},
         )
         body = query_answer(response)
         issues = body.get("issues")
-        tasks = [_task(base_url, issue) for issue in issues] if isinstance(issues, list) else []
+        tasks = (
+            [_task(base_url, issue, starts) for issue in issues] if isinstance(issues, list) else []
+        )
         total = body.get("total")
         return SearchResult(tasks, total if isinstance(total, int) else len(tasks))
 
@@ -239,10 +327,11 @@ class JiraDcProvider:
     def poll(self, keys: list[str]) -> list[Task]:
         found: dict[str, Task] = {}
         base_url = self._credentials().base_url
+        starts = self._starts()
         for start in range(0, len(keys), self.poll_chunk):
-            base_url, issues = self._fetch(keys[start : start + self.poll_chunk])
+            base_url, issues = self._fetch(keys[start : start + self.poll_chunk], starts)
             for issue in issues:
-                task = _task(base_url, issue)
+                task = _task(base_url, issue, starts)
                 found[task.key] = task
         return [
             found.get(key)

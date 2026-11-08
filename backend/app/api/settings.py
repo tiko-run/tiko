@@ -56,3 +56,17 @@ def test_jira(body: TestIn, person: CurrentPerson, settings: Settings, request: 
     creds = settings.jira_credentials(person.id, body.base_url, body.token, body.email)
     check: Callable[[JiraCredentials], str] = request.app.state.check_jira
     return TestOut(ok=True, user=check(creds))
+
+
+class DateFieldOut(BaseModel):
+    id: str
+    name: str
+
+
+@router.get("/jira/date-fields", dependencies=[NotDemoVisitor])
+def jira_date_fields(
+    admin: WorkspaceAdmin, settings: Settings, request: Request
+) -> list[DateFieldOut]:
+    """The Jira site's date fields, for the admin's choice of the start date field."""
+    provider = request.app.state.jira(settings.jira_credentials(admin.id))
+    return [DateFieldOut(id=f.id, name=f.name) for f in provider.date_fields()]

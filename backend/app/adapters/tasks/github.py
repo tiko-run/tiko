@@ -26,6 +26,7 @@ from app.domain.tasks import (
     TaskRow,
     github_url,
     now_iso,
+    tracker_day,
 )
 
 API_URL = "https://api.github.com"
@@ -108,6 +109,8 @@ def _labels(issue: dict) -> list[TaskLabel]:
 def to_task(key: str, issue: dict) -> Task:
     status_name, category = _status(issue)
     author = (issue.get("user") or {}).get("login")
+    # An issue has no dates of its own; its milestone's due date is the one GitHub shows.
+    due = tracker_day((issue.get("milestone") or {}).get("due_on"))
     return Task(
         source=GITHUB,
         key=key,
@@ -121,6 +124,8 @@ def to_task(key: str, issue: dict) -> Task:
         fetched_at=now_iso(),
         labels=_labels(issue),
         rows=[TaskRow(label="Author", value=author)] if author else [],
+        due=due,
+        due_field="milestone" if due else None,
     )
 
 

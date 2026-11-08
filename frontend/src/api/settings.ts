@@ -12,6 +12,8 @@ const settingsSchema = z.object({
     token_state: z.enum(['none', 'set', 'unreadable']),
     /** Found from the site itself; null while no URL is set. */
     kind: jiraKind.nullable().default(null),
+    /** The field a task's start is read from; null finds it by name. */
+    start_field: z.string().nullable().default(null),
   }),
   /** Whether board owners may make a public link. */
   public_links: z.boolean(),
@@ -26,6 +28,8 @@ export type SettingsChange = {
   refresh_interval_s?: number
   // An omitted token keeps the stored one.
   jira?: { base_url: string; token?: string }
+  // Empty goes back to finding the field by name.
+  jira_start_field?: string
   public_links?: boolean
 }
 
@@ -45,6 +49,14 @@ export function testJira(input: { base_url?: string; token?: string; email?: str
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+const dateFieldsSchema = z.array(z.object({ id: z.string(), name: z.string() }))
+export type DateField = z.infer<typeof dateFieldsSchema>[number]
+
+/** The Jira site's own date fields, read with the admin's token. */
+export function getJiraDateFields() {
+  return fetchJson('/api/settings/jira/date-fields', dateFieldsSchema)
 }
 
 const trackerSchema = z.object({

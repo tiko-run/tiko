@@ -29,7 +29,7 @@ from app.adapters.storage.update_backups import DumpUpdateBackups
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_cloud import JiraCloudProvider
-from app.adapters.tasks.jira_dc import JiraDcProvider
+from app.adapters.tasks.jira_dc import JiraDateFields, JiraDcProvider
 from app.adapters.tasks.jira_kind import find_kind
 from app.adapters.updater.http import HttpUpdater, ensure_token
 from app.api.errors import register_error_handlers
@@ -361,9 +361,11 @@ def create_app(
     )
     app.state.demo = DemoTaskProvider(storage.DemoStatusRepo(db) if settings.tiko_demo else None)
 
+    jira_date_fields = JiraDateFields()
+
     def jira(creds: JiraCredentials) -> JiraDcProvider:
         kind = JiraCloudProvider if creds.kind == "cloud" else JiraDcProvider
-        return kind(lambda: creds, client)
+        return kind(lambda: creds, client, jira_date_fields)
 
     # Built per request from the signed-in person's own token.
     app.state.jira = jira
