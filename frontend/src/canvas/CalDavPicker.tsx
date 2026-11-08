@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check, ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
 import { findCalDavTasks, getCalDav, getCalDavLists, type TaskList } from '@/api/caldav'
 import type { Task } from '@/api/tasks'
 import { errorMessage } from '@/canvas/refs'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -149,20 +150,8 @@ export function CalDavPicker({
         <ul className="flex flex-col">
           {found.map((task) => (
             <li key={task.key}>
-              <button
-                type="button"
-                aria-pressed={ticked.has(task.key)}
-                onClick={() => toggle(task)}
-                className="hover:bg-accent flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left text-[13px]"
-              >
-                <span
-                  className={cn(
-                    'flex size-4 shrink-0 items-center justify-center rounded-sm border',
-                    ticked.has(task.key) && 'bg-primary border-primary text-primary-foreground',
-                  )}
-                >
-                  {ticked.has(task.key) && <Check className="size-3" strokeWidth={2.5} />}
-                </span>
+              <label className="hover:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-[13px]">
+                <Checkbox checked={ticked.has(task.key)} onCheckedChange={() => toggle(task)} />
                 <span
                   className={cn(
                     'min-w-0 flex-1 truncate',
@@ -174,7 +163,7 @@ export function CalDavPicker({
                 {listId === ALL && (
                   <span className="text-muted-foreground shrink-0 text-xs">{task.type_name}</span>
                 )}
-              </button>
+              </label>
             </li>
           ))}
         </ul>
@@ -194,7 +183,8 @@ export function CalDavPicker({
             type="button"
             variant="ghost"
             size="sm"
-            disabled={found.length === 0}
+            // While a new search loads, the list still shows the last one's tasks.
+            disabled={found.length === 0 || tasks.isPlaceholderData}
             onClick={() => add(found)}
           >
             {found.length > 1 ? `Add these ${found.length}` : 'Add this'}

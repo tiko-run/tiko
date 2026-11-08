@@ -72,11 +72,11 @@ test('names the account and says how many more tasks a search would reach', asyn
 
 test('searches every list by title and keeps ticks across searches', async () => {
   const { onAdd, fetchMock } = show()
-  fireEvent.click(await screen.findByRole('button', { name: /Call the plumber/ }))
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Call the plumber/ }))
   fireEvent.change(screen.getByLabelText('Search tasks'), { target: { value: 'buy' } })
   await waitFor(() => expect(screen.queryByText('Call the plumber')).toBeNull())
   expect(bodies(fetchMock).at(-1)).toEqual({ query: 'buy', list_id: null, done: false })
-  fireEvent.click(screen.getByRole('button', { name: /Buy a chair/ }))
+  fireEvent.click(screen.getByRole('checkbox', { name: /Buy a chair/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Add 2' }))
   expect(onAdd.mock.calls[0][0].map((t: { key: string }) => t.key)).toEqual(['t-2', 't-3'])
 })

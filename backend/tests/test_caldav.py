@@ -381,3 +381,122 @@ def test_the_title_filter_goes_to_the_server():
     make(fake).find_tasks("milk", PERSONAL, done=False, limit=20)
     report = next(r for r in fake.requests if r.method == "REPORT")
     assert b'name="SUMMARY"' in report.content
+
+
+def redirect_to(location: str, fake: FakeCalDav):
+    def answer(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/.well-known/caldav":
+            return httpx.Response(301, headers={"location": location})
+        return fake(request)
+
+    return answer
+
+
+def reader_on(handler, table: dict[str, str], allow_private: bool = True) -> CalDavReader:
+    http = CalDavHttp(
+        httpx.Client(transport=httpx.MockTransport(handler)), allow_private, resolver(table)
+    )
+    return CalDavReader(http, CalDavAccount(normalize_address(HOST), USER, SecretStr(PASSWORD)))
+
+
+def test_the_password_never_follows_a_redirect_to_another_server():
+    fake = FakeCalDav()
+    reader = reader_on(
+        redirect_to("https://evil.example.net/dav/", fake), {"evil.example.net": "93.184.216.35"}
+    )
+    with pytest.raises(CalDavAddressRefused):
+        reader.check()
+    assert all(r.headers.get("host") == HOST for r in fake.requests)
+
+
+def test_a_sibling_host_of_the_same_service_is_followed():
+    fake = FakeCalDav()
+    sibling = "p42-cloud.example.com"
+    reader = reader_on(
+        redirect_to(f"https://{sibling}/remote.php/dav/", fake), {sibling: "93.184.216.35"}
+    )
+    assert reader.check() == "Ann Example"
+    assert any(r.headers.get("host") == sibling for r in fake.requests)
+
+
+def test_cookies_of_one_person_never_reach_another():
+    seen: list[str | None] = []
+    fake = FakeCalDav()
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers.get("cookie"))
+        response = fake(request)
+        response.headers["set-cookie"] = "session=ann-only; Path=/"
+        return response
+
+    client = httpx.Client(transport=httpx.MockTransport(answer))
+    http = CalDavHttp(client, True, resolver())
+    account = CalDavAccount(normalize_address(HOST), USER, SecretStr(PASSWORD))
+    CalDavReader(http, account).check()
+    CalDavReader(http, account).check()
+    assert seen and all(cookie is None for cookie in seen)
+
+
+def test_a_search_does_not_hide_a_change_to_a_card():
+    fake = FakeCalDav()
+    fake.put("personal", "a2.ics", todo("task-2", "Call the plumber"))
+    clock = Clock()
+    reader = make(fake, clock=clock)
+    reader.resolve("task-1")
+    reader.find_tasks("", PERSONAL, done=False, limit=20)
+    clock.now += 60
+    reader.poll(["task-1"])
+    fake.put("personal", "a1.ics", todo("task-1", "Buy oat milk"))
+    clock.now += 60
+    reader.find_tasks("plumber", PERSONAL, done=False, limit=20)
+    clock.now += 60
+    assert reader.poll(["task-1"])[0].summary == "Buy oat milk"
+
+
+def test_after_a_restart_cards_are_found_with_one_read_per_list():
+    fake = FakeCalDav()
+    for n in range(2, 12):
+        fake.put("personal", f"a{n}.ics", todo(f"task-{n}", f"Task {n}"))
+    reader = make(fake)
+    keys = [f"task-{n}" for n in range(1, 12)]
+    assert all(t.state == "ok" for t in reader.poll(keys))
+    assert fake.count("REPORT") == len(
+        [n for n, item in fake.lists.items() if "VTODO" in item.components]
+    )
+
+
+def test_a_link_with_another_scheme_is_dropped():
+    (item,) = todos(todo("task-1", "Plan"))
+    href = "javascript:alert(1)//remote.php/dav/calendars/a/b/c.ics"
+    assert to_task(item, href, LIST, {}).url == ""
+
+
+def test_a_task_listed_on_another_server_is_skipped():
+    fake = FakeCalDav()
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        response = fake(request)
+        if request.method == "REPORT":
+            body = response.content.replace(
+                f"{HOME}personal/a1.ics".encode(), b"https://evil.example.net/a1.ics"
+            )
+            return httpx.Response(207, content=body)
+        return response
+
+    found = reader_on(answer, {}).find_tasks("", PERSONAL, done=False, limit=20)
+    assert found.tasks == []
+
+
+def test_a_port_out_of_range_is_refused():
+    with pytest.raises(CalDavAddressRefused):
+        make(FakeCalDav(), f"https://{HOST}:99999").check()
+
+
+def test_a_nat64_address_counts_as_private():
+    with pytest.raises(CalDavAddressRefused):
+        make(
+            FakeCalDav(),
+            "https://nat.example.com",
+            allow_private=False,
+            table={"nat.example.com": "64:ff9b::7f00:1"},
+        ).check()

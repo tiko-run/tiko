@@ -18,7 +18,9 @@ Each person connects their own account in **Settings → My tracker → CalDAV**
 
 The address can be just the domain, such as `cloud.example.com`: tiko finds your task lists by itself. A full address works too, such as `https://cloud.example.com/remote.php/dav/`. tiko answers with the name of your account, or says what went wrong.
 
-The password stays on the server, encrypted, and is never shown again. To change the address or the user name without typing the password again, leave the password blank.
+tiko stores the password encrypted and never shows it again. To connect again with the same address and user name, leave the password blank. A new address or user name needs the password again, so it never reaches a server it was not typed for.
+
+The instance needs `TIKO_SECRET_KEY` set to store the password, see [Configuration](../configuration/).
 
 ## Choose the lists
 
@@ -38,6 +40,8 @@ A CalDAV card shows its list where other cards show a key. Click it for the mini
 | In process | In progress |
 | Completed | Done |
 | Cancelled | Cancelled |
+
+Apple Reminders has no cancelled state: a cancelled task it syncs comes back as open, on the server and so on the card.
 
 A task you move to another list in your app stays on the board: tiko finds it again in its new list. A repeating task is one card for the whole series.
 

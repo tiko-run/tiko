@@ -1,6 +1,6 @@
 # Feature Specification: CalDAV tasks as cards
 
-**Status**: Draft, waiting for G1.
+**Status**: Approved at G1 on 2026-11-08.
 
 **Input**: Issue #327, asked for in discussion #71. People keep their tasks on a CalDAV server, most often Nextcloud, and edit them in Thunderbird, Apple Reminders or the server's web app. They want those tasks on a tiko board as live cards, and they want to choose which task lists tiko shows.
 

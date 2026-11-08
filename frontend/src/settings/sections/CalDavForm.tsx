@@ -18,9 +18,14 @@ import { toastError } from '@/lib/toast'
 
 const CALDAV_GUIDE = 'https://docs.tiko.run/caldav/'
 
+function normalized(address: string) {
+  const text = address.trim().replace(/\/+$/, '')
+  return text.includes('://') ? text : `https://${text}`
+}
+
 const HINT = {
   none: 'Not connected. CalDAV cards show only their list until you connect.',
-  set: 'Your password is stored. Leave it blank to keep it.',
+  set: 'Your password is stored. Leave it blank to keep it, unless you change the address or user name.',
   unreadable: 'Your stored account no longer works here: the secret key changed. Enter it again.',
 }
 
@@ -110,7 +115,12 @@ function AccountForm({ account }: { account: CalDavAccount }) {
     event.preventDefault()
     save.mutate()
   }
-  const needsPassword = account.state !== 'set' && !password.trim()
+  // A stored password goes only to the address and user name it was typed for.
+  const same =
+    account.state === 'set' &&
+    normalized(address) === normalized(account.address ?? '') &&
+    username.trim() === account.username
+  const needsPassword = !same && !password.trim()
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <p className="text-muted-foreground text-[13px]">
@@ -156,7 +166,7 @@ function AccountForm({ account }: { account: CalDavAccount }) {
           autoComplete="off"
         />
         <p className="text-muted-foreground text-[13px]">
-          {HINT[account.state]} It stays on the server and is never shown again.
+          {HINT[account.state]} tiko stores it encrypted and never shows it again.
         </p>
       </div>
       {save.isError && <p className="text-destructive text-[13px]">{save.error.message}</p>}

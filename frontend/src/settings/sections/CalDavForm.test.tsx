@@ -72,3 +72,11 @@ test('switching a list off sends it as hidden', async () => {
     hidden: ['https://cloud.example.com/dav/work/'],
   })
 })
+
+test('a new address asks for the password again', async () => {
+  show('set')
+  const address = await screen.findByLabelText('Server address')
+  expect(screen.getByRole('button', { name: 'Connect' })).toBeEnabled()
+  fireEvent.change(address, { target: { value: 'nas.local' } })
+  expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled()
+})

@@ -361,8 +361,8 @@ class SettingsService:
         return JiraCredentials(base_url=url, token=secret, email=cloud_email, kind="cloud")
 
     def caldav_account(self, user_id: str) -> tuple[TokenState, CalDavAccount | None]:
-        """The person's own CalDAV account; the address is stored with it, so no instance
-        setting can send the password anywhere else."""
+        """The person's own CalDAV account."""
+        # The address is stored with the password, so no instance setting can send it elsewhere.
         stored = self._credentials.get(user_id, CALDAV)
         if stored is None:
             return "none", None

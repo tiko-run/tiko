@@ -79,6 +79,13 @@ def test_a_blank_password_keeps_the_stored_one(admin):
     assert response.is_success
 
 
+def test_a_new_address_needs_the_password_again(admin):
+    admin.put("/api/me/caldav", json=ACCOUNT)
+    response = admin.put("/api/me/caldav", json={"address": "http://nas.local", "username": USER})
+    assert response.status_code == 422
+    assert "app password" in response.text
+
+
 def test_switched_off_lists_stay_off(admin):
     admin.put("/api/me/caldav", json=ACCOUNT)
     shown = admin.put("/api/me/caldav/lists", json={"hidden": [WORK]}).json()["lists"]

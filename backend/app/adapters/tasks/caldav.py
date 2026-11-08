@@ -10,7 +10,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from typing import NoReturn
 from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
@@ -18,7 +18,7 @@ from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 import httpx
 from icalendar import Calendar
 
-from app.domain.caldav import CALDAV, CalDavAccount, ListTasks, TaskList, no_account
+from app.domain.caldav import CalDavAccount, ListTasks, TaskList, no_account
 from app.domain.errors import (
     CalDavAddressRefused,
     CalDavRejected,
@@ -28,7 +28,15 @@ from app.domain.errors import (
     TrackerUnreachable,
     ValidationFailed,
 )
-from app.domain.tasks import StatusCategory, Task, TaskLabel, TaskRow, now_iso, valid_uid
+from app.domain.tasks import (
+    CALDAV,
+    StatusCategory,
+    Task,
+    TaskLabel,
+    TaskRow,
+    now_iso,
+    valid_uid,
+)
 
 DAV = "DAV:"
 CAL = "urn:ietf:params:xml:ns:caldav"
@@ -64,9 +72,22 @@ def resolve_host(host: str, port: int) -> list[str]:
     return list(dict.fromkeys(str(info[4][0]) for info in infos))
 
 
+# NAT64 addresses carry an IPv4 address inside; the private one hides behind a global prefix.
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
+def same_site(host: str, home: str) -> bool:
+    """Whether the password typed for `home` may go to `host`: the same host or a sibling one,
+    as iCloud moves an account from caldav.icloud.com to pNN-caldav.icloud.com."""
+    host, home = host.lower(), home.lower()
+    if host == home:
+        return True
+    _, _, parent = home.partition(".")
+    return parent.count(".") >= 1 and host.endswith(f".{parent}")
+
+
 class CalDavHttp:
-    """Requests to a person's server. The host is resolved and checked first, and the request
-    goes to the checked address, so a name cannot turn into another address in between."""
+    """Requests to a person's server, pinned to the address that was checked."""
 
     def __init__(
         self,
@@ -79,20 +100,24 @@ class CalDavHttp:
         self._resolver = resolver
 
     def _pinned(self, url: str) -> tuple[str, str, str]:
-        """The URL with its host replaced by a checked address, the Host header and the name
-        TLS must verify."""
+        # The host is resolved once and the request goes to that address, so a name cannot
+        # turn into another address between the check and the connection.
         parts = urlsplit(url)
         host = parts.hostname or ""
         if parts.scheme not in ("http", "https") or not host:
             raise CalDavAddressRefused("address: only http and https addresses work")
-        port = parts.port or (443 if parts.scheme == "https" else 80)
+        try:
+            given = parts.port
+        except ValueError as exc:
+            raise CalDavAddressRefused("address: the port is not a number tiko can use") from exc
+        port = given or (443 if parts.scheme == "https" else 80)
         try:
             found = [ipaddress.ip_address(a.split("%")[0]) for a in self._resolver(host, port)]
         except (OSError, ValueError) as exc:
             raise TrackerUnreachable(f"The CalDAV server {host} was not found.") from exc
         if not found:
             raise TrackerUnreachable(f"The CalDAV server {host} was not found.")
-        private = any(not ip.is_global for ip in found)
+        private = any(not ip.is_global or (ip.version == 6 and ip in _NAT64) for ip in found)
         if private and not self._allow_private:
             raise CalDavAddressRefused(
                 f"address: {host} is on a private network, which this tiko does not connect to"
@@ -102,21 +127,29 @@ class CalDavHttp:
             raise CalDavAddressRefused("address: a server on the internet needs https://")
         ip = found[0]
         literal = f"[{ip}]" if ip.version == 6 else str(ip)
-        netloc = f"{literal}:{parts.port}" if parts.port else literal
+        netloc = f"{literal}:{given}" if given else literal
+        named = f"[{host}]" if ":" in host else host
         target = urlunsplit((parts.scheme, netloc, parts.path or "/", parts.query, ""))
-        return target, parts.netloc, host
+        return target, f"{named}:{given}" if given else named, host
 
     def request(
         self,
         method: str,
         url: str,
         auth: tuple[str, str],
+        home: str,
         body: str | None = None,
         depth: str | None = None,
     ) -> tuple[httpx.Response, str]:
-        """The answer and the URL that gave it, after redirects."""
+        """The answer and the URL that gave it, after redirects; `home` is the host the
+        password was typed for."""
         for _ in range(MAX_REDIRECTS + 1):
             target, host_header, sni = self._pinned(url)
+            if not same_site(sni, home):
+                raise CalDavAddressRefused(
+                    f"address: the server sent tiko on to {sni}, another server, and the"
+                    " password stays with the one it was typed for"
+                )
             headers = {"Host": host_header}
             if depth is not None:
                 headers["Depth"] = depth
@@ -131,6 +164,9 @@ class CalDavHttp:
             )
             token = base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode()
             request.headers["Authorization"] = f"Basic {token}"
+            # One client serves everyone: a cookie from one person's session must never ride
+            # along with the next person's request.
+            request.headers.pop("cookie", None)
             try:
                 response = self._client.send(request, stream=True)
             except httpx.TimeoutException as exc:
@@ -150,13 +186,23 @@ class CalDavHttp:
                     if size > MAX_BODY:
                         raise TrackerUnavailable("The CalDAV server sent too much at once.")
                     chunks.append(chunk)
-                response._content = b"".join(chunks)
             except httpx.TransportError as exc:
                 raise TrackerUnreachable(f"The CalDAV server {sni} could not be reached.") from exc
             finally:
                 response.close()
+                self._client.cookies.clear()
             _raise_for(response)
-            return response, url
+            # The body is already decoded, so the answer keeps no header that would decode it
+            # again.
+            kept = [
+                (name, value)
+                for name, value in response.headers.items()
+                if name.lower() not in ("content-encoding", "content-length", "transfer-encoding")
+            ]
+            read = httpx.Response(
+                response.status_code, headers=kept, content=b"".join(chunks), request=request
+            )
+            return read, url
         raise TrackerUnavailable("The CalDAV server redirected too many times.")
 
 
@@ -203,8 +249,21 @@ def _multistatus(response: httpx.Response, base: str) -> list[_Resource]:
                     props[child.tag] = child
         if not item.findall(f"{{{DAV}}}propstat"):
             status = 200 if _ok(item.findtext(f"{{{DAV}}}status")) else 404
-        found.append(_Resource(href=urljoin(base, href), status=status, props=props))
+        absolute = urljoin(base, href)
+        # A task or list lives on the server that answered; a link elsewhere is not followed.
+        if _origin(absolute) != _origin(base):
+            continue
+        found.append(_Resource(href=absolute, status=status, props=props))
     return found
+
+
+def _origin(url: str) -> tuple[str, str, int | None]:
+    parts = urlsplit(url)
+    try:
+        port = parts.port
+    except ValueError:
+        port = -1
+    return parts.scheme, (parts.hostname or "").lower(), port
 
 
 def _ok(status_line: str | None) -> bool:
@@ -346,8 +405,10 @@ def _status(todo) -> tuple[str, StatusCategory]:
 
 
 def _nextcloud_link(href: str) -> str:
-    """The task in the Nextcloud Tasks app; empty for other servers."""
+    # The task in the Nextcloud Tasks app; other servers have no page for a task.
     parts = urlsplit(href)
+    if parts.scheme not in ("http", "https"):
+        return ""
     marker = "/remote.php/dav/calendars/"
     if marker not in parts.path:
         return ""
@@ -407,8 +468,9 @@ class Discovery:
 
 
 class CalDavReader:
-    """One person's account: their lists and the tasks their boards show, kept in memory so a
-    list unchanged since the last look costs one small request."""
+    """One person's account, with the lists and tasks their boards show kept in memory."""
+
+    # A list unchanged since the last look costs one small request.
 
     source_id = CALDAV
     source_name = "CalDAV"
@@ -432,7 +494,8 @@ class CalDavReader:
         return self._account.username, self._account.password.get_secret_value()
 
     def _call(self, method: str, url: str, body: str, depth: str) -> tuple[httpx.Response, str]:
-        return self._http.request(method, url, self._auth(), body, depth)
+        home = urlsplit(self._account.address).hostname or ""
+        return self._http.request(method, url, self._auth(), home, body, depth)
 
     def _discover(self) -> Discovery:
         if self._found is not None:
@@ -537,8 +600,9 @@ class CalDavReader:
         return found
 
     def find_tasks(self, query: str, list_id: str | None, done: bool, limit: int) -> ListTasks:
-        """Tasks whose title holds `query`, in one list or in every shown one; the server does
-        the matching, so a list of thousands sends only what matches."""
+        """Tasks whose title holds `query`, in one list or in every shown one."""
+        # The server does the matching, so a list of thousands sends only what matches. The
+        # list is not marked as read: the cards on boards were not read again.
         with self._lock:
             self._refresh_lists()
             if list_id is None:
@@ -554,7 +618,6 @@ class CalDavReader:
             ranked = []
             for kept in lists:
                 response, final = self._call("REPORT", kept.info.id, _query(filters), "1")
-                _seen(kept, self._clock())
                 for href, todo in self._read(kept, response, final):
                     task = to_task(todo, href, kept.info, kept.titles)
                     # Checked here too: a server may skip a filter it does not know.
@@ -572,12 +635,13 @@ class CalDavReader:
             return ListTasks(tasks=[item[3] for item in ranked[:limit]], total=len(ranked))
 
     def _find(self, uid: str) -> Task | None:
-        """Looks for the task in every list, as when a client moved it."""
+        # Every list is asked, as when a client moved the task.
         for kept in self._lists.values():
             response, final = self._call("REPORT", kept.info.id, _query(_by_uid(uid)), "1")
             for href, todo in self._read(kept, response, final):
                 if _text(todo, "UID") == uid:
-                    if kept.checked_at is None:
+                    # Only a list with no other cards is fully known after this read.
+                    if set(kept.hrefs) <= {uid}:
                         _seen(kept, self._clock())
                     for other in self._lists.values():
                         other.hrefs.pop(uid, None)
@@ -608,7 +672,7 @@ class CalDavReader:
         return changed
 
     def _reread(self, kept: _List, uids: set[str]) -> set[str]:
-        """Reads these tasks of the list again; returns the UIDs no longer there."""
+        # Returns the UIDs no longer in the list.
         hrefs = sorted({kept.hrefs[uid] for uid in uids if uid in kept.hrefs})
         if not hrefs:
             return set()
@@ -643,22 +707,58 @@ class CalDavReader:
             if here and self._changed(kept, now):
                 missing |= self._reread(kept, here)
         known = {uid for kept in self._lists.values() for uid in kept.tasks}
-        for uid in sorted(wanted):
-            # A task found nowhere is looked for again only now and then: each look asks
-            # every list.
-            if uid in known and uid not in missing:
-                continue
-            if uid not in missing and now - self._gone.get(uid, -RECHECK_S) < RECHECK_S:
-                continue
-            if self._find(uid) is None:
-                self._gone[uid] = now
-            else:
-                self._gone.pop(uid, None)
+        self._gone = {uid: at for uid, at in self._gone.items() if now - at < IDLE_S}
+        # A task found nowhere is looked for again only now and then.
+        lost = {
+            uid
+            for uid in wanted - known
+            if uid in missing or now - self._gone.get(uid, -RECHECK_S) >= RECHECK_S
+        } | missing
+        if lost:
+            found = self._locate(lost)
+            for uid in lost:
+                if uid in found:
+                    self._gone.pop(uid, None)
+                else:
+                    self._gone[uid] = now
         answer = []
         for key in keys:
             task = next((k.tasks[key] for k in self._lists.values() if key in k.tasks), None)
             answer.append(task or _gone(key))
         return answer
+
+    def _locate(self, uids: set[str]) -> set[str]:
+        # One read of each whole list finds any number of cards, as after a restart, where
+        # asking per card would cost cards times lists requests.
+        found: set[str] = set()
+        now = self._clock()
+        for kept in self._lists.values():
+            response, final = self._call("REPORT", kept.info.id, _query(""), "1")
+            present = set()
+            for href, todo in self._read(kept, response, final):
+                uid = _text(todo, "UID")
+                present.add(uid)
+                if uid in uids or uid in kept.hrefs:
+                    for other in self._lists.values():
+                        if other is not kept:
+                            other.hrefs.pop(uid, None)
+                            other.tasks.pop(uid, None)
+                    kept.hrefs[uid] = href
+                    kept.tasks[uid] = to_task(todo, href, kept.info, kept.titles)
+                    if uid in uids:
+                        found.add(uid)
+            for uid in set(kept.hrefs) - present:
+                kept.hrefs.pop(uid, None)
+                kept.tasks.pop(uid, None)
+            _seen(kept, now)
+        return found
+
+    def set_hidden(self, hidden: frozenset[str]) -> None:
+        """Takes the person's new list switches; what the reader learnt stays."""
+        with self._lock:
+            if hidden != self._account.hidden:
+                self._account = replace(self._account, hidden=hidden)
+                self._listed_at = None
 
     def search(self, *_: object) -> NoReturn:
         raise ValidationFailed("CalDAV tasks are added from their list in the card tool.")
@@ -675,14 +775,14 @@ def _tag(resource: _Resource) -> str | None:
 
 
 def _seen(kept: _List, now: float) -> None:
-    """The list's tasks were just read: the next look only asks whether it changed."""
+    # The list's cards were just read: the next look only asks whether it changed.
     if kept.listed_tag is not None:
         kept.tag = kept.listed_tag
         kept.checked_at = now
 
 
 def _due_key(todo) -> datetime:
-    """The due date for sorting: a date alone counts as its midnight, no date sorts last."""
+    # A date alone counts as its midnight; a task without one sorts last.
     due = _when(todo, "DUE")
     if due is None:
         return datetime.max
@@ -698,7 +798,7 @@ def _gone(key: str) -> Task:
 
 
 class CalDavReaders:
-    """One reader per person, kept between requests so the change tags and tasks last."""
+    """One reader per person, kept between requests so its change tags and tasks last."""
 
     def __init__(
         self,
@@ -713,7 +813,7 @@ class CalDavReaders:
         self._lock = threading.Lock()
 
     def reader(self, account: CalDavAccount) -> CalDavReader:
-        """A fresh reader, used to check an account before it is saved."""
+        """A fresh reader that checks an account before it is saved."""
         return CalDavReader(self._http, account, self._clock)
 
     def of(self, user_id: str, account: CalDavAccount) -> CalDavReader:
@@ -728,10 +828,8 @@ class CalDavReaders:
             kept = self._own.get(user_id)
             if kept is None or kept[0] != digest:
                 kept = (digest, CalDavReader(self._http, account, self._clock), now)
-            elif kept[1]._account.hidden != account.hidden:
-                # The switches changed: the same reader, so what it learnt stays.
-                kept[1]._account = account
-                kept[1]._listed_at = None
+            else:
+                kept[1].set_hidden(account.hidden)
             self._own[user_id] = (kept[0], kept[1], now)
             return kept[1]
 

@@ -8,7 +8,7 @@ from app.domain.errors import ValidationFailed
 from app.domain.ports import TaskProvider
 from app.domain.tasks import CALDAV, Task, now_iso
 
-# Tasks a list adds to a board at once, as the card tool does for other trackers.
+# The most tasks one search sends, as many as the card tool adds at once for other trackers.
 MAX_LIST_TASKS = 50
 # What the card tool shows at once: enough to pick from, short enough to stay one glance.
 PICKER_TASKS = 20
@@ -49,7 +49,8 @@ class TaskList(BaseModel):
 class CalDavIn(BaseModel):
     address: str = Field(min_length=1, max_length=500)
     username: str = Field(min_length=1, max_length=320)
-    # Blank keeps the stored password, so a person can fix a typo in the address alone.
+    # Blank keeps the stored password for the same address and user name; a new one never
+    # gets a password that was typed for another server.
     password: SecretStr | None = None
 
 
@@ -83,8 +84,7 @@ def no_account(key: str) -> Task:
 
 
 class NoCalDav:
-    """Stands in for CalDAV while the person has no account connected: cards keep their key and
-    say how to connect."""
+    """Stands in for CalDAV while the person has no account: cards say how to connect."""
 
     source_id = CALDAV
     source_name = "CalDAV"
