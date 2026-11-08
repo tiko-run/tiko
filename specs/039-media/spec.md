@@ -2,7 +2,7 @@
 
 **Status**: Approved at G1 and G2 on 2026-11-08.
 
-**Input**: Early users cannot put a picture on a board. They want to paste a screenshot, drop a file, add a GIF, and put stickers on things, as in Miro and Telegram. The owner's condition: the canvas must stay as fast as it is now.
+**Input**: Early users cannot put a picture on a board. They want to paste a screenshot, drop a file, add a GIF, and put stickers on things, as in Miro and Telegram. The canvas must stay as fast as it is now.
 
 ## Why
 
@@ -22,7 +22,7 @@
    - Right-click menu: Add image opens the file picker and places the pictures where the menu was opened.
    - Stickers: a panel of stickers (slice 3).
    An image shows the moment it is added, from the local copy, and uploads in the background; other people on the board see a placeholder of the right size until it is stored. A failed upload says so on the element and offers a retry; the other images of the same paste are not affected.
-5. **Big images do not slow the canvas.** The original is kept for opening and downloading in full. The board shows a smaller WebP copy made at upload: 512, 1024 and 2048 px wide, only those smaller than the original. The canvas picks the copy by the element's size on screen, the zoom and the screen's pixel density, so a 4K screenshot zoomed out costs as much as a thumbnail. The element knows its size before the picture arrives, so nothing jumps; until then it shows a flat tone of the picture's average colour. Pictures are decoded off the main thread. The original is not opened from the board in slice 1: a double-click opening a browser tab felt like leaving the board, so a viewer inside the board comes later.
+5. **Big images do not slow the canvas.** The original is kept for opening and downloading in full. The board shows a smaller WebP copy made at upload: 512, 1024 and 2048 px wide, only those smaller than the original. The canvas picks the copy by the element's size on screen, the zoom and the screen's pixel density, so a 4K screenshot zoomed out costs as much as a thumbnail. The element knows its size before the picture arrives, so nothing jumps; until then it shows a flat tone of the picture's average colour. Pictures are decoded off the main thread. The original is not opened from the board in slice 1: a viewer inside the board comes later.
 6. **Text in screenshots stays sharp.** Copies are WebP at quality 90: on a real retina screenshot of the app the 1024 px copy weighs 14 KB against 31 KB lossless, and small text stays readable (measured in slice 1).
 7. **Formats and limits.**
    - Accepted: PNG, JPEG, WebP, GIF. Refused with a clear message: SVG (it can carry scripts), HEIC and everything else.
