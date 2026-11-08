@@ -26,6 +26,7 @@ from app.adapters.stats.http import HttpStatsSender
 from app.adapters.storage import copy_sqlite, demo_split
 from app.adapters.storage import postgres as storage
 from app.adapters.storage.update_backups import DumpUpdateBackups
+from app.adapters.tasks.caldav import CalDavReaders, Resolver, resolve_host
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_cloud import JiraCloudProvider
@@ -161,6 +162,8 @@ def create_app(
     settings: Settings | None = None,
     jira_transport: httpx.BaseTransport | None = None,
     github_transport: httpx.BaseTransport | None = None,
+    caldav_transport: httpx.BaseTransport | None = None,
+    caldav_resolver: Resolver | None = None,
     release_feed: ReleaseFeed | None = None,
     updater: Updater | None = None,
     stats_sender: StatsSender | None = None,
@@ -378,6 +381,15 @@ def create_app(
     app.state.github_readers = GitHubReaders(github_client, github_token or None)
     # The reader of public repositories: guests and people without a token of their own.
     app.state.github = app.state.github_readers.shared
+    caldav_private = settings.tiko_caldav_private_network or (
+        "deny" if settings.tiko_demo else "allow"
+    )
+    # Redirects are followed by hand: each new address is checked before it is asked.
+    app.state.caldav_readers = CalDavReaders(
+        httpx.Client(timeout=httpx.Timeout(15.0, connect=5.0), transport=caldav_transport),
+        caldav_private == "allow",
+        caldav_resolver or resolve_host,
+    )
     if release_feed is None and settings.update_check:
         release_feed = GitHubReleaseFeed("tiko-run/tiko", httpx.Client(timeout=5.0))
     app.state.updates = UpdateService(VERSION, release_feed if settings.update_check else None)
