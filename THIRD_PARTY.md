@@ -42,7 +42,7 @@
 | marked | MIT | Markdown → HTML for legal pages at build time |
 | pip-licenses | MIT | Python dependency license check (`make licenses`) |
 | license-checker-rseidelsohn | BSD-3-Clause | npm dependency license check (`make licenses`) |
-| Radicale (`tomsquest/docker-radicale` image), Nextcloud (`nextcloud` image) | GPL-3.0 / AGPL-3.0 | CalDAV servers in `scripts/caldav-stand/` for tests and checks by hand, run unchanged as separate programs, not shipped |
+| Radicale (`tomsquest/docker-radicale` image), Nextcloud (`nextcloud` image), Caddy (`caddy` image) | GPL-3.0 / AGPL-3.0 / Apache-2.0 | CalDAV servers in `scripts/caldav-stand/` for tests and checks by hand, run unchanged as separate programs, not shipped |
 | fontTools, brotli, uharfbuzz, resvg-py | MIT / MIT / Apache-2.0 / MIT | Outline text and render PNG in `brand/generate.py` (run by hand with `uv run --with`, not shipped) |
 
 Full list with versions: lock files (`backend/uv.lock`, `frontend/package-lock.json`).
