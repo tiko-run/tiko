@@ -17,7 +17,7 @@ public = APIRouter(prefix="/public", tags=["files"])
 # Making copies of a 4K picture takes a core for a moment; a few at once leave the rest free.
 # A slot is taken before the body is read, so waiting uploads hold no memory; past a short
 # queue an upload is turned away and the browser retries it.
-MAKING = anyio.CapacityLimiter(2)
+_MAKING = anyio.CapacityLimiter(2)
 MAX_WAITING = 8
 # An address names one file forever, so the browser keeps it; a page never runs from it.
 SERVED_HEADERS = {
@@ -66,10 +66,10 @@ def _served(served: Served) -> Response:
 async def upload(
     board_id: str, _: CanEdit, person: CurrentPerson, files: FilesDep, request: Request
 ) -> FileOut:
-    if MAKING.statistics().tasks_waiting >= MAX_WAITING:
+    if _MAKING.statistics().tasks_waiting >= MAX_WAITING:
         raise TooManyAttempts("Many pictures are uploading. Trying again in a moment.", 5)
     mime = request.headers.get("content-type", "").split(";")[0].strip().lower()
-    async with MAKING:
+    async with _MAKING:
         data = await _body(request)
         stored = await anyio.to_thread.run_sync(lambda: files.add(data, mime, person.id, board_id))
     return FileOut(

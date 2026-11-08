@@ -2019,15 +2019,20 @@ class PgStickerPack(_Repo):
     def picture(self, sticker_id: str, width: int | None, moving: bool) -> Served | None:
         with self._tx() as conn:
             row = conn.execute(
-                "SELECT f.id, f.mime, f.motion IS NOT NULL AS has_motion"
+                "SELECT f.id, f.mime, f.moving, f.motion IS NOT NULL AS has_motion"
                 " FROM stickers s JOIN files f ON f.id = s.file_id WHERE s.id = %s",
                 (sticker_id,),
             ).fetchone()
             if row is None:
                 return None
-            if moving and row["has_motion"]:
-                motion = conn.execute("SELECT motion FROM files WHERE id = %s", (row["id"],))
-                return Served(bytes(motion.fetchone()["motion"]), "image/webp")
+            if moving and row["moving"]:
+                # A light animated WebP plays as it is; a GIF from its animated copy.
+                column = "motion" if row["has_motion"] else "data"
+                kind = "image/webp" if row["has_motion"] else row["mime"]
+                played = conn.execute(
+                    f"SELECT {column} AS b FROM files WHERE id = %s", (row["id"],)
+                )
+                return Served(bytes(played.fetchone()["b"]), kind)
             # The narrowest copy wide enough, else the widest; a small still picture has none.
             copy = conn.execute(
                 "SELECT data FROM file_copies WHERE file_id = %s"

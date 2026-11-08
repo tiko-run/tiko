@@ -240,8 +240,10 @@ def test_a_moving_webp_loses_its_exif_and_keeps_moving(client):
     served = client.get(f"/api/boards/{board_id}/files/{file_id}")
     assert b"Camera maker" not in served.content
     assert opened(served).n_frames == 2
-    # It plays at its own pace, not at a default one.
-    played = opened(client.get(f"/api/boards/{board_id}/files/{file_id}", params={"move": 1}))
+    # It plays at its own pace, not at a default one, from itself: no lighter copy is kept.
+    moving = client.get(f"/api/boards/{board_id}/files/{file_id}", params={"move": 1})
+    assert moving.content == served.content
+    played = opened(moving)
     played.seek(1)
     played.load()
     assert played.info["duration"] == 200

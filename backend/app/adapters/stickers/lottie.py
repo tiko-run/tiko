@@ -1,7 +1,8 @@
 import io
 import json
 import lzma
-from functools import lru_cache
+import os
+import threading
 from pathlib import Path
 
 from PIL import Image
@@ -10,17 +11,21 @@ from rlottie_python import LottieAnimation
 from app.domain.stickers import Sticker
 
 NOTO = Path(__file__).parent / "noto"
-# Drawn this wide on a board: a sticker is placed at 160 px, so a retina screen at 100 % zoom
-# gets nearly every pixel, and a sticker stays near 270 KB.
-MOVING_PX = 256
+# A sticker is placed 160 px wide; 256 gives a retina screen at 100 % zoom nearly every pixel.
+LARGE_PX = 256
 # A panel cell is 48 px; twice that keeps it sharp on a retina screen.
-STILL_PX = 96
+SMALL_PX = 96
 # Noto is drawn at 60 fps; every second frame plays as smoothly as Google's own WebP at half
 # the weight.
 FPS = 30
 QUALITY = 80
 # Edges of transparency do not need lossless alpha; it is most of the weight otherwise.
 ALPHA_QUALITY = 70
+# Part of every cached name: a change to how stickers are drawn makes new files, not stale ones.
+DRAWING = "1"
+# Drawing a large sticker takes a core for a moment; a board opened after a restart asks for
+# many at once, and the rest of the server keeps its cores.
+_DRAWING_AT_ONCE = threading.Semaphore(2)
 
 
 def _coverage(frame: Image.Image) -> int:
@@ -56,11 +61,29 @@ def _webp(frames: list[Image.Image], duration: int) -> bytes:
     return out.getvalue()
 
 
-class LottieStickers:
-    """Noto Animated Emoji, kept as Lottie and drawn to WebP with rlottie."""
+def _draw(animation: LottieAnimation, side: int, moving: bool) -> bytes:
+    start = _poster(animation)
+    if not moving:
+        return _webp([animation.render_pillow_frame(frame_num=start, width=side, height=side)], 0)
+    frames = animation.lottie_animation_get_totalframe()
+    rate = animation.lottie_animation_get_framerate()
+    step = max(1, round(rate / FPS))
+    # The loop starts on the poster frame, so a sticker standing still shows what it shows
+    # when it plays.
+    drawn = [
+        animation.render_pillow_frame(frame_num=(start + n) % frames, width=side, height=side)
+        for n in range(0, frames, step)
+    ]
+    return _webp(drawn, round(1000 * step / rate))
 
-    def __init__(self, folder: Path = NOTO) -> None:
+
+class LottieStickers:
+    """Noto Animated Emoji, kept as Lottie and drawn to WebP with rlottie on request. What is
+    drawn is kept in `cache`, a folder anyone may empty: it is drawn again when asked for."""
+
+    def __init__(self, cache: Path | None = None, folder: Path = NOTO) -> None:
         self._folder = folder
+        self._cache = cache
         entries = json.loads((folder / "catalog.json").read_text())
         self._catalog = [Sticker(**entry) for entry in entries]
         self._codes = {sticker.code for sticker in self._catalog}
@@ -68,46 +91,21 @@ class LottieStickers:
     def catalog(self) -> list[Sticker]:
         return self._catalog
 
-    def _animation(self, code: str) -> LottieAnimation | None:
+    def picture(self, code: str, large: bool, moving: bool) -> bytes | None:
         # Only codes of the catalog reach the disk: a code is never a path.
         if code not in self._codes:
             return None
-        data = lzma.decompress((self._folder / f"{code}.json.xz").read_bytes())
-        return LottieAnimation.from_data(data.decode())
-
-    # A few hundred stills fill a panel; each is a few KB.
-    @lru_cache(maxsize=1024)  # noqa: B019 - one instance lives as long as the app
-    def still(self, code: str) -> bytes | None:
-        animation = self._animation(code)
-        if animation is None:
-            return None
-        frame = animation.render_pillow_frame(
-            frame_num=_poster(animation), width=STILL_PX, height=STILL_PX
-        )
-        return _webp([frame], 0)
-
-    # Drawn once per process; the workspace keeps what it placed.
-    @lru_cache(maxsize=32)  # noqa: B019 - one instance lives as long as the app
-    def moving(self, code: str) -> bytes | None:
-        return self._played(code, MOVING_PX)
-
-    # The panel plays one sticker at a time, under the pointer; each is a few dozen KB.
-    @lru_cache(maxsize=256)  # noqa: B019 - one instance lives as long as the app
-    def playing(self, code: str) -> bytes | None:
-        return self._played(code, STILL_PX)
-
-    def _played(self, code: str, side: int) -> bytes | None:
-        animation = self._animation(code)
-        if animation is None:
-            return None
-        frames = animation.lottie_animation_get_totalframe()
-        rate = animation.lottie_animation_get_framerate()
-        step = max(1, round(rate / FPS))
-        # The loop starts on the poster frame, so a sticker standing still on a board shows
-        # what the panel shows.
-        start = _poster(animation)
-        drawn = [
-            animation.render_pillow_frame(frame_num=(start + n) % frames, width=side, height=side)
-            for n in range(0, frames, step)
-        ]
-        return _webp(drawn, round(1000 * step / rate))
+        name = f"{code}-{'large' if large else 'small'}-{'moving' if moving else 'still'}"
+        kept = self._cache / f"{name}-{DRAWING}.webp" if self._cache else None
+        if kept and kept.exists():
+            return kept.read_bytes()
+        source = lzma.decompress((self._folder / f"{code}.json.xz").read_bytes()).decode()
+        with _DRAWING_AT_ONCE:
+            data = _draw(LottieAnimation.from_data(source), LARGE_PX if large else SMALL_PX, moving)
+        if kept:
+            kept.parent.mkdir(parents=True, exist_ok=True)
+            # Written aside and renamed, so a reader never gets half a file.
+            part = kept.with_suffix(f".{os.getpid()}.{threading.get_ident()}.part")
+            part.write_bytes(data)
+            part.replace(kept)
+        return data

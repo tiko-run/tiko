@@ -2,6 +2,7 @@ import { useStore, type NodeProps } from '@xyflow/react'
 import { ImageOff, ImagePlus, RotateCcw } from 'lucide-react'
 import { memo, useEffect, useState, type ReactNode } from 'react'
 import { fileUrl } from '@/api/files'
+import { stickerUrl } from '@/api/stickers'
 import { useReducedMotion } from '@/lib/motion'
 import { useImagePicker } from '@/canvas/ImagePicker'
 import { copyWidth, PAST_COPIES } from '@/canvas/images'
@@ -53,7 +54,9 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
   const [loadedWidth, setLoadedWidth] = useState(0)
   const step = wanted * STEP_DOWN <= loadedWidth ? wanted : Math.max(loadedWidth, wanted)
   const local = upload?.local
-  const stale = useStale(!data.file && !local, data.since)
+  // A built-in sticker is drawn by the server by its code: there is nothing to upload.
+  const uploading = !data.file && !data.sticker
+  const stale = useStale(uploading && !local, data.since)
   const picker = useImagePicker((files) => again?.(id, files[0]))
   // The last copy that loaded stays under the next one until that one has loaded too.
   const [shown, setShown] = useState<string | null>(null)
@@ -63,9 +66,12 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
   useTurnedHandles(id, data.rotation)
 
   // Past the widest copy the server answers with the original, or a still copy for a GIF.
+  const copy = Number.isFinite(step) ? step : PAST_COPIES
   const src = data.file
-    ? fileUrl(source, data.file, Number.isFinite(step) ? step : PAST_COPIES, playing)
-    : null
+    ? fileUrl(source, data.file, copy, playing)
+    : data.sticker
+      ? stickerUrl(data.sticker, copy, playing, source)
+      : null
   const failing = src !== null && failure?.src === src ? failure.count : 0
   const broken = failing > RETRIES
   useEffect(() => {
@@ -85,8 +91,9 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
       />
       <div
         className={cn('relative h-full w-full overflow-hidden', selected && 'ring-primary ring-2')}
-        // The tone only holds the place: a transparent picture shows the board through it.
-        style={{ background: shown || local ? undefined : data.color }}
+        // The tone only holds the place: a transparent picture shows the board through it, and a
+        // sticker, cut out by nature, has no box to show.
+        style={{ background: shown || local || data.sticker ? undefined : data.color }}
       >
         {local && !shown && <Picture src={local} />}
         {shown && shown !== src && <Picture src={shown} />}
@@ -105,7 +112,7 @@ function ImageNodeView({ id, data, selected, width }: NodeProps<ImageNodeType>) 
             }
           />
         )}
-        {!data.file && !local && !stale && <Note>Uploading…</Note>}
+        {uploading && !local && !stale && <Note>Uploading…</Note>}
         {stale && (
           <Note>
             Upload did not finish

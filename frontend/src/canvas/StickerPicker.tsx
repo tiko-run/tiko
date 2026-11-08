@@ -22,8 +22,8 @@ import {
   PACK_KEY,
   getStickers,
   packPictureUrl,
-  previewUrl,
   removeFromPack,
+  stickerUrl,
   type PackSticker,
   type Sticker,
 } from '@/api/stickers'
@@ -194,8 +194,8 @@ export function StickerPicker({
   const builtInCell = (s: Sticker) => (
     <Cell
       key={s.code}
-      src={previewUrl(s.code)}
-      playing={previewUrl(s.code, true)}
+      src={stickerUrl(s.code, 96)}
+      playing={stickerUrl(s.code, 96, true)}
       name={s.name}
       choice={{ code: s.code }}
       onPick={pick}

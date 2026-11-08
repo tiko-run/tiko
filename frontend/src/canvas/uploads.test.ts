@@ -14,20 +14,6 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Uploads', () => {
-  it('sends a built-in sticker and keeps the address it shows meanwhile', async () => {
-    const send = vi.fn().mockResolvedValue(stored('file-s'))
-    const done = vi.fn()
-    const uploads = new Uploads(send, done)
-    uploads.add('s', { sticker: '1f525' }, LOOK, '/api/stickers/1f525/preview')
-    expect(send).toHaveBeenCalledWith({ sticker: '1f525' })
-    expect(uploads.get('s')?.local).toBe('/api/stickers/1f525/preview')
-    await settle()
-    expect(done).toHaveBeenCalledWith('s', stored('file-s'), LOOK)
-    uploads.forget('s')
-    // Not made by this tab: there is nothing to let go of.
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
-  })
-
   it('sends three at a time and tells each element its file', async () => {
     const pending: ((file: StoredFile) => void)[] = []
     const send = vi.fn(() => new Promise<StoredFile>((resolve) => pending.push(resolve)))

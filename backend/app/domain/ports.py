@@ -596,20 +596,13 @@ class FileStore(Protocol):
 
 
 class StickerArt(Protocol):
-    """The built-in stickers: drawn on request, since the set is kept as vector animations."""
+    """The built-in stickers: drawn on request, the same for every workspace."""
 
     def catalog(self) -> list[Sticker]: ...
 
-    def still(self, code: str) -> bytes | None:
-        """A small still WebP for the panel; None for a code not in the set."""
-        ...
-
-    def moving(self, code: str) -> bytes | None:
-        """The animated WebP that goes on a board; the same bytes for the same code."""
-        ...
-
-    def playing(self, code: str) -> bytes | None:
-        """The still's size, animated: the panel plays the sticker under the pointer."""
+    def picture(self, code: str, large: bool, moving: bool) -> bytes | None:
+        """The sticker as WebP: small for the panel or large for a board, still or playing;
+        the same bytes for the same request. None for a code not in the set."""
         ...
 
 

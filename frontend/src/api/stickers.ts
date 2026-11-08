@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { fetchJson } from '@/api/client'
-import { storedSchema } from '@/api/files'
+import { storedSchema, type FileSource } from '@/api/files'
 
 const stickerSchema = z.object({
   code: z.string(),
@@ -19,13 +19,18 @@ export function getStickers() {
   )
 }
 
-/** The sticker as the panel shows it, or with `moving` playing. */
-export const previewUrl = (code: string, moving = false) =>
-  `/api/stickers/${code}/preview${moving ? '?move=1' : ''}`
+// Up to this wide a sticker is drawn for a cell of the panel, past it for a board.
+const PANEL_WIDTH = 96
 
-/** Draws the built-in sticker into the workspace's files, like an upload of it. */
-export function placeSticker(boardId: string, code: string) {
-  return fetchJson(`/api/boards/${boardId}/stickers/${code}`, storedSchema, { method: 'POST' })
+/** A built-in sticker drawn at least `width` wide, or playing; by the link for a guest. */
+export function stickerUrl(code: string, width: number, moving = false, source?: FileSource) {
+  const base =
+    source && 'token' in source
+      ? `/api/public/${source.token}/stickers/${code}/picture`
+      : `/api/stickers/${code}/picture`
+  // Two drawings only: one address each, so the browser loads each once.
+  const params = `w=${width <= PANEL_WIDTH ? PANEL_WIDTH : 256}${moving ? '&move=1' : ''}`
+  return `${base}?${params}`
 }
 
 /** The React Query key of the workspace's pack. */

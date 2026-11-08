@@ -1,14 +1,18 @@
 """Spec 039 slice 3: the built-in stickers and the workspace's own pack."""
 
+import io
+
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
+from app.adapters.stickers import lottie
+from app.adapters.stickers.lottie import LottieStickers
 from app.config import Settings
 from app.domain import stickers as stickers_domain
 from app.main import create_app
 from tests.conftest import signed_in
 from tests.test_files import board, opened, picture, upload
-from tests.test_folders import join
 
 FIRE = "1f525"
 
@@ -18,8 +22,15 @@ def client():
     return signed_in(create_app(Settings(db_path=":memory:")))
 
 
-def place(client: TestClient, board_id: str, code: str = FIRE):
-    return client.post(f"/api/boards/{board_id}/stickers/{code}")
+def sticker(client: TestClient, code: str = FIRE, **params):
+    return client.get(f"/api/stickers/{code}/picture", params=params)
+
+
+def moving_webp() -> bytes:
+    frames = [Image.new("RGBA", (64, 64), (i * 40, 0, 0, 255)) for i in range(4)]
+    out = io.BytesIO()
+    frames[0].save(out, "WEBP", save_all=True, append_images=frames[1:], duration=50, loop=0)
+    return out.getvalue()
 
 
 def test_the_panel_lists_the_built_in_set(client):
@@ -32,46 +43,53 @@ def test_the_panel_lists_the_built_in_set(client):
     assert fire["category"] == "Smileys and emotions"
 
 
-def test_a_built_in_sticker_shows_still_and_plays_under_the_pointer(client):
-    still = opened(client.get(f"/api/stickers/{FIRE}/preview"))
+def test_the_panel_shows_a_sticker_small_and_plays_it_under_the_pointer(client):
+    still = opened(sticker(client, w=96))
     assert still.size == (96, 96)
     assert getattr(still, "n_frames", 1) == 1
-    playing = opened(client.get(f"/api/stickers/{FIRE}/preview", params={"move": 1}))
+    playing = opened(sticker(client, w=96, move=1))
     assert (playing.size, playing.n_frames > 10) == ((96, 96), True)
-    assert client.get("/api/stickers/..%2Fcatalog/preview").status_code == 404
-    assert TestClient(client.app).get(f"/api/stickers/{FIRE}/preview").status_code == 401
+    assert sticker(client, "nope").status_code == 404
+    assert client.get("/api/stickers/..%2Fcatalog/picture").status_code == 404
+    assert sticker(TestClient(client.app)).status_code == 401
 
 
-def test_a_placed_sticker_plays_from_the_board_at_thirty_frames(client):
-    board_id = board(client)
-    placed = place(client, board_id)
-    assert placed.status_code == 201, placed.text
-    body = placed.json()
-    assert (body["width"], body["height"], body["moving"]) == (256, 256, True)
-    url = f"/api/boards/{board_id}/files/{body['id']}"
-    played = opened(client.get(url, params={"move": 1}))
-    assert played.n_frames > 10
+def test_a_board_shows_a_sticker_large_at_thirty_frames(client):
+    still = opened(sticker(client, w=512))
+    assert (still.size, getattr(still, "n_frames", 1)) == ((256, 256), 1)
+    played = opened(sticker(client, w=512, move=1))
+    assert played.size == (256, 256)
     played.seek(1)
     played.load()
     assert played.info["duration"] == 33
-    assert getattr(opened(client.get(url, params={"w": 256})), "n_frames", 1) == 1
 
 
-def test_a_sticker_is_stored_once_per_workspace(client):
-    first = place(client, board(client)).json()["id"]
-    assert place(client, board(client)).json()["id"] == first
-    assert place(client, board(client), "1f680").json()["id"] != first
-    assert place(client, board(client), "nope").status_code == 404
+def test_a_built_in_sticker_takes_no_room_in_the_workspace():
+    client = signed_in(create_app(Settings(db_path=":memory:", tiko_files_quota_mb=1)))
+    board_id = board(client)
+    for code in ("1f525", "1f680", "1f389", "1f914", "1f602", "1f44d"):
+        assert sticker(client, code, w=512, move=1).status_code == 200
+    # Six large stickers are past a megabyte; the quota still has room for a picture.
+    assert upload(client, board_id, picture(100, 100)).status_code == 201
 
 
-def test_only_an_editor_places_a_sticker():
-    app = create_app(Settings(db_path=":memory:"))
-    admin = signed_in(app)
-    reader = join(app, admin, "rita")
-    board_id = board(admin)
-    reader_id = reader.get("/api/auth/status").json()["me"]["id"]
-    admin.put(f"/api/boards/{board_id}/members/{reader_id}", json={"role": "viewer"})
-    assert place(reader, board_id).status_code == 403
+def test_a_guest_sees_stickers_through_the_public_link(client):
+    board_id = board(client)
+    token = client.put(f"/api/boards/{board_id}/public", json={"public": True}).json()
+    guest = TestClient(client.app)
+    url = f"/api/public/{token['public_token']}/stickers/{FIRE}/picture"
+    assert guest.get(url, params={"w": 512, "move": 1}).status_code == 200
+    client.put(f"/api/boards/{board_id}/public", json={"public": False})
+    assert guest.get(url).status_code == 404
+
+
+def test_a_drawn_sticker_is_kept_and_read_again(tmp_path, monkeypatch):
+    art = LottieStickers(tmp_path)
+    first = art.picture(FIRE, large=False, moving=False)
+    assert first is not None
+    assert len(list(tmp_path.glob("*.webp"))) == 1
+    monkeypatch.setattr(lottie, "_draw", lambda *_: pytest.fail("drawn twice"))
+    assert art.picture(FIRE, large=False, moving=False) == first
 
 
 def test_a_picture_saved_to_the_pack_goes_on_any_board(client):
@@ -92,13 +110,13 @@ def test_a_picture_saved_to_the_pack_goes_on_any_board(client):
     assert client.get(url).status_code == 200
 
 
-def test_the_pack_shows_a_moving_sticker_still(client):
-    file_id = place(client, board(client)).json()["id"]
-    sticker = client.post("/api/stickers/pack", json={"file": file_id}).json()
-    assert sticker["name"] == "Sticker"
-    url = f"/api/stickers/pack/{sticker['id']}/picture"
+def test_the_pack_shows_a_moving_picture_still_and_plays_it(client):
+    file_id = upload(client, board(client), moving_webp(), "image/webp").json()["id"]
+    saved = client.post("/api/stickers/pack", json={"file": file_id}).json()
+    assert saved["name"] == "Sticker"
+    url = f"/api/stickers/pack/{saved['id']}/picture"
     assert getattr(opened(client.get(url, params={"w": 96})), "n_frames", 1) == 1
-    assert opened(client.get(url, params={"move": 1})).n_frames > 10
+    assert opened(client.get(url, params={"move": 1})).n_frames == 4
 
 
 def test_removing_a_sticker_leaves_the_picture_on_its_board(client):
@@ -140,16 +158,15 @@ def test_the_pack_belongs_to_its_workspace():
     assert visitor.post("/api/stickers/pack", json={"file": file_id}).status_code == 404
 
 
-def test_a_sticker_element_remembers_which_one_it_is(client):
+def test_a_sticker_element_names_its_sticker_and_no_file(client):
     board_id = board(client)
-    file_id = place(client, board_id).json()["id"]
     node = {
         "id": "s",
         "type": "image",
         "position": {"x": 0, "y": 0},
         "width": 160,
         "height": 160,
-        "data": {"file": file_id, "w": 256, "h": 256, "color": "#ff8800", "sticker": FIRE},
+        "data": {"w": 256, "h": 256, "color": "#ff8800", "moving": True, "sticker": FIRE},
     }
     doc = {"nodes": [node], "edges": []}
     assert client.put(f"/api/boards/{board_id}", json={"version": 1, "doc": doc}).is_success

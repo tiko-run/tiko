@@ -4,6 +4,8 @@ from app.domain.errors import NotFound, StickerLimit
 from app.domain.files import Files, Served, StoredFile
 from app.domain.ports import StickerArt, StickerPack
 
+# Up to this wide on screen a built-in sticker is drawn small, for a cell of the panel.
+PANEL_WIDTH = 96
 # A pack is a shelf people pick from, not an archive; past this it stops being browsable.
 PACK_LIMIT = 500
 NAME_MAX = 64
@@ -37,20 +39,13 @@ class Stickers:
     def catalog(self) -> list[Sticker]:
         return self._art.catalog()
 
-    def preview(self, code: str, moving: bool = False) -> bytes:
-        """The sticker as the panel shows it: still, or playing under the pointer."""
-        shown = self._art.playing(code) if moving else self._art.still(code)
+    def picture(self, code: str, width: int | None, moving: bool = False) -> bytes:
+        """A built-in sticker: drawn for the panel up to its cell's width, else for a board.
+        It is no file of the workspace, so it takes no room in its quota."""
+        shown = self._art.picture(code, width is None or width > PANEL_WIDTH, moving)
         if shown is None:
             raise NotFound("sticker not found")
         return shown
-
-    def place(self, code: str, person_id: str, board_id: str) -> StoredFile:
-        """Stores the built-in sticker in the workspace like an upload; drawn once, the same
-        bytes are found again by their hash on every later use."""
-        moving = self._art.moving(code)
-        if moving is None:
-            raise NotFound("sticker not found")
-        return self._files.add(moving, "image/webp", person_id, board_id)
 
     def pack(self) -> list[PackSticker]:
         return self._pack.list()
@@ -75,7 +70,7 @@ class Stickers:
         self._files.link(board_id, sticker.file.id)
         return sticker.file
 
-    def picture(self, sticker_id: str, width: int | None, moving: bool = False) -> Served:
+    def pack_picture(self, sticker_id: str, width: int | None, moving: bool = False) -> Served:
         """What the panel shows of a sticker in the pack: still, the smallest copy wide enough,
         or playing under the pointer."""
         served = self._pack.picture(sticker_id, width, moving)

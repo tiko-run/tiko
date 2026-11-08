@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     tiko_password: SecretStr | None = None
     # Holds the generated password when TIKO_PASSWORD is empty.
     password_file: str = "data/password"
+    # Built-in stickers drawn once and kept; safe to empty, they are drawn again when asked for.
+    sticker_cache: str = "data/stickers"
     # Set at deploy time, these win over Settings → Task source and lock it there.
     tiko_tracker: Literal["demo", "jira"] | None = None
     jira_base_url: str | None = None

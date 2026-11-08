@@ -286,7 +286,8 @@ def create_app(
         PillowPictures(),
         settings.tiko_files_quota_mb or (DEMO_QUOTA_MB if settings.tiko_demo else None),
     )
-    app.state.stickers = Stickers(LottieStickers(), storage.StickerPack(db), app.state.files)
+    art = LottieStickers(Path(settings.sticker_cache))
+    app.state.stickers = Stickers(art, storage.StickerPack(db), app.state.files)
     app.state.invites = Invites(storage.InviteRepo(db), app.state.accounts, app.state.sessions)
     created = bootstrap_admin(app.state.accounts, users, lambda: _password(settings))
     env_password = settings.tiko_password and settings.tiko_password.get_secret_value()

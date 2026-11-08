@@ -9,8 +9,8 @@ export const STICKER_DRAG = 'application/x-tiko-sticker'
 /** A sticker lands this wide on the board, whatever size its picture is. */
 export const STICKER_SIDE = 160
 
-/** How far a sticker steps aside from one already where it lands. */
-export const STICKER_STEP = 24
+/** The room between stickers picked one after another. */
+export const STICKER_GAP = 16
 
 /** Width and height that fit the picture into a sticker's square. */
 export function stickerSize(width: number, height: number) {
@@ -18,16 +18,8 @@ export function stickerSize(width: number, height: number) {
   return { width: Math.round(width * scale), height: Math.round(height * scale) }
 }
 
-/**
- * A light tone of its own for each built-in sticker: elements added at once are told apart by
- * their look until the server answers, and copies of one sticker share it.
- */
-export function stickerTone(code: string) {
-  let hash = 0
-  for (const char of code) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  const channel = (shift: number) => (0xc0 + ((hash >>> shift) & 0x3f)).toString(16)
-  return `#${channel(0)}${channel(8)}${channel(16)}`
-}
+/** The tone the minimap and the board's overview give a built-in sticker. */
+export const STICKER_TONE = '#f5c542'
 
 const RECENT_KEY = 'tiko.stickers.recent'
 const RECENT_LIMIT = 24

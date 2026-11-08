@@ -156,7 +156,9 @@ class PillowPictures:
             smaller = smaller.resize(size, Image.Resampling.LANCZOS, reducing_gap=3.0)
             copies[copy_width] = _webp(smaller)
         original = _without_meta(image, moving) if _has_meta(image) else data
-        motion = _motion(image) if moving else None
+        # An animated WebP narrow enough plays as it is: a copy of it would only weigh as much.
+        light = image.format == "WEBP" and width <= MOTION_WIDTH
+        motion = _motion(image) if moving and not light else None
         return Picture(
             mime=FORMATS[image.format],
             data=original,

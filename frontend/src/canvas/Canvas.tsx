@@ -146,20 +146,13 @@ import { BoardTimers } from '@/timers/BoardTimers'
 import { newTimer, waitsForStatus } from '@/timers/timer'
 import { TimerNode } from '@/timers/TimerNode'
 import { uploadFile } from '@/api/files'
-import {
-  getPack,
-  linkPackSticker,
-  PACK_KEY,
-  placeSticker,
-  previewUrl,
-  saveToPack,
-} from '@/api/stickers'
+import { getPack, linkPackSticker, PACK_KEY, saveToPack } from '@/api/stickers'
 import {
   STICKER_DRAG,
   STICKER_SIDE,
-  STICKER_STEP,
+  STICKER_GAP,
   stickerSize,
-  stickerTone,
+  STICKER_TONE,
   type StickerChoice,
 } from '@/canvas/stickers'
 import { mapLimited, placedSize, readPicture, rowAround, sortFiles } from '@/canvas/images'
@@ -511,8 +504,7 @@ export function BoardCanvas({
   const uploads = useMemo(() => {
     if (guest) return null
     const store: Uploads = new Uploads(
-      (file) =>
-        file instanceof Blob ? uploadFile(board.id, file) : placeSticker(board.id, file.sticker),
+      (file) => uploadFile(board.id, file),
       (id, stored, look) => {
         // Outside the undo history: Undo takes back the person's edit, not the upload. Copies
         // made while it ran look the same and get the file too. The server's colour is kept,
@@ -609,21 +601,15 @@ export function BoardCanvas({
     )
   }
 
-  // A built-in sticker shows at once from its still and is drawn by the server behind it; one
-  // of the pack is stored already and only has to be let onto the board.
+  // A built-in sticker is named by its code and drawn by the server for everyone; one of the
+  // pack is stored already and only has to be let onto the board.
   const addSticker = async (choice: StickerChoice, screen: XYPosition) => {
-    if (!uploads) return
+    if (readOnly) return
     const center = screenToFlowPosition(screen)
     let data: ImageData
     let size = { width: STICKER_SIDE, height: STICKER_SIDE }
     if ('code' in choice) {
-      data = {
-        w: 256,
-        h: 256,
-        color: stickerTone(choice.code),
-        since: new Date().toISOString(),
-        sticker: choice.code,
-      }
+      data = { w: 256, h: 256, color: STICKER_TONE, moving: true, sticker: choice.code }
     } else {
       const file = await linkPackSticker(board.id, choice.pack.id).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : 'The sticker is not available'
@@ -640,14 +626,13 @@ export function BoardCanvas({
       }
       size = stickerSize(file.width, file.height)
     }
-    // Picked one after another, stickers step aside instead of hiding the one before.
+    // Picked one after another, stickers line up to the right instead of hiding each other.
     const position = { x: center.x - size.width / 2, y: center.y - size.height / 2 }
-    const taken = (x: number, y: number) =>
-      getNodes().some((n) => Math.abs(n.position.x - x) < 1 && Math.abs(n.position.y - y) < 1)
-    while (taken(position.x, position.y)) {
-      position.x += STICKER_STEP
-      position.y += STICKER_STEP
-    }
+    const taken = () =>
+      getNodes().some(
+        (n) => Math.abs(n.position.x - position.x) < 1 && Math.abs(n.position.y - position.y) < 1,
+      )
+    while (taken()) position.x += STICKER_SIDE + STICKER_GAP
     const node = {
       id: newId(),
       type: 'image',
@@ -659,8 +644,6 @@ export function BoardCanvas({
     setNodes((current) =>
       reparent([...current.map((n) => ({ ...n, selected: false })), node], [node.id]),
     )
-    if ('code' in choice)
-      uploads.add(node.id, { sticker: choice.code }, data, previewUrl(choice.code))
   }
 
   // Pictures in the pack already: saving them again would change nothing.
