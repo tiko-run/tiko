@@ -18,6 +18,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
+import { toast } from 'sonner'
 import type { Task } from '@/api/tasks'
 import { useReadOnly } from '@/canvas/readonly'
 import { taskRef, TasksContext } from '@/canvas/tasks-context'
@@ -45,6 +46,15 @@ import { GanttStages } from '@/modules/gantt/GanttStages'
 import { activeFilters, FILTER_BAR, shownRows } from '@/modules/gantt/filters'
 import { ConnectHandle, Links, type BarPlace, type Point } from '@/modules/gantt/Links'
 import { Milestone } from '@/modules/gantt/Milestone'
+import {
+  detachEdited,
+  drift,
+  followTracker,
+  trackerDates,
+  trackerSpan,
+  withFollow,
+  type Tracked,
+} from '@/modules/gantt/follow'
 import {
   addLink,
   addMilestone,
@@ -150,7 +160,8 @@ function HeaderRow({ cells, top }: { cells: ReturnType<typeof placed>; top: bool
 }
 
 export function GanttModule({
-  content,
+  id,
+  content: stored,
   width,
   height: viewHeight,
   selected,
@@ -158,20 +169,48 @@ export function GanttModule({
   onChange: write,
   host,
 }: Props) {
-  // Every change passes here, so no tree edit leaves a leaf apart from its stages.
-  const onChange = (next: GanttContent) => write(fitLeaves(next))
   const tasks = useContext(TasksContext)
   const planning = usePlanning()
+  const readOnly = useReadOnly()
   const taskOf = (row: Row) => {
     const task = rowTask(row)
     return task && tasks[taskRef(task)]
+  }
+  // Following rows show their task's dates; the board keeps them outside undo, so a guest of a
+  // public link, who cannot read the tracker, sees the same bars.
+  const content = followTracker(stored, taskOf)
+  useEffect(() => {
+    if (!readOnly && content !== stored) host.syncContent(id, content)
+  }, [readOnly, content, stored, host, id])
+  const latest = useRef(content)
+  useEffect(() => {
+    latest.current = content
+  })
+  const setFollow = (ids: string[], follow: boolean) => {
+    const now = latest.current
+    write({
+      ...now,
+      rows: now.rows.map((r) => (ids.includes(r.id) ? withFollow(r, follow) : r)),
+    })
+  }
+  // Every change passes here, so no tree edit leaves a leaf apart from its stages, and a bar
+  // a person moved keeps the dates they gave it.
+  const onChange = (next: GanttContent) => {
+    const { content: kept, detached } = detachEdited(content, fitLeaves(next), taskOf)
+    write(kept)
+    if (detached.length === 0) return
+    toast(
+      detached.length === 1
+        ? 'The bar keeps your dates now, not the tracker’s'
+        : `${detached.length} bars keep your dates now, not the tracker’s`,
+      { action: { label: 'Undo', onClick: () => setFollow(detached, true) } },
+    )
   }
   const [fresh, setFresh] = useState<string | null>(null)
   const [picked, setPicked] = useState<string | null>(null)
   const [wire, setWire] = useState<{ from: Point; to: Point } | null>(null)
   const todayLine = useRef<HTMLDivElement>(null)
   const opened = useRef(false)
-  const readOnly = useReadOnly()
   const span = range(content)
   const { start, end } = span
   const axis = axisOf(content, width, planning, expanded)
@@ -357,6 +396,8 @@ export function GanttModule({
                 onAddChild={() => addChildRow(row.id)}
                 onMove={(rowsDown, levels) => drop(row.id, depth, rowsDown, levels)}
                 onEject={(screen) => eject(row, screen)}
+                follow={row.key && !hasChildren ? Boolean(row.follow) : undefined}
+                onFollow={(follow) => setFollow([row.id], follow)}
               />
             ))}
             <div
@@ -461,11 +502,19 @@ export function GanttModule({
                     row.key ? `${keyOf(row, taskOf(row))} ${taskOf(row)?.summary ?? ''}` : row.title
                   }
                   task={taskOf(row)}
+                  {...trackerNotes(row, hasChildren, taskOf(row))}
                   onSpan={(next) =>
                     hasChildren
                       ? onParentSpan(row, next)
                       : onChange(updateRow(content, row.id, (r) => fitStages(r, next)))
                   }
+                />
+              )}
+              {row.key && (!row.follow || hasChildren) && bars.has(row.id) && (
+                <DriftMark
+                  tracked={drift(taskOf(row), barSpan(row))}
+                  x={bars.get(row.id)!.right}
+                  onFollow={readOnly || hasChildren ? undefined : () => setFollow([row.id], true)}
                 />
               )}
               {bars.has(row.id) && (
@@ -512,6 +561,58 @@ export function GanttModule({
         </div>
       </div>
     </div>
+  )
+}
+
+/** How a following bar's dates came about, for its look and its tooltip. */
+function trackerNotes(row: Row, parent: boolean, task: Task | undefined) {
+  if (!row.follow || parent || task?.state !== 'ok') return {}
+  const tracked = trackerSpan(task)
+  if (!tracked) return { notes: ['The tracker has no dates for this task'] }
+  const guess = {
+    start: 'Start is a guess: the tracker has only a due date',
+    end: 'End is a guess: the tracker has only a start date',
+  }
+  return {
+    guess: tracked.guess,
+    notes: [tracked.guess ? guess[tracked.guess] : 'Dates from the tracker'],
+  }
+}
+
+/** A dot after a bar whose dates differ from the tracker's, with a way to follow them. */
+function DriftMark({
+  tracked,
+  x,
+  onFollow,
+}: {
+  tracked: Tracked | null
+  x: number
+  onFollow?: () => void
+}) {
+  if (!tracked) return null
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Dates differ from the tracker"
+          title={`Tracker: ${trackerDates(tracked)}`}
+          className="ring-card absolute top-[13px] z-10 size-2 rounded-full bg-warning ring-2"
+          style={{ left: x + 3 }}
+        />
+      </PopoverTrigger>
+      <PopoverContent side="top" className="flex w-auto flex-col gap-2 p-3 text-[13px]">
+        <p>
+          <span className="text-muted-foreground">Tracker: </span>
+          {trackerDates(tracked)}
+        </p>
+        {onFollow && (
+          <Button size="sm" variant="outline" onClick={onFollow}>
+            Follow tracker dates
+          </Button>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 

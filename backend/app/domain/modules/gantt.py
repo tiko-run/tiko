@@ -55,6 +55,8 @@ class Row(_Strict):
     end: date
     parent: str | None = Field(default=None, max_length=40)
     collapsed: bool = False
+    # Draws the task's dates from the tracker; absent on rows that keep their own.
+    follow: bool | None = None
     # Absent, not empty, on a row without stages, so content saved before them stays the same.
     stages: list[Stage] | None = Field(default=None, max_length=MAX_STAGES)
     # Field id to its value on this row; ids come from /api/planning.

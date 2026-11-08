@@ -17,6 +17,9 @@ import { PlanningContext, type PlanningState } from '@/planning/context'
 
 const nodeTypes = { module: ModuleNode }
 
+const toast = vi.hoisted(() => vi.fn())
+vi.mock('sonner', () => ({ toast }))
+
 beforeAll(() => {
   // xyflow measures nodes and bars capture the pointer; jsdom has neither.
   globalThis.ResizeObserver ??= class {
@@ -102,7 +105,13 @@ function renderGantt(
   tasks: Record<string, Task> = { 'DEMO-1': task },
   readOnly = false,
 ) {
-  const full: ModuleHost = { addTasks: vi.fn(), ejectCard: vi.fn(), ejectNote: vi.fn(), ...host }
+  const full: ModuleHost = {
+    addTasks: vi.fn(),
+    ejectCard: vi.fn(),
+    ejectNote: vi.fn(),
+    syncContent: vi.fn(),
+    ...host,
+  }
   render(
     <div style={{ width: 1200, height: 800 }}>
       <QueryClientProvider client={new QueryClient()}>
@@ -986,4 +995,65 @@ test('a click with working days only adds five working days', () => {
 test('working days are ignored with Planning off', () => {
   renderGantt({}, WORK)
   expect(screen.getByText('10')).toBeTruthy()
+})
+
+const following: GanttContent = {
+  ...content,
+  rows: [{ ...content.rows[0], follow: true }, content.rows[1]],
+}
+
+test('a following bar shows the tracker dates and the board keeps them outside undo', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } })
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  // Only a due date: the start is a week before it, and drawn as a guess.
+  expect(bar.getAttribute('aria-valuetext')).toBe('Sat Oct 24 – Fri Oct 30 · 7 days')
+  expect(bar.getAttribute('data-guess')).toBe('start')
+  expect(screen.getByText('Start is a guess: the tracker has only a due date')).toBeTruthy()
+  const synced = (host.syncContent as ReturnType<typeof vi.fn>).mock.lastCall!
+  expect(synced[0]).toBe('g')
+  expect((synced[1] as GanttContent).rows[0]).toMatchObject({
+    start: '2026-10-24',
+    end: '2026-10-30',
+    follow: true,
+  })
+})
+
+test('dragging a following bar keeps the dragged dates, and Undo follows the tracker again', () => {
+  toast.mockClear()
+  renderGantt({}, following, OFF, {
+    'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-09' },
+  })
+  const bar = screen.getByRole('slider', { name: /DEMO-1/ })
+  // About ten days to the right.
+  fireEvent.pointerDown(bar, { clientX: 100, pointerId: 1 })
+  fireEvent.pointerMove(bar, { clientX: 187, pointerId: 1 })
+  fireEvent.pointerUp(bar, { pointerId: 1 })
+  expect(rows()[0]).toMatchObject({ start: '2026-10-15', end: '2026-10-19' })
+  expect(rows()[0].follow).toBeUndefined()
+  const [message, options] = toast.mock.lastCall!
+  expect(message).toBe('The bar keeps your dates now, not the tracker’s')
+  act(() => options.action.onClick())
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a row with its own dates marks where the tracker disagrees and can follow it', () => {
+  renderGantt({}, content, OFF, { 'DEMO-1': { ...task, start: '2026-10-05', due: '2026-10-20' } })
+  const mark = screen.getByRole('button', { name: 'Dates differ from the tracker' })
+  expect(mark.getAttribute('title')).toBe('Tracker: Mon Oct 5 – Tue Oct 20')
+  fireEvent.click(mark)
+  fireEvent.click(screen.getByRole('button', { name: 'Follow tracker dates' }))
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a row stops and starts following from its own button', () => {
+  renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-09' } })
+  fireEvent.click(screen.getByRole('button', { name: /^Keep own dates for/ }))
+  expect(rows()[0].follow).toBeUndefined()
+  fireEvent.click(screen.getByRole('button', { name: /^Follow tracker dates for/ }))
+  expect(rows()[0].follow).toBe(true)
+})
+
+test('a guest who cannot write leaves the board as it is', () => {
+  const host = renderGantt({}, following, OFF, { 'DEMO-1': { ...task, due: '2026-10-30' } }, true)
+  expect(host.syncContent).not.toHaveBeenCalled()
 })

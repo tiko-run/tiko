@@ -14,6 +14,8 @@ export type ModuleHost = {
   ejectCard: (task: TaskLink, screen: XYPosition) => void
   /** Puts a sticky note with the text on the board at a screen point. */
   ejectNote: (text: string, screen: XYPosition) => void
+  /** Writes the module's content outside the undo history, for what nobody edited by hand. */
+  syncContent: (id: string, content: unknown) => void
 }
 
 export type ModuleViewProps<C> = {

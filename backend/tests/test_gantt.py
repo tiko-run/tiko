@@ -182,3 +182,13 @@ def test_rows_keep_values_and_the_chart_its_columns():
 def test_value_and_column_rules(extra, reason):
     with pytest.raises(ValidationError, match=reason):
         gantt(**extra)
+
+
+def test_follow_is_kept_and_absent_on_older_rows():
+    from app.domain.modules import validate_module
+
+    saved = validate_module(
+        "gantt", BASE | {"rows": [row("a", key="DEV-1", follow=True), row("b", key="DEV-2")]}
+    )
+    assert saved["rows"][0]["follow"] is True
+    assert "follow" not in saved["rows"][1]

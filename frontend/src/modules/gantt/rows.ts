@@ -93,13 +93,15 @@ function planned(content: GanttContent, task: TaskLink) {
   )
 }
 
+/** A row planned from a task follows the tracker's dates from the start. */
 export function makeRow(
   content: GanttContent,
   fields: { key?: string; source?: string; title?: string },
   at?: number,
 ) {
   const span = newSpan(range(content), at)
-  return withSpan({ id: newId(), title: '', ...fields, start: '', end: '' }, span)
+  const follow = fields.key ? { follow: true } : {}
+  return withSpan({ id: newId(), title: '', ...fields, ...follow, start: '', end: '' }, span)
 }
 
 /** Adds rows at the end, skipping tasks already planned here, up to the row limit. */
