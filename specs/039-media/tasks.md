@@ -20,6 +20,7 @@
 - [ ] T015 Resizing a turned picture keeps its proportions (FR-011)
 - [ ] T016 The board keeps the server's average colour after the upload (FR-013)
 - [ ] T017 Measure FR-007 and FR-008 again with the CPU slowed four times (FR-014)
+- [ ] T019 Step down to a smaller copy when a picture needs four times fewer pixels; measure 20 stretched 4K pictures for frames and memory, compared with Miro on the same pictures (FR-015)
 
 ## Slice 3: stickers
 

@@ -38,6 +38,7 @@
    - Resizing a turned picture does not keep its proportions, while an upright one does. A turned one keeps them too.
    - Files no element refers to any more stay in the database. A job removes them some time after their last element is gone, so an Undo still finds them; the quota counts only what is left.
    - The colour the board shows before a picture loads is worked out in the browser and the server works out its own; the server's is the one kept, so everyone sees the same tone.
+   - A loaded sharper copy is kept when the view zooms out, so nothing is fetched twice. Ten 4K pictures stretched across the board and zoomed into all hold their originals, about 33 MB each once decoded, and keep holding them when the view zooms out to show them all. A picture that needs four times fewer pixels than it holds steps down to a smaller copy.
    - Smoothness was measured on a fast machine only. FR-008 and the repeat of FR-007 are measured again with the CPU slowed four times in the browser's performance panel.
 
 ## Requirements
@@ -55,12 +56,13 @@
 - **FR-011** (slice 2): Resizing a turned picture MUST keep its proportions, as for an upright one.
 - **FR-012** (slice 4): A file no element refers to MUST be removed some time after its last element is gone, and the quota MUST count only stored files that are still there.
 - **FR-013** (slice 2): The board MUST keep the picture's average colour as the server worked it out.
+- **FR-015** (slice 2): A picture MUST step down to a smaller copy when it needs four times fewer pixels than the one it holds; a board of 20 4K pictures stretched far past their size MUST pan and zoom smoothly, with the CPU slowed four times, and the page's memory MUST stay within what the same board holds at its closest zoom.
 - **FR-014** (slices 2 and 3): Smoothness MUST hold with the CPU slowed four times, on the GIF board of FR-008 and the screenshot board of FR-007.
 
 ## Slices
 
 1. `images`: FR-001 – FR-007. Postgres table and port, upload and serving with access, copies, the element, paste / drop / tool, limits, the guide. Done.
-2. `gifs`: FR-008, FR-010, FR-011, FR-013, FR-014. Animated WebP, pausing out of view and when far, reduced motion; the loose ends of slice 1.
+2. `gifs`: FR-008, FR-010, FR-011, FR-013, FR-014, FR-015. Animated WebP, pausing out of view and when far, reduced motion; the loose ends of slice 1.
 3. `stickers`: FR-009, FR-014. Noto Animated Emoji and the workspace pack.
 4. `files-cleanup`: FR-012. Removing files nothing refers to.
 
