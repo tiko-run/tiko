@@ -30,7 +30,7 @@
    - Location and camera data (EXIF) are removed from everything served; the picture is turned by its EXIF orientation first.
    - A workspace quota is set by `TIKO_FILES_QUOTA_MB`, unset by default on a self-hosted instance. Each demo workspace gets a small fixed quota.
 8. **Access follows the board.** A file is served only to someone who can open a board of its workspace, and through a board's public link to anyone who has that link. The address of a file never changes, so the browser caches it for a year and loads it once.
-9. **GIFs move without the cost** (slice 2). A GIF is stored as is and also as an animated WebP, which is several times lighter. The canvas animates only the GIFs in view, shows the first frame below a zoom threshold and for people who ask the system for reduced motion. Until slice 2 lands, a GIF is accepted and shows its first frame.
+9. **GIFs move without the cost** (slice 2). A GIF is stored as is and also as an animated WebP, which is several times lighter. The canvas animates only the GIFs in view and at least 160 px wide on screen, and shows the first frame otherwise and for people who ask the system for reduced motion. The animated WebP is at most 1024 px wide.
 10. **Stickers** (slice 3). A sticker panel holds a built-in set and the workspace's own pack; any image on the board can be saved to the pack and then shows in the panel for everyone in the workspace. The built-in set is chosen by its licence, which must allow an AGPL repository and keep dual licensing open; Telegram packs and open emoji sets are checked before the slice starts. Animated stickers are drawn as animated WebP, not Lottie, under the same rules as GIFs.
    - Checked before slice 3: Telegram sticker packs belong to their artists and no Telegram term allows using them outside Telegram, so none is bundled, and importing a pack through a bot is not built either. The built-in set is Noto Animated Emoji (CC BY 4.0), copied into the repository as WebP, credited in `THIRD_PARTY.md` and in the panel itself.
 11. **Loose ends of slice 1** are closed in the next slices:
@@ -50,7 +50,7 @@
 - **FR-005**: The canvas MUST pick the smallest copy that is sharp at the element's size on screen, zoom and pixel density, and MUST reserve the element's size before the picture loads.
 - **FR-006**: A file MUST be served only to someone who can open a board of its workspace or holds a public link to such a board, with a cache lifetime of a year.
 - **FR-007**: A board with 30 4K screenshots MUST pan and zoom as smoothly as the same board without them (measured in the Chrome performance panel, numbers written into the slice's PR).
-- **FR-008** (slice 2): GIFs MUST animate only in view, above the zoom threshold and without reduced motion; a board with 50 GIFs MUST pan and zoom without dropping frames.
+- **FR-008** (slice 2): GIFs MUST animate only in view, at least 160 px wide on screen and without reduced motion; a board with 50 GIFs MUST pan and zoom without dropping frames.
 - **FR-009** (slice 3): The sticker panel MUST offer a built-in set under an allowed licence, credited where it is shown, and the workspace's own pack.
 - **FR-010** (slice 2): An element whose upload never finished MUST stop showing "Uploading…" after a while and say the upload did not finish; its author MUST be able to pick the file again.
 - **FR-011** (slice 2): Resizing a turned picture MUST keep its proportions, as for an upright one.
