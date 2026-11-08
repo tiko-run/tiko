@@ -8,7 +8,7 @@ import { CardDetails } from '@/canvas/nodes/CardDetails'
 import { Handles } from '@/canvas/nodes/Handles'
 import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { openSettings } from '@/settings/store'
-import { shortKey, sourceName } from '@/sources/registry'
+import { credentialName, shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
 import { useTaskLinkProps } from '@/lib/task-links'
 
@@ -76,11 +76,11 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
                 done && 'line-through',
               )}
             >
-              {shortKey(task?.source ?? data.source, data.key)}
+              {shortKey(task?.source ?? data.source, data.key, task?.type_name)}
             </span>
           ) : (
             <a
-              href={task?.url}
+              href={task?.url || undefined}
               {...linkProps}
               className={cn(
                 'text-primary font-mono text-xs tabular-nums hover:underline',
@@ -88,7 +88,7 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
                 done && 'line-through',
               )}
             >
-              {shortKey(task?.source ?? data.source, data.key)}
+              {shortKey(task?.source ?? data.source, data.key, task?.type_name)}
             </a>
           )}
           {!task && <span className="text-muted-foreground">Loading…</span>}
@@ -101,7 +101,7 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
               className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
               onClick={() => openSettings('tracker')}
             >
-              Connect your {sourceName(task.source)} token to see this task
+              Connect your {sourceName(task.source)} {credentialName(task.source)} to see this task
             </button>
           )}
           {task && !missing && (

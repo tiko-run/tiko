@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toastError } from '@/lib/toast'
+import { CalDavForm } from '@/settings/sections/CalDavForm'
 import { SectionHeader } from '@/settings/sections/Section'
 import { didOnboarding } from '@/onboarding/done'
 
@@ -244,7 +245,7 @@ export function MyTracker() {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="My tracker"
-        description="Your own tokens. Cards show you only what your access allows."
+        description="Your own tokens and accounts. Cards show you only what your access allows."
       />
       {tracker.isPending && <p className="text-muted-foreground">Loading…</p>}
       {tracker.isError && (
@@ -273,6 +274,12 @@ export function MyTracker() {
         <fieldset>
           <legend className="mb-2 font-medium">GitHub</legend>
           <GitHubTokenForm tracker={tracker.data} />
+        </fieldset>
+      )}
+      {tracker.data && (
+        <fieldset>
+          <legend className="mb-2 font-medium">CalDAV</legend>
+          <CalDavForm />
         </fieldset>
       )}
     </div>

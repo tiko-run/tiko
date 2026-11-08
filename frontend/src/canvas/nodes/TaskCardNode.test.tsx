@@ -209,3 +209,36 @@ test('the mini-card of a task without labels or extra rows is as before', () => 
   expect(screen.getByText('Priority')).toBeTruthy()
   expect(screen.queryByRole('list', { name: 'Labels' })).toBeNull()
 })
+
+test('a CalDAV card shows its list, not its long id, and has no tracker link', () => {
+  const todo: Task = {
+    ...task,
+    source: 'caldav',
+    key: 'made-up-task-id-from-a-caldav-client',
+    type_name: 'Personal',
+    assignee_name: null,
+    priority_name: null,
+    url: '',
+  }
+  renderCard({ key: todo.key, source: 'caldav', collapsed: true }, { [`caldav:${todo.key}`]: todo })
+  const list = screen.getByText('Personal')
+  expect(screen.queryByText(todo.key)).toBeNull()
+  fireEvent.pointerDown(list, { clientX: 10, clientY: 10 })
+  fireEvent.click(list, { clientX: 10, clientY: 10 })
+  expect(screen.queryByText(todo.key)).toBeNull()
+  expect(screen.queryByText('Unassigned')).toBeNull()
+  expect(screen.queryByRole('link', { name: /Open in/ })).toBeNull()
+})
+
+test('a CalDAV card without an account asks to connect one', () => {
+  const locked: Task = {
+    ...task,
+    source: 'caldav',
+    key: 'uid-1',
+    state: 'no_token',
+    summary: '',
+    type_name: '',
+  }
+  renderCard({ key: 'uid-1', source: 'caldav' }, { 'caldav:uid-1': locked })
+  expect(screen.getByText('Connect your CalDAV account to see this task')).toBeTruthy()
+})

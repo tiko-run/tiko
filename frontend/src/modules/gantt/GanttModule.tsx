@@ -617,7 +617,7 @@ function stagesLabel(row: Row, task: Task | undefined) {
 
 /** The key as the label column shows it: a GitHub task without its owner. */
 function keyOf(row: Row, task: Task | undefined) {
-  return row.key ? shortKey(task?.source ?? row.source, row.key) : ''
+  return row.key ? shortKey(task?.source ?? row.source, row.key, task?.type_name) : ''
 }
 
 function formatRange(start: string, end: string) {

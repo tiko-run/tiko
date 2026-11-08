@@ -16,7 +16,7 @@ import type { Row } from '@/modules/gantt/rows'
 import { useZoom } from '@/modules/expanded'
 import { cn } from '@/lib/utils'
 import { BoardSourcesContext } from '@/sources/board-sources'
-import { shortKey, sourceName } from '@/sources/registry'
+import { credentialName, shortKey, sourceName } from '@/sources/registry'
 import { BoardSourceMark } from '@/sources/SourceMark'
 import { useTaskLinkProps } from '@/lib/task-links'
 import { useReadOnly } from '@/canvas/readonly'
@@ -180,18 +180,18 @@ export function GanttLabel({
                 done && 'line-through',
               )}
             >
-              {shortKey(task?.source ?? row.source, row.key)}
+              {shortKey(task?.source ?? row.source, row.key, task?.type_name)}
             </a>
           ) : (
             <span className={cn('shrink-0 font-medium', done && 'line-through')}>
-              {shortKey(task?.source ?? row.source, row.key)}
+              {shortKey(task?.source ?? row.source, row.key, task?.type_name)}
             </span>
           )}
           <span className="truncate" title={task?.summary}>
             {task?.state === 'not_found'
               ? 'not found'
               : task?.state === 'no_token'
-                ? `connect your ${sourceName(task.source)} token`
+                ? `connect your ${sourceName(task.source)} ${credentialName(task.source)}`
                 : task?.summary}
           </span>
         </span>

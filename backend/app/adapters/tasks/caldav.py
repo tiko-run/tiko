@@ -364,7 +364,7 @@ def todos(data: str) -> list:
 def to_task(todo, href: str, task_list: TaskList, titles: dict[str, str]) -> Task:
     uid = _text(todo, "UID")
     status_name, category = _status(todo)
-    rows = [TaskRow(label="List", value=task_list.name)]
+    rows: list[TaskRow] = []
     if (due := _when(todo, "DUE")) is not None:
         rows.append(TaskRow(label="Due", value=_fmt(due)))
     if (start := _when(todo, "DTSTART")) is not None:

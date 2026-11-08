@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   AlarmClock,
   Frame,
@@ -13,7 +13,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { getCalDav } from '@/api/caldav'
 import { searchTasks, type Task } from '@/api/tasks'
+import { CalDavPicker } from '@/canvas/CalDavPicker'
 import { useImagePicker } from '@/canvas/ImagePicker'
 import { SHAPES, shapePath, type ShapeKind } from '@/canvas/shapes'
 import {
@@ -27,6 +29,7 @@ import {
 } from '@/canvas/refs'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import { ModulePicker } from '@/modules/ModulePicker'
 import { MODULES } from '@/modules/registry'
@@ -182,6 +185,43 @@ export function AddCardForm({
         </p>
       )}
     </form>
+  )
+}
+
+/** The card form, with a tab for CalDAV lists once the person has connected an account. */
+export function CardSources({
+  onAdd,
+  onDone,
+}: {
+  onAdd: (tasks: Task[]) => void
+  onDone: () => void
+}) {
+  const caldav = useQuery({ queryKey: ['caldav'], queryFn: getCalDav })
+  const [tab, setTab] = useState<'keys' | 'caldav'>('keys')
+  if (caldav.data?.state !== 'set') return <AddCardForm onAdd={onAdd} onDone={onDone} />
+  return (
+    <div className="flex flex-col gap-2">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        value={tab}
+        onValueChange={(value) => value && setTab(value as 'keys' | 'caldav')}
+        aria-label="Add cards from"
+      >
+        <ToggleGroupItem value="keys" className="px-3 text-[13px]">
+          Keys and queries
+        </ToggleGroupItem>
+        <ToggleGroupItem value="caldav" className="px-3 text-[13px]">
+          CalDAV
+        </ToggleGroupItem>
+      </ToggleGroup>
+      {tab === 'keys' ? (
+        <AddCardForm onAdd={onAdd} onDone={onDone} />
+      ) : (
+        <CalDavPicker onAdd={onAdd} onDone={onDone} />
+      )}
+    </div>
   )
 }
 
@@ -366,7 +406,7 @@ export function Toolbar({ tool, onTool, onShape, onAddCards, onAddModule, onImag
           className="w-96 p-2"
           onEscapeKeyDown={keepOpenWhileSuggesting}
         >
-          <AddCardForm onAdd={onAddCards} onDone={() => setOpen(false)} />
+          <CardSources onAdd={onAddCards} onDone={() => setOpen(false)} />
         </PopoverContent>
       </Popover>
       <Popover open={modulesOpen} onOpenChange={setModulesOpen}>

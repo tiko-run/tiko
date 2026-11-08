@@ -168,7 +168,6 @@ def test_rows_labels_link_and_list():
     )
     assert [label.name for label in task.labels] == ["Home", "Errands"]
     assert rows(task) == {
-        "List": "Personal",
         "Progress": "40%",
         "Repeats": "Yes",
         "Part of": "Holidays",

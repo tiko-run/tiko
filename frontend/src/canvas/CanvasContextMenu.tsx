@@ -21,7 +21,7 @@ import {
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { keepOpenWhileSuggesting } from '@/canvas/JqlInput'
 import { useImagePicker } from '@/canvas/ImagePicker'
-import { AddCardForm } from '@/canvas/Toolbar'
+import { CardSources } from '@/canvas/Toolbar'
 import { MODULES } from '@/modules/registry'
 
 export type MenuTarget = { kind: 'pane'; point: XYPosition } | { kind: 'selection' }
@@ -168,7 +168,7 @@ export function CanvasContextMenu({
           className="w-96 p-2"
           onEscapeKeyDown={keepOpenWhileSuggesting}
         >
-          <AddCardForm
+          <CardSources
             onAdd={(tasks) => cardAt && onAddCards(tasks, cardAt)}
             onDone={() => setCardAt(null)}
           />
