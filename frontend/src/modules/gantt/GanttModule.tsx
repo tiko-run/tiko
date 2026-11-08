@@ -82,7 +82,7 @@ import {
   type Row,
 } from '@/modules/gantt/rows'
 import type { GanttContent } from '@/modules/gantt/schema'
-import { fitLeaves, fitStages } from '@/modules/gantt/stages'
+import { fitLeaves, fitStages, spreadStages } from '@/modules/gantt/stages'
 import { TimeOffLane } from '@/modules/gantt/TimeOffLane'
 import { laneHeight, timeOffLane } from '@/modules/gantt/timeoff'
 import {
@@ -487,6 +487,15 @@ export function GanttModule({
                 tracked={off}
                 axis={axis}
                 bar={bars.get(row.id)}
+                onSpread={
+                  readOnly || hasChildren || !row.stages?.length
+                    ? undefined
+                    : () => {
+                        const next = spreadStages(row, off.span)
+                        if (next) onChange(updateRow(content, row.id, () => next))
+                      }
+                }
+                canSpread={(row.stages?.length ?? 0) <= off.span.end - off.span.start + 1}
                 onFollow={
                   readOnly || hasChildren || row.stages?.length
                     ? undefined
@@ -633,11 +642,16 @@ function DriftGhost({
   axis,
   bar,
   onFollow,
+  onSpread,
+  canSpread,
 }: {
   tracked: Tracked
   axis: Axis
   bar?: { left: number; right: number }
   onFollow?: () => void
+  /** Puts the row's stages into the tracker's dates, in equal shares. */
+  onSpread?: () => void
+  canSpread: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const [open, setOpen] = useState(false)
@@ -665,9 +679,28 @@ function DriftGhost({
             <Button size="sm" variant="outline" onClick={onFollow}>
               Follow tracker dates
             </Button>
+          ) : onSpread ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!canSpread}
+                onClick={() => {
+                  onSpread()
+                  setOpen(false)
+                }}
+              >
+                Fit stages to tracker dates
+              </Button>
+              <p className="text-muted-foreground text-[12px]">
+                {canSpread
+                  ? 'Stages share the dates equally, then adjust them as you need.'
+                  : 'The tracker dates are shorter than one day per stage.'}
+              </p>
+            </>
           ) : (
             <p className="text-muted-foreground text-[12px]">
-              Rows with stages or children keep their own dates.
+              Rows with children keep their own dates.
             </p>
           )}
         </PopoverContent>

@@ -187,3 +187,23 @@ export function fitLeaves(content: GanttContent): GanttContent {
   })
   return changed ? { ...content, rows } : content
 }
+
+/**
+ * The row's stages in their order, side by side and in equal shares of the span, the days left
+ * over going to the first ones; null when the span has fewer days than the row has stages.
+ */
+export function spreadStages(row: Row, span: Span): Row | null {
+  const stages = row.stages ?? []
+  const days = span.end - span.start + 1
+  if (stages.length === 0 || days < stages.length) return null
+  const share = Math.floor(days / stages.length)
+  const extra = days % stages.length
+  let start = span.start
+  const spread = stages.map((stage, i) => {
+    const length = share + (i < extra ? 1 : 0)
+    const placed = { ...stage, start: formatDay(start), end: formatDay(start + length - 1) }
+    start += length
+    return placed
+  })
+  return withStages(row, spread)
+}

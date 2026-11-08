@@ -34,7 +34,7 @@
 6. **Dragging a following bar takes it off the tracker.** The dragged dates become the row's own dates, and the row stops following. A toast says so with Undo, which puts the row back on the tracker's dates. Nothing is written to the tracker: tiko still only reads.
 7. **The board shows where the plan and the tracker disagree.** A row with its own dates whose task has different dates in the tracker gets a dashed frame where the tracker has the task, drawn over the row and never in the bar's way. The bar's tooltip names the tracker's dates; a click on the frame shows them with Follow tracker dates. A dot was tried first and dropped: the link handle at the bar's end covered it. The frame is the place where a later write-back offers to send the row's dates to the tracker.
 8. **A following bar moves when the tracker changes.** When a refresh brings new dates, the bar moves for everyone on the board. The board saves the dates it shows, so a public link guest and an export see the same bar as the team.
-9. **A parent row keeps spanning its children, and a row with stages keeps its stages.** Tracker dates move neither: a parent follows its children, and Planning stages are a plan of people that a date changed in the tracker must not reshuffle unseen. A row stops following when it is cut into stages. Both show the frame of Decision 7. How stages could follow the tracker is left for a later spec.
+9. **A parent row keeps spanning its children, and a row with stages keeps its stages.** Tracker dates move neither: a parent follows its children, and Planning stages are a plan of people that a date changed in the tracker must not reshuffle unseen. A row stops following when it is cut into stages. Both show the frame of Decision 7. For a row with stages the frame offers Fit stages to tracker dates: the stages line up side by side inside the tracker's dates in equal shares of calendar days, the days left over going to the first ones, people kept. It is a one-off edit that undo takes back; the row keeps its own dates after it. How stages could follow the tracker by themselves is left for a later spec.
 
 ## Requirements
 
@@ -48,6 +48,7 @@
 - **FR-008**: A row with its own dates whose task's dates differ MUST show the frame of Decision 7 with the tracker's dates and a way to follow them, with Planning on and off.
 - **FR-009**: When a refresh changes a task's dates, every following bar of that task MUST move for everyone on the board, and the board MUST save the new dates.
 - **FR-010**: A parent bar MUST keep spanning its children, and a row with stages MUST keep its stages, whatever the task's dates are; a row cut into stages MUST stop following.
+- **FR-011**: The frame of a row with stages MUST offer to fit its stages into the tracker's dates in equal shares, and MUST refuse when the dates are fewer days than the row has stages.
 
 ## Slices
 

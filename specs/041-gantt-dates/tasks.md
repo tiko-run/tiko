@@ -16,4 +16,5 @@
 - [x] T009 Dragging or resizing a following bar keeps the dragged dates as the row's own; toast with Undo
 - [x] T010 Dashed frame of the tracker's dates on rows with their own dates, clickable around the bar with Planning on and off; the tracker's dates in the bar's tooltip; Follow tracker dates; the row's switch
 - [x] T011 A refresh with new dates moves following bars for everyone and saves the board; parent rows keep spanning children; a row cut into stages stops following
+- [x] T013 Fit stages to tracker dates in the frame of a row with stages: equal shares, side by side, people kept
 - [x] T012 Guide (Gantt page), CHANGELOG; media wait for the release

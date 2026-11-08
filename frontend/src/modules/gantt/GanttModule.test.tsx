@@ -1066,8 +1066,36 @@ test('a row cut into stages keeps its own dates and shows the tracker ones besid
   const bar = screen.getByRole('slider', { name: /DEMO-1/ })
   expect(bar.getAttribute('aria-valuetext')).toBe('Mon Oct 5 – Fri Oct 9 · 5 days')
   expect(screen.queryByRole('button', { name: /^Keep own dates for/ })).toBeNull()
+})
+
+test('stages fit into the tracker dates in equal shares at one press', () => {
+  const staged: GanttContent = {
+    ...content,
+    rows: [
+      {
+        ...content.rows[0],
+        start: '2026-10-05',
+        end: '2026-10-30',
+        stages: [
+          { id: 's1', type: 'dev', start: '2026-10-05', end: '2026-10-09', people: [] },
+          { id: 's2', type: 'qa', start: '2026-10-20', end: '2026-10-21', people: ['ann'] },
+          { id: 's3', type: 'ops', start: '2026-10-25', end: '2026-10-30', people: [] },
+        ],
+      },
+    ],
+  }
+  renderGantt({}, staged, OFF, { 'DEMO-1': { ...task, start: '2026-11-02', due: '2026-11-11' } })
   fireEvent.click(screen.getByRole('button', { name: /^Tracker dates:/ }))
-  expect(screen.getByText('Rows with stages or children keep their own dates.')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Fit stages to tracker dates' }))
+  // Ten days for three stages: the day left over goes to the first.
+  expect(rows()[0].stages!.map((s) => [s.start, s.end, s.people])).toEqual([
+    ['2026-11-02', '2026-11-05', []],
+    ['2026-11-06', '2026-11-08', ['ann']],
+    ['2026-11-09', '2026-11-11', []],
+  ])
+  expect([rows()[0].start, rows()[0].end]).toEqual(['2026-11-02', '2026-11-11'])
+  expect(rows()[0].follow).toBeUndefined()
+  expect(document.querySelector('[data-tracker-dates]')).toBeNull()
 })
 
 test('a row stops and starts following from its own button', () => {
