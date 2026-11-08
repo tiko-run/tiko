@@ -1591,6 +1591,12 @@ class PgAttempts(_Repo):
             )
         return None
 
+    def forget(self, scope: str, before: float) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "DELETE FROM attempt_windows WHERE scope = %s AND opened <= %s", (scope, before)
+            )
+
     def spend(self, scope: str, key: str, limit: int, window_s: float, at: float) -> float | None:
         with self._tx() as conn:
             _lock_key(conn, "windows", scope, key)
@@ -1934,13 +1940,22 @@ class PgFileStore(_Repo):
             return found
         return StoredFile(file_id, picture.width, picture.height, picture.color, picture.moving)
 
-    def link(self, board_id: str, file_id: str) -> None:
+    def link(self, board_id: str, file_id: str) -> bool:
         with self._tx() as conn:
+            # The lock holds the cleanup off until the file is marked used again.
+            row = conn.execute(
+                "SELECT unused_since FROM files WHERE id = %s FOR KEY SHARE", (file_id,)
+            ).fetchone()
+            if row is None:
+                return False
+            if row["unused_since"] is not None:
+                conn.execute("UPDATE files SET unused_since = NULL WHERE id = %s", (file_id,))
             conn.execute(
                 "INSERT INTO board_files (workspace_id, board_id, file_id) VALUES (%s, %s, %s)"
                 " ON CONFLICT DO NOTHING",
                 (self._ws, board_id, file_id),
             )
+        return True
 
     def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
         with self._tx() as conn:
@@ -1998,7 +2013,13 @@ class PgStickerPack(_Repo):
             found = conn.execute(_PACK + " WHERE s.file_id = %s", (file_id,)).fetchone()
             if found:
                 return _pack_sticker(found)
-            if conn.execute("SELECT 1 FROM files WHERE id = %s", (file_id,)).fetchone() is None:
+            # Marked used at once: the cleanup may have counted it unused a while ago.
+            if (
+                conn.execute(
+                    "UPDATE files SET unused_since = NULL WHERE id = %s RETURNING id", (file_id,)
+                ).fetchone()
+                is None
+            ):
                 raise NotFound("picture not found")
             if conn.execute("SELECT count(*) AS n FROM stickers").fetchone()["n"] >= limit:
                 return None
@@ -2051,10 +2072,42 @@ def _index_files(conn: psycopg.Connection, ws: str, board_id: str, doc: BoardDoc
     files = image_files(doc)
     if files:
         conn.execute(
+            "UPDATE files SET unused_since = NULL WHERE id = ANY(%s) AND unused_since IS NOT NULL",
+            (list(files),),
+        )
+        conn.execute(
             "INSERT INTO board_files (workspace_id, board_id, file_id)"
             " SELECT %s, %s, id FROM files WHERE id = ANY(%s) ON CONFLICT DO NOTHING",
             (ws, board_id, list(files)),
         )
+
+
+# Files a saved board shows, in the trash too, and files a sticker pack holds. A document
+# without a list of nodes, copied in from an old file, shows nothing and must not stop the job.
+_USED_FILES = (
+    "SELECT n -> 'data' ->> 'file' AS id FROM boards b, jsonb_array_elements(CASE"
+    " WHEN jsonb_typeof(b.doc -> 'nodes') = 'array' THEN b.doc -> 'nodes' ELSE '[]' END) n"
+    " WHERE n -> 'data' ->> 'file' IS NOT NULL UNION SELECT file_id FROM stickers"
+)
+
+
+class PgUnusedFiles(_Repo):
+    def clean(self, now: str, before: str) -> int:
+        with self._db.jobs() as conn:
+            conn.execute(
+                f"WITH used AS ({_USED_FILES}) UPDATE files f"
+                " SET unused_since = CASE WHEN f.id IN (SELECT id FROM used) THEN NULL"
+                " ELSE %s::timestamptz END"
+                " WHERE (f.unused_since IS NULL) = (f.id NOT IN (SELECT id FROM used))",
+                (now,),
+            )
+        with self._db.jobs() as conn:
+            # Counted again: a board saved since the first step may show the file once more.
+            return conn.execute(
+                f"WITH used AS ({_USED_FILES}) DELETE FROM files"
+                " WHERE unused_since <= %s AND id NOT IN (SELECT id FROM used)",
+                (before,),
+            ).rowcount
 
 
 # The names main.py builds the app from, the same in both adapters until SQLite goes.
@@ -2079,4 +2132,5 @@ InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces
 FileStore = PgFileStore
+UnusedFiles = PgUnusedFiles
 StickerPack = PgStickerPack

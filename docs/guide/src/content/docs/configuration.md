@@ -49,7 +49,7 @@ Live boards use a WebSocket at `/api/boards/<id>/live`, on the same address as t
 
 ### The client's address
 
-tiko counts sign-in attempts and new demo visitors by the client's address. The web container takes it from the proxy in front only when that proxy is one it trusts: by default a proxy on a private network, the usual case for a reverse proxy on the same host or in the same Docker network, which puts the address in `X-Forwarded-For`. Set both variables on the web container when tiko sits behind something else:
+tiko counts sign-in attempts, new demo visitors and the pictures guests of a public link load by the client's address. The web container takes it from the proxy in front only when that proxy is one it trusts: by default a proxy on a private network, the usual case for a reverse proxy on the same host or in the same Docker network, which puts the address in `X-Forwarded-For`. Set both variables on the web container when tiko sits behind something else:
 
 | In front of tiko | `TIKO_TRUSTED_PROXIES` | `TIKO_CLIENT_IP_HEADER` |
 |---|---|---|

@@ -3,6 +3,7 @@ import time
 from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, Field
 
+from app.api import deps
 from app.api.deps import AccountsDep, CurrentPerson, SessionsDep
 from app.api.gate import COOKIE
 from app.domain.accounts import BROWSER_TTL_S, Person
@@ -73,19 +74,13 @@ def signed_in(request: Request, token: str) -> Response:
 BROWSER_COOKIE = "tiko_device"
 
 
-def _address(request: Request) -> str:
-    # The web container's nginx works the client out and is the only way in to the API.
-    peer = request.client.host if request.client else ""
-    return request.headers.get("x-real-ip") or peer
-
-
 @router.post("/login", status_code=204)
 def login(body: SignInRequest, request: Request, accounts: AccountsDep) -> Response:
     session, browser = accounts.sign_in(
         body.username,
         body.password,
         time.time(),
-        address=_address(request),
+        address=deps.client_address(request),
         browser=request.cookies.get(BROWSER_COOKIE),
     )
     response = signed_in(request, session)
@@ -109,7 +104,7 @@ def start_demo(request: Request) -> Response:
         raise NotFound("not found")
     if getattr(request.state, "person", None) is not None:
         return Response(status_code=204)
-    return signed_in(request, visitors.create(_address(request), time.time()))
+    return signed_in(request, visitors.create(deps.client_address(request), time.time()))
 
 
 class SignUpRequest(BaseModel):

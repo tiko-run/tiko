@@ -5,8 +5,8 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
-from app.domain.errors import NotFound
-from app.domain.public import LINK_REQUESTS, PublicLinks
+from app.domain.errors import NotFound, TooManyAttempts
+from app.domain.public import LINK_REQUESTS, PICTURE_REQUESTS, PublicLinks
 from tests.conftest import run_sql
 from tests.jira_fake import TOKEN
 from tests.test_sharing import make_world, new_board
@@ -290,6 +290,49 @@ def test_one_link_cannot_take_the_whole_instance():
     assert links.find("other") == ("b", 1, "")
     now[0] = 61.0
     assert links.find("t") == ("b", 1, "")
+
+
+def test_each_guest_has_a_budget_for_pictures_of_their_own():
+    class Boards:
+        def by_public_token(self, token):
+            return ("b", 1, "")
+
+    now = [0.0]
+    links = PublicLinks(Boards(), lambda: True, clock=lambda: now[0])
+    for _ in range(PICTURE_REQUESTS):
+        links.files_of("t", "203.0.113.7")
+    with pytest.raises(Exception) as caught:
+        links.files_of("other", "203.0.113.7")
+    assert caught.value.code == "too_many_attempts" and caught.value.retry_after == 60
+    # Another guest, and the board itself for the same guest, are not held up.
+    assert links.files_of("t", "198.51.100.1") == "b"
+    assert links.find("t") == ("b", 1, "")
+    # One IPv6 connection has its whole /64 to pick from.
+    for n in range(PICTURE_REQUESTS):
+        links.files_of("t", f"2001:db8::{n:x}")
+    with pytest.raises(TooManyAttempts):
+        links.files_of("t", "2001:db8::ffff:1")
+    now[0] = 61.0
+    assert links.files_of("t", "203.0.113.7") == "b"
+    now[0] = 200.0
+    links.forget_guests()
+    assert [k for k in links._attempts._windows if k[0] == "pictures"] == []
+
+
+def test_both_picture_routes_spend_the_guests_budget(client, monkeypatch):
+    monkeypatch.setattr("app.domain.public.PICTURE_REQUESTS", 2)
+    board_id = client.post("/api/boards", json={"name": "Shared"}).json()["id"]
+    token = client.put(f"/api/boards/{board_id}/public", json={"public": True}).json()
+    token = token["public_token"]
+    guest = TestClient(client.app)
+    ann, bob = {"x-real-ip": "203.0.113.7"}, {"x-real-ip": "198.51.100.1"}
+    file_url = f"/api/public/{token}/files/missing"
+    sticker_url = f"/api/public/{token}/stickers/1f600/picture"
+    assert guest.get(file_url, headers=ann).status_code == 404
+    assert guest.get(sticker_url, headers=ann).status_code == 200
+    assert guest.get(sticker_url, headers=ann).status_code == 429
+    assert guest.get(file_url, headers=ann).status_code == 429
+    assert guest.get(sticker_url, headers=bob).status_code == 200
 
 
 def test_upgrade_leaves_every_board_private(client):

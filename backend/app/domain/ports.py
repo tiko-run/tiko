@@ -209,6 +209,10 @@ class Attempts(Protocol):
         """Forgets the key's window."""
         ...
 
+    def forget(self, scope: str, before: float) -> None:
+        """Forgets the scope's windows opened at `before` or earlier."""
+        ...
+
 
 class KnownBrowsers(Protocol):
     """Browsers a person signed in from, by the hash of their cookie's token."""
@@ -586,12 +590,22 @@ class FileStore(Protocol):
         None when the workspace's files would pass `quota` bytes, checked with the insert."""
         ...
 
-    def link(self, board_id: str, file_id: str) -> None:
-        """Lets the board serve the file."""
+    def link(self, board_id: str, file_id: str) -> bool:
+        """Lets the board serve the file and marks it used; False when there is no such file."""
         ...
 
     def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
         """None unless the board may serve the file."""
+        ...
+
+
+class UnusedFiles(Protocol):
+    """Pictures of every workspace that nothing uses any more."""
+
+    def clean(self, now: str, before: str) -> int:
+        """Marks unused since `now` the files no saved board shows and no sticker pack holds,
+        unmarks the ones used again, and deletes those unused since `before` or earlier.
+        Returns how many went."""
         ...
 
 

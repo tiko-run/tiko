@@ -43,12 +43,19 @@ from app.domain import demo, usage
 from app.domain.accounts import Accounts
 from app.domain.boards import purge_trash
 from app.domain.errors import NotFound
-from app.domain.files import DEMO_QUOTA_MB, Files
+from app.domain.files import DEMO_QUOTA_MB, Files, clean_files
 from app.domain.invites import Invites
 from app.domain.members import Members
 from app.domain.planning import Planning
-from app.domain.ports import BoardRepo, FolderRepo, ReleaseFeed, StatsSender, Updater
-from app.domain.public import PublicLinks
+from app.domain.ports import (
+    BoardRepo,
+    FolderRepo,
+    ReleaseFeed,
+    StatsSender,
+    UnusedFiles,
+    Updater,
+)
+from app.domain.public import PICTURE_WINDOW_S, PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions, iso
 from app.domain.settings import (
@@ -188,7 +195,7 @@ def create_app(
                 log.exception("demo cleanup failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
-    async def housekeeping(boards: BoardRepo, folders: FolderRepo) -> None:
+    async def housekeeping(boards: BoardRepo, folders: FolderRepo, files: UnusedFiles) -> None:
         while True:
             try:
                 purged = await anyio.to_thread.run_sync(purge_trash, boards, datetime.now(UTC))
@@ -197,9 +204,21 @@ def create_app(
                 gone = await anyio.to_thread.run_sync(folders.forget_unreachable)
                 if gone:
                     log.info("housekeeping: %d stars, folders and places deleted", gone)
+                cleaned = await anyio.to_thread.run_sync(clean_files, files, datetime.now(UTC))
+                if cleaned:
+                    log.info("housekeeping: %d unused pictures deleted", cleaned)
             except Exception:
                 log.exception("housekeeping failed")
             await asyncio.sleep(HOUSEKEEPING_EVERY_S)
+
+    async def forget_guests(links: PublicLinks) -> None:
+        # Not left to the next guest's request: a quiet instance would keep the hashes for good.
+        while True:
+            try:
+                await anyio.to_thread.run_sync(links.forget_guests)
+            except Exception:
+                log.exception("forgetting guests' picture budgets failed")
+            await asyncio.sleep(PICTURE_WINDOW_S)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -210,7 +229,14 @@ def create_app(
             else None
         )
         keeper = (
-            asyncio.create_task(housekeeping(app.state.boards, app.state.folders))
+            asyncio.create_task(
+                housekeeping(app.state.boards, app.state.folders, app.state.unused_files)
+            )
+            if settings.tiko_worker == 0
+            else None
+        )
+        forgetter = (
+            asyncio.create_task(forget_guests(app.state.public_links))
             if settings.tiko_worker == 0
             else None
         )
@@ -243,6 +269,8 @@ def create_app(
             cleaner.cancel()
         if keeper:
             keeper.cancel()
+        if forgetter:
+            forgetter.cancel()
         if workers:
             await workers.close()
         # Open boards are saved and their sockets told to come back.
@@ -258,6 +286,7 @@ def create_app(
     member_repo = storage.MemberRepo(db)
     app.state.boards = storage.BoardRepo(db)
     app.state.folders = storage.FolderRepo(db)
+    app.state.unused_files = storage.UnusedFiles(db)
     rooms = LiveRooms(app.state.boards, member_repo, storage.Workspaces(db))
     workers = (
         Workers(rooms, settings.tiko_worker, settings.tiko_workers, settings.tiko_workers_dir)

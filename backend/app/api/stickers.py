@@ -72,12 +72,13 @@ def picture(
 def public_picture(
     token: str,
     code: str,
+    request: Request,
     stickers: StickersDep,
     links: Annotated[PublicLinks, Depends(deps.public_links)],
     w: Width = None,
     move: Moving = False,
 ) -> Response:
-    links.files_of(token)
+    links.files_of(token, deps.client_address(request))
     return _sticker(stickers.picture(code, w, move))
 
 

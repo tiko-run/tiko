@@ -83,3 +83,9 @@ class MemoryAttempts:
     def drop(self, scope: str, key: str) -> None:
         with self._lock:
             self._windows.pop((scope, key), None)
+
+    def forget(self, scope: str, before: float) -> None:
+        with self._lock:
+            self._windows = {
+                k: w for k, w in self._windows.items() if k[0] != scope or w[0] > before
+            }

@@ -1,13 +1,14 @@
 """Spec 039: pictures on a board, stored once per workspace and served by the board's access."""
 
 import io
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config import Settings
-from app.domain.files import MAX_BYTES
+from app.domain.files import MAX_BYTES, UNUSED_DAYS, clean_files
 from app.main import create_app
 from tests.conftest import signed_in
 from tests.test_folders import join
@@ -343,3 +344,122 @@ def test_an_animation_too_long_to_decode_is_refused(client):
     response = upload(client, board(client), out.getvalue(), "image/gif")
     assert response.status_code == 413
     assert response.json()["error"]["code"] == "file_too_large"
+
+
+def image(file_id: str) -> dict:
+    return {
+        "id": f"pic-{file_id}",
+        "type": "image",
+        "position": {"x": 0, "y": 0},
+        "width": 400,
+        "height": 300,
+        "data": {"file": file_id, "w": 800, "h": 600, "color": "#c82828"},
+    }
+
+
+def show(client: TestClient, board_id: str, *file_ids: str) -> None:
+    version = client.get(f"/api/boards/{board_id}").json()["version"]
+    doc = {"nodes": [image(f) for f in file_ids], "edges": []}
+    response = client.put(f"/api/boards/{board_id}", json={"version": version, "doc": doc})
+    assert response.is_success, response.text
+
+
+NOW = datetime.now(UTC)
+LATER = NOW + timedelta(days=UNUSED_DAYS)
+
+
+def clean(client: TestClient, at: datetime) -> int:
+    return clean_files(client.app.state.unused_files, at)
+
+
+def test_a_picture_off_every_board_goes_some_days_later(client):
+    board_id = board(client)
+    kept = upload(client, board_id, picture()).json()["id"]
+    dropped = upload(client, board_id, picture(color=(0, 0, 0))).json()["id"]
+    show(client, board_id, kept, dropped)
+    assert clean(client, NOW) == 0
+    show(client, board_id, kept)
+    assert clean(client, NOW) == 0
+    assert clean(client, LATER - timedelta(hours=1)) == 0
+    url = f"/api/boards/{board_id}/files/{{}}"
+    assert client.get(url.format(dropped)).status_code == 200
+    assert clean(client, LATER) == 1
+    assert client.get(url.format(dropped)).status_code == 404
+    assert client.get(url.format(kept)).status_code == 200
+    # The same bytes again are simply stored anew.
+    again = upload(client, board_id, picture(color=(0, 0, 0)))
+    assert again.status_code == 201
+    assert client.get(url.format(again.json()["id"])).status_code == 200
+
+
+def test_a_picture_used_again_in_time_stays(client):
+    board_id, other = board(client), board(client)
+    pasted = upload(client, board_id, picture()).json()["id"]
+    uploaded = upload(client, board_id, picture(color=(0, 0, 0))).json()["id"]
+    assert clean(client, NOW) == 0
+    # Pasted onto another board, and the same bytes uploaded once more.
+    show(client, other, pasted)
+    assert upload(client, board_id, picture(color=(0, 0, 0))).json()["id"] == uploaded
+    assert clean(client, LATER) == 0
+    show(client, other)
+    assert clean(client, LATER) == 0
+    assert clean(client, LATER + timedelta(days=UNUSED_DAYS)) == 2
+
+
+def test_the_trash_and_the_sticker_pack_hold_their_pictures(client):
+    trashed, plain = board(client), board(client)
+    in_trash = upload(client, trashed, picture()).json()["id"]
+    show(client, trashed, in_trash)
+    client.delete(f"/api/boards/{trashed}")
+    saved = upload(client, plain, picture(color=(0, 0, 0))).json()["id"]
+    sticker = client.post("/api/stickers/pack", json={"file": saved, "name": "Logo"}).json()
+    assert clean(client, NOW) == 0
+    assert clean(client, LATER) == 0
+    assert client.get(f"/api/stickers/pack/{sticker['id']}/picture").status_code == 200
+    client.delete(f"/api/stickers/pack/{sticker['id']}")
+    assert clean(client, LATER) == 0
+    assert clean(client, LATER + timedelta(days=UNUSED_DAYS)) == 1
+    client.post(f"/api/boards/{trashed}/restore")
+    assert client.get(f"/api/boards/{trashed}/files/{in_trash}").status_code == 200
+
+
+def noisy(seed: int) -> bytes:
+    out = io.BytesIO()
+    Image.effect_noise((440, 440), 100 + seed).convert("RGB").save(out, "PNG")
+    return out.getvalue()
+
+
+def test_a_deleted_picture_leaves_room_in_the_quota():
+    client = signed_in(create_app(Settings(db_path=":memory:", tiko_files_quota_mb=1)))
+    board_id = board(client)
+    first, second, third = noisy(1), noisy(2), noisy(3)
+    assert upload(client, board_id, first).status_code == 201
+    kept = upload(client, board_id, second).json()["id"]
+    show(client, board_id, kept)
+    assert upload(client, board_id, third).json()["error"]["code"] == "file_quota"
+    assert clean(client, NOW) == 0
+    assert clean(client, LATER) == 1
+    assert upload(client, board_id, third).status_code == 201
+
+
+def test_a_picture_saved_to_the_pack_counts_as_used_from_then_on(client):
+    board_id = board(client)
+    file_id = upload(client, board_id, picture()).json()["id"]
+    assert clean(client, NOW) == 0
+    sticker = client.post("/api/stickers/pack", json={"file": file_id, "name": "Logo"}).json()
+    client.delete(f"/api/stickers/pack/{sticker['id']}")
+    # Out of the pack before the job saw it in: the week starts again, not from the upload.
+    assert clean(client, LATER) == 0
+    assert clean(client, LATER + timedelta(days=UNUSED_DAYS)) == 1
+
+
+def test_a_board_without_a_list_of_nodes_does_not_stop_the_cleanup(client):
+    board_id = board(client)
+    upload(client, board_id, picture())
+    with client.app.state.boards._db.jobs() as conn:
+        conn.execute(
+            """UPDATE boards SET doc = jsonb_set(doc, '{nodes}', 'null') WHERE id = %s""",
+            (board_id,),
+        )
+    assert clean(client, NOW) == 0
+    assert clean(client, LATER) == 1
