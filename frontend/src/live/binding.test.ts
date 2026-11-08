@@ -280,6 +280,25 @@ test('a patch outside the undo history stays when the edit before it is undone',
   ann.history.undo()
   ann.pull()
   expect(ann.nodes.find((n) => n.id === 'a')?.position.x).toBe(0)
-  expect((ann.nodes.find((n) => n.id === 'p')?.data as { file?: string }).file).toBe('f'.repeat(32))
+  const data = ann.nodes.find((n) => n.id === 'p')?.data as { file?: string } | undefined
+  expect(data?.file).toBe('f'.repeat(32))
   expect(ann.live.patchData('gone', { file: 'x' })).toBe(false)
+})
+
+test('a patch can clear a field of the data', () => {
+  const picture = {
+    id: 'q',
+    type: 'image',
+    position: { x: 0, y: 0 },
+    data: { w: 10, h: 10, color: '#000000', since: '2026-11-08T00:00:00Z' },
+  } as AppNode
+  ann.set([...ann.nodes, picture])
+  ann.live.patchData('q', { file: 'e'.repeat(32), since: undefined })
+  ann.pull()
+  sync(ann, bob)
+  for (const tab of [ann, bob]) {
+    const data = tab.nodes.find((n) => n.id === 'q')?.data as Record<string, unknown> | undefined
+    expect(data && 'since' in data).toBe(false)
+    expect(data?.file).toBe('e'.repeat(32))
+  }
 })

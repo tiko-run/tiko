@@ -64,7 +64,7 @@ test('a guest reads pictures through the public link', () => {
 })
 
 test('others see the picture uploading in its own colour and size', () => {
-  const container = show(PICTURE)
+  const container = show({ ...PICTURE, since: new Date().toISOString() })
   expect(screen.getByText('Uploading…')).toBeTruthy()
   expect(container.querySelector('img')).toBeNull()
 })
@@ -80,4 +80,45 @@ test('a failed upload says why and retries', async () => {
   send.mockResolvedValue('f'.repeat(32))
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
   expect(send).toHaveBeenCalledTimes(2)
+})
+
+test('a GIF plays when it is large on screen and shows a still copy when small', () => {
+  const big = show({ w: 400, h: 300, color: '#000000', moving: true, file: 'b'.repeat(32) })
+  expect(big.querySelector('img')?.getAttribute('src')).toMatch(/\?move=1$/)
+})
+
+test('a small GIF shows a still copy', () => {
+  const node: AppNode = {
+    id: 'pic',
+    type: 'image',
+    position: { x: 0, y: 0 },
+    width: 100,
+    height: 75,
+    data: { w: 400, h: 300, color: '#000000', moving: true, file: 'c'.repeat(32) },
+  }
+  const { container } = render(
+    <ReactFlowProvider>
+      <ImagesContext.Provider value={{ source: { boardId: 'b1' }, uploads: null }}>
+        <div style={{ width: 800, height: 600 }}>
+          <ReactFlow
+            nodes={[node]}
+            nodeTypes={nodeTypes}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          />
+        </div>
+      </ImagesContext.Provider>
+    </ReactFlowProvider>,
+  )
+  expect(container.querySelector('img')?.getAttribute('src')).toMatch(/\?w=512$/)
+})
+
+test('an upload that never finished offers to pick the file again', () => {
+  const again = vi.fn()
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+  show({ ...PICTURE, since }, { again })
+  expect(screen.queryByText('Uploading…')).toBeNull()
+  expect(screen.getByText('Upload did not finish')).toBeTruthy()
+  const picked = new File(['png'], 'shot.png', { type: 'image/png' })
+  fireEvent.change(screen.getByTestId('image-picker'), { target: { files: [picked] } })
+  expect(again).toHaveBeenCalledWith('pic', picked)
 })

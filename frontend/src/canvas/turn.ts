@@ -33,6 +33,7 @@ export function resizeTurned(
   sides: Side[],
   travel: XYPosition,
   min: { width: number; height: number },
+  keepAspectRatio = false,
 ): Box {
   const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
   // The travel in the box's own axes.
@@ -45,6 +46,25 @@ export function resizeTurned(
   if (sides.includes('right')) right = Math.max(right + local.x, left + min.width)
   if (sides.includes('top')) top = Math.min(top + local.y, bottom - min.height)
   if (sides.includes('bottom')) bottom = Math.max(bottom + local.y, top + min.height)
+  if (keepAspectRatio) {
+    // The dragged side or corner leads; the other axis follows, the far side stays put.
+    const ratio = box.width / box.height
+    const across = sides.includes('left') || sides.includes('right')
+    const along = sides.includes('top') || sides.includes('bottom')
+    let w = right - left
+    let h = bottom - top
+    const leadsAcross = Math.abs(local.x) / box.width >= Math.abs(local.y) / box.height
+    if (across && (!along || leadsAcross)) h = w / ratio
+    else w = h * ratio
+    if (w < min.width) [w, h] = [min.width, min.width / ratio]
+    if (h < min.height) [w, h] = [min.height * ratio, min.height]
+    if (sides.includes('left')) left = right - w
+    else if (sides.includes('right')) right = left + w
+    else [left, right] = [(left + right) / 2 - w / 2, (left + right) / 2 + w / 2]
+    if (sides.includes('top')) top = bottom - h
+    else if (sides.includes('bottom')) bottom = top + h
+    else [top, bottom] = [(top + bottom) / 2 - h / 2, (top + bottom) / 2 + h / 2]
+  }
   const width = right - left
   const height = bottom - top
   const shift = turnVector({ x: (left + right) / 2, y: (top + bottom) / 2 }, deg)

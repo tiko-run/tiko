@@ -136,6 +136,10 @@ class ImageData(_Strict):
     h: PictureSide
     color: str = Field(pattern=r"^#[0-9a-f]{6}$")
     rotation: absent_or(Rotation) = None
+    # A GIF or animated WebP, which plays where it may.
+    moving: absent_or(bool) = None
+    # When an upload started, so others can tell one that never finished from one on its way.
+    since: absent_or(AwareDatetime) = None
 
 
 class ModuleData(_Strict):
@@ -244,6 +248,11 @@ Node = Annotated[
     | TimerNode,
     Field(discriminator="type"),
 ]
+
+
+def image_files(doc: "BoardDoc") -> set[str]:
+    """Ids of the stored pictures the board shows."""
+    return {n.data.file for n in doc.nodes if isinstance(n, ImageNode) and n.data.file}
 
 
 class Edge(_Strict):

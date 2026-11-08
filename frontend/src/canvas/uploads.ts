@@ -1,7 +1,7 @@
 import { createContext, useContext, useSyncExternalStore } from 'react'
-import type { FileSource } from '@/api/files'
+import type { FileSource, StoredFile } from '@/api/files'
 
-/** A picture added in this tab: shown from the local copy until the stored one has loaded. */
+/** A picture added in this tab: shown from the local copy (a still one for a GIF) until the stored one has loaded. */
 export type Upload = { local: string; error?: string }
 /** What the element looked like when added, so copies of it made meanwhile are found. */
 export type Look = { w: number; h: number; color: string }
@@ -13,16 +13,17 @@ const PARALLEL = 3
  * screenshots does not hold every connection; a failed one waits for its retry.
  */
 export class Uploads {
-  private items = new Map<string, Upload & { file: Blob; look: Look }>()
+  private items = new Map<string, Upload & { file: Blob; look: Look; generation: number }>()
+  private generations = 0
   private queue: string[] = []
   private running = 0
   private listeners = new Set<() => void>()
-  private send: (file: Blob) => Promise<string>
-  private done: (id: string, file: string, look: Look) => void
+  private send: (file: Blob) => Promise<StoredFile>
+  private done: (id: string, stored: StoredFile, look: Look) => void
 
   constructor(
-    send: (file: Blob) => Promise<string>,
-    done: (id: string, file: string, look: Look) => void,
+    send: (file: Blob) => Promise<StoredFile>,
+    done: (id: string, stored: StoredFile, look: Look) => void,
   ) {
     this.send = send
     this.done = done
@@ -38,8 +39,14 @@ export class Uploads {
   /** Elements whose upload failed and waits for its retry. */
   failed = () => [...this.items].filter(([, item]) => item.error).map(([id]) => id)
 
-  add(id: string, file: Blob, look: Look) {
-    this.items.set(id, { file, look, local: URL.createObjectURL(file) })
+  add(id: string, file: Blob, look: Look, preview: Blob = file) {
+    this.drop(id)
+    this.items.set(id, {
+      file,
+      look,
+      local: URL.createObjectURL(preview),
+      generation: ++this.generations,
+    })
     this.queue.push(id)
     this.changed()
     this.next()
@@ -82,12 +89,12 @@ export class Uploads {
       if (!item) continue
       this.running++
       this.send(item.file)
-        .then((file) => {
-          if (this.items.has(id)) this.done(id, file, item.look)
+        .then((stored) => {
+          if (this.current(id, item.generation)) this.done(id, stored, item.look)
         })
         .catch((error: unknown) => {
-          // Dropped meanwhile: a late failure must not bring the element's upload back.
-          if (!this.items.has(id)) return
+          // Dropped or replaced meanwhile: a late answer must not touch the element.
+          if (!this.current(id, item.generation)) return
           const message = error instanceof Error ? error.message : 'Upload failed'
           this.items.set(id, { ...item, error: message })
           this.changed()
@@ -99,6 +106,10 @@ export class Uploads {
     }
   }
 
+  private current(id: string, generation: number) {
+    return this.items.get(id)?.generation === generation
+  }
+
   private changed() {
     // A new object per change, so useSyncExternalStore sees it.
     for (const [id, item] of this.items) this.items.set(id, { ...item })
@@ -106,7 +117,12 @@ export class Uploads {
   }
 }
 
-export type ImagesHost = { source: FileSource; uploads: Uploads | null }
+export type ImagesHost = {
+  source: FileSource
+  uploads: Uploads | null
+  /** Uploads a file again for an element whose upload never finished. */
+  again?: (id: string, file: File) => void | Promise<void>
+}
 
 export const ImagesContext = createContext<ImagesHost | null>(null)
 

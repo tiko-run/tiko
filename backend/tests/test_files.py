@@ -268,3 +268,55 @@ def test_a_picture_of_a_trashed_board_is_not_served(client):
     file_id = upload(client, board_id, picture()).json()["id"]
     assert client.delete(f"/api/boards/{board_id}").status_code == 204
     assert client.get(f"/api/boards/{board_id}/files/{file_id}").status_code == 404
+
+
+def test_a_board_serves_only_the_pictures_it_shows(client):
+    first, second = board(client), board(client)
+    file_id = upload(client, first, picture()).json()["id"]
+    url = f"/api/boards/{second}/files/{file_id}"
+    assert client.get(url).status_code == 404
+    image = {
+        "id": "pic",
+        "type": "image",
+        "position": {"x": 0, "y": 0},
+        "width": 400,
+        "height": 300,
+        "data": {"file": file_id, "w": 800, "h": 600, "color": "#c82828"},
+    }
+    doc = {"nodes": [image], "edges": []}
+    assert client.put(f"/api/boards/{second}", json={"version": 1, "doc": doc}).is_success
+    assert client.get(url).status_code == 200
+    # Taking the picture off the board does not take it back: the board showed it already.
+    empty = {"nodes": [], "edges": []}
+    assert client.put(f"/api/boards/{second}", json={"version": 2, "doc": empty}).is_success
+    assert client.get(url).status_code == 200
+
+
+def test_a_gif_plays_from_a_lighter_animated_webp(client):
+    frames = [Image.effect_noise((480, 360), 60 + i * 20).convert("RGB") for i in range(6)]
+    out = io.BytesIO()
+    frames[0].save(out, "GIF", save_all=True, append_images=frames[1:], duration=80, loop=0)
+    board_id = board(client)
+    body = upload(client, board_id, out.getvalue(), "image/gif").json()
+    assert body["moving"] is True
+    url = f"/api/boards/{board_id}/files/{body['id']}"
+    moving = client.get(url, params={"move": 1})
+    assert moving.headers["content-type"] == "image/webp"
+    played = opened(moving)
+    assert played.n_frames == 6
+    played.seek(1)
+    played.load()
+    assert played.info["duration"] == 80
+    assert len(moving.content) < len(out.getvalue())
+    still = opened(client.get(url, params={"w": 512, "move": 0}))
+    assert getattr(still, "n_frames", 1) == 1
+    assert upload(client, board_id, picture()).json()["moving"] is False
+
+
+def test_an_animation_too_long_to_decode_is_refused(client):
+    frames = [Image.new("L", (1000, 1000), i % 256) for i in range(120)]
+    out = io.BytesIO()
+    frames[0].save(out, "GIF", save_all=True, append_images=frames[1:], duration=40)
+    response = upload(client, board(client), out.getvalue(), "image/gif")
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "file_too_large"

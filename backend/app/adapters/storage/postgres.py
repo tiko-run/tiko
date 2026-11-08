@@ -21,7 +21,14 @@ from psycopg_pool import ConnectionPool
 
 from app.domain.accounts import Account, Person, PersonRecord, Role
 from app.domain.attempts import BROWSERS_PER_PERSON
-from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow, planned_stages
+from app.domain.boards import (
+    BoardDoc,
+    BoardRecord,
+    BoardRow,
+    TrashRow,
+    image_files,
+    planned_stages,
+)
 from app.domain.errors import NotFound, UsernameTaken, VersionConflict
 from app.domain.files import Picture, Served, StoredFile
 from app.domain.folders import Folder
@@ -435,6 +442,7 @@ class PgBoardRepo(_Repo):
             (self._ws, board_id, owner_id),
         )
         _index_stages(conn, self._ws, board_id, doc)
+        _index_files(conn, self._ws, board_id, doc)
         # Someone who made a board of their own needs no welcome board later.
         conn.execute(
             "UPDATE users SET welcomed_at = %s WHERE id = %s AND welcomed_at IS NULL",
@@ -499,6 +507,7 @@ class PgBoardRepo(_Repo):
             ).fetchone()
             if row is not None:
                 _index_stages(conn, self._ws, board_id, doc)
+                _index_files(conn, self._ws, board_id, doc)
         if row is None:
             raise NotFound("board not found")
         return row["version"]
@@ -552,6 +561,7 @@ class PgBoardRepo(_Repo):
                     raise NotFound("board not found")
                 raise VersionConflict("board was changed elsewhere; reload it")
             _index_stages(conn, self._ws, board_id, doc)
+            _index_files(conn, self._ws, board_id, doc)
         return version + 1
 
     def rename(self, board_id: str, name: str) -> None:
@@ -1868,12 +1878,13 @@ class PgMemberRepo(_Repo):
             )
 
 
+_STORED = "SELECT id, width, height, color, moving FROM files WHERE sha256 = %s"
+
+
 class PgFileStore(_Repo):
     def find(self, sha256: str) -> StoredFile | None:
         with self._tx() as conn:
-            row = conn.execute(
-                "SELECT id, width, height, color FROM files WHERE sha256 = %s", (sha256,)
-            ).fetchone()
+            row = conn.execute(_STORED, (sha256,)).fetchone()
         return StoredFile(**row) if row else None
 
     def add(
@@ -1884,9 +1895,7 @@ class PgFileStore(_Repo):
             if quota is not None:
                 # Two uploads at once must not both fit into the same room.
                 _lock_workspace(conn, self._ws)
-                found = conn.execute(
-                    "SELECT id, width, height, color FROM files WHERE sha256 = %s", (sha256,)
-                ).fetchone()
+                found = conn.execute(_STORED, (sha256,)).fetchone()
                 if found:
                     return StoredFile(**found)
                 used = conn.execute("SELECT coalesce(sum(size), 0) AS n FROM files").fetchone()["n"]
@@ -1894,7 +1903,8 @@ class PgFileStore(_Repo):
                     return None
             row = conn.execute(
                 "INSERT INTO files (workspace_id, id, sha256, mime, width, height, color, moving,"
-                " size, uploaded_by, data) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                " size, uploaded_by, data, motion)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 " ON CONFLICT (workspace_id, sha256) DO NOTHING RETURNING id",
                 (
                     self._ws,
@@ -1908,6 +1918,7 @@ class PgFileStore(_Repo):
                     size,
                     uploaded_by,
                     picture.data,
+                    picture.motion,
                 ),
             ).fetchone()
             if row is not None:
@@ -1920,24 +1931,52 @@ class PgFileStore(_Repo):
             found = self.find(sha256)
             assert found is not None
             return found
-        return StoredFile(file_id, picture.width, picture.height, picture.color)
+        return StoredFile(file_id, picture.width, picture.height, picture.color, picture.moving)
 
-    def get(self, file_id: str, width: int | None) -> Served | None:
+    def link(self, board_id: str, file_id: str) -> None:
         with self._tx() as conn:
-            if width is not None:
+            conn.execute(
+                "INSERT INTO board_files (workspace_id, board_id, file_id) VALUES (%s, %s, %s)"
+                " ON CONFLICT DO NOTHING",
+                (self._ws, board_id, file_id),
+            )
+
+    def get(self, board_id: str, file_id: str, width: int | None, moving: bool) -> Served | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                "SELECT f.mime, f.moving, f.motion IS NOT NULL AS has_motion FROM files f"
+                " JOIN board_files l ON l.file_id = f.id AND l.board_id = %s WHERE f.id = %s",
+                (board_id, file_id),
+            ).fetchone()
+            if row is None:
+                return None
+            if moving and row["has_motion"]:
+                motion = conn.execute("SELECT motion FROM files WHERE id = %s", (file_id,))
+                return Served(bytes(motion.fetchone()["motion"]), "image/webp")
+            if width is not None and not (moving and row["moving"]):
                 # The narrowest copy wide enough, else the widest, which a picture drawn still
                 # falls back to.
                 copy = conn.execute(
-                    "SELECT c.data, f.moving, c.width >= %s AS enough FROM file_copies c"
-                    " JOIN files f ON f.id = c.file_id WHERE c.file_id = %s"
-                    " ORDER BY c.width >= %s DESC,"
-                    " CASE WHEN c.width >= %s THEN c.width ELSE -c.width END LIMIT 1",
+                    "SELECT data, width >= %s AS enough FROM file_copies WHERE file_id = %s"
+                    " ORDER BY width >= %s DESC,"
+                    " CASE WHEN width >= %s THEN width ELSE -width END LIMIT 1",
                     (width, file_id, width, width),
                 ).fetchone()
-                if copy and (copy["enough"] or copy["moving"]):
+                if copy and (copy["enough"] or row["moving"]):
                     return Served(bytes(copy["data"]), "image/webp")
-            row = conn.execute("SELECT data, mime FROM files WHERE id = %s", (file_id,)).fetchone()
-        return Served(bytes(row["data"]), row["mime"]) if row else None
+            data = conn.execute("SELECT data FROM files WHERE id = %s", (file_id,)).fetchone()
+        return Served(bytes(data["data"]), row["mime"])
+
+
+def _index_files(conn: psycopg.Connection, ws: str, board_id: str, doc: BoardDoc) -> None:
+    """Lets the board serve the pictures its saved document shows; only ever adds."""
+    files = image_files(doc)
+    if files:
+        conn.execute(
+            "INSERT INTO board_files (workspace_id, board_id, file_id)"
+            " SELECT %s, %s, id FROM files WHERE id = ANY(%s) ON CONFLICT DO NOTHING",
+            (ws, board_id, list(files)),
+        )
 
 
 # The names main.py builds the app from, the same in both adapters until SQLite goes.

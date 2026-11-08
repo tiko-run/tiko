@@ -218,14 +218,18 @@ export class LiveBinding {
   }
 
   /**
-   * Sets fields of a node's data outside the undo history; the canvas takes them in as it
-   * takes in other people's changes. False when the node is not on the board.
+   * Sets fields of a node's data outside the undo history, `undefined` clearing one; the
+   * canvas takes them in as it takes in other people's changes. False when the node is not
+   * on the board.
    */
   patchData(id: string, patch: Record<string, unknown>): boolean {
     const data = this.nodes.get(id)?.get('data')
     if (!this.canWrite || !(data instanceof Y.Map)) return false
     this.doc.transact(() => {
-      for (const [field, value] of Object.entries(patch)) data.set(field, value)
+      for (const [field, value] of Object.entries(patch)) {
+        if (value === undefined) data.delete(field)
+        else data.set(field, value)
+      }
     }, UNTRACKED)
     return true
   }

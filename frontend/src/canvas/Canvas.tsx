@@ -285,7 +285,7 @@ export function BoardCanvas({
     [mixed, board.default_source],
   )
   const flow = useReactFlow<AppNode, AppEdge>()
-  const { screenToFlowPosition, deleteElements, getNodes, getEdges } = flow
+  const { screenToFlowPosition, deleteElements, getNodes, getEdges, updateNode } = flow
   const theme = useTheme().resolved
   const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle')
   // Frames and shapes are drawn by dragging; the other creation tools place on a click.
@@ -495,15 +495,22 @@ export function BoardCanvas({
   const uploads = useMemo(() => {
     if (guest) return null
     const store: Uploads = new Uploads(
-      (file) => uploadFile(board.id, file).then((stored) => stored.id),
-      (id, file, look) => {
+      (file) => uploadFile(board.id, file),
+      (id, stored, look) => {
         // Outside the undo history: Undo takes back the person's edit, not the upload. Copies
-        // made while it ran look the same and get the file too.
+        // made while it ran look the same and get the file too. The server's colour is kept,
+        // so everyone sees the same tone before the picture loads.
+        const patch = {
+          file: stored.id,
+          color: stored.color,
+          moving: stored.moving || undefined,
+          since: undefined,
+        }
         for (const node of getNodes()) {
           if (node.type !== 'image' || node.data.file) continue
           const copy =
             node.data.w === look.w && node.data.h === look.h && node.data.color === look.color
-          if (node.id === id || copy) patchData(node.id, { file })
+          if (node.id === id || copy) patchData(node.id, patch)
         }
         if (!getNodes().some((node) => node.id === id)) store.drop(id)
       },
@@ -519,8 +526,28 @@ export function BoardCanvas({
   }, [nodes, uploads])
   const guestToken = guest?.token
   const images = useMemo<ImagesHost>(
-    () => ({ source: guestToken ? { token: guestToken } : { boardId: board.id }, uploads }),
-    [guestToken, board.id, uploads],
+    () => ({
+      source: guestToken ? { token: guestToken } : { boardId: board.id },
+      uploads,
+      again: async (id, picked) => {
+        const { pictures, refused } = sortFiles([picked])
+        const picture = pictures.length ? await readPicture(pictures[0]).catch(() => null) : null
+        if (refused.length || !picture)
+          toast.error('Not added', {
+            description: refused[0] ?? `${picked.name}: cannot be read`,
+            duration: ERROR_MS,
+          })
+        const node = getNodes().find((n) => n.id === id)
+        if (node?.type !== 'image' || !picture || !uploads) return
+        // The file picked may differ from the one that never arrived: the element takes its
+        // shape, keeping its width.
+        const look = { w: picture.width, h: picture.height, color: picture.color }
+        patchData(id, { ...look, since: new Date().toISOString() })
+        if (node.width) updateNode(id, { height: (node.width * look.h) / look.w })
+        uploads.add(id, pictures[0], look, picture.still)
+      },
+    }),
+    [guestToken, board.id, uploads, getNodes, patchData, updateNode],
   )
 
   // Each picture shows at once from the file; the upload runs behind it.
@@ -546,7 +573,12 @@ export function BoardCanvas({
           position: corners[i],
           ...sizes[i],
           selected: true,
-          data: { w: picture.width, h: picture.height, color: picture.color },
+          data: {
+            w: picture.width,
+            h: picture.height,
+            color: picture.color,
+            since: new Date().toISOString(),
+          },
         }) as AppNode,
     )
     setNodes((current) =>
@@ -555,7 +587,9 @@ export function BoardCanvas({
         added.map((n) => n.id),
       ),
     )
-    ready.forEach(({ file }, i) => uploads.add(added[i].id, file, added[i].data as ImageData))
+    ready.forEach(({ file, picture }, i) =>
+      uploads.add(added[i].id, file, added[i].data as ImageData, picture.still),
+    )
   }
 
   const addPastedNote = (text: string, screen: XYPosition) => {

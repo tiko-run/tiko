@@ -45,7 +45,16 @@ export type TextData = { text: string; bold?: boolean; size?: TextSize } & Faded
 export type TextNode = Node<TextData, 'text'>
 
 /** `file` is absent while the picture uploads; `w`, `h` and `color` are the picture's own. */
-export type ImageData = { file?: string; w: number; h: number; color: string } & Turned
+export type ImageData = {
+  file?: string
+  w: number
+  h: number
+  color: string
+  /** A GIF or animated WebP. */
+  moving?: boolean
+  /** When the upload started; gone once the file is stored. */
+  since?: string
+} & Turned
 export type ImageNode = Node<ImageData, 'image'>
 
 export type ModuleData = { kind: string; title?: string; content: unknown }
