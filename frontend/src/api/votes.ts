@@ -17,6 +17,7 @@ const roundSchema = z.object({
   state: z.enum(['running', 'ended']),
   joined: z.boolean(),
   done: z.boolean(),
+  marked_done: z.boolean(),
   mine: z.record(z.string(), z.number().int()),
   left: z.number().int(),
   joined_count: z.number().int(),

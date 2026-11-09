@@ -219,6 +219,8 @@ export function useLiveBoard(
       if (origin !== provider && !provider.wsconnected) offlineEdits = true
     })
     provider.on('sync', (isSynced: boolean) => {
+      // A vote may have started or ended while the socket was away.
+      if (isSynced) window.dispatchEvent(new Event(VOTES_CHANGED_EVENT))
       if (!isSynced) return
       // On a reconnect the two sides have just exchanged what each was missing.
       offlineEdits = false

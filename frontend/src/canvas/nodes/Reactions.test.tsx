@@ -53,3 +53,11 @@ test('a viewer cannot react, and a guest sees counts without names', async () =>
   await new Promise((done) => setTimeout(done, 400))
   expect(screen.queryByRole('list', { name: 'Reacted' })).toBeNull()
 })
+
+test('a signed-in viewer sees names but cannot react', async () => {
+  board({ me: 'p1', names })
+  expect(screen.queryByRole('button', { name: 'Add reaction' })).toBeNull()
+  fireEvent.pointerEnter(screen.getByRole('button', { name: 'Like: 8' }))
+  const list = await screen.findByRole('list', { name: 'Reacted' })
+  expect(list.textContent).toContain('You')
+})

@@ -67,6 +67,8 @@ class _Reactable(_Strict):
                 re.fullmatch(r"[A-Za-z0-9_-]{1,64}", person)
                 and isinstance(emoji, list)
                 and emoji
+                # Strings first: a list or an object inside would break the set below.
+                and all(isinstance(e, str) for e in emoji)
                 and len(set(emoji)) == len(emoji)
                 and all(e in REACTIONS for e in emoji)
             ):

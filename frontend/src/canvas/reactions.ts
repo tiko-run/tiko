@@ -38,9 +38,13 @@ export function reactionsOf(data: Record<string, unknown>): { id: ReactionId; pe
   })
 }
 
+const KNOWN = new Set<string>(REACTIONS.map((r) => r.id))
+
+/** The person's emoji on an element; a broken value from another tab is cleaned, not carried on. */
 export function mine(data: Record<string, unknown>, person: string): ReactionId[] {
   const value = data[reactionKey(person)]
-  return Array.isArray(value) ? (value as ReactionId[]) : []
+  if (!Array.isArray(value)) return []
+  return [...new Set(value)].filter((id): id is ReactionId => KNOWN.has(id as string))
 }
 
 /** A copy of an element starts with no reactions. */

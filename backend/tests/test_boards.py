@@ -172,6 +172,7 @@ def test_stickies_and_cards_keep_reactions_other_elements_ignore_them():
         {"reaction:ann": ["clap"]},
         {"reaction:ann": ["like", "like"]},
         {"reaction:ann": "like"},
+        {"reaction:ann": [["like"]]},
         {"reaction:a b": ["like"]},
         {f"reaction:p{n}": ["like"] for n in range(1001)},
     ],

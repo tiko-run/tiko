@@ -153,6 +153,7 @@ class Room:
         # Elements of a running vote, and when its timer runs out (spec 043).
         self.locked: frozenset[str] = frozenset()
         self.locked_until: float | None = None
+        self.lock_reads = 0
         # pycrdt objects must be freed on the thread that made them. A bound method here would
         # tie the room and the document into a cycle that the collector may free on any thread.
         room = weakref.ref(self)
@@ -530,9 +531,14 @@ class LiveRooms:
             found = self.boards.load(board_id)
             if found is None:
                 raise NotFound("board not found")
-            live = LiveDoc(found[1])
+            record, state = found
+            live = LiveDoc(state)
             before = live.node_count()
             live.apply_json(doc)
+            locked = self._locked_now(board_id)
+            if locked:
+                # No room holds the lock here: the save itself puts the vote's elements back.
+                doc, _ = live.repair(record.doc, locked)
             saved = self.boards.save(board_id, version, doc, live.state())
             note_mass_delete(board_id, before, live.node_count(), "a REST save")
             return saved
@@ -588,16 +594,26 @@ class LiveRooms:
             lambda _, c: c.push(data),
         )
 
+    def _locked_now(self, board_id: str) -> frozenset[str]:
+        found = self.locks(board_id) if self.locks else None
+        if found is None or (found[1] is not None and time.time() >= found[1]):
+            return frozenset()
+        return found[0]
+
     async def _load_lock(self, room: Room) -> None:
         if self.locks is None:
             return
+        # Reads may finish out of order; only the latest one counts.
+        room.lock_reads += 1
+        read = room.lock_reads
         try:
             with in_workspace(room.workspace):
                 found = await anyio.to_thread.run_sync(self.locks, room.board_id)
         except Exception:
             log.exception("live board %s could not read its vote", room.board_id)
             return
-        room.locked, room.locked_until = found or (frozenset(), None)
+        if read == room.lock_reads:
+            room.locked, room.locked_until = found or (frozenset(), None)
 
     def votes_changed(self, board_id: str) -> None:
         loop = self._loop

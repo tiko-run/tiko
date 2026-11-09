@@ -148,3 +148,57 @@ def test_only_the_starter_or_owner_extends_renames_and_deletes(world):
     assert clients["carl"].delete(base).status_code == 403
     assert clients["ann"].delete(base).status_code == 204
     assert clients["ann"].get(base).status_code == 404
+
+
+def test_nobody_outside_the_board_reads_its_votes(world):
+    _, clients, _ = world
+    board_id = new_board(world)
+    round_id = start(clients["ann"], board_id).json()["id"]
+    base = f"/api/boards/{board_id}/votes"
+    for _ in range(2):
+        assert clients["dave"].get(base).status_code == 404
+        assert clients["dave"].get(f"{base}/{round_id}").status_code == 404
+        clients["ann"].post(f"{base}/{round_id}/end")
+
+
+def test_an_untimed_round_cannot_be_extended_and_only_notes_and_cards_take_part(world):
+    _, clients, _ = world
+    board_id = new_board(world)
+    view = start(clients["ann"], board_id, minutes=None).json()
+    assert view["ends_at"] is None
+    extended = clients["ann"].post(f"/api/boards/{board_id}/votes/{view['id']}/extend")
+    assert extended.status_code == 422
+    clients["ann"].post(f"/api/boards/{board_id}/votes/{view['id']}/end")
+
+    other = new_board(world)
+    ann = clients["ann"]
+    version = ann.get(f"/api/boards/{other}").json()["version"]
+    frame = {"id": "f", "type": "frame", "position": {"x": 0, "y": 0}, "data": {"title": "F"}}
+    doc = {"nodes": [frame], "edges": []}
+    assert ann.put(f"/api/boards/{other}", json={"version": version, "doc": doc}).is_success
+    refused = ann.post(f"/api/boards/{other}/votes", json={"name": "F", "elements": ["f"]})
+    assert refused.status_code == 422
+
+
+def test_done_is_kept_apart_from_spending_every_vote(world):
+    _, clients, _ = world
+    board_id = new_board(world)
+    round_id = start(clients["ann"], board_id, votes=1).json()["id"]
+    spent = ballot(clients["bob"], board_id, round_id, "a").json()
+    assert spent["done"] and not spent["marked_done"]
+    marked = clients["carl"].post(
+        f"/api/boards/{board_id}/votes/{round_id}/done", json={"done": True}
+    )
+    assert marked.json()["marked_done"]
+
+
+def test_a_save_without_an_open_board_keeps_the_notes_of_a_vote(world):
+    _, clients, _ = world
+    board_id = new_board(world)
+    start(clients["ann"], board_id, elements=["a"])
+    ann = clients["ann"]
+    version = ann.get(f"/api/boards/{board_id}").json()["version"]
+    empty = {"nodes": [], "edges": []}
+    assert ann.put(f"/api/boards/{board_id}", json={"version": version, "doc": empty}).is_success
+    left = [n["id"] for n in ann.get(f"/api/boards/{board_id}").json()["doc"]["nodes"]]
+    assert left == ["a"]

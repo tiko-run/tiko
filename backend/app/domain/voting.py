@@ -99,6 +99,8 @@ class RoundView(BaseModel):
     # The viewer's own part.
     joined: bool
     done: bool
+    # Done pressed, not only every vote spent: the panel stays folded after a reload.
+    marked_done: bool
     mine: dict[str, int]
     left: int
     # How many joined and how many of them are done: the only shared number while it runs.
@@ -187,13 +189,15 @@ class Voting:
             return round_
         if _ts(round_.ends_at) > self._clock():
             return round_
-        return self._finish(round_)
+        # Ended when its time ran out, whenever someone first looks.
+        return self._finish(round_, by_timer=True)
 
-    def _finish(self, round_: Round) -> Round:
+    def _finish(self, round_: Round, by_timer: bool = False) -> Round:
         board = self._boards.get(round_.board_id)
         texts = element_texts(board.doc.nodes, round_.elements) if board else {}
-        ended = _iso(self._clock())
-        if self._repo.end(round_.id, ended, texts):
+        ended = round_.ends_at if by_timer and round_.ends_at else _iso(self._clock())
+        deadline = round_.ends_at if by_timer else None
+        if self._repo.end(round_.id, ended, texts, deadline):
             self._changed(round_.board_id)
         return self._repo.get(round_.board_id, round_.id) or round_
 
@@ -251,6 +255,15 @@ class Voting:
         settled = self._settle(self._repo.running(board_id))
         if settled and not settled.ended_at:
             raise VoteRunning("A vote is already running on this board.")
+        board = self._boards.get(board_id)
+        # A note added a moment ago may not be saved yet: only what is surely not one is refused.
+        others = {
+            node.id
+            for node in (board.doc.nodes if board else [])
+            if node.type not in ("sticky", "task_card")
+        }
+        if others & set(body.elements):
+            raise VoteRefused("Only notes and cards can take part in a vote.")
         now = self._clock()
         round_ = Round(
             id=uuid.uuid4().hex,
@@ -303,10 +316,10 @@ class Voting:
     def extend(self, person: Person, role: BoardRole, board_id: str, round_id: str) -> RoundView:
         round_ = self._running(board_id, round_id)
         self._manager(round_, person, role)
-        if round_.ends_at:
-            later = max(_ts(round_.ends_at), self._clock()) + 60
-            self._repo.extend(round_.id, _iso(later))
-            self._changed(board_id)
+        if not round_.ends_at:
+            raise VoteRefused("This vote has no timer.")
+        self._repo.extend(round_.id, _iso(self._clock()))
+        self._changed(board_id)
         return self.get(person, role, board_id, round_id)
 
     def end(self, person: Person, role: BoardRole, board_id: str, round_id: str) -> RoundView:
@@ -356,6 +369,7 @@ class Voting:
             state="running" if running else "ended",
             joined=any(p.person == person.id for p in people),
             done=person.id in finished,
+            marked_done=any(p.person == person.id and p.done for p in people),
             mine=mine,
             left=round_.votes - sum(mine.values()),
             joined_count=len(people),

@@ -444,13 +444,16 @@ def test_an_element_in_a_vote_moves_and_takes_reactions_but_keeps_its_text():
     with live.doc.transaction():
         data = live.doc["nodes"]["s"]["data"]
         data["text"] = "changed"
+        data["color"] = "pink"
         data["reaction:ann"] = ["like"]
+        live.doc["nodes"]["s"]["size"] = {"width": 999, "height": 999}
         live.doc["nodes"]["s"]["place"] = {"x": 99, "y": 20}
         live.doc["nodes"]["t"]["data"]["text"] = "free"
     fixed, notes = live.repair(last, frozenset({"s"}))
     nodes = {n["id"]: n for n in as_json(fixed)["nodes"]}
     assert notes == ["locked_restored"]
     assert nodes["s"]["data"]["text"] == "s" and nodes["s"]["data"]["reaction:ann"] == ["like"]
+    assert nodes["s"]["data"]["color"] == "yellow" and "width" not in nodes["s"]
     assert nodes["s"]["position"]["x"] == 99
     assert nodes["t"]["data"]["text"] == "free"
 

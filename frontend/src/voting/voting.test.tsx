@@ -19,6 +19,7 @@ const round = (over: Partial<Round> = {}): Round => ({
   state: 'running',
   joined: true,
   done: false,
+  marked_done: false,
   mine: {},
   left: 3,
   joined_count: 1,

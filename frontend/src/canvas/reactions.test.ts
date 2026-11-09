@@ -49,3 +49,8 @@ test('names put the viewer first and a person who left as Former member', () => 
 test('a copy drops reactions and keeps the rest', () => {
   expect(withoutReactions(sticky({ ann: ['like'] }))).toEqual({ text: 'Retro', color: 'yellow' })
 })
+
+test('a broken reaction from another tab is cleaned before a pick', () => {
+  const data = { 'reaction:ann': ['like', 'like', 'clap'] }
+  expect(toggled([data], 'ann', 'party')).toEqual([['like', 'party']])
+})

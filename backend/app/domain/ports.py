@@ -683,13 +683,18 @@ class VoteRepo(Protocol):
         change: Callable[[dict[str, int]], dict[str, int]],
     ) -> dict[str, int]:
         """Replaces the person's votes by element with `change` of them, one person at a time,
-        so two clicks at once never pass the limit; joins the person too."""
+        so two clicks at once never pass the limit; joins the person too. Raises VoteClosed
+        when the round has ended."""
         ...
 
-    def extend(self, round_id: str, ends_at: str) -> None: ...
+    def extend(self, round_id: str, now: str) -> None:
+        """A minute more, counted from the deadline or from now, whichever is later."""
+        ...
 
-    def end(self, round_id: str, ended_at: str, texts: dict[str, str]) -> bool:
-        """False when it had ended already."""
+    def end(
+        self, round_id: str, ended_at: str, texts: dict[str, str], deadline: str | None = None
+    ) -> bool:
+        """False when it had ended already, or when `deadline` is given and has moved."""
         ...
 
     def rename(self, round_id: str, name: str) -> None: ...

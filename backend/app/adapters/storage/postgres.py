@@ -29,7 +29,7 @@ from app.domain.boards import (
     image_files,
     planned_stages,
 )
-from app.domain.errors import NotFound, UsernameTaken, VersionConflict
+from app.domain.errors import NotFound, UsernameTaken, VersionConflict, VoteClosed
 from app.domain.files import Picture, Served, StoredFile
 from app.domain.folders import Folder
 from app.domain.invites import Invite
@@ -2240,6 +2240,13 @@ class PgVoteRepo(_Repo):
         change: Callable[[dict[str, int]], dict[str, int]],
     ) -> dict[str, int]:
         with self._tx() as conn:
+            # Shared: votes go on side by side, and an end waits for them or comes first.
+            open_ = conn.execute(
+                "SELECT ended_at IS NULL AS open FROM vote_rounds WHERE id = %s FOR SHARE",
+                (round_id,),
+            ).fetchone()
+            if not open_ or not open_["open"]:
+                raise VoteClosed("This vote has ended.")
             self._join(conn, round_id, person_id)
             # The person's row is the lock: their clicks take turns, other people's do not wait.
             conn.execute(
@@ -2269,19 +2276,26 @@ class PgVoteRepo(_Repo):
                     )
         return after
 
-    def extend(self, round_id: str, ends_at: str) -> None:
+    def extend(self, round_id: str, now: str) -> None:
         with self._tx() as conn:
+            # In the database, so two extensions at once add two minutes.
             conn.execute(
-                "UPDATE vote_rounds SET ends_at = %s WHERE id = %s AND ended_at IS NULL",
-                (ends_at, round_id),
+                "UPDATE vote_rounds SET ends_at = GREATEST(ends_at, %s::timestamptz)"
+                " + interval '1 minute'"
+                " WHERE id = %s AND ended_at IS NULL AND ends_at IS NOT NULL",
+                (now, round_id),
             )
 
-    def end(self, round_id: str, ended_at: str, texts: dict[str, str]) -> bool:
+    def end(
+        self, round_id: str, ended_at: str, texts: dict[str, str], deadline: str | None = None
+    ) -> bool:
+        # An end by the timer holds only while the deadline is the one it saw pass.
+        when = " AND date_trunc('second', ends_at) = %s" if deadline else ""
         with self._tx() as conn:
             row = conn.execute(
                 "UPDATE vote_rounds SET ended_at = %s, texts = %s::jsonb"
-                " WHERE id = %s AND ended_at IS NULL RETURNING id",
-                (ended_at, json.dumps(texts), round_id),
+                " WHERE id = %s AND ended_at IS NULL" + when + " RETURNING id",
+                (ended_at, json.dumps(texts), round_id, *([deadline] if deadline else [])),
             ).fetchone()
         return row is not None
 

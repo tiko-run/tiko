@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   castVote,
   getVotes,
@@ -11,6 +11,8 @@ import {
 } from '@/api/votes'
 import type { AppNode } from '@/canvas/types'
 import { toastError } from '@/lib/toast'
+
+const RETRY_MS = 2000
 
 /** Opens the board's past votes; the board menu sends it. */
 export const OPEN_VOTES_EVENT = 'tiko:open-votes'
@@ -48,47 +50,77 @@ export function useVoting(boardId: string, enabled: boolean) {
   const endsAt = running?.ends_at
   useEffect(() => {
     if (!endsAt) return
+    let retry = 0
     const wait = Math.max(Date.parse(endsAt) - Date.now() + 500, 0)
-    const timer = window.setTimeout(reread, wait)
-    return () => window.clearTimeout(timer)
+    // A clock ahead of the server's asks too early: ask again until the round is over.
+    const timer = window.setTimeout(() => {
+      reread()
+      retry = window.setInterval(reread, RETRY_MS)
+    }, wait)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(retry)
+    }
   }, [endsAt, reread])
 
+  // Answers to this tab's own requests can come back out of order; only the latest counts.
+  const sent = useRef(0)
   const put = useCallback(
-    (round: Round) =>
-      client.setQueryData<VotesOverview>(votesKey(boardId), (old) =>
-        old ? { ...old, running: round.state === 'running' ? round : null } : old,
-      ),
+    (round: Round, request?: number) => {
+      if (request !== undefined && request !== sent.current) return
+      client.setQueryData<VotesOverview>(votesKey(boardId), (old) => {
+        // A late answer must not bring back a round that has ended since.
+        if (old?.past.some((past) => past.id === round.id)) return old
+        const next = round.state === 'running' ? round : null
+        return old ? { ...old, running: next } : { running: next, past: [] }
+      })
+    },
     [client, boardId],
   )
 
-  // Done folds the person's voting away; their votes stay.
-  const [folded, setFolded] = useState<string | null>(null)
-  const active = Boolean(running?.joined) && folded !== running?.id
+  // Done folds the person's voting away; their votes stay. Until they press it or Change
+  // votes here, the server's word holds, so a reload keeps the panel folded.
+  const [override, setOverride] = useState<{ id: string; folded: boolean } | null>(null)
+  const folded =
+    override && override.id === running?.id ? override.folded : Boolean(running?.marked_done)
+  const active = Boolean(running?.joined) && !folded
 
   const vote = useCallback(
     (element: string, delta: 1 | -1) => {
       if (!running) return
-      castVote(boardId, running.id, element, delta).then(put, (error: Error) => {
-        toastError(error)
-        reread()
-      })
+      const request = ++sent.current
+      castVote(boardId, running.id, element, delta).then(
+        (round) => put(round, request),
+        (error: Error) => {
+          toastError(error)
+          reread()
+        },
+      )
     },
     [boardId, running, put, reread],
   )
   const fold = useCallback(
     (done: boolean) => {
       if (!running) return
-      setFolded(done ? running.id : null)
-      markDone(boardId, running.id, done).then(put, toastError)
+      setOverride({ id: running.id, folded: done })
+      const request = ++sent.current
+      markDone(boardId, running.id, done).then(
+        (round) => put(round, request),
+        (error: Error) => {
+          toastError(error)
+          setOverride(null)
+          reread()
+        },
+      )
     },
-    [boardId, running, put],
+    [boardId, running, put, reread],
   )
 
   const host = useMemo<VotingHost>(
     () => ({ round: running, active, vote }),
     [running, active, vote],
   )
-  return { overview: query.data, running, host, put, reread, fold, folded: !active }
+  return { overview: query.data, running, host, put, reread, fold, folded }
 }
 
 /** Whether the element is in the running round, so its text and look stay as they are. */

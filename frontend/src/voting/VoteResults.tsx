@@ -42,11 +42,12 @@ export function VoteResults({
   exists: (element: string) => boolean
 }) {
   const client = useQueryClient()
-  const round = useQuery({
+  const lookup = useQuery({
     queryKey: [...votesKey(boardId), roundId],
     queryFn: () => getRound(boardId, roundId!),
     enabled: roundId !== null,
-  }).data
+  })
+  const round = lookup.data
   const [renaming, setRenaming] = useState(false)
   const reread = () => client.invalidateQueries({ queryKey: votesKey(boardId) })
 
@@ -125,6 +126,13 @@ export function VoteResults({
           <Past overview={overview} onPick={onPick} />
         ) : round ? (
           <Ranking round={round} onFly={onFly} exists={exists} />
+        ) : lookup.isError ? (
+          <div className="flex items-center gap-2 p-2 text-sm">
+            <span className="text-muted-foreground flex-1">The results did not load.</span>
+            <Button size="xs" variant="outline" onClick={() => void lookup.refetch()}>
+              Try again
+            </Button>
+          </div>
         ) : null}
       </div>
     </div>
