@@ -90,7 +90,7 @@ test('Enter signs in with values the browser filled in', async () => {
   // Autofill sets the fields without a change event.
   ;(screen.getByLabelText('Username') as HTMLInputElement).value = ' ann '
   ;(screen.getByLabelText('Password') as HTMLInputElement).value = 'secret-words'
-  fireEvent.submit(screen.getByLabelText('Password').closest('form')!)
+  fireEvent.keyDown(screen.getByLabelText('Password'), { key: 'Enter' })
   await waitFor(() => expect(onSignedIn).toHaveBeenCalled())
   const [, init] = fetchMock.mock.calls[0]
   expect(JSON.parse(String(init?.body))).toEqual({ username: 'ann', password: 'secret-words' })

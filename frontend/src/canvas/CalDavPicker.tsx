@@ -104,10 +104,11 @@ export function CalDavPicker({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key !== 'Enter') return
+              if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
               // The ticked tasks, or the only one found; never a whole list by accident.
               if (ticked.size > 0) add([...ticked.values()])
-              else if (found.length === 1 && !tasks.isPlaceholderData) add(found)
+              else if (found.length === 1 && asked === query.trim() && !tasks.isPlaceholderData)
+                add(found)
             }}
             placeholder="Search by title"
             className="h-8 pl-7 text-[13px]"

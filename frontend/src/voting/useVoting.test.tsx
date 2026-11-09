@@ -23,8 +23,14 @@ test('an answer for the running round updates it', () => {
   expect(read()?.running?.left).toBe(2)
 })
 
-test('a late answer does not bring back a round ended and deleted since', () => {
+test('a round just started shows up', () => {
   const { result, read } = setup({ running: null, past: [] })
   act(() => result.current.put(round))
+  expect(read()?.running?.id).toBe('r1')
+})
+
+test('a late answer does not bring back a round ended and deleted since', () => {
+  const { result, read } = setup({ running: null, past: [] })
+  act(() => result.current.put(round, 0))
   expect(read()?.running).toBeNull()
 })

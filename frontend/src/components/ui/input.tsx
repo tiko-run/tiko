@@ -1,10 +1,14 @@
 import * as React from "react"
 import { cn } from "cn"
 
+const TEXT_TYPES = new Set(["text", "password", "email", "search", "url", "tel", "number"])
+
 // Some browsers (Aside, an AI browser) drop the submission Enter starts on its own, so the
 // field sends it, following the browser's rule: a disabled default button keeps Enter idle.
 function submitOnEnter(event: React.KeyboardEvent<HTMLInputElement>) {
   if (event.key !== "Enter" || event.defaultPrevented || event.nativeEvent.isComposing) return
+  // Date and other pickers keep their own Enter.
+  if (!TEXT_TYPES.has(event.currentTarget.type)) return
   const form = event.currentTarget.form
   const button = form?.querySelector<HTMLButtonElement | HTMLInputElement>(
     'button:not([type]), button[type="submit"], input[type="submit"]'

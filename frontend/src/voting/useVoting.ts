@@ -70,8 +70,9 @@ export function useVoting(boardId: string, enabled: boolean) {
       if (request !== undefined && request !== sent.current) return
       client.setQueryData<VotesOverview>(votesKey(boardId), (old) => {
         // A late answer must not bring back a round that has ended since, even one deleted
-        // from the history: answers only come for the running round, so any other is stale.
-        if (old && old.running?.id !== round.id) return old
+        // from the history: votes and Done answer for the running round, so any other is stale.
+        if (request !== undefined && old && old.running?.id !== round.id) return old
+        if (old?.past.some((past) => past.id === round.id)) return old
         const next = round.state === 'running' ? round : null
         return old ? { ...old, running: next } : { running: next, past: [] }
       })
