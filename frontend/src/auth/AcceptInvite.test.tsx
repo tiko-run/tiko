@@ -116,5 +116,5 @@ test('signs in from the invite instead of making a new account', async () => {
   show('invite', anInvite())
   fireEvent.click(await screen.findByRole('button', { name: 'Sign in' }))
   expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /Sign in/ })).toBeDisabled()
+  expect(screen.getByLabelText('Username')).toBeRequired()
 })

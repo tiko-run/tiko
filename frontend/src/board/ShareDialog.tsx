@@ -186,6 +186,11 @@ function AddPeople({
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            // Only a single match: Enter must never share the board with the wrong person.
+            const one = term === query.trim() && matches.length === 1
+            if (event.key === 'Enter' && one && !share.isPending) share.mutate(matches[0])
+          }}
           placeholder={exact ? 'Add a person by their username' : 'Add people by name or username'}
           aria-label="Add people"
           // Members load after the dialog opens; typing goes here once the field is there.

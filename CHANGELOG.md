@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- Enter now adds a person in Share when the search finds exactly one, and adds the ticked tasks, or the only one found, in the CalDAV task picker.
+
+### Fixed
+
+- Fixed the X in Settings that did nothing on click; only Esc closed the window.
+- Fixed the Settings sections list that was cut off in a short window: it scrolls now.
+- Fixed Fit view and the first open of a board, which left out everything off screen.
+- Fixed Enter on the sign-in page doing nothing when the browser filled in the name and password.
+- Fixed the "In vote" label that stayed on notes after a vote was ended and deleted.
+
 ## [2026.11.0] - 2026-11-09
 
 Requires: installer

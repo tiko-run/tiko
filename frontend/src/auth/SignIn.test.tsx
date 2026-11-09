@@ -84,3 +84,14 @@ test('too many demos from one address name the wait in minutes', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Try the demo' }))
   expect(await screen.findByText(/Try again in 25 min/)).toBeInTheDocument()
 })
+
+test('Enter signs in with values the browser filled in', async () => {
+  const { fetchMock, onSignedIn } = show(false)
+  // Autofill sets the fields without a change event.
+  ;(screen.getByLabelText('Username') as HTMLInputElement).value = ' ann '
+  ;(screen.getByLabelText('Password') as HTMLInputElement).value = 'secret-words'
+  fireEvent.submit(screen.getByLabelText('Password').closest('form')!)
+  await waitFor(() => expect(onSignedIn).toHaveBeenCalled())
+  const [, init] = fetchMock.mock.calls[0]
+  expect(JSON.parse(String(init?.body))).toEqual({ username: 'ann', password: 'secret-words' })
+})

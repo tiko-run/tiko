@@ -215,11 +215,14 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
   return (
     <>
       {!narrow && (
-        <aside className="bg-muted/40 flex w-52 shrink-0 flex-col gap-4 border-r px-3 pt-4 pb-3">
-          <DialogTitle className="flex h-8 items-center px-2 text-[16px] font-semibold">
+        <aside className="bg-muted/40 flex w-52 shrink-0 flex-col gap-4 border-r pt-4">
+          <DialogTitle className="flex h-8 items-center px-5 text-[16px] font-semibold">
             Settings
           </DialogTitle>
-          <Nav groups={groups} current={entry.id} narrow={false} onPick={pick} />
+          {/* A short window leaves the last sections below the fold. */}
+          <Scroller className="flex-1" viewportClassName="px-3 pb-3">
+            <Nav groups={groups} current={entry.id} narrow={false} onPick={pick} />
+          </Scroller>
         </aside>
       )}
       <Scroller className="min-w-0 flex-1" viewportClassName="flex flex-col">
@@ -259,7 +262,12 @@ export function SettingsDialog() {
         )}
       >
         <DialogClose asChild>
-          <Button variant="ghost" size="icon" className="absolute top-4 right-4" aria-label="Close">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-10"
+            aria-label="Close"
+          >
             <X strokeWidth={1.75} />
           </Button>
         </DialogClose>

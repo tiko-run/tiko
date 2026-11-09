@@ -19,7 +19,7 @@ import {
   type OnBeforeDelete,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowLeft, Map as MapIcon } from 'lucide-react'
+import { ArrowLeft, Map as MapIcon, Maximize } from 'lucide-react'
 import {
   useCallback,
   useEffect,
@@ -50,6 +50,7 @@ import {
   type Snippet,
 } from '@/canvas/clipboard'
 import { markFresh } from '@/canvas/editing'
+import { useFit } from '@/canvas/fit-view'
 import { framesFirst, releaseChildren, reparent, splitDeletion } from '@/canvas/frames'
 import { TurnedEdge } from '@/canvas/TurnedEdge'
 import { Guides } from '@/canvas/Guides'
@@ -211,7 +212,8 @@ const MIN_ARROW = 16
 // Leaves room for the top bar, the focus capsule and the toolbar over the board.
 // At 20% and below text is under 3 screen pixels: elements are drawn as blocks.
 const FAR_ZOOM = 0.2
-const FIT_NEW_BOARD = { padding: 0.16, maxZoom: 1 }
+const FIT_NEW_BOARD = { padding: 0.16, maxZoom: 1, animate: false }
+const FIT_BOARD = { padding: 0.1 }
 const viewportCenter = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
 
 const NEW_NODES = {
@@ -336,6 +338,22 @@ export function BoardCanvas({
   )
   const flow = useReactFlow<AppNode, AppEdge>()
   const { screenToFlowPosition, deleteElements, getNodes, getEdges, updateNode } = flow
+  const fit = useFit()
+  // A board opened here for the first time fits its content once the flow has it and a size.
+  const panZoom = useStore((state) => state.panZoom)
+  const ready = useStore(
+    (state) => state.width > 0 && state.height > 0 && state.nodeLookup.size > 0,
+  )
+  // Per pan-zoom: a remounted flow brings a new one that starts again from the top-left.
+  const fittedWith = useRef<unknown>(null)
+  useEffect(() => {
+    if (lastView !== null || !panZoom || !ready || fittedWith.current === panZoom) return
+    const frame = requestAnimationFrame(() => {
+      fittedWith.current = panZoom
+      fit(FIT_NEW_BOARD)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [lastView, panZoom, ready, fit])
   const theme = useTheme().resolved
   const [shapeKind, setShapeKind] = useState<ShapeKind>('rectangle')
   // Frames and shapes are drawn by dragging; the other creation tools place on a click.
@@ -1314,8 +1332,6 @@ export function BoardCanvas({
         defaultEdgeOptions={defaultEdgeOptions}
         connectionMode={ConnectionMode.Loose}
         defaultViewport={lastView ?? undefined}
-        fitView={lastView === null}
-        fitViewOptions={FIT_NEW_BOARD}
         onlyRenderVisibleElements
         // Selecting must not restack: a frame someone selects would cover, for them alone, what
         // everyone else sees lying on top of it.
@@ -1348,7 +1364,15 @@ export function BoardCanvas({
         {/* One column, so the minimap stays above the zoom buttons however many there are. */}
         <Panel position="bottom-right" className="canvas-corner">
           {minimapShown && <Minimap />}
-          <Controls showInteractive={false}>
+          <Controls showInteractive={false} showFitView={false}>
+            <ControlButton
+              className="react-flow__controls-fitview"
+              onClick={() => fit(FIT_BOARD)}
+              title="Fit view"
+              aria-label="Fit view"
+            >
+              <Maximize style={{ fill: 'none' }} />
+            </ControlButton>
             {canGoBack && (
               <ControlButton
                 onClick={goBack}
