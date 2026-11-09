@@ -5,7 +5,14 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    model_validator,
+)
 
 from app.domain.errors import NotFound, ValidationFailed
 from app.domain.ports import (
@@ -231,6 +238,8 @@ class Adopted:
     added: list[str] = field(default_factory=list)
     # Fields that found no match and no room.
     full: list[str] = field(default_factory=list)
+    # People whose time off did not all fit.
+    off_full: list[str] = field(default_factory=list)
 
 
 class Planning:
@@ -313,41 +322,58 @@ class Planning:
     ) -> "Adopted":
         """Takes lists from another instance: each is matched here by name, the missing ones
         are added. Nothing here changes, except a known person gains time off that does not
-        overlap theirs."""
+        overlap theirs. Entries a person could not have typed here are skipped."""
         self._require_enabled()
         out = Adopted()
         mine_types = {t.name.casefold(): t for t in self._types.all() if not t.archived}
         for t in types:
-            found = mine_types.get(t.name.casefold())
+            try:
+                body = TypeIn(name=t.name, hue=t.hue)
+            except ValidationError:
+                continue
+            found = mine_types.get(body.name.casefold())
             if found is None:
-                found = StageType(id=self._new_id(), name=t.name, hue=t.hue)
+                found = StageType(id=self._new_id(), name=body.name, hue=body.hue)
                 self._types.add(found)
                 mine_types[found.name.casefold()] = found
                 out.added.append(found.name)
             out.types[t.id] = found.id
         mine_people = {p.name.casefold(): p for p in self._people.all() if not p.archived}
+        # Time off each person holds, as added so far: two people of one name meet here.
+        held: dict[str, list[TimeOff]] = {}
         for p in people:
-            found = mine_people.get(p.name.casefold())
+            try:
+                body = PersonIn(name=p.name, teams=p.teams, source=p.source)
+            except ValidationError:
+                continue
+            found = mine_people.get(body.name.casefold())
             if found is None:
-                found = PlanningPerson(
-                    id=self._new_id(), name=p.name, teams=_unique(p.teams), source=p.source
-                )
+                found = PlanningPerson(id=self._new_id(), **body.model_dump())
+                found.teams = _unique(found.teams)
                 self._people.add(found)
                 mine_people[found.name.casefold()] = found
                 out.added.append(found.name)
-            held = list(found.off)
+            have = held.setdefault(found.id, list(found.off))
             for off in p.off:
-                if any(off.start <= o.end and o.start <= off.end for o in held):
+                if off.end < off.start or any(
+                    off.start <= o.end and o.start <= off.end for o in have
+                ):
                     continue
                 kept = TimeOff(id=self._new_id(), start=off.start, end=off.end)
-                if self._people.add_off(found.id, kept, MAX_OFF):
-                    held.append(kept)
+                if not self._people.add_off(found.id, kept, MAX_OFF):
+                    out.off_full.append(found.name)
+                    break
+                have.append(kept)
             out.people[p.id] = found.id
         mine_fields = {f.name.casefold(): f for f in self._fields.all() if not f.archived}
         for f in fields:
-            found = mine_fields.get(f.name.casefold())
+            try:
+                body = FieldIn(name=f.name)
+            except ValidationError:
+                continue
+            found = mine_fields.get(body.name.casefold())
             if found is None:
-                found = PlanningField(id=self._new_id(), name=f.name)
+                found = PlanningField(id=self._new_id(), name=body.name)
                 if not self._fields.add(found, MAX_FIELDS):
                     out.full.append(f.name)
                     continue

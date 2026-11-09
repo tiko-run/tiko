@@ -66,8 +66,11 @@ export function useImportBoard(folderId: string | null) {
       const result = await importBoard(file)
       if (!folderId) return result
       // The board is made either way; a folder gone meanwhile only leaves it outside.
-      await placeBoard(result.board.id, folderId).catch(() => undefined)
-      return { ...result, board: { ...result.board, folder_id: folderId } }
+      const placed = await placeBoard(result.board.id, folderId).then(
+        () => true,
+        () => false,
+      )
+      return placed ? { ...result, board: { ...result.board, folder_id: folderId } } : result
     },
     onSuccess: (result) => {
       addToList(queryClient, result.board)

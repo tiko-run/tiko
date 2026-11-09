@@ -247,5 +247,6 @@ test('a card whose tracker is not connected here keeps its last title and says w
   renderCard({ key: 'DEMO-1' }, { 'DEMO-1': { ...task, state: 'not_connected' } })
   expect(screen.getByText('Rotate the staging certificates')).toBeTruthy()
   expect(screen.getByText('Jira is not connected here')).toBeTruthy()
-  expect(screen.queryByText('In Progress')).toBeNull()
+  // The last seen status stays, so the card still says where the task stood.
+  expect(screen.getByText('In Progress')).toBeTruthy()
 })

@@ -9,7 +9,7 @@ Both routes need a signed-in person; guests of a public link get none. Errors us
 
 `moved` kinds: `cards`, `stickies`, `shapes`, `texts`, `frames`, `pictures`, `modules`, `reminders`, `arrows`; zero counts are left out.
 
-`notes` kinds: `picture` (pictures that did not move, by reason), `planning_off`, `planning_added`, `planning_full`. Cards of a tracker not connected here are not a note: the board reads their state live.
+`notes` kinds: `picture` (pictures that did not move, by reason), `planning_off`, `planning_missing` (the Gantts use stage types or people the file does not describe), `planning_added`, `planning_full` (fields or time off with no room). Cards of a tracker not connected here are not a note: the board reads their state live.
 
 A task's `state` gains `not_connected`: this instance does not read the task's tracker. A `not_connected` or `no_token` task carries the last snapshot the person's cache holds, when there is one.
 

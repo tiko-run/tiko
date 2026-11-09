@@ -235,7 +235,13 @@ const importSchema = z.object({
   moved: z.record(z.string(), z.number()),
   notes: z.array(
     z.object({
-      kind: z.enum(['planning_off', 'planning_added', 'planning_full', 'picture']),
+      kind: z.enum([
+        'planning_off',
+        'planning_missing',
+        'planning_added',
+        'planning_full',
+        'picture',
+      ]),
       text: z.string(),
     }),
   ),

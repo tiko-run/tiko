@@ -5,7 +5,7 @@ import json
 import re
 import zipfile
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -83,7 +83,7 @@ class Note(BaseModel):
     """Something the import could not finish by itself, and what to do about it."""
 
     # Cards of a tracker not connected here are not a note: the board sees their state live.
-    kind: Literal["planning_off", "planning_added", "planning_full", "picture"]
+    kind: Literal["planning_off", "planning_missing", "planning_added", "planning_full", "picture"]
     text: str
 
 
@@ -166,7 +166,8 @@ def export_board(
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("manifest.json", manifest.model_dump_json(indent=2))
         zf.writestr("board.json", json.dumps(doc, ensure_ascii=False))
-        known = [task.model_dump(mode="json") for task in tasks.values() if task.state == "ok"]
+        # A task its tracker cannot be asked about here still carries what was last seen of it.
+        known = [task.model_dump(mode="json") for task in tasks.values() if task.summary]
         zf.writestr("tasks.json", json.dumps(known, ensure_ascii=False))
         zf.writestr("planning.json", planning.model_dump_json())
         for file_id, served in files.items():
@@ -175,13 +176,12 @@ def export_board(
     return out.getvalue()
 
 
-def _read(zf: zipfile.ZipFile, info: zipfile.ZipInfo, limit: int) -> bytes:
+def _read(zf: zipfile.ZipFile, info: zipfile.ZipInfo, limit: int) -> bytes | None:
+    """The entry's bytes, None past `limit`."""
     # The sizes in the zip's directory are the writer's word; count what actually comes out.
     with zf.open(info) as entry:
         data = entry.read(limit + 1)
-    if len(data) > limit:
-        raise ValidationFailed(f"{info.filename} in the file is too large.")
-    return data
+    return data if len(data) <= limit else None
 
 
 def _json(raw: bytes | None, name: str) -> Any:
@@ -210,15 +210,31 @@ def read_bundle(data: bytes) -> Bundle:
         try:
             for info in infos:
                 if info.filename in _JSON_ENTRIES:
-                    raw[info.filename] = _read(zf, info, MAX_JSON_BYTES)
-                    unpacked += len(raw[info.filename])
+                    entry = _read(zf, info, MAX_JSON_BYTES)
+                    if entry is None:
+                        raise ValidationFailed(f"{info.filename} in the file is too large.")
+                    raw[info.filename] = entry
+                    unpacked += len(entry)
                 elif match := _FILE_ENTRY.match(info.filename):
-                    files[match[1]] = _read(zf, info, MAX_BYTES)
-                    unpacked += len(files[match[1]])
+                    # A picture past the upload limit is left out: the import reports it.
+                    entry = _read(zf, info, MAX_BYTES)
+                    if entry is not None:
+                        files[match[1]] = entry
+                        unpacked += len(entry)
                 if unpacked > MAX_UNPACKED_BYTES:
                     raise ValidationFailed("The file unpacks to more than tiko takes at once.")
-        except (zipfile.BadZipFile, zipfile.LargeZipFile, OSError, EOFError) as exc:
-            raise ValidationFailed("The file is damaged. Export the board again.") from exc
+        # RuntimeError: an encrypted entry; NotImplementedError: a compression zip lacks.
+        except (
+            zipfile.BadZipFile,
+            zipfile.LargeZipFile,
+            OSError,
+            EOFError,
+            RuntimeError,
+            NotImplementedError,
+        ) as exc:
+            raise ValidationFailed(
+                "The file is damaged or packed in a way tiko cannot read. Export the board again."
+            ) from exc
     try:
         manifest = Manifest.model_validate(_json(raw.get("manifest.json"), "manifest.json"))
     except ValidationError as exc:
@@ -233,7 +249,8 @@ def read_bundle(data: bytes) -> Bundle:
     except ValidationError as exc:
         raise ValidationFailed("The board in the file does not read as a tiko board.") from exc
     tasks: list[Task] = []
-    for item in _json(raw.get("tasks.json", b"[]"), "tasks.json"):
+    items = _json(raw.get("tasks.json", b"[]"), "tasks.json")
+    for item in items if isinstance(items, list) else []:
         # A task that does not read is only a missing preview: the card fills in on refresh.
         try:
             tasks.append(Task.model_validate(item))
@@ -255,6 +272,10 @@ def read_bundle(data: bytes) -> Bundle:
     )
 
 
+def _distinct(ids: Iterable[str]) -> list[str]:
+    return list(dict.fromkeys(ids))
+
+
 def _remap_planning(
     doc: dict[str, Any], types: dict[str, str], people: dict[str, str], fields: dict[str, str]
 ) -> None:
@@ -264,7 +285,7 @@ def _remap_planning(
         if content.get("filters"):
             content["filters"] = {
                 ("person" if key == "person" else fields.get(key, key)): (
-                    [people.get(p, p) for p in values] if key == "person" else values
+                    _distinct(people.get(p, p) for p in values) if key == "person" else values
                 )
                 for key, values in content["filters"].items()
             }
@@ -273,7 +294,8 @@ def _remap_planning(
                 row["values"] = {fields.get(k, k): v for k, v in row["values"].items()}
             for stage in row.get("stages") or []:
                 stage["type"] = types.get(stage["type"], stage["type"])
-                stage["people"] = [people.get(p, p) for p in stage.get("people", [])]
+                # Two people of one name in the file are one person here.
+                stage["people"] = _distinct(people.get(p, p) for p in stage.get("people", []))
 
 
 _KINDS = {
@@ -314,20 +336,16 @@ def import_board(
         raise BoardLimit(f"An account here holds {limit} boards. Delete one to make another.")
     try:
         _add_pictures(doc, bundle, files, person.id, board_id, notes)
+        # Checked before Planning is touched, so a board that cannot be saved adds nothing there.
+        check_doc(BoardDoc.model_validate(doc))
         _adopt_planning(doc, bundle.planning, planning, notes)
         final = BoardDoc.model_validate(doc)
-        check_doc(final)
         boards.save(board_id, 1, final)
+        _seed_tasks(final, bundle.tasks, snapshots, default_source)
     except BaseException:
         boards.delete(board_id, person.id)
         boards.purge(board_id)
         raise
-
-    refs = set(task_refs(final, default_source))
-    seed = [task for task in bundle.tasks if task.ref in refs]
-    cached = snapshots.get_many([task.ref for task in seed])
-    # What the person's own tracker shows is newer than the file.
-    snapshots.put_many([task for task in seed if task.ref not in cached])
 
     moved = Counter(_KINDS[node.type] for node in final.nodes if node.type in _KINDS)
     moved["arrows"] = len(final.edges)
@@ -335,6 +353,18 @@ def import_board(
         board=summary(person, board_id, boards),
         moved={kind: n for kind, n in moved.items() if n},
         notes=notes,
+    )
+
+
+def _seed_tasks(
+    doc: BoardDoc, tasks: list[Task], snapshots: SnapshotRepo, default_source: str
+) -> None:
+    refs = set(task_refs(doc, default_source))
+    seed = [task for task in tasks if task.ref in refs]
+    cached = snapshots.get_many([task.ref for task in seed])
+    # What the person's own tracker shows is newer than the file, unless it holds no title.
+    snapshots.put_many(
+        [task for task in seed if task.ref not in cached or not cached[task.ref].summary]
     )
 
 
@@ -408,6 +438,16 @@ def _adopt_planning(
             )
         )
         return
+    described = {t.id for t in lists.types} | {p.id for p in lists.people}
+    if (types | people) - described:
+        notes.append(
+            Note(
+                kind="planning_missing",
+                text="Some Gantt stages arrived without their types or people: Planning was off"
+                " where the board was exported. Turn it on there, export the board again and"
+                " import that file.",
+            )
+        )
     adopted = planning.adopt(
         [t for t in lists.types if t.id in types],
         [p for p in lists.people if p.id in people],
@@ -419,6 +459,15 @@ def _adopt_planning(
             Note(
                 kind="planning_added",
                 text="Added to Planning: " + ", ".join(adopted.added) + ".",
+            )
+        )
+    if adopted.off_full:
+        notes.append(
+            Note(
+                kind="planning_full",
+                text="Not all time off fitted for "
+                + ", ".join(dict.fromkeys(adopted.off_full))
+                + ". Check it in Planning.",
             )
         )
     if adopted.full:

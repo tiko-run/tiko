@@ -852,7 +852,7 @@ function DropHint() {
         <Upload className="text-primary size-8" strokeWidth={1.5} />
         <p className="text-[16px] font-medium">Drop a .tiko file to import the board</p>
         <p className="text-muted-foreground text-[13px]">
-          It becomes a new board of yours. Nothing on this tiko changes.
+          It becomes a new board of yours, next to the ones you have.
         </p>
       </div>
     </div>

@@ -102,9 +102,16 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
             {task?.state === 'not_found' && (
               <span className="text-muted-foreground">Not found or no access</span>
             )}
-            {(noToken || notConnected) && task.summary && !collapsed && (
+            {(noToken || notConnected) && task.summary && (
               // What was last seen of the task, until its tracker can be asked again.
-              <span className="text-muted-foreground mr-1.5">{clip(task.summary)}</span>
+              <>
+                {!collapsed && (
+                  <span className="text-muted-foreground mr-1.5">{clip(task.summary)}</span>
+                )}
+                <span className="mr-1.5 opacity-60">
+                  <StatusLozenge task={task} />
+                </span>
+              </>
             )}
             {notConnected && (
               <button

@@ -34,13 +34,15 @@ What belongs to people of the old tiko stays there: reactions, votes, who the bo
 
 A card keeps its tracker and key. When this tiko reads that tracker and you have access, the card goes live on the next refresh.
 
-When it does not, the card shows the task as it was at export, greyed, with what to connect: "Jira is not connected here" opens Settings → Task source, "Connect your GitHub token" opens Settings → My tracker. Once the tracker is connected, the cards go live by themselves; nothing has to be imported again.
+When it does not, the card shows the task as it was at export, its title and status greyed, with what to connect: "Jira is not connected here" opens Settings → Task source, "Connect your GitHub token" opens Settings → My tracker. Once the tracker is connected, the cards go live by themselves; nothing has to be imported again.
 
 tiko cannot tell whether the Jira here is the same Jira as at home. If both know a key such as `OPS-7`, the card shows this tiko's `OPS-7`.
 
 ## Planning
 
 A Gantt's stage types, people and fields are matched by name: "Build" on the old tiko becomes "Build" here. Missing ones are added, and the report lists them. A person who is already here keeps everything they have; time off from the file is added only where it does not overlap theirs.
+
+If Planning was off where the board was exported, the file does not describe the stages; the report says so, and turning Planning on there and exporting again fixes it.
 
 If Planning is off here, the Gantts arrive with their rows and dates, without stage types and people. A workspace admin turns Planning on in Settings; import the board again after that.
 
@@ -50,7 +52,7 @@ An import either makes the whole board or nothing. It stops and says why when:
 
 - the file is not a tiko board, or is damaged: export it again;
 - the file comes from a newer tiko: update this one first;
-- the pictures need more room than the workspace has left;
+- the file is over 300 MB, or the pictures need more room than the workspace has left;
 - you already own as many boards as an account here can.
 
 A single picture this tiko cannot take does not stop the board: it stays an empty frame of its size that asks you to pick the file again, and the report names the reason.

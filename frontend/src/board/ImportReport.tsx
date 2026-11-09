@@ -24,7 +24,8 @@ type Item = { key: string; text: string; action?: { label: string; section: Sect
 /** What still needs a hand, read live: a tracker connected meanwhile drops out of the list. */
 function itemsOf(report: ImportResult, tasks: Record<string, Task>): Item[] {
   const waiting = new Map<string, { state: Task['state']; n: number }>()
-  for (const task of Object.values(tasks)) {
+  // The index holds a task under its full ref and its bare key alike.
+  for (const task of new Set(Object.values(tasks))) {
     if (task.state !== 'not_connected' && task.state !== 'no_token') continue
     const key = `${task.state}:${task.source}`
     waiting.set(key, { state: task.state, n: (waiting.get(key)?.n ?? 0) + 1 })

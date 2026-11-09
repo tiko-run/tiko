@@ -322,3 +322,64 @@ def test_pictures_past_the_quota_fail_the_whole_import_and_leave_no_board():
     assert "MB more than this workspace has room for" in response.json()["error"]["message"]
     assert client.get("/api/boards").json()["boards"] == []
     assert client.get("/api/trash").json()["boards"] == []
+
+
+def test_a_damaged_task_list_or_an_oversized_picture_does_not_stop_the_board(client):
+    from app.domain.files import MAX_BYTES
+
+    file_id = "c" * 32
+    image = node("i", "image", {"file": file_id, "w": 10, "h": 10, "color": "#000000"})
+    data = pack(
+        {
+            "manifest.json": manifest(files={file_id: "image/png"}),
+            "board.json": {"nodes": [image]},
+            "tasks.json": "null",
+            f"files/{file_id}": b"0" * (MAX_BYTES + 1),
+        }
+    )
+    response = import_file(client, data)
+    assert response.status_code == 201, response.text
+    assert [note["kind"] for note in response.json()["notes"]] == ["picture"]
+
+
+def test_people_of_one_name_never_get_overlapping_time_off(client):
+    client.patch("/api/planning", json={"enabled": True})
+    off = [{"id": "o", "start": "2026-12-01", "end": "2026-12-03"}]
+    planning = {
+        "people": [
+            {"id": "a", "name": "Sam", "source": "manual", "off": off},
+            {"id": "b", "name": "sam", "source": "manual", "off": off},
+        ]
+    }
+    doc = {"nodes": [gantt("t", "a", "f")]}
+    doc["nodes"][0]["data"]["content"]["rows"][0]["stages"][0]["people"].append("b")
+    import_file(
+        client, pack({"manifest.json": manifest(), "board.json": doc, "planning.json": planning})
+    )
+    sam = [p for p in client.get("/api/planning").json()["people"] if p["name"] == "Sam"]
+    assert len(sam) == 1 and len(sam[0]["off"]) == 1
+
+
+def test_stages_the_file_does_not_describe_are_reported(client):
+    client.patch("/api/planning", json={"enabled": True})
+    doc = {"nodes": [gantt("far-build", "far-sam", "far-risk")]}
+    response = import_file(client, pack({"manifest.json": manifest(), "board.json": doc}))
+    assert [note["kind"] for note in response.json()["notes"]] == ["planning_missing"]
+
+
+def test_a_card_exported_again_keeps_the_title_it_carried(client):
+    task = {
+        "source": "jira",
+        "key": "OPS-7",
+        "summary": "Rotate the certificates",
+        "url": "",
+        "fetched_at": "2026-11-01T10:00:00+00:00",
+    }
+    card = node("c", "task_card", {"key": "OPS-7", "source": "jira"})
+    first = import_file(
+        client,
+        pack({"manifest.json": manifest(), "board.json": {"nodes": [card]}, "tasks.json": [task]}),
+    ).json()["board"]["id"]
+    client.post(f"/api/boards/{first}/refresh")
+    tasks = json.loads(entries(export(client, first))["tasks.json"])
+    assert [(t["key"], t["summary"]) for t in tasks] == [("OPS-7", "Rotate the certificates")]
