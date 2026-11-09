@@ -77,6 +77,15 @@ test('the owner adds a person who is not on the board yet', async () => {
   await waitFor(() => expect(calls(fetchMock)).toContain('PUT /api/boards/b1/members/u3'))
 })
 
+test('Enter adds the only person found', async () => {
+  const fetchMock = show('owner')
+  const field = await screen.findByLabelText('Add people')
+  fireEvent.change(field, { target: { value: 'c' } })
+  await screen.findByRole('button', { name: /Carl/ })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  await waitFor(() => expect(calls(fetchMock)).toContain('PUT /api/boards/b1/members/u3'))
+})
+
 test('the owner lets everyone view the board', async () => {
   const fetchMock = show('owner')
   fireEvent.keyDown(await screen.findByRole('button', { name: /No access/ }), { key: 'Enter' })

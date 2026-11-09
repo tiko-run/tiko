@@ -1,6 +1,7 @@
 import { useReactFlow, type Viewport } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Task } from '@/api/tasks'
+import { useFit } from '@/canvas/fit-view'
 import { flyTo, reducedMotion, rememberView } from '@/canvas/fly'
 import type { AppNode } from '@/canvas/types'
 import { useShortcut } from '@/lib/shortcuts'
@@ -41,6 +42,7 @@ export function BoardSearch({ boardId, nodes, tasks, onJump, onSelect }: Props) 
   const open = useSearchOpen()
   const commands = useCommandList()
   const flow = useReactFlow()
+  const fit = useFit()
   useShortcut('search', () => setSearchOpen(true))
   useShortcut('commands', () => setSearchOpen(true, COMMANDS_PREFIX))
   // Built only while the palette is open, so editing the board costs nothing extra.
@@ -102,12 +104,7 @@ export function BoardSearch({ boardId, nodes, tasks, onJump, onSelect }: Props) 
   const selectAll = (ids: string[]) => {
     leave()
     onSelect(ids)
-    void flow.fitView({
-      nodes: ids.map((id) => ({ id })),
-      padding: 0.2,
-      maxZoom: 1,
-      duration: reducedMotion() ? 0 : 400,
-    })
+    fit({ nodes: ids, padding: 0.2, maxZoom: 1 })
   }
 
   return (

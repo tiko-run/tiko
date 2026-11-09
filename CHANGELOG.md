@@ -11,6 +11,15 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - A new tiko starts with Planning on, so the Gantt shows stages, people and workload from the first board. Instances already running keep their setting.
+- Enter now adds a person in Share when the search finds exactly one, and adds the ticked tasks, or the only one found, in the CalDAV task picker.
+
+### Fixed
+
+- Fixed the X in Settings that did nothing on click; only Esc closed the window.
+- Fixed the Settings sections list that was cut off in a short window: it scrolls now.
+- Fixed Fit view and the first open of a board, which left out everything off screen.
+- Fixed Enter doing nothing in forms, such as sign-in and the board name, in browsers that hold it back, such as Aside. Sign-in also takes a name and password the browser filled in.
+- Fixed the "In vote" label that stayed on notes after a vote was ended and deleted.
 
 ### Fixed
 
