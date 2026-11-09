@@ -82,6 +82,10 @@ class Files:
         if not self._store.link(board_id, file_id):
             raise NotFound("picture not found")
 
+    def original(self, board_id: str, file_id: str) -> Served | None:
+        """The picture as it was uploaded, less its metadata; None unless the board shows it."""
+        return self._store.get(board_id, file_id, None, False)
+
     def open(self, board_id: str, file_id: str, width: int | None, moving: bool = False) -> Served:
         """What `board_id` shows of a file it refers to: moving, the animated WebP; else the
         smallest copy at least `width` wide, else the original. A moving picture asked still is

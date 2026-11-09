@@ -1,6 +1,14 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { createBoard, duplicateBoard, type BoardList, type BoardSummary } from '@/api/boards'
+import {
+  createBoard,
+  duplicateBoard,
+  importBoard,
+  placeBoard,
+  type BoardList,
+  type BoardSummary,
+} from '@/api/boards'
+import { keepReport } from '@/board/import-report'
 import { goTo } from '@/lib/navigation'
 import { holdTourOn } from '@/onboarding/start'
 import { toastError } from '@/lib/toast'
@@ -39,6 +47,35 @@ export function useDuplicateBoard() {
       toast.success(`${copy.name} created`, {
         action: { label: 'Open', onClick: () => goTo(copy.id) },
       })
+    },
+    onError: toastError,
+  })
+}
+
+/** Accepted by the file picker and by a drop on Home. */
+export const BOARD_FILE = '.tiko'
+
+/** Makes a board from a `.tiko` file, in the folder open on Home, and opens it with its report. */
+export function useImportBoard(folderId: string | null) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (file: File) => {
+      if (!file.name.toLowerCase().endsWith(BOARD_FILE)) {
+        throw new Error(`${file.name} is not a tiko board. Export one from a board's menu.`)
+      }
+      const result = await importBoard(file)
+      if (!folderId) return result
+      // The board is made either way; a folder gone meanwhile only leaves it outside.
+      const placed = await placeBoard(result.board.id, folderId).then(
+        () => true,
+        () => false,
+      )
+      return placed ? { ...result, board: { ...result.board, folder_id: folderId } } : result
+    },
+    onSuccess: (result) => {
+      addToList(queryClient, result.board)
+      keepReport(result)
+      goTo(result.board.id)
     },
     onError: toastError,
   })

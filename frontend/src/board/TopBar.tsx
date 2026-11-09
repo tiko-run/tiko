@@ -1,5 +1,6 @@
 import {
   ChevronDown,
+  Download,
   Globe,
   House,
   Keyboard,
@@ -29,7 +30,7 @@ import { OPEN_VOTES_EVENT } from '@/voting/useVoting'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
-import { canEdit, type BoardSummary } from '@/api/boards'
+import { canEdit, downloadBoard, type BoardSummary } from '@/api/boards'
 import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { DemoMark } from '@/board/DemoMark'
 import { SignUpDialog } from '@/auth/SignUp'
@@ -421,6 +422,10 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
               <DropdownMenuItem onSelect={() => window.dispatchEvent(new Event(OPEN_VOTES_EVENT))}>
                 <Vote strokeWidth={1.75} />
                 Votes
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => downloadBoard(current.id)}>
+                <Download strokeWidth={1.75} />
+                Export board
               </DropdownMenuItem>
               {canEdit(current.my_role) && (
                 <DropdownMenuItem onSelect={() => setRenaming(true)}>

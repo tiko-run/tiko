@@ -1,10 +1,18 @@
 import json
 import secrets
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    model_validator,
+)
 
 from app.domain.errors import NotFound, ValidationFailed
 from app.domain.ports import (
@@ -220,6 +228,20 @@ class DaysOff(BaseModel):
     dates: Annotated[list[date], Field(max_length=MAX_DAYS_OFF)]
 
 
+@dataclass
+class Adopted:
+    """Ids from another instance to the ones they matched here, and what was added or not."""
+
+    types: dict[str, str] = field(default_factory=dict)
+    people: dict[str, str] = field(default_factory=dict)
+    fields: dict[str, str] = field(default_factory=dict)
+    added: list[str] = field(default_factory=list)
+    # Fields that found no match and no room.
+    full: list[str] = field(default_factory=list)
+    # People whose time off did not all fit.
+    off_full: list[str] = field(default_factory=list)
+
+
 class Planning:
     """Planning mode: the instance switch and what every Gantt on the instance shares."""
 
@@ -294,6 +316,72 @@ class Planning:
                 self._people.add_off(person.id, off, MAX_OFF)
         # A new workspace: nobody has a board open there to tell.
         self._settings.set_many({ENABLED_KEY: "1"})
+
+    def adopt(
+        self, types: list[StageType], people: list[PlanningPerson], fields: list[PlanningField]
+    ) -> "Adopted":
+        """Takes lists from another instance: each is matched here by name, the missing ones
+        are added. Nothing here changes, except a known person gains time off that does not
+        overlap theirs. Entries a person could not have typed here are skipped."""
+        self._require_enabled()
+        out = Adopted()
+        mine_types = {t.name.casefold(): t for t in self._types.all() if not t.archived}
+        for t in types:
+            try:
+                body = TypeIn(name=t.name, hue=t.hue)
+            except ValidationError:
+                continue
+            found = mine_types.get(body.name.casefold())
+            if found is None:
+                found = StageType(id=self._new_id(), name=body.name, hue=body.hue)
+                self._types.add(found)
+                mine_types[found.name.casefold()] = found
+                out.added.append(found.name)
+            out.types[t.id] = found.id
+        mine_people = {p.name.casefold(): p for p in self._people.all() if not p.archived}
+        # Time off each person holds, as added so far: two people of one name meet here.
+        held: dict[str, list[TimeOff]] = {}
+        for p in people:
+            try:
+                body = PersonIn(name=p.name, teams=p.teams, source=p.source)
+            except ValidationError:
+                continue
+            found = mine_people.get(body.name.casefold())
+            if found is None:
+                found = PlanningPerson(id=self._new_id(), **body.model_dump())
+                found.teams = _unique(found.teams)
+                self._people.add(found)
+                mine_people[found.name.casefold()] = found
+                out.added.append(found.name)
+            have = held.setdefault(found.id, list(found.off))
+            for off in p.off:
+                if off.end < off.start or any(
+                    off.start <= o.end and o.start <= off.end for o in have
+                ):
+                    continue
+                kept = TimeOff(id=self._new_id(), start=off.start, end=off.end)
+                if not self._people.add_off(found.id, kept, MAX_OFF):
+                    out.off_full.append(found.name)
+                    break
+                have.append(kept)
+            out.people[p.id] = found.id
+        mine_fields = {f.name.casefold(): f for f in self._fields.all() if not f.archived}
+        for f in fields:
+            try:
+                body = FieldIn(name=f.name)
+            except ValidationError:
+                continue
+            found = mine_fields.get(body.name.casefold())
+            if found is None:
+                found = PlanningField(id=self._new_id(), name=body.name)
+                if not self._fields.add(found, MAX_FIELDS):
+                    out.full.append(f.name)
+                    continue
+                mine_fields[found.name.casefold()] = found
+                out.added.append(found.name)
+            out.fields[f.id] = found.id
+        self._changed()
+        return out
 
     def add_type(self, body: TypeIn) -> StageType:
         self._require_enabled()
