@@ -242,6 +242,26 @@ def list_members(
     )
 
 
+class BoardPerson(BaseModel):
+    id: str
+    name: str
+
+
+class BoardPeople(BaseModel):
+    people: list[BoardPerson]
+
+
+@router.get("/{board_id}/people")
+def board_people(board_id: str, _: CanView, accounts: AccountsDep) -> BoardPeople:
+    """Names of the workspace's active people, so the board can say who reacted.
+
+    The share picker's directory already shows them to everyone signed in.
+    """
+    return BoardPeople(
+        people=[BoardPerson(id=p.id, name=p.name) for p in accounts.people() if not p.disabled]
+    )
+
+
 @router.put("/{board_id}/members/{user_id}", dependencies=[NotDemoVisitor])
 def share_board(
     board_id: str, user_id: str, body: MemberIn, _: IsOwner, members: MembersDep

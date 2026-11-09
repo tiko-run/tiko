@@ -29,7 +29,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
-import { canEdit, getBoard, type Board } from '@/api/boards'
+import { canEdit, getBoard, listBoardPeople, type Board } from '@/api/boards'
 import type { Task } from '@/api/tasks'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -121,6 +121,14 @@ import { FarContext, ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
+import {
+  reactionKey,
+  reacts,
+  ReactionsContext,
+  toggled,
+  type ReactionId,
+  type ReactionsHost,
+} from '@/canvas/reactions'
 import { barNodes, withStyle, type Kind, type Style } from '@/canvas/selection-props'
 import { ExpandModuleContext } from '@/modules/expanded'
 import { ModuleHostContext } from '@/modules/host-context'
@@ -559,6 +567,32 @@ export function BoardCanvas({
     }),
     [guestToken, board.id, uploads, getNodes, patchData, updateNode],
   )
+  const boardPeople = useQuery({
+    queryKey: ['board-people', board.id],
+    queryFn: () => listBoardPeople(board.id),
+    enabled: !guest,
+  }).data
+  const meId = me?.id
+  const reactions = useMemo<ReactionsHost>(() => {
+    const names = guest ? null : new Map(boardPeople?.map((p) => [p.id, p.name]))
+    // Outside the undo history: a reaction is taken back with its chip, not with Ctrl+Z.
+    const react = (ids: string[], id: ReactionId) => {
+      if (!meId) return
+      const targets = getNodes().filter((n) => ids.includes(n.id) && reacts(n.type))
+      const next = toggled(
+        targets.map((n) => n.data),
+        meId,
+        id,
+      )
+      targets.forEach((n, index) => patchData(n.id, { [reactionKey(meId)]: next[index] }))
+    }
+    return {
+      me: meId,
+      names,
+      react: readOnly || !meId ? undefined : react,
+      source: images.source,
+    }
+  }, [guest, boardPeople, meId, readOnly, getNodes, patchData, images.source])
 
   // Each picture shows at once from the file; the upload runs behind it.
   const addImages = async (files: File[], screen: XYPosition) => {
@@ -1299,6 +1333,15 @@ export function BoardCanvas({
           movable={movers(nodes).length}
           onAlign={align}
           onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+          onReact={
+            reactions.react && inBar.every((n) => reacts(n.type))
+              ? (emoji) =>
+                  reactions.react?.(
+                    inBar.map((n) => n.id),
+                    emoji,
+                  )
+              : undefined
+          }
           onDuplicate={duplicate}
           onDelete={deleteSelection}
           onSaveSticker={saveSticker}
@@ -1340,89 +1383,93 @@ export function BoardCanvas({
   return (
     <TasksContext.Provider value={tasks}>
       <ImagesContext.Provider value={images}>
-        <PlanningContext.Provider value={planning}>
-          <BoardSourcesContext.Provider value={boardSources}>
-            <ReadOnlyContext.Provider value={readOnly}>
-              <FarContext.Provider value={far}>
-                <SelectedByContext.Provider value={live.selections}>
-                  <ModuleHostContext.Provider value={moduleHost}>
-                    <ExpandModuleContext.Provider value={setExpandedId}>
-                      {readOnly ? (
-                        surface
-                      ) : (
-                        <CanvasContextMenu
-                          target={menuTarget}
-                          onPlace={placeAt}
-                          onAddCards={addCards}
-                          onAddModule={addModule}
-                          onAddImages={(files, point) => void addImages(files, point)}
-                          onDelete={deleteSelection}
-                          cards={cardCounts}
-                          onCollapse={setCollapsed}
-                          onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                        >
-                          {surface}
-                        </CanvasContextMenu>
-                      )}
-                      {expandedNode && (
-                        <ModuleExpanded
-                          node={expandedNode}
-                          readOnly={readOnly}
-                          onChange={(content) => flow.updateNodeData(expandedNode.id, { content })}
-                          onClose={() => setExpandedId(null)}
-                        />
-                      )}
-                    </ExpandModuleContext.Provider>
-                  </ModuleHostContext.Provider>
-                </SelectedByContext.Provider>
-                {guest ? (
-                  // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-                  <div ref={topOverlay} className="absolute top-4 right-4 z-10">
-                    {indicator}
-                  </div>
-                ) : (
-                  <BoardTimers
+        <ReactionsContext.Provider value={reactions}>
+          <PlanningContext.Provider value={planning}>
+            <BoardSourcesContext.Provider value={boardSources}>
+              <ReadOnlyContext.Provider value={readOnly}>
+                <FarContext.Provider value={far}>
+                  <SelectedByContext.Provider value={live.selections}>
+                    <ModuleHostContext.Provider value={moduleHost}>
+                      <ExpandModuleContext.Provider value={setExpandedId}>
+                        {readOnly ? (
+                          surface
+                        ) : (
+                          <CanvasContextMenu
+                            target={menuTarget}
+                            onPlace={placeAt}
+                            onAddCards={addCards}
+                            onAddModule={addModule}
+                            onAddImages={(files, point) => void addImages(files, point)}
+                            onDelete={deleteSelection}
+                            cards={cardCounts}
+                            onCollapse={setCollapsed}
+                            onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                          >
+                            {surface}
+                          </CanvasContextMenu>
+                        )}
+                        {expandedNode && (
+                          <ModuleExpanded
+                            node={expandedNode}
+                            readOnly={readOnly}
+                            onChange={(content) =>
+                              flow.updateNodeData(expandedNode.id, { content })
+                            }
+                            onClose={() => setExpandedId(null)}
+                          />
+                        )}
+                      </ExpandModuleContext.Provider>
+                    </ModuleHostContext.Provider>
+                  </SelectedByContext.Provider>
+                  {guest ? (
+                    // Timers on the board are its people's reminders: a guest sees them, nothing rings.
+                    <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                      {indicator}
+                    </div>
+                  ) : (
+                    <BoardTimers
+                      nodes={nodes}
+                      tasks={tasks}
+                      onOpen={openTimer}
+                      onChange={updateTimer}
+                    >
+                      {indicator}
+                    </BoardTimers>
+                  )}
+                  <BoardSearch
+                    boardId={board.id}
                     nodes={nodes}
                     tasks={tasks}
-                    onOpen={openTimer}
-                    onChange={updateTimer}
-                  >
-                    {indicator}
-                  </BoardTimers>
-                )}
-                <BoardSearch
-                  boardId={board.id}
-                  nodes={nodes}
-                  tasks={tasks}
-                  onJump={jumpTo}
-                  onSelect={selectNodes}
-                />
-                {liveNotice && (
-                  <Alert
-                    variant={live.status === 'unsaved' ? 'destructive' : 'default'}
-                    className="absolute top-16 right-4 z-10 w-80"
-                  >
-                    <AlertDescription>{liveNotice}</AlertDescription>
-                  </Alert>
-                )}
-                {!readOnly && (
-                  <Toolbar
-                    tool={tool}
-                    onTool={setTool}
-                    onShape={(kind) => {
-                      setShapeKind(kind)
-                      setTool('shape')
-                    }}
-                    onAddCards={addCards}
-                    onAddModule={(kind) => addModule(kind, viewportCenter())}
-                    onImages={(files) => void addImages(files, viewportCenter())}
-                    onSticker={(choice) => void addSticker(choice, viewportCenter())}
+                    onJump={jumpTo}
+                    onSelect={selectNodes}
                   />
-                )}
-              </FarContext.Provider>
-            </ReadOnlyContext.Provider>
-          </BoardSourcesContext.Provider>
-        </PlanningContext.Provider>
+                  {liveNotice && (
+                    <Alert
+                      variant={live.status === 'unsaved' ? 'destructive' : 'default'}
+                      className="absolute top-16 right-4 z-10 w-80"
+                    >
+                      <AlertDescription>{liveNotice}</AlertDescription>
+                    </Alert>
+                  )}
+                  {!readOnly && (
+                    <Toolbar
+                      tool={tool}
+                      onTool={setTool}
+                      onShape={(kind) => {
+                        setShapeKind(kind)
+                        setTool('shape')
+                      }}
+                      onAddCards={addCards}
+                      onAddModule={(kind) => addModule(kind, viewportCenter())}
+                      onImages={(files) => void addImages(files, viewportCenter())}
+                      onSticker={(choice) => void addSticker(choice, viewportCenter())}
+                    />
+                  )}
+                </FarContext.Provider>
+              </ReadOnlyContext.Provider>
+            </BoardSourcesContext.Provider>
+          </PlanningContext.Provider>
+        </ReactionsContext.Provider>
       </ImagesContext.Provider>
     </TasksContext.Provider>
   )

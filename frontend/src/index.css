@@ -316,6 +316,19 @@
   opacity: 1;
 }
 
+/* The add-reaction button shows the same way. */
+.react-flow__node .reaction-add {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+.react-flow__node:hover .reaction-add,
+.react-flow__node.selected .reaction-add,
+.reactions.picking .reaction-add {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* A side grip is 8 screen pixels wide at any zoom; the visible line stays 1px. */
 .react-flow__resize-control {
   z-index: 1;

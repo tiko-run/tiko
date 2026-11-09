@@ -20,6 +20,7 @@ import {
   Minimize2,
   PenLine,
   Shapes,
+  SmilePlus,
   Sticker,
   StickyNote,
   Ticket,
@@ -48,6 +49,8 @@ import { STROKES, TEXT_SIZES, type AppNode, type Turned } from '@/canvas/types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Slider } from '@/components/ui/slider'
+import { ReactionPicker } from '@/canvas/nodes/Reactions'
+import type { ReactionId } from '@/canvas/reactions'
 import { turnedBounds } from '@/canvas/turn'
 import { topOverlayRects, useTopOverlays } from '@/lib/overlays'
 import { withShortcut } from '@/lib/shortcuts'
@@ -155,6 +158,8 @@ type Props = {
   onAlign: (how: Alignment | Distribution) => void
   /** Set when the selection is one element a timer can attach to. */
   onAddTimer?: () => void
+  /** Set when every selected element takes reactions and the person may react. */
+  onReact?: (id: ReactionId) => void
   onDuplicate: () => void
   onDelete: () => void
   /** Saves a stored picture to the workspace's stickers. */
@@ -175,6 +180,7 @@ export function SelectionBar({
   movable,
   onAlign,
   onAddTimer,
+  onReact,
   onDuplicate,
   onDelete,
   onSaveSticker,
@@ -517,6 +523,28 @@ export function SelectionBar({
           onClick={() => onSaveSticker(savable)}
         />
       )}
+      {onReact && (
+        <Popover {...popover('react')}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={open === 'react' ? 'secondary' : 'ghost'}
+              size="icon"
+              aria-label="React"
+              title="React"
+            >
+              <SmilePlus className="size-[18px]" strokeWidth={1.75} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side={side} sideOffset={8} className="w-auto p-1">
+            <ReactionPicker
+              onPick={(id) => {
+                setOpen(null)
+                onReact(id)
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
       {onAddTimer && <IconButton Icon={AlarmClock} label="Add reminder" onClick={onAddTimer} />}
       <IconButton
         Icon={Copy}
@@ -531,7 +559,7 @@ export function SelectionBar({
 
 const SIZE_NAMES = { small: 'Small', medium: 'Medium', large: 'Large' } as const
 
-type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size' | 'align'
+type Menu = 'filter' | 'fill' | 'opacity' | 'outline' | 'size' | 'align' | 'react'
 
 const ALIGNMENTS: { how: Alignment; label: string; Icon: LucideIcon }[] = [
   { how: 'left', label: 'Align left', Icon: AlignStartVertical },

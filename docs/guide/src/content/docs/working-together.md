@@ -1,6 +1,6 @@
 ---
 title: Working together
-description: "A shared board is live: what merges, how undo works and what viewers see."
+description: "A shared board is live: reactions, what merges, how undo works and what viewers see."
 ---
 
 A shared board is live: everyone who has it open sees each other's changes as they happen, with no reload and no "someone else changed this board" warnings.
@@ -31,6 +31,16 @@ When a person is added and "Everyone in this workspace" is on too, the higher ro
 - Each person's cursor carries the same small avatar, so you can tell at a glance who is doing what. The name shows next to it for a moment when they arrive.
 - An element someone else has selected gets an outline in their color with their avatar on its corner. Take it as "busy": two people changing the same thing at once do not merge.
 - An element someone is dragging moves on your screen while they drag it, and other changes glide into place instead of jumping. With reduced motion turned on in the system, they jump.
+
+## Reactions
+
+Agree with a sticky note or a card without a word: hover it, press the smiley under it and pick 👍 ❤️ 🎉 😂 🤔 or 👎. A click on a reaction adds yours or takes it back. To react to many notes at once, select them and pick an emoji under the smiley in the selection bar. In a retro, the counts show which notes the team cares about.
+
+- Reactions are open: hover one to see who put it, and press "and N more" for the whole list. Someone who has left the workspace shows as "Former member".
+- People who can edit the board react. Viewers see reactions with names, and guests of a public link see only the counts.
+- Two people reacting at the same moment both count.
+- `⌘Z` does not take a reaction back; its own button does. A copy of a note starts with none.
+- Nobody is notified about a reaction.
 
 ## What merges
 

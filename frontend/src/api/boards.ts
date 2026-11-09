@@ -111,6 +111,14 @@ export function listMembers(boardId: string) {
   )
 }
 
+/** Names of the workspace's people, for saying who reacted. */
+export function listBoardPeople(boardId: string) {
+  return fetchJson(
+    `/api/boards/${boardId}/people`,
+    z.object({ people: z.array(z.object({ id: z.string(), name: z.string() })) }),
+  ).then((body) => body.people)
+}
+
 /** Turns the board's public link on or off; a link turned off never works again. */
 export function setPublicLink(boardId: string, isPublic: boolean) {
   return fetchJson(

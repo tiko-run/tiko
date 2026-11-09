@@ -59,6 +59,7 @@ All existing board routes check the effective role: read routes (`GET /boards/{i
 | `GET /boards/{id}` | – | `Board` = `BoardSummary` + `{version, doc, tasks}`; `my_role` drives the read-only canvas | 404 |
 | `POST /boards` | `{name}` | 201 `BoardSummary`, the creator is the owner | |
 | `GET /boards/{id}/members` | – | `{members: Member[], everyone_role: null | "viewer" | "editor"}` | 404 |
+| `GET /boards/{id}/people` | – | `{people: [{id, name}]}`: the workspace's active people, to name who reacted (spec 042); anyone who can view the board | 404 |
 | `PUT /boards/{id}/members/{user_id}` | `{role: "editor" | "viewer"}` | `Member` | 403, 404 |
 | `DELETE /boards/{id}/members/{user_id}` | – | 204 | 403, 404, 409 `owner_required` |
 | `PUT /boards/{id}/everyone` | `{role: null | "viewer" | "editor"}` | 204 | 403, 404 |

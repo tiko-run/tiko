@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, timedelta
 from typing import Annotated, Any, Literal, NamedTuple
 
@@ -39,12 +40,48 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
 
 
+REACTIONS = ("like", "love", "party", "laugh", "think", "dislike")
+REACTION_KEY = "reaction:"
+MAX_REACTING = 1000
+
+
+class _Reactable(_Strict):
+    """An element people react to: `reaction:<person id>` holds that person's emoji.
+
+    A key per person, so two people reacting at once never write the same key of the live doc.
+    """
+
+    model_config = ConfigDict(extra="allow", allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def _reactions(self) -> "_Reactable":
+        extra = self.__pydantic_extra__ or {}
+        for key in list(extra):
+            if not key.startswith(REACTION_KEY):
+                # Unknown fields are ignored here as on every other element.
+                del extra[key]
+                continue
+            emoji = extra[key]
+            person = key.removeprefix(REACTION_KEY)
+            if not (
+                re.fullmatch(r"[A-Za-z0-9_-]{1,64}", person)
+                and isinstance(emoji, list)
+                and emoji
+                and len(set(emoji)) == len(emoji)
+                and all(e in REACTIONS for e in emoji)
+            ):
+                raise ValueError("invalid reaction")
+        if len(extra) > MAX_REACTING:
+            raise ValueError("too many reactions")
+        return self
+
+
 class Position(_Strict):
     x: float
     y: float
 
 
-class TaskCardData(_Strict):
+class TaskCardData(_Reactable):
     key: str
     # The tracker of `key`; absent on cards saved before trackers could be mixed.
     source: str | None = Field(default=None, pattern=SOURCE_PATTERN)
@@ -82,7 +119,7 @@ class FrameData(_Strict):
     opacity: absent_or(Opacity) = None
 
 
-class StickyData(_Strict):
+class StickyData(_Reactable):
     text: str = Field(default="", max_length=5000)
     color: str = Field(default="yellow", max_length=20)
     opacity: absent_or(Opacity) = None

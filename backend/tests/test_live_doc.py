@@ -418,3 +418,19 @@ def test_a_ring_of_parents_is_repaired_the_same_in_any_order():
     one, _, notes = fix({"a": a, "b": b})
     other, _, _ = fix({"b": b, "a": a})
     assert one == other and notes == ["node_detached", "node_detached"]
+
+
+def test_reactions_of_two_people_made_at_once_both_stay():
+    start = board([sticky("s")])
+    ann, bob = LiveDoc(), LiveDoc()
+    ann.apply_json(start)
+    bob.doc.apply_update(ann.state())
+    for live, person in ((ann, "ann"), (bob, "bob")):
+        with live.doc.transaction():
+            live.read()  # the same shape as the app reads
+            live.doc["nodes"]["s"]["data"][f"reaction:{person}"] = ["like"]
+    ann.doc.apply_update(bob.state())
+    merged, notes = ann.repair(start)
+    assert notes == []
+    data = as_json(merged)["nodes"][0]["data"]
+    assert data["reaction:ann"] == data["reaction:bob"] == ["like"]

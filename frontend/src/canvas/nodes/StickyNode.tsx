@@ -7,6 +7,7 @@ import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canva
 import { faded } from '@/canvas/selection-props'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
+import { Reactions } from '@/canvas/nodes/Reactions'
 import type { StickyNode as StickyNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
 import { useReadOnly } from '@/canvas/readonly'
@@ -89,6 +90,7 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
           />
         )}
       </div>
+      <Reactions id={id} data={data} />
       {/* Last, so the element never covers its turning spots. */}
       <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
       <Handles />

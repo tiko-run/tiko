@@ -147,3 +147,18 @@ test('while a drag copies, arrows of the dragged node stay with its stand-in', (
     ['e2', 'stay:a', 'c'],
   ])
 })
+
+test('a copy starts without reactions', () => {
+  const node = {
+    id: 's',
+    type: 'sticky',
+    position: { x: 0, y: 0 },
+    selected: true,
+    data: { text: 'Hi', color: 'yellow', 'reaction:ann': ['like'] },
+  } as AppNode
+  const snippet = copySelection([node], [], {})!
+  expect(cloneSnippet(snippet, { x: 0, y: 0 }).nodes[0].data).toEqual({
+    text: 'Hi',
+    color: 'yellow',
+  })
+})
