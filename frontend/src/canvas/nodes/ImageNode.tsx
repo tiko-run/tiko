@@ -184,7 +184,17 @@ function Picture({
       draggable={false}
       decoding="async"
       className={cn('absolute inset-0 size-full', hidden && 'opacity-0')}
-      onLoad={onLoad}
+      // Loaded is not yet decoded: shown at once, the copy it replaces would be gone a frame
+      // before it is drawn, and the picture blinks.
+      onLoad={(event) => {
+        const img = event.currentTarget
+        img
+          .decode()
+          .catch(() => {})
+          .then(() => {
+            if (img.isConnected) onLoad?.()
+          })
+      }}
       onError={onError}
     />
   )

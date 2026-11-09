@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - A new tiko starts with Planning on, so the Gantt shows stages, people and workload from the first board. Instances already running keep their setting.
 
+### Fixed
+
+- A picture you paste or drop on a board no longer blinks a moment after it appears.
+
 ## [2026.11.0] - 2026-11-09
 
 Requires: installer
