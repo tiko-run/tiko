@@ -1,6 +1,6 @@
 ---
 title: Working together
-description: "A shared board is live: what merges, how undo works and what viewers see."
+description: "A shared board is live: reactions, votes, what merges, how undo works and what viewers see."
 ---
 
 A shared board is live: everyone who has it open sees each other's changes as they happen, with no reload and no "someone else changed this board" warnings.
@@ -31,6 +31,29 @@ When a person is added and "Everyone in this workspace" is on too, the higher ro
 - Each person's cursor carries the same small avatar, so you can tell at a glance who is doing what. The name shows next to it for a moment when they arrive.
 - An element someone else has selected gets an outline in their color with their avatar on its corner. Take it as "busy": two people changing the same thing at once do not merge.
 - An element someone is dragging moves on your screen while they drag it, and other changes glide into place instead of jumping. With reduced motion turned on in the system, they jump.
+
+## Reactions
+
+Agree with a sticky note or a card without a word: hover it, press the smiley under it and pick 👍 ❤️ 🎉 😂 🤔 or 👎. A click on a reaction adds yours or takes it back. To react to many notes at once, select them and pick an emoji under the smiley in the selection bar. In a retro, the counts show which notes the team cares about.
+
+- Reactions are open: hover one to see who put it, and press "and N more" for the whole list. Someone who has left the workspace shows as "Former member".
+- People who can edit the board react. Viewers see reactions with names, and guests of a public link see only the counts.
+- Two people reacting at the same moment both count.
+- `⌘Z` does not take a reaction back; its own button does. A copy of a note starts with none.
+- Nobody is notified about a reaction.
+
+## Voting
+
+Pick the few notes a retro will talk about first. Select the notes and cards, or a frame to take the ones inside it, and press the ballot box in the selection bar. Choose how many votes each person gets, whether several of them can go on one note, a timer, and whether the vote is anonymous.
+
+- Everyone on the board gets an invitation to join, viewers too. Guests of a public link do not see the vote.
+- A plus on each note in the vote gives it one of your votes; you can take votes back and move them until the end. The rest of the board steps back while you vote. Done puts the panel away and keeps your votes.
+- Nobody sees anyone else's votes until the end, in an anonymous vote and in an open one. The panel shows how many people are done; whoever started the vote and the board's owner can see who is still voting, and add a minute or end the vote for everyone.
+- Notes in a vote are held until it ends: nobody can change or delete them, or delete the frame they sit in. They can still be moved and take reactions.
+- At the end the results open for everyone: the notes with votes, most first. Click one to go to it. An open vote also shows who gave how many votes to each note.
+- Past votes stay with the board: open them from Votes in the top bar, next to Share.
+
+The server keeps who gave which votes, because it has to hold each person to their number of votes. For an anonymous vote it never shows that to anyone; an admin with access to the database could still read it.
 
 ## What merges
 

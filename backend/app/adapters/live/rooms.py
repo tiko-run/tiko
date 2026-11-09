@@ -38,6 +38,7 @@ from app.domain.live import (
     ROOM_FULL,
     SESSION_ENDED,
     TOO_SLOW,
+    VOTES_CHANGED,
     LiveDoc,
 )
 from app.domain.members import role_on
@@ -149,6 +150,10 @@ class Room:
             rooms.keepalive_s, self._keepalive
         )
         self._saving = asyncio.Lock()
+        # Elements of a running vote, and when its timer runs out (spec 043).
+        self.locked: frozenset[str] = frozenset()
+        self.locked_until: float | None = None
+        self.lock_reads = 0
         # pycrdt objects must be freed on the thread that made them. A bound method here would
         # tie the room and the document into a cycle that the collector may free on any thread.
         room = weakref.ref(self)
@@ -307,7 +312,10 @@ class Room:
             self._check_timer = None
         started = time.perf_counter()
         try:
-            self.last, notes = self.live.repair(self.last)
+            locked = self.locked
+            if self.locked_until is not None and time.time() >= self.locked_until:
+                locked = frozenset()
+            self.last, notes = self.live.repair(self.last, locked)
         except Exception:
             # The previous valid board stays the one that is saved.
             log.exception("live board %s failed its check", self.board_id)
@@ -432,6 +440,8 @@ class LiveRooms:
         self.save_max_s = 10.0
         self.idle_s = 30.0
         self.keepalive_s = KEEPALIVE_S
+        # What a running vote locks on a board: its elements and when it ends; set by the app.
+        self.locks: Callable[[str], tuple[frozenset[str], float | None] | None] | None = None
 
     def presence_delay(self, sockets: int) -> float:
         busy = sockets >= self.presence_busy_from
@@ -464,6 +474,9 @@ class LiveRooms:
                 room = self._rooms[board_id] = Room(
                     self, board_id, record.doc, record.version, state, workspace
                 )
+                # Not awaited: opening the board must not wait for its votes. Until it lands,
+                # the tabs' own lock holds the vote's elements.
+                self._loop.create_task(self._load_lock(room))
         finally:
             del self._opening[board_id]
             future.set_result(room)
@@ -518,9 +531,14 @@ class LiveRooms:
             found = self.boards.load(board_id)
             if found is None:
                 raise NotFound("board not found")
-            live = LiveDoc(found[1])
+            record, state = found
+            live = LiveDoc(state)
             before = live.node_count()
             live.apply_json(doc)
+            locked = self._locked_now(board_id)
+            if locked:
+                # No room holds the lock here: the save itself puts the vote's elements back.
+                doc, _ = live.repair(record.doc, locked)
             saved = self.boards.save(board_id, version, doc, live.state())
             note_mass_delete(board_id, before, live.node_count(), "a REST save")
             return saved
@@ -575,6 +593,43 @@ class LiveRooms:
             lambda room, _: workspace is None or room.workspace == workspace,
             lambda _, c: c.push(data),
         )
+
+    def _locked_now(self, board_id: str) -> frozenset[str]:
+        found = self.locks(board_id) if self.locks else None
+        if found is None or (found[1] is not None and time.time() >= found[1]):
+            return frozenset()
+        return found[0]
+
+    async def _load_lock(self, room: Room) -> None:
+        if self.locks is None:
+            return
+        # Reads may finish out of order; only the latest one counts.
+        room.lock_reads += 1
+        read = room.lock_reads
+        try:
+            with in_workspace(room.workspace):
+                found = await anyio.to_thread.run_sync(self.locks, room.board_id)
+        except Exception:
+            log.exception("live board %s could not read its vote", room.board_id)
+            return
+        if read == room.lock_reads:
+            room.locked, room.locked_until = found or (frozenset(), None)
+
+    def votes_changed(self, board_id: str) -> None:
+        loop = self._loop
+        if loop is None or not loop.is_running():
+            return
+
+        async def run() -> None:
+            room = self._rooms.get(board_id)
+            if room is None:
+                return
+            await self._load_lock(room)
+            # Only `connections`: guests of a public link never see a vote.
+            for connection in list(room.connections):
+                connection.push(bytes([VOTES_CHANGED]))
+
+        loop.call_soon_threadsafe(lambda: loop.create_task(run()))
 
     def recheck_board(self, board_id: str) -> None:
         def recheck(room: Room, connection: Connection) -> None:

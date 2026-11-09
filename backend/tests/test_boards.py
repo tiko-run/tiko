@@ -146,3 +146,38 @@ def test_a_malformed_source_is_refused():
 def test_the_old_name_of_a_card_is_read_as_the_new_one():
     old = card("a", "DEV-1") | {"type": "jira_card"}
     assert doc([old]).nodes[0].type == "task_card"
+
+
+def test_stickies_and_cards_keep_reactions_other_elements_ignore_them():
+    reacted = {"reaction:ann": ["like", "party"], "reaction:bob": ["dislike"]}
+    sticky = {"id": "s", "type": "sticky", "position": {"x": 0, "y": 0}, "data": reacted}
+    shape = {
+        "id": "h",
+        "type": "shape",
+        "position": {"x": 0, "y": 0},
+        "data": {"shape": "ellipse", **reacted},
+    }
+    a_card = card("a", "DEV-1")
+    a_card["data"] |= reacted
+    nodes = doc([sticky, shape, a_card]).model_dump(exclude_none=True)["nodes"]
+    assert {key: nodes[0]["data"][key] for key in reacted} == reacted
+    assert "reaction:ann" not in nodes[1]["data"]
+    assert nodes[2]["data"]["reaction:bob"] == ["dislike"]
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"reaction:ann": []},
+        {"reaction:ann": ["clap"]},
+        {"reaction:ann": ["like", "like"]},
+        {"reaction:ann": "like"},
+        {"reaction:ann": [["like"]]},
+        {"reaction:a b": ["like"]},
+        {f"reaction:p{n}": ["like"] for n in range(1001)},
+    ],
+)
+def test_broken_reactions_are_refused(data):
+    sticky = {"id": "s", "type": "sticky", "position": {"x": 0, "y": 0}, "data": data}
+    with pytest.raises(ValidationError):
+        doc([sticky])

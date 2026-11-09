@@ -7,14 +7,20 @@ import { fitFontSize, STICKY_FONT, STICKY_MAX_CHARS, wouldExceed } from '@/canva
 import { faded } from '@/canvas/selection-props'
 import { EditableText } from '@/canvas/nodes/EditableText'
 import { Handles } from '@/canvas/nodes/Handles'
+import { Reactions } from '@/canvas/nodes/Reactions'
 import type { StickyNode as StickyNodeType } from '@/canvas/types'
 import { cn } from '@/lib/utils'
-import { useReadOnly } from '@/canvas/readonly'
+import { ReadOnlyContext, useReadOnly } from '@/canvas/readonly'
+import { useInVote } from '@/voting/useVoting'
+import { VoteControl } from '@/voting/VoteControl'
 
 const TEXT = 'sticky-text'
 
 function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyNodeType>) {
-  const readOnly = useReadOnly()
+  const boardReadOnly = useReadOnly()
+  // An element in a running vote keeps its text and look until the end.
+  const inVote = useInVote(id)
+  const readOnly = boardReadOnly || inVote
   const box = useRef<HTMLDivElement>(null)
   const [fontSize, setFontSize] = useState(STICKY_FONT)
   // Bumped on every blocked edit so the sign's animation restarts.
@@ -41,58 +47,62 @@ function StickyNodeView({ id, data, selected, width, height }: NodeProps<StickyN
   const block = () => setBlocked((n) => n + 1)
 
   return (
-    <div className="relative h-full w-full" style={turned(data.rotation)}>
-      <Resizer
-        isVisible={selected && !readOnly}
-        rotation={data.rotation}
-        minWidth={80}
-        minHeight={60}
-      />
-      <div
-        ref={box}
-        className={cn(
-          'relative h-full w-full rounded-md p-3 leading-[1.35]',
-          selected && 'ring-primary ring-2',
-        )}
-        style={{
-          background: faded(`var(--sticky-${data.color})`, data.opacity),
-          color: faded('var(--sticky-foreground)', data.opacity),
-          fontSize,
-          fontWeight: data.bold ? 600 : undefined,
-        }}
-        onInput={fit}
-        onFocus={fit}
-        onBeforeInput={(event) => {
-          const field = event.target
-          const added = (event.nativeEvent as InputEvent).data?.length ?? 1
-          if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
-        }}
-        onPaste={(event) => {
-          const field = event.target
-          const added = event.clipboardData.getData('text/plain').length
-          if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
-        }}
-      >
-        <EditableText
-          nodeId={id}
-          value={data.text}
-          field="text"
-          maxLength={STICKY_MAX_CHARS}
-          placeholder="Note"
-          className={cn(TEXT, 'h-full overflow-hidden')}
+    <ReadOnlyContext.Provider value={readOnly}>
+      <div className="relative h-full w-full" style={turned(data.rotation)}>
+        <Resizer
+          isVisible={selected && !readOnly}
+          rotation={data.rotation}
+          minWidth={80}
+          minHeight={60}
         />
-        {blocked > 0 && (
-          <Ban
-            key={blocked}
-            aria-hidden
-            className="sticky-blocked pointer-events-none absolute inset-0 m-auto size-3/5"
+        <div
+          ref={box}
+          className={cn(
+            'relative h-full w-full rounded-md p-3 leading-[1.35]',
+            selected && 'ring-primary ring-2',
+          )}
+          style={{
+            background: faded(`var(--sticky-${data.color})`, data.opacity),
+            color: faded('var(--sticky-foreground)', data.opacity),
+            fontSize,
+            fontWeight: data.bold ? 600 : undefined,
+          }}
+          onInput={fit}
+          onFocus={fit}
+          onBeforeInput={(event) => {
+            const field = event.target
+            const added = (event.nativeEvent as InputEvent).data?.length ?? 1
+            if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
+          }}
+          onPaste={(event) => {
+            const field = event.target
+            const added = event.clipboardData.getData('text/plain').length
+            if (field instanceof HTMLTextAreaElement && wouldExceed(field, added)) block()
+          }}
+        >
+          <EditableText
+            nodeId={id}
+            value={data.text}
+            field="text"
+            maxLength={STICKY_MAX_CHARS}
+            placeholder="Note"
+            className={cn(TEXT, 'h-full overflow-hidden')}
           />
-        )}
+          {blocked > 0 && (
+            <Ban
+              key={blocked}
+              aria-hidden
+              className="sticky-blocked pointer-events-none absolute inset-0 m-auto size-3/5"
+            />
+          )}
+        </div>
+        <Reactions id={id} data={data} />
+        <VoteControl id={id} />
+        {/* Last, so the element never covers its turning spots. */}
+        <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
+        <Handles />
       </div>
-      {/* Last, so the element never covers its turning spots. */}
-      <Rotator id={id} rotation={data.rotation} isVisible={selected && !readOnly} />
-      <Handles />
-    </div>
+    </ReadOnlyContext.Provider>
   )
 }
 

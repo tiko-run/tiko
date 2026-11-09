@@ -2,6 +2,7 @@ import type { XYPosition } from '@xyflow/react'
 import type { Task } from '@/api/tasks'
 import { absolute } from '@/canvas/frames'
 import { nodeTasks } from '@/canvas/node-tasks'
+import { withoutReactions } from '@/canvas/reactions'
 import { taskRef } from '@/canvas/tasks-context'
 import type { AppEdge, AppNode } from '@/canvas/types'
 import { newId } from '@/lib/id'
@@ -37,7 +38,8 @@ function persistent({ id, type, position, width, height, parentId, data }: AppNo
     ...(width !== undefined && { width }),
     ...(height !== undefined && { height }),
     ...(parentId !== undefined && { parentId }),
-    data: structuredClone(data),
+    // A copy is a new element: nobody has reacted to it yet.
+    data: structuredClone(withoutReactions(data)),
   } as AppNode
 }
 

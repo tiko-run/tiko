@@ -188,3 +188,15 @@ def test_each_new_person_gets_their_own_welcome_board(world):
     boards = dave.get("/api/boards").json()["boards"]
     own = [b for b in boards if b["owner"]["id"] == ids["dave"]]
     assert [b["name"] for b in own] == ["Welcome to tiko"]
+
+
+def test_everyone_on_a_board_reads_the_names_of_the_workspace(world):
+    clients, ids = world
+    board_id = new_board(world)
+    route = f"/api/boards/{board_id}/people"
+    for who in ("ann", "bob", "carl"):
+        people = clients[who].get(route).json()["people"]
+        assert {"id": ids["bob"], "name": "Bob"} in people
+    # A fresh session: an earlier test disabled dave, which ended the old one.
+    dave = signed_in(clients["admin"].app, "dave", LONG)
+    assert dave.get(route).status_code == 404

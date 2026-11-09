@@ -22,7 +22,10 @@ import {
   Timer,
   Trash2,
   UserPlus,
+  Vote,
 } from 'lucide-react'
+import { getVotes, votesKey } from '@/api/votes'
+import { OPEN_VOTES_EVENT } from '@/voting/useVoting'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
@@ -122,6 +125,14 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
   }, [renameOnOpen, current])
 
   const me = useQuery({ queryKey: ['auth'], queryFn: getAuthStatus }).data?.me
+  // The same query as the board's: shown once the board has a vote to look back at.
+  const boardId = current?.id ?? ''
+  const votes = useQuery({
+    queryKey: votesKey(boardId),
+    queryFn: () => getVotes(boardId),
+    enabled: Boolean(current),
+  }).data
+  const hasVotes = Boolean(votes?.past.length)
   // A demo visitor has no account yet: nothing to share with, no password to come back by.
   const demoUntil = me?.demo_expires_at
   const [leaving, setLeaving] = useState(false)
@@ -407,6 +418,10 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
                 <Plus strokeWidth={1.75} />
                 New board
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => window.dispatchEvent(new Event(OPEN_VOTES_EVENT))}>
+                <Vote strokeWidth={1.75} />
+                Votes
+              </DropdownMenuItem>
               {canEdit(current.my_role) && (
                 <DropdownMenuItem onSelect={() => setRenaming(true)}>
                   <Pencil strokeWidth={1.75} />
@@ -448,6 +463,17 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
         </>
       )}
       <SignUpDialog open={signingUp} onOpenChange={setSigningUp} />
+      {current && hasVotes && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[14px] font-normal"
+          onClick={() => window.dispatchEvent(new Event(OPEN_VOTES_EVENT))}
+        >
+          <Vote strokeWidth={1.75} />
+          Votes
+        </Button>
+      )}
       {current && !demoUntil && (
         <>
           <Button

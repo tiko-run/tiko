@@ -37,6 +37,9 @@ from app.domain.errors import (
     UsernameTaken,
     ValidationFailed,
     VersionConflict,
+    VoteClosed,
+    VoteRefused,
+    VoteRunning,
     WeakPassword,
 )
 
@@ -75,6 +78,9 @@ _STATUS = {
     UnsupportedFile: 415,
     FileQuota: 507,
     StickerLimit: 409,
+    VoteRunning: 409,
+    VoteClosed: 409,
+    VoteRefused: 422,
 }
 
 

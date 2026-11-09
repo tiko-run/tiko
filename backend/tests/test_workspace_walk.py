@@ -40,6 +40,10 @@ def bodies(own: dict) -> dict[tuple[str, str], dict]:
     return {
         ("PUT", "/api/boards/{board_id}"): {"version": 1, "doc": {"nodes": [], "edges": []}},
         ("PATCH", "/api/boards/{board_id}"): {"name": "Taken"},
+        ("POST", "/api/boards/{board_id}/votes"): {"name": "Taken", "elements": ["note"]},
+        ("POST", "/api/boards/{board_id}/votes/{round_id}/ballot"): {"element": "note", "delta": 1},
+        ("POST", "/api/boards/{board_id}/votes/{round_id}/done"): {"done": True},
+        ("PATCH", "/api/boards/{board_id}/votes/{round_id}"): {"name": "Taken"},
         ("PUT", "/api/boards/{board_id}/everyone"): {"role": None},
         ("PUT", "/api/boards/{board_id}/members/{user_id}"): {"role": "viewer"},
         ("PUT", "/api/boards/{board_id}/public"): {"public": True},
@@ -103,6 +107,13 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
     sticker = ok(
         client.post("/api/stickers/pack", json={"file": file_id, "name": f"sticker-{tag}"})
     )
+    vote = {"name": f"vote-{tag}", "elements": ["note"]}
+    round_id = ok(client.post(f"/api/boards/{board_id}/votes", json=vote))["id"]
+    ok(
+        client.post(
+            f"/api/boards/{board_id}/votes/{round_id}/ballot", json={"element": "note", "delta": 1}
+        )
+    )
     trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
     assert client.delete(f"/api/boards/{trashed}").is_success
     return {
@@ -118,6 +129,7 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "key": "DEMO-1",
         "file_id": file_id,
         "sticker_id": sticker["id"],
+        "round_id": round_id,
         "code": "1f525",
         "token": token,
         "workspace": me["workspace"]["id"],
@@ -133,6 +145,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             f"trashed-{tag}",
             f"sticker-{tag}",
             sticker["id"],
+            f"vote-{tag}",
+            round_id,
             trashed,
             day,
             me["id"],
@@ -229,7 +243,7 @@ def test_nothing_of_a_trashed_board_reaches_anyone(app):
         own["server"] = client is admin
         target = {name: "nope" for name in ("person_id", "off_id", "type_id", "field_id")}
         target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1", "file_id": "nope"}
-        target |= {"sticker_id": "nope", "code": "1f525"}
+        target |= {"sticker_id": "nope", "round_id": "nope", "code": "1f525"}
         target |= own | {"markers": ["trashed-board", "note-trashed", board, token]}
         owner_like = client in (ann, admin)
 

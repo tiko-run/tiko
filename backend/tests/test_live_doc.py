@@ -418,3 +418,62 @@ def test_a_ring_of_parents_is_repaired_the_same_in_any_order():
     one, _, notes = fix({"a": a, "b": b})
     other, _, _ = fix({"b": b, "a": a})
     assert one == other and notes == ["node_detached", "node_detached"]
+
+
+def test_reactions_of_two_people_made_at_once_both_stay():
+    start = board([sticky("s")])
+    ann, bob = LiveDoc(), LiveDoc()
+    ann.apply_json(start)
+    bob.doc.apply_update(ann.state())
+    for live, person in ((ann, "ann"), (bob, "bob")):
+        with live.doc.transaction():
+            live.read()  # the same shape as the app reads
+            live.doc["nodes"]["s"]["data"][f"reaction:{person}"] = ["like"]
+    ann.doc.apply_update(bob.state())
+    merged, notes = ann.repair(start)
+    assert notes == []
+    data = as_json(merged)["nodes"][0]["data"]
+    assert data["reaction:ann"] == data["reaction:bob"] == ["like"]
+
+
+def test_an_element_in_a_vote_moves_and_takes_reactions_but_keeps_its_text():
+    start = board([sticky("s"), sticky("t")])
+    live = LiveDoc()
+    live.apply_json(start)
+    last, _ = live.repair(start, frozenset({"s"}))
+    with live.doc.transaction():
+        data = live.doc["nodes"]["s"]["data"]
+        data["text"] = "changed"
+        data["color"] = "pink"
+        data["reaction:ann"] = ["like"]
+        live.doc["nodes"]["s"]["size"] = {"width": 999, "height": 999}
+        live.doc["nodes"]["s"]["place"] = {"x": 99, "y": 20}
+        live.doc["nodes"]["t"]["data"]["text"] = "free"
+    fixed, notes = live.repair(last, frozenset({"s"}))
+    nodes = {n["id"]: n for n in as_json(fixed)["nodes"]}
+    assert notes == ["locked_restored"]
+    assert nodes["s"]["data"]["text"] == "s" and nodes["s"]["data"]["reaction:ann"] == ["like"]
+    assert nodes["s"]["data"]["color"] == "yellow" and "width" not in nodes["s"]
+    assert nodes["s"]["position"]["x"] == 99
+    assert nodes["t"]["data"]["text"] == "free"
+
+
+def test_a_deleted_element_in_a_vote_comes_back_with_its_frame():
+    frame = {
+        "id": "f",
+        "type": "frame",
+        "position": {"x": 0, "y": 0},
+        "width": 300,
+        "height": 300,
+        "data": {"title": "F"},
+    }
+    start = board([frame, sticky("s", parentId="f")])
+    live = LiveDoc()
+    live.apply_json(start)
+    last, _ = live.repair(start, frozenset({"s"}))
+    with live.doc.transaction():
+        del live.doc["nodes"]["s"]
+        del live.doc["nodes"]["f"]
+    fixed, notes = live.repair(last, frozenset({"s"}))
+    assert {n["id"] for n in as_json(fixed)["nodes"]} == {"f", "s"}
+    assert notes.count("locked_restored") == 2

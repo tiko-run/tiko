@@ -316,6 +316,19 @@
   opacity: 1;
 }
 
+/* The add-reaction button shows the same way. */
+.react-flow__node .reaction-add {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+.react-flow__node:hover .reaction-add,
+.react-flow__node.selected .reaction-add,
+.reactions.picking .reaction-add {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* A side grip is 8 screen pixels wide at any zoom; the visible line stays 1px. */
 .react-flow__resize-control {
   z-index: 1;
@@ -680,4 +693,28 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Elements of a running vote: a grey frame that says they are held until it ends. */
+.react-flow__node.in-vote::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed var(--muted-foreground);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.react-flow__node.in-vote::before {
+  content: 'In vote';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -4px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+/* Voting: what is not in the round steps back. */
+.react-flow.voting .react-flow__node:not(.in-vote) {
+  opacity: 0.35;
 }
