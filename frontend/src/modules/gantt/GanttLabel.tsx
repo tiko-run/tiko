@@ -198,8 +198,17 @@ export function GanttLabel({
             {task?.state === 'not_found'
               ? 'not found'
               : task?.state === 'no_token'
-                ? `connect your ${sourceName(task.source)} ${credentialName(task.source)}`
-                : task?.summary}
+                ? [
+                    task.summary,
+                    `connect your ${sourceName(task.source)} ${credentialName(task.source)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                : task?.state === 'not_connected'
+                  ? [task.summary, `${sourceName(task.source)} is not connected here`]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : task?.summary}
           </span>
         </span>
       ) : editing ? (

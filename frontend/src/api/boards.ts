@@ -225,3 +225,42 @@ export const refreshSchema = z.object({
 export function refreshBoard(id: string) {
   return fetchJson(`/api/boards/${id}/refresh`, refreshSchema, { method: 'POST' })
 }
+
+/** The board as a `.tiko` file, for another tiko instance. */
+export const exportUrl = (id: string) => `/api/boards/${encodeURIComponent(id)}/export`
+
+const importSchema = z.object({
+  board: summarySchema,
+  /** Elements by kind: cards, stickies, pictures, arrows… */
+  moved: z.record(z.string(), z.number()),
+  notes: z.array(
+    z.object({
+      kind: z.enum([
+        'planning_off',
+        'planning_missing',
+        'planning_added',
+        'planning_full',
+        'picture',
+      ]),
+      text: z.string(),
+    }),
+  ),
+})
+export type ImportResult = z.infer<typeof importSchema>
+
+/** Makes a new board from a `.tiko` file. */
+export function importBoard(file: File) {
+  return fetchJson('/api/boards/import', importSchema, {
+    method: 'POST',
+    body: file,
+    headers: { 'content-type': 'application/zip' },
+  })
+}
+
+/** Saves the board's `.tiko` file; the server names it after the board. */
+export function downloadBoard(id: string) {
+  const link = document.createElement('a')
+  link.href = exportUrl(id)
+  link.download = ''
+  link.click()
+}

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Take a board with you to another tiko, from your laptop to your company's server. Export board in the board's menu saves one `.tiko` file with the pictures, Gantts and the tasks as you last saw them; Import on Home makes a new board from it, and a short report says what still needs connecting. Cards from a tracker that tiko does not read yet keep their title until it is connected. See [Move a board to another tiko](https://docs.tiko.run/moving-boards/).
+
 ## [2026.11.0] - 2026-11-09
 
 Requires: installer
