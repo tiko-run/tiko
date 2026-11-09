@@ -5,7 +5,7 @@ description: Cut a Gantt row into phases and name the people planned for each on
 
 ## Stages
 
-With Planning on, a row is cut into stages: discovery, design, build, a pause, or whatever your team calls its phases. An admin turns it on in **Settings → Stages and people**. It is off by default, and switching it off keeps every stage: the Gantt then shows one bar per task again.
+With Planning on, a row is cut into stages: discovery, design, build, a pause, or whatever your team calls its phases. It is on in a new tiko; an instance set up before keeps the switch where it was, and an admin turns it on in **Settings → Stages and people**. Switching it off keeps every stage: the Gantt then shows one bar per task again.
 
 - Drag across free days of a row to add a stage. A click adds one week.
 - Click a stage to pick its type or delete it. A bar that has no stages yet reads "No stage" until you pick one.
