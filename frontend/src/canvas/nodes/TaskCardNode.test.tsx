@@ -242,3 +242,10 @@ test('a CalDAV card without an account asks to connect one', () => {
   renderCard({ key: 'uid-1', source: 'caldav' }, { 'caldav:uid-1': locked })
   expect(screen.getByText('Connect your CalDAV account to see this task')).toBeTruthy()
 })
+
+test('a card whose tracker is not connected here keeps its last title and says what to connect', () => {
+  renderCard({ key: 'DEMO-1' }, { 'DEMO-1': { ...task, state: 'not_connected' } })
+  expect(screen.getByText('Rotate the staging certificates')).toBeTruthy()
+  expect(screen.getByText('Jira is not connected here')).toBeTruthy()
+  expect(screen.queryByText('In Progress')).toBeNull()
+})

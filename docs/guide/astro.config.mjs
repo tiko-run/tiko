@@ -64,7 +64,15 @@ export default defineConfig({
               { label: 'Get started', items: ['index', 'why', 'install', 'quick-start'] },
               {
                 label: 'Features',
-                items: ['home', 'adding-tasks', 'what-you-can-add', 'working-together', 'search', 'keyboard-shortcuts'],
+                items: [
+                  'home',
+                  'adding-tasks',
+                  'what-you-can-add',
+                  'working-together',
+                  'moving-boards',
+                  'search',
+                  'keyboard-shortcuts',
+                ],
               },
               {
                 label: 'Modules',

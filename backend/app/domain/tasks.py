@@ -63,7 +63,8 @@ class Task(BaseModel):
     key: str
     # not_found also covers a task the person's own token may not see: Jira hides both alike.
     # private: a guest of a public board sees the key only.
-    state: Literal["ok", "not_found", "no_token", "private"] = "ok"
+    # not_connected: this instance does not read the task's tracker, as on a board from elsewhere.
+    state: Literal["ok", "not_found", "no_token", "private", "not_connected"] = "ok"
     summary: str = ""
     status_name: str = ""
     status_category: StatusCategory = "new"

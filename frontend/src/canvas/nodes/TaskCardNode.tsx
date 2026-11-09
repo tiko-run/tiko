@@ -31,9 +31,11 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
   const [open, setOpen] = useState(false)
   const pressedAt = useRef<{ x: number; y: number } | null>(null)
   const noToken = task?.state === 'no_token'
+  // Its tracker is not connected here, as on a board imported from another tiko.
+  const notConnected = task?.state === 'not_connected'
   // On a public board a guest gets the key and its link, nothing else.
   const hidden = task?.state === 'private'
-  const missing = task?.state === 'not_found' || noToken || hidden
+  const missing = task?.state === 'not_found' || noToken || notConnected || hidden
   const done = task?.status_category === 'done'
   const collapsed = Boolean(data.collapsed)
   const inVote = useInVote(id)
@@ -99,6 +101,19 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
             {!task && <span className="text-muted-foreground">Loading…</span>}
             {task?.state === 'not_found' && (
               <span className="text-muted-foreground">Not found or no access</span>
+            )}
+            {(noToken || notConnected) && task.summary && !collapsed && (
+              // What was last seen of the task, until its tracker can be asked again.
+              <span className="text-muted-foreground mr-1.5">{clip(task.summary)}</span>
+            )}
+            {notConnected && (
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                onClick={() => openSettings('task-source')}
+              >
+                {sourceName(task.source)} is not connected here
+              </button>
             )}
             {noToken && (
               <button

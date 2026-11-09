@@ -125,6 +125,8 @@ import { OPEN_VOTES_EVENT, useVoting, voteElements, VotingContext } from '@/voti
 import { VotePanel } from '@/voting/VotePanel'
 import { StartVote } from '@/voting/StartVote'
 import { VoteResults } from '@/voting/VoteResults'
+import { ImportReport } from '@/board/ImportReport'
+import { dropReport, importReport } from '@/board/import-report'
 import {
   reactionKey,
   reacts,
@@ -298,6 +300,8 @@ export function BoardCanvas({
     lockedRef.current = locked
   }, [locked])
   const [voteStarting, setVoteStarting] = useState(false)
+  // Shown on a board just made from a file, until closed.
+  const [report, setReport] = useState(() => importReport(board.id))
   // The round whose results are open; null lists the board's past votes.
   const [results, setResults] = useState<string | null | undefined>(undefined)
   const lastRunning = useRef<string | null>(null)
@@ -1421,6 +1425,16 @@ export function BoardCanvas({
           open
           onOpenChange={setVoteStarting}
           onStarted={voting.put}
+        />
+      )}
+      {report && (
+        <ImportReport
+          report={report}
+          tasks={tasks}
+          onClose={() => {
+            dropReport(board.id)
+            setReport(undefined)
+          }}
         />
       )}
       {results !== undefined && !guest && (

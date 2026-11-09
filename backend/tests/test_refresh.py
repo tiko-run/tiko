@@ -218,7 +218,7 @@ def test_each_tracker_of_the_board_is_polled_once(repos):
     assert {ref: task.state for ref, task in tasks.items()} == {
         "jira:DEMO-1": "ok",
         "demo:DEMO-1": "ok",
-        "elsewhere:DEMO-1": "not_found",
+        "elsewhere:DEMO-1": "not_connected",
     }
     assert jira.calls == 1
     assert sorted(status.id for status in statuses) == ["demo", "jira"]

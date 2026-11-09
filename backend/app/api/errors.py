@@ -23,6 +23,7 @@ from app.domain.errors import (
     JiraNotConfigured,
     JiraUnauthorized,
     LastAdmin,
+    NewerFile,
     NotEnoughSpace,
     NotFound,
     OwnerRequired,
@@ -81,6 +82,7 @@ _STATUS = {
     VoteRunning: 409,
     VoteClosed: 409,
     VoteRefused: 422,
+    NewerFile: 422,
 }
 
 

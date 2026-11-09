@@ -51,10 +51,13 @@ The `⋯` button of a board, or a right click on it, opens the board's menu:
 | Star, Unstar | everyone |
 | Rename | editors and the owner |
 | Duplicate | everyone who can open the board |
+| Export | everyone who can open the board |
 | Share | everyone, except on the demo |
 | Move to folder | everyone |
 | Move to trash… | the owner, after a confirmation |
 
 Duplicate makes a board of your own named "Copy of …" with the same content. Nobody else is on the copy and it has no public link, whoever the first board was shared with. A copy counts toward the boards you may own, where the server sets a limit.
+
+Export saves the board as a `.tiko` file for another tiko; **Import** next to New board, or a `.tiko` file dropped on Home, makes a board from one. See [Move a board to another tiko](/moving-boards/).
 
 `⌘`-click or a middle click on a board's name opens it in a new tab.

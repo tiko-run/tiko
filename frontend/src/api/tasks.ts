@@ -6,7 +6,7 @@ export const taskSchema = z.object({
   source: z.string(),
   key: z.string(),
   // private: on a public board a task from a tracker shows a guest its key only.
-  state: z.enum(['ok', 'not_found', 'no_token', 'private']),
+  state: z.enum(['ok', 'not_found', 'no_token', 'private', 'not_connected']),
   summary: z.string(),
   status_name: z.string(),
   status_category: z.enum(['new', 'indeterminate', 'done']),

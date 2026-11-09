@@ -119,7 +119,7 @@ class RefreshService:
 
         # A token replaced or removed mid-poll cleared the cache; its tasks must not refill it.
         stale = changed()
-        tasks = [task for task in tasks if task.source not in stale]
+        tasks = _kept([task for task in tasks if task.source not in stale], snapshots)
         snapshots.put_many(tasks)
         # A change that lands between the check and the write may have cleared the cache first.
         late = changed() - stale
@@ -160,6 +160,24 @@ class RefreshService:
 def _unknown(source_id: str, keys: list[str]) -> list[Task]:
     """Tasks of a tracker this instance does not read, as on a board from elsewhere."""
     return [
-        Task(source=source_id, key=key, state="not_found", url="", fetched_at=now_iso())
+        Task(source=source_id, key=key, state="not_connected", url="", fetched_at=now_iso())
         for key in keys
     ]
+
+
+# A task its tracker cannot be asked about yet: what was last seen of it still says what it is.
+_UNREAD = ("no_token", "not_connected")
+
+
+def _kept(tasks: list[Task], snapshots: SnapshotRepo) -> list[Task]:
+    unread = [task.ref for task in tasks if task.state in _UNREAD]
+    if not unread:
+        return tasks
+    cached = snapshots.get_many(unread)
+    out = []
+    for task in tasks:
+        last = cached.get(task.ref)
+        if last is not None and last.summary:
+            task = last.model_copy(update={"state": task.state})
+        out.append(task)
+    return out

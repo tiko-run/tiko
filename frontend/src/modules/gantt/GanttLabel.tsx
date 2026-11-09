@@ -197,9 +197,11 @@ export function GanttLabel({
           <span className="truncate" title={task?.summary}>
             {task?.state === 'not_found'
               ? 'not found'
-              : task?.state === 'no_token'
+              : task?.state === 'no_token' && !task.summary
                 ? `connect your ${sourceName(task.source)} ${credentialName(task.source)}`
-                : task?.summary}
+                : task?.state === 'not_connected' && !task.summary
+                  ? `${sourceName(task.source)} is not connected here`
+                  : task?.summary}
           </span>
         </span>
       ) : editing ? (

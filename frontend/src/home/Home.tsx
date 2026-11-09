@@ -3,6 +3,7 @@ import {
   ArrowDownWideNarrow,
   Check,
   Copy,
+  Download,
   FolderInput,
   Globe,
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
   Star,
   StarOff,
   Trash2,
+  Upload,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -31,7 +33,7 @@ import {
   type MouseEvent,
 } from 'react'
 import { getAuthStatus } from '@/api/auth'
-import { canEdit, previewUrl, type BoardSummary } from '@/api/boards'
+import { canEdit, downloadBoard, previewUrl, type BoardSummary } from '@/api/boards'
 import type { Folder } from '@/api/folders'
 import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { ShareDialog } from '@/board/ShareDialog'
@@ -69,7 +71,7 @@ import { formatShortcut, useShortcut } from '@/lib/shortcuts'
 import { relativeTime } from '@/lib/time'
 import { useFlip } from '@/lib/useFlip'
 import { cn } from 'cn'
-import { useDuplicateBoard, useNewBoard } from './actions'
+import { BOARD_FILE, useDuplicateBoard, useImportBoard, useNewBoard } from './actions'
 import {
   inPlace,
   readView,
@@ -128,6 +130,10 @@ export function Home({ boards, others }: Props) {
   // A rename picked in a menu waits for the menu to close: its focus trap would take the field's focus.
   const renameNext = useRef<string | null>(null)
   const newBoard = useNewBoard()
+  const importing = useImportBoard(typeof place === 'object' ? place.folder : null)
+  const picker = useRef<HTMLInputElement>(null)
+  // A file dragged in from the desktop, not a board dragged onto a folder.
+  const [fileOver, setFileOver] = useState(false)
   const duplicate = useDuplicateBoard()
   const star = useStar()
   const placeBoard = usePlace()
@@ -277,7 +283,37 @@ export function Home({ boards, others }: Props) {
       : 'Move boards here from their menu or by dragging them onto the folder.'
 
   return (
-    <Scroller className="absolute inset-0">
+    <Scroller
+      className="absolute inset-0"
+      onDragOver={(event: DragEvent) => {
+        if (place === 'trash' || !event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        setFileOver(true)
+      }}
+      onDragLeave={(event: DragEvent) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFileOver(false)
+      }}
+      onDrop={(event: DragEvent) => {
+        if (!event.dataTransfer.types.includes('Files')) return
+        event.preventDefault()
+        setFileOver(false)
+        const file = event.dataTransfer.files[0]
+        if (file && place !== 'trash') importing.mutate(file)
+      }}
+    >
+      <input
+        ref={picker}
+        type="file"
+        accept={BOARD_FILE}
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (file) importing.mutate(file)
+        }}
+      />
+      {fileOver && <DropHint />}
       <div className="mx-auto flex max-w-[1192px] flex-col gap-4 px-4 pt-32 pb-24 sm:px-8 md:flex-row md:gap-8">
         {(boards.length > 0 || others.length > 0 || trashed > 0) && (
           <Side
@@ -292,10 +328,16 @@ export function Home({ boards, others }: Props) {
           <div className="flex items-center justify-between gap-3">
             <h2 className="truncate text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
             {place !== 'trash' && (
-              <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
-                <Plus strokeWidth={1.75} />
-                New board
-              </Button>
+              <div className="flex items-center gap-2">
+                <ImportButton
+                  picking={importing.isPending}
+                  onPick={() => picker.current?.click()}
+                />
+                <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
+                  <Plus strokeWidth={1.75} />
+                  New board
+                </Button>
+              </div>
             )}
           </div>
 
@@ -304,10 +346,16 @@ export function Home({ boards, others }: Props) {
           ) : boards.length === 0 && others.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-8">
               <p className="text-[14px]">No boards yet. Make one to start placing tasks on it.</p>
-              <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
-                <Plus strokeWidth={1.75} />
-                New board
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => newBoard.mutate()} disabled={newBoard.isPending}>
+                  <Plus strokeWidth={1.75} />
+                  New board
+                </Button>
+                <ImportButton
+                  picking={importing.isPending}
+                  onPick={() => picker.current?.click()}
+                />
+              </div>
             </div>
           ) : (
             <>
@@ -504,6 +552,7 @@ function actionsFor(board: BoardSummary, demo: boolean, menu: Menu, folders: Fol
       ? [{ label: 'Rename', Icon: Pencil, run: () => menu.rename(board.id) }]
       : []),
     { label: 'Duplicate', Icon: Copy, run: () => menu.duplicate(board) },
+    { label: 'Export', Icon: Download, run: () => downloadBoard(board.id) },
     ...(demo ? [] : [{ label: 'Share', Icon: Share2, run: () => menu.share(board) }]),
     { label: 'Move to folder', Icon: FolderInput, choices, empty: 'No folders yet' },
     ...(board.my_role === 'owner'
@@ -779,4 +828,33 @@ function MenuItems({ kind, actions }: { kind: 'dropdown' | 'context'; actions: A
       )}
     </Fragment>
   ))
+}
+
+function ImportButton({ picking, onPick }: { picking: boolean; onPick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onPick}
+      disabled={picking}
+      title="Make a board from a .tiko file exported on any tiko"
+    >
+      <Upload strokeWidth={1.75} />
+      {picking ? 'Importing…' : 'Import'}
+    </Button>
+  )
+}
+
+function DropHint() {
+  return (
+    <div className="bg-background/80 border-primary pointer-events-none fixed inset-3 z-50 flex items-center justify-center rounded-xl border-2 border-dashed backdrop-blur-[2px]">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <Upload className="text-primary size-8" strokeWidth={1.5} />
+        <p className="text-[16px] font-medium">Drop a .tiko file to import the board</p>
+        <p className="text-muted-foreground text-[13px]">
+          It becomes a new board of yours. Nothing on this tiko changes.
+        </p>
+      </div>
+    </div>
+  )
 }

@@ -188,3 +188,7 @@ class VoteClosed(DomainError):
 
 class VoteRefused(DomainError):
     code = "vote_refused"
+
+
+class NewerFile(DomainError):
+    code = "newer_file"

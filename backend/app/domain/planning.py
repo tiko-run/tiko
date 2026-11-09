@@ -1,6 +1,7 @@
 import json
 import secrets
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Annotated, Literal
 
@@ -220,6 +221,18 @@ class DaysOff(BaseModel):
     dates: Annotated[list[date], Field(max_length=MAX_DAYS_OFF)]
 
 
+@dataclass
+class Adopted:
+    """Ids from another instance to the ones they matched here, and what was added or not."""
+
+    types: dict[str, str] = field(default_factory=dict)
+    people: dict[str, str] = field(default_factory=dict)
+    fields: dict[str, str] = field(default_factory=dict)
+    added: list[str] = field(default_factory=list)
+    # Fields that found no match and no room.
+    full: list[str] = field(default_factory=list)
+
+
 class Planning:
     """Planning mode: the instance switch and what every Gantt on the instance shares."""
 
@@ -294,6 +307,55 @@ class Planning:
                 self._people.add_off(person.id, off, MAX_OFF)
         # A new workspace: nobody has a board open there to tell.
         self._settings.set_many({ENABLED_KEY: "1"})
+
+    def adopt(
+        self, types: list[StageType], people: list[PlanningPerson], fields: list[PlanningField]
+    ) -> "Adopted":
+        """Takes lists from another instance: each is matched here by name, the missing ones
+        are added. Nothing here changes, except a known person gains time off that does not
+        overlap theirs."""
+        self._require_enabled()
+        out = Adopted()
+        mine_types = {t.name.casefold(): t for t in self._types.all() if not t.archived}
+        for t in types:
+            found = mine_types.get(t.name.casefold())
+            if found is None:
+                found = StageType(id=self._new_id(), name=t.name, hue=t.hue)
+                self._types.add(found)
+                mine_types[found.name.casefold()] = found
+                out.added.append(found.name)
+            out.types[t.id] = found.id
+        mine_people = {p.name.casefold(): p for p in self._people.all() if not p.archived}
+        for p in people:
+            found = mine_people.get(p.name.casefold())
+            if found is None:
+                found = PlanningPerson(
+                    id=self._new_id(), name=p.name, teams=_unique(p.teams), source=p.source
+                )
+                self._people.add(found)
+                mine_people[found.name.casefold()] = found
+                out.added.append(found.name)
+            held = list(found.off)
+            for off in p.off:
+                if any(off.start <= o.end and o.start <= off.end for o in held):
+                    continue
+                kept = TimeOff(id=self._new_id(), start=off.start, end=off.end)
+                if self._people.add_off(found.id, kept, MAX_OFF):
+                    held.append(kept)
+            out.people[p.id] = found.id
+        mine_fields = {f.name.casefold(): f for f in self._fields.all() if not f.archived}
+        for f in fields:
+            found = mine_fields.get(f.name.casefold())
+            if found is None:
+                found = PlanningField(id=self._new_id(), name=f.name)
+                if not self._fields.add(found, MAX_FIELDS):
+                    out.full.append(f.name)
+                    continue
+                mine_fields[found.name.casefold()] = found
+                out.added.append(found.name)
+            out.fields[f.id] = found.id
+        self._changed()
+        return out
 
     def add_type(self, body: TypeIn) -> StageType:
         self._require_enabled()
