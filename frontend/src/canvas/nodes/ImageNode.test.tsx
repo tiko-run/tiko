@@ -89,6 +89,8 @@ test('the local copy of a pasted picture stays on screen until the stored one is
   expect(visible()).toEqual(['blob:local'])
   await act(async () => decoded())
   expect(visible()).toEqual([stored.getAttribute('src')])
+  expect(uploads.get('pic')).toBeUndefined()
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local')
 })
 
 test('a guest reads pictures through the public link', () => {
