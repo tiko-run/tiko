@@ -23,8 +23,23 @@ def member(client: TestClient) -> TestClient:
     return ann
 
 
-def test_off_by_default(client: TestClient) -> None:
-    assert client.get("/api/planning").json() == {
+def test_a_new_tiko_starts_with_planning_on(client: TestClient) -> None:
+    view = client.get("/api/planning").json()
+    assert view["enabled"] is True
+    assert [t["name"] for t in view["types"]] == [
+        "Discovery",
+        "Design",
+        "Build",
+        "Review",
+        "On hold",
+    ]
+
+
+def test_a_tiko_with_people_keeps_its_switch(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": False})
+    # Started again over the same database, as after an update.
+    again = signed_in(create_app(Settings(db_path=":memory:")))
+    assert again.get("/api/planning").json() == {
         "enabled": False,
         "types": [],
         "people": [],
@@ -32,6 +47,10 @@ def test_off_by_default(client: TestClient) -> None:
         "views": [],
         "daysOff": [],
     }
+
+
+def off(client: TestClient) -> None:
+    client.patch("/api/planning", json={"enabled": False})
 
 
 def test_first_enable_seeds_the_default_types(client: TestClient) -> None:
@@ -73,6 +92,7 @@ def test_a_member_adds_renames_and_archives_a_type(client: TestClient) -> None:
 
 
 def test_type_rules(client: TestClient) -> None:
+    off(client)
     assert client.post("/api/planning/types", json={"name": "QA", "hue": 200}).status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     assert client.post("/api/planning/types", json={"name": "build", "hue": 200}).status_code == 422
@@ -128,6 +148,7 @@ def test_a_member_adds_renames_and_archives_a_person(client: TestClient) -> None
 
 
 def test_person_rules(client: TestClient) -> None:
+    off(client)
     assert client.post("/api/planning/people", json={"name": "Ivan"}).status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     people = "/api/planning/people"
@@ -250,6 +271,7 @@ def test_a_member_adds_renames_and_archives_a_field(client: TestClient) -> None:
 
 def test_field_rules(client: TestClient, monkeypatch) -> None:
     fields = "/api/planning/fields"
+    off(client)
     assert client.post(fields, json={"name": "Quarter"}).status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     assert client.post(fields, json={"name": "priority"}).status_code == 422
@@ -279,6 +301,7 @@ def test_a_member_saves_and_removes_a_view(client: TestClient) -> None:
 def test_view_rules(client: TestClient, monkeypatch) -> None:
     views = "/api/planning/views"
     web = {"name": "Web", "filters": {"team": ["Web"]}}
+    off(client)
     assert client.post(views, json=web).status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     assert client.post(views, json=web).status_code == 200
@@ -307,6 +330,7 @@ def test_the_view_name_holds_at_the_store(store) -> None:
 
 def test_a_member_sets_the_days_off(client: TestClient, monkeypatch) -> None:
     path = "/api/planning/days-off"
+    off(client)
     assert client.put(path, json={"dates": ["2026-11-04"]}).status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     ann = member(client)
@@ -404,6 +428,7 @@ def test_a_parent_rows_hidden_stages_do_not_count(client: TestClient) -> None:
 
 
 def test_workload_rules(client: TestClient) -> None:
+    off(client)
     assert client.get("/api/planning/people/p1/workload").status_code == 422
     client.patch("/api/planning", json={"enabled": True})
     assert client.get("/api/planning/people/nobody/workload").status_code == 404

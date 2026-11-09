@@ -61,7 +61,8 @@ def test_guest_reads_a_public_board(client):
         "refresh_interval_s",
         "planning",
     }
-    assert body["planning"] is None
+    # A new tiko has Planning on; a board without Gantts names nothing from it.
+    assert body["planning"] == {"types": [], "people": [], "fields": [], "daysOff": []}
     assert body["name"] == "Roadmap" and body["doc"]["nodes"][0]["data"]["key"] == "DEMO-1"
     assert body["tasks"]["demo:DEMO-1"]["summary"] == summary
     assert anyone.get(f"/api/public/{token}/version").json() == {
