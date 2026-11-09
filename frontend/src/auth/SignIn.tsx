@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { LogIn } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import { ApiError } from '@/api/client'
 import { signIn } from '@/api/auth'
 import { DemoStart } from '@/auth/DemoStart'
@@ -23,8 +23,6 @@ function message(error: Error) {
 }
 
 export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; demo?: boolean }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const login = useMutation({
     mutationFn: signIn,
     onSuccess: (_, credentials) => {
@@ -34,7 +32,11 @@ export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; d
   })
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (username && password) login.mutate({ username: username.trim(), password })
+    // Read from the fields: browser autofill shows values that no change event has reported yet.
+    const form = new FormData(event.currentTarget as HTMLFormElement)
+    const username = String(form.get('username') ?? '').trim()
+    const password = String(form.get('password') ?? '')
+    if (username && password) login.mutate({ username, password })
   }
   // The demo button has an address of its own; everything else is the sign-in form.
   if (demo && /^\/demo\/?$/.test(window.location.pathname)) {
@@ -59,11 +61,11 @@ export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; d
         <Label htmlFor="sign-in-username">Username</Label>
         <Input
           id="sign-in-username"
+          name="username"
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          required
           maxLength={64}
           autoFocus
         />
@@ -73,13 +75,13 @@ export function SignIn({ onSignedIn, demo = false }: { onSignedIn: () => void; d
         <Input
           id="sign-in-password"
           type="password"
+          name="password"
           autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          required
           maxLength={1024}
         />
       </div>
-      <Button type="submit" disabled={login.isPending || !username || !password}>
+      <Button type="submit" disabled={login.isPending}>
         <LogIn strokeWidth={1.75} />
         Sign in
       </Button>
