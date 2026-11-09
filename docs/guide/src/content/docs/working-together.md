@@ -51,7 +51,7 @@ Pick the few notes a retro will talk about first. Select the notes and cards, or
 - Nobody sees anyone else's votes until the end, in an anonymous vote and in an open one. The panel shows how many people are done; whoever started the vote and the board's owner can see who is still voting, and add a minute or end the vote for everyone.
 - Notes in a vote are held until it ends: nobody can change or delete them, or delete the frame they sit in. They can still be moved and take reactions.
 - At the end the results open for everyone: the notes with votes, most first. Click one to go to it. An open vote also shows who gave how many votes to each note.
-- Past votes stay with the board: open them from Votes in the board menu.
+- Past votes stay with the board: open them from Votes in the top bar, next to Share.
 
 The server keeps who gave which votes, because it has to hold each person to their number of votes. For an anonymous vote it never shows that to anyone; an admin with access to the database could still read it.
 
