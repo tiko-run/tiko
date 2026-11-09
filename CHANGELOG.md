@@ -20,10 +20,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Fixed Fit view and the first open of a board, which left out everything off screen.
 - Fixed Enter doing nothing in forms, such as sign-in and the board name, in browsers that hold it back, such as Aside. Sign-in also takes a name and password the browser filled in.
 - Fixed the "In vote" label that stayed on notes after a vote was ended and deleted.
-
-### Fixed
-
-- A picture you paste or drop on a board no longer blinks a moment after it appears.
+- Fixed a picture you paste or drop on a board blinking a moment after it appears.
 
 ## [2026.11.0] - 2026-11-09
 
