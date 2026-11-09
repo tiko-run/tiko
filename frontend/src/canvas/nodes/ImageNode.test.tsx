@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react'
 import type { FileSource } from '@/api/files'
 import { beforeAll, expect, test, vi } from 'vitest'
@@ -18,6 +18,7 @@ beforeAll(() => {
   window.DOMMatrixReadOnly ??= class {
     m22 = 1
   } as unknown as typeof DOMMatrixReadOnly
+  HTMLImageElement.prototype.decode ??= () => Promise.resolve()
 })
 
 function show(data: ImageData, host: Partial<ImagesHost> = {}) {
@@ -48,13 +49,48 @@ function show(data: ImageData, host: Partial<ImagesHost> = {}) {
 
 const PICTURE = { w: 3840, h: 2880, color: '#c82828' }
 
-test('a stored picture loads the copy its size on screen needs and shows once loaded', () => {
+test('a stored picture loads the copy its size on screen needs and shows once loaded', async () => {
   const container = show({ ...PICTURE, file: 'f'.repeat(32) })
   const img = container.querySelector('img')!
   expect(img.getAttribute('src')).toBe(`/api/boards/b1/files/${'f'.repeat(32)}?w=512`)
   expect(img.className).toContain('opacity-0')
   fireEvent.load(img)
-  expect(container.querySelector('img')!.className).not.toContain('opacity-0')
+  await waitFor(() => expect(container.querySelector('img')!.className).not.toContain('opacity-0'))
+})
+
+test('a loaded copy shows only once it is decoded, so the picture does not blink', async () => {
+  const container = show({ ...PICTURE, file: 'd'.repeat(32) })
+  const img = container.querySelector('img')!
+  let decoded = () => {}
+  img.decode = () => new Promise<void>((resolve) => (decoded = resolve))
+  fireEvent.load(img)
+  await Promise.resolve()
+  expect(img.className).toContain('opacity-0')
+  await act(async () => decoded())
+  expect(img.className).not.toContain('opacity-0')
+})
+
+test('the local copy of a pasted picture stays on screen until the stored one is decoded', async () => {
+  URL.createObjectURL = () => 'blob:local'
+  URL.revokeObjectURL = vi.fn()
+  const uploads = new Uploads(() => new Promise(() => {}), vi.fn())
+  uploads.add('pic', new Blob(['x']), PICTURE)
+  const container = show({ ...PICTURE, file: 'e'.repeat(32) }, { uploads })
+  const visible = () =>
+    [...container.querySelectorAll('img')]
+      .filter((img) => !img.className.includes('opacity-0'))
+      .map((img) => img.getAttribute('src'))
+  const stored = container.querySelector<HTMLImageElement>('img[src^="/api/"]')!
+  let decoded = () => {}
+  stored.decode = () => new Promise<void>((resolve) => (decoded = resolve))
+  expect(visible()).toEqual(['blob:local'])
+  fireEvent.load(stored)
+  await Promise.resolve()
+  expect(visible()).toEqual(['blob:local'])
+  await act(async () => decoded())
+  expect(visible()).toEqual([stored.getAttribute('src')])
+  expect(uploads.get('pic')).toBeUndefined()
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:local')
 })
 
 test('a guest reads pictures through the public link', () => {
