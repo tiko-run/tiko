@@ -1,0 +1,123 @@
+---
+title: '2026.11.0'
+description: Run a retro on the board with pictures, stickers, reactions and votes, plan with your tracker's dates, and bring in to-dos from CalDAV.
+date: '2026-11-09'
+cover: /casts/retro-overview.jpg
+prev: false
+next: false
+---
+
+import Feature from '../../../components/Feature.astro'
+import Details from '../../../components/Details.astro'
+import Detail from '../../../components/Detail.astro'
+
+## ✨ New
+
+<Feature area="Board" title="A retro on the board" href="/working-together/#voting" video="/casts/retro-overview.mp4" poster="/casts/retro-overview.jpg">
+  Hold the whole retro where the work already is. Paste the chart that explains the problem, react to the notes you agree with, and let a timed vote pick what to fix first.
+</Feature>
+
+<Feature area="Board" title="Pictures" href="/adding-tasks/#around-the-cards" video="/casts/board-pictures.mp4" poster="/casts/board-pictures.jpg">
+  Put screenshots next to the tasks they explain: paste with ⌘V, drop files, or press `I`. A board full of 4K screenshots pans as smoothly as one of sticky notes, because each picture loads only as sharp as you see it.
+</Feature>
+
+<Feature area="Board" title="Stickers" href="/adding-tasks/#around-the-cards" video="/casts/board-stickers.mp4" poster="/casts/board-stickers.jpg">
+  Press `E` for about 880 animated emoji. Save any picture on the board as your team's own sticker, and everyone in the workspace can use it.
+</Feature>
+
+<Feature area="Board" title="Reactions" href="/working-together/#reactions" video="/casts/board-reactions.mp4" poster="/casts/board-reactions.jpg">
+  See at a glance which notes the team agrees with. React to a note or a card, or to a whole selection at once, and hover a reaction to see who put it.
+</Feature>
+
+<Feature area="Board" title="Voting" href="/working-together/#voting" video="/casts/board-voting.mp4" poster="/casts/board-voting.jpg">
+  Pick what to talk about first in a few minutes. Give everyone a few votes, keep them hidden until the end, and get the notes ranked.
+
+  <Details>
+    <Detail title="Your rules for the vote" image="/casts/vote-settings.webp">
+      A timer, several votes on one note or not, and anonymous by default.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Board" title="Turn anything" href="/adding-tasks/#around-the-cards" video="/casts/moves-rotate.mp4" poster="/casts/moves-rotate.jpg">
+  Turn notes, shapes and text to any angle, with Shift for 15° steps. Arrows stay on the turned sides.
+
+  <Details>
+    <Detail title="Copy as you drag" video="/casts/moves-copy.mp4" poster="/casts/moves-copy.jpg">
+      Hold Alt as you start a drag, as in Miro and Figma.
+    </Detail>
+    <Detail title="Select by touch" video="/casts/moves-touch.mp4" poster="/casts/moves-touch.jpg">
+      The box takes every note it touches, and leaves the frame alone.
+    </Detail>
+    <Detail wide title="A big board, like a map" video="/casts/moves-far.mp4" poster="/casts/moves-far.jpg">
+      Far out, elements turn into colored blocks that keep their arrows, and zooming stays smooth.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Trackers" title="CalDAV tasks" href="/caldav/" video="/casts/caldav.mp4" poster="/casts/caldav.jpg">
+  Your to-dos from Nextcloud, Thunderbird or Apple Reminders sit next to the tracker's tasks and stay current. Connect your account, pick the lists, and find tasks by their title.
+</Feature>
+
+<Feature area="Trackers" title="Start and due dates on cards" href="/jira-data-center/#start-and-due-dates">
+  See when a task is due without opening the tracker. Jira tasks show their start and due dates, GitHub issues their milestone's due date.
+
+  <Details>
+    <Detail title="On every card" image="/casts/card-dates.webp">
+      Open a card to see its dates next to the assignee.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Gantt" title="Dates from your tracker" href="/gantt/#dates-from-your-tracker" video="/casts/gantt-dates.mp4" poster="/casts/gantt-dates.jpg">
+  Plan with the dates your team already keeps. A task lands on its tracker dates and moves when they change there; move it yourself, and a dashed frame keeps showing where the tracker has it.
+
+  <Details>
+    <Detail title="Shift the rest of a row" video="/casts/gantt-push.mp4" poster="/casts/gantt-push.jpg">
+      Hold Alt while you move a stage, and the later ones go along.
+    </Detail>
+    <Detail title="Fold the whole plan" video="/casts/gantt-fold.mp4" poster="/casts/gantt-fold.jpg">
+      Collapse all and Expand all at the top of the task column.
+    </Detail>
+  </Details>
+</Feature>
+
+<Feature area="Sharing" title="One link for the team" href="/working-together/#three-ways-to-share-a-board">
+  Share a board in one copy: its own link sits at the top of Share, for everyone who can open it. A teammate who follows it too early sees they have no access yet.
+
+  <Details>
+    <Detail title="Right at the top" image="/casts/share-board-link.webp">
+      Copy, paste in the team chat, done.
+    </Detail>
+  </Details>
+</Feature>
+
+## 💎 Improvements
+
+- **Board:** Zoom with the mouse wheel and pan with a trackpad, as in most whiteboards.
+- **Board:** The card tool remembers your last five inputs, so yesterday's cards are one click away.
+- **Board:** Scroll bars sit over the content and fade when you stop, so menus and Settings lose the empty strip at the edge.
+- **Sharing:** A public link no longer locks your teammates into view only: they land on the board, ready to edit.
+- **Reminders:** Timers on the board are now called reminders. The focus timer keeps its name.
+- **Settings:** A new tiko asks its first admin to pick their own password before anything else opens.
+- **Guide:** The roadmap now lives on a public tiko board, so you can see what's coming in the product itself.
+- **Site:** New page for planning across teams, and a clearer start page.
+
+## 🐞 Fixes
+
+- **Board:** Fixed people blinking in and out of the top bar when someone's tab sits in the background.
+- **Board:** Fixed a large board stuttering while someone else moves things on it, in Firefox too.
+- **Board:** Fixed the minimap slowing down a big board.
+- **Board:** Fixed arrows to a triangle or a parallelogram stopping short of its outline.
+- **Board:** Fixed arrows on a view-only board that vanished on refresh.
+- **Sharing:** Fixed an invite link you had already used saying it expired.
+- **Gantt:** Fixed task bars showing through the month header of an expanded Gantt.
+- **Gantt:** Fixed task keys on a view-only Gantt that did not open the tracker.
+
+<details>
+<summary>🔧 Under the hood</summary>
+
+- **Server:** Your boards survive a reset of Docker Desktop: tiko saves a copy of its database every 2 hours and keeps two weeks of them. Run the installer to get it. See [Back up and restore](/data-and-upgrades/#back-up-and-restore).
+- **Server:** Pictures are kept in the database, so backups take them along, and a picture gone from every board frees its room a week later.
+
+</details>
