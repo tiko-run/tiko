@@ -70,6 +70,27 @@ test('a loaded copy shows only once it is decoded, so the picture does not blink
   expect(img.className).not.toContain('opacity-0')
 })
 
+test('the local copy of a pasted picture stays on screen until the stored one is decoded', async () => {
+  URL.createObjectURL = () => 'blob:local'
+  URL.revokeObjectURL = vi.fn()
+  const uploads = new Uploads(() => new Promise(() => {}), vi.fn())
+  uploads.add('pic', new Blob(['x']), PICTURE)
+  const container = show({ ...PICTURE, file: 'e'.repeat(32) }, { uploads })
+  const visible = () =>
+    [...container.querySelectorAll('img')]
+      .filter((img) => !img.className.includes('opacity-0'))
+      .map((img) => img.getAttribute('src'))
+  const stored = container.querySelector<HTMLImageElement>('img[src^="/api/"]')!
+  let decoded = () => {}
+  stored.decode = () => new Promise<void>((resolve) => (decoded = resolve))
+  expect(visible()).toEqual(['blob:local'])
+  fireEvent.load(stored)
+  await Promise.resolve()
+  expect(visible()).toEqual(['blob:local'])
+  await act(async () => decoded())
+  expect(visible()).toEqual([stored.getAttribute('src')])
+})
+
 test('a guest reads pictures through the public link', () => {
   const container = show({ ...PICTURE, file: 'a'.repeat(32) }, { source: { token: 'tok' } })
   expect(container.querySelector('img')?.getAttribute('src')).toMatch(
