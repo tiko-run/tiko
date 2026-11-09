@@ -26,6 +26,7 @@ import {
   Ticket,
   Trash2,
   Type,
+  Vote,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
@@ -160,6 +161,8 @@ type Props = {
   onAddTimer?: () => void
   /** Set when every selected element takes reactions and the person may react. */
   onReact?: (id: ReactionId) => void
+  /** Set when the selection holds notes or cards a vote can start on. */
+  onVote?: () => void
   onDuplicate: () => void
   onDelete: () => void
   /** Saves a stored picture to the workspace's stickers. */
@@ -181,6 +184,7 @@ export function SelectionBar({
   onAlign,
   onAddTimer,
   onReact,
+  onVote,
   onDuplicate,
   onDelete,
   onSaveSticker,
@@ -545,6 +549,7 @@ export function SelectionBar({
           </PopoverContent>
         </Popover>
       )}
+      {onVote && <IconButton Icon={Vote} label="Start a vote" onClick={onVote} />}
       {onAddTimer && <IconButton Icon={AlarmClock} label="Add reminder" onClick={onAddTimer} />}
       <IconButton
         Icon={Copy}

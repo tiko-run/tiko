@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from app.domain.stickers import PackSticker, Sticker
     from app.domain.tasks import SearchResult, Task
     from app.domain.updates import Release, UpdaterStatus
+    from app.domain.voting import Ballot, Participant, Round
 
 
 class TaskProvider(Protocol):
@@ -258,6 +260,11 @@ class LiveBoards(Protocol):
     def planning_changed(self, workspace: str | None = None) -> None:
         """People on the open boards of the workspace, or of every one, are told to read
         `/api/planning` again."""
+        ...
+
+    def votes_changed(self, board_id: str) -> None:
+        """A vote on the board started, changed or ended: people on it are told to read
+        `/api/boards/{id}/votes` again, and the board's room takes the new lock."""
         ...
 
     def put(self, board_id: str, version: int, doc: BoardDoc) -> int:
@@ -646,3 +653,45 @@ class PictureMaker(Protocol):
         the copies. Raises UnsupportedFile for what is not a PNG, JPEG, WebP or GIF, and
         FileTooLarge past MAX_PIXELS."""
         ...
+
+
+class VoteRepo(Protocol):
+    def running(self, board_id: str) -> Round | None: ...
+
+    def get(self, board_id: str, round_id: str) -> Round | None: ...
+
+    def add(self, round_: Round) -> bool:
+        """False when the board has a running round already."""
+        ...
+
+    def past(self, board_id: str, limit: int) -> list[Round]:
+        """Ended rounds, newest first."""
+        ...
+
+    def people(self, round_id: str) -> list[Participant]: ...
+
+    def ballots(self, round_id: str) -> list[Ballot]: ...
+
+    def join(self, round_id: str, person_id: str) -> None: ...
+
+    def set_done(self, round_id: str, person_id: str, done: bool) -> None: ...
+
+    def cast(
+        self,
+        round_id: str,
+        person_id: str,
+        change: Callable[[dict[str, int]], dict[str, int]],
+    ) -> dict[str, int]:
+        """Replaces the person's votes by element with `change` of them, one person at a time,
+        so two clicks at once never pass the limit; joins the person too."""
+        ...
+
+    def extend(self, round_id: str, ends_at: str) -> None: ...
+
+    def end(self, round_id: str, ended_at: str, texts: dict[str, str]) -> bool:
+        """False when it had ended already."""
+        ...
+
+    def rename(self, round_id: str, name: str) -> None: ...
+
+    def delete(self, round_id: str) -> None: ...

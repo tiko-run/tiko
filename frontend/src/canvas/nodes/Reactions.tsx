@@ -86,7 +86,7 @@ export function Reactions({ id, data }: { id: string; data: Record<string, unkno
               type="button"
               aria-label="Add reaction"
               title="Add reaction"
-              className="reaction-add bg-card text-muted-foreground hover:text-foreground flex h-6 items-center rounded-full border px-1.5 shadow-xs"
+              className="reaction-add bg-card border-foreground/10 text-muted-foreground hover:text-foreground flex h-6 items-center rounded-full border px-1.5"
             >
               <SmilePlus className="size-4" strokeWidth={1.75} />
             </button>
@@ -131,9 +131,9 @@ function Chip({
       aria-disabled={!onToggle}
       onClick={onToggle}
       className={cn(
-        'bg-card flex h-6 items-center gap-1 rounded-full border px-1.5 text-xs tabular-nums shadow-xs',
-        onToggle ? 'hover:border-primary/60' : 'cursor-default',
-        own && 'border-primary bg-primary/10 text-primary font-medium',
+        'bg-card border-foreground/10 flex h-6 items-center gap-1 rounded-full border px-1.5 text-xs tabular-nums',
+        onToggle ? 'hover:border-primary/40' : 'cursor-default',
+        own && 'border-primary/35 bg-primary/[0.06] text-primary font-medium',
       )}
     >
       <Emoji id={emoji} size={16} />

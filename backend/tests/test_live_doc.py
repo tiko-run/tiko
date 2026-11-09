@@ -434,3 +434,43 @@ def test_reactions_of_two_people_made_at_once_both_stay():
     assert notes == []
     data = as_json(merged)["nodes"][0]["data"]
     assert data["reaction:ann"] == data["reaction:bob"] == ["like"]
+
+
+def test_an_element_in_a_vote_moves_and_takes_reactions_but_keeps_its_text():
+    start = board([sticky("s"), sticky("t")])
+    live = LiveDoc()
+    live.apply_json(start)
+    last, _ = live.repair(start, frozenset({"s"}))
+    with live.doc.transaction():
+        data = live.doc["nodes"]["s"]["data"]
+        data["text"] = "changed"
+        data["reaction:ann"] = ["like"]
+        live.doc["nodes"]["s"]["place"] = {"x": 99, "y": 20}
+        live.doc["nodes"]["t"]["data"]["text"] = "free"
+    fixed, notes = live.repair(last, frozenset({"s"}))
+    nodes = {n["id"]: n for n in as_json(fixed)["nodes"]}
+    assert notes == ["locked_restored"]
+    assert nodes["s"]["data"]["text"] == "s" and nodes["s"]["data"]["reaction:ann"] == ["like"]
+    assert nodes["s"]["position"]["x"] == 99
+    assert nodes["t"]["data"]["text"] == "free"
+
+
+def test_a_deleted_element_in_a_vote_comes_back_with_its_frame():
+    frame = {
+        "id": "f",
+        "type": "frame",
+        "position": {"x": 0, "y": 0},
+        "width": 300,
+        "height": 300,
+        "data": {"title": "F"},
+    }
+    start = board([frame, sticky("s", parentId="f")])
+    live = LiveDoc()
+    live.apply_json(start)
+    last, _ = live.repair(start, frozenset({"s"}))
+    with live.doc.transaction():
+        del live.doc["nodes"]["s"]
+        del live.doc["nodes"]["f"]
+    fixed, notes = live.repair(last, frozenset({"s"}))
+    assert {n["id"] for n in as_json(fixed)["nodes"]} == {"f", "s"}
+    assert notes.count("locked_restored") == 2

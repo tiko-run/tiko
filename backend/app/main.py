@@ -68,6 +68,7 @@ from app.domain.stickers import Stickers
 from app.domain.updates import OneClickUpdate, UpdateService
 from app.domain.upgrade import adopt_orphans, bootstrap_admin
 from app.domain.usage import Deploy, HostOs, Privacy
+from app.domain.voting import Voting
 from app.domain.workspaces import Memberships, current_workspace
 from app.observability import (
     DEMO_LIMIT,
@@ -328,6 +329,13 @@ def create_app(
     credentials = storage.CredentialRepo(db)
     adopt_orphans(users, member_repo, credentials)
     app.state.members = Members(member_repo, users, app.state.live)
+    app.state.voting = Voting(
+        storage.VoteRepo(db),
+        app.state.boards,
+        lambda: {p.id: p.name for p in users.list()},
+        app.state.live,
+    )
+    rooms.locks = app.state.voting.running_elements
     app.state.memberships = Memberships(users, app.state.sessions, app.state.live)
     # Added before the request context, so it runs inside it and 401s are logged and counted.
     metrics_token = (

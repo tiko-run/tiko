@@ -176,3 +176,15 @@ class FileQuota(DomainError):
 
 class StickerLimit(DomainError):
     code = "sticker_limit"
+
+
+class VoteRunning(DomainError):
+    code = "vote_running"
+
+
+class VoteClosed(DomainError):
+    code = "vote_closed"
+
+
+class VoteRefused(DomainError):
+    code = "vote_refused"

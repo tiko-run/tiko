@@ -121,6 +121,10 @@ import { FarContext, ReadOnlyContext } from '@/canvas/readonly'
 import { CLIPBOARD_MARKER, classifyPaste, isEditable, readPasteAs } from '@/canvas/paste'
 import { MAX_REFS, resolveAll } from '@/canvas/refs'
 import { SelectionBar } from '@/canvas/SelectionBar'
+import { OPEN_VOTES_EVENT, useVoting, voteElements, VotingContext } from '@/voting/useVoting'
+import { VotePanel } from '@/voting/VotePanel'
+import { StartVote } from '@/voting/StartVote'
+import { VoteResults } from '@/voting/VoteResults'
 import {
   reactionKey,
   reacts,
@@ -280,6 +284,34 @@ export function BoardCanvas({
   const { nodes, setNodes, onNodesChange, edges, setEdges, onEdgesChange } = live
   // Until the first sync the saved board is shown and cannot be edited.
   const readOnly = viewer || !live.editable
+  const voting = useVoting(board.id, !guest)
+  const votingRound = voting.running
+  // Elements of the running vote, and the frames that hold them: nobody deletes them until it ends.
+  const locked = useMemo(() => {
+    if (!votingRound) return null
+    const ids = new Set(votingRound.elements)
+    for (const node of nodes) if (ids.has(node.id) && node.parentId) ids.add(node.parentId)
+    return ids
+  }, [votingRound, nodes])
+  const lockedRef = useRef(locked)
+  useLayoutEffect(() => {
+    lockedRef.current = locked
+  }, [locked])
+  const [voteStarting, setVoteStarting] = useState(false)
+  // The round whose results are open; null lists the board's past votes.
+  const [results, setResults] = useState<string | null | undefined>(undefined)
+  const lastRunning = useRef<string | null>(null)
+  useEffect(() => {
+    const was = lastRunning.current
+    lastRunning.current = votingRound?.id ?? null
+    // A round that just ended opens its results for everyone on the board.
+    if (was && !votingRound) setResults(was)
+  }, [votingRound])
+  useEffect(() => {
+    const open = () => setResults(null)
+    window.addEventListener(OPEN_VOTES_EVENT, open)
+    return () => window.removeEventListener(OPEN_VOTES_EVENT, open)
+  }, [])
   // Each person keeps their own view of a board; one they have not opened here fits its content.
   const [lastView] = useState(() => readViewport(board.id))
   const [added, setAdded] = useState<Record<string, Task>>({})
@@ -349,23 +381,27 @@ export function BoardCanvas({
       standing.map(withHandles),
       copying ? edgesToStandIns(edges, standing) : edges,
     )
-    if (!flashId && !hits) return raised
+    if (!flashId && !hits && !locked) return raised
+    const inVote = new Set(votingRound?.elements)
     return {
       ...raised,
       nodes: raised.nodes.map((n) => {
         // A timer flashes its own cube; any other node the board moved to flashes its frame.
         const flash = n.id === flashId && n.type !== 'timer'
         const hit = hits?.has(n.id)
-        if (!flash && !hit) return n
+        const voted = inVote.has(n.id)
+        const kept = locked?.has(n.id)
+        if (!flash && !hit && !kept) return n
         return {
           ...n,
-          className: [n.className, flash && 'node-flash', hit && 'search-hit']
+          ...(kept && { deletable: false }),
+          className: [n.className, flash && 'node-flash', hit && 'search-hit', voted && 'in-vote']
             .filter(Boolean)
             .join(' '),
         }
       }),
     }
-  }, [moving, preview, edges, flashId, hits, copying, dragFrom])
+  }, [moving, preview, edges, flashId, hits, copying, dragFrom, locked, votingRound])
 
   // What the others see of this person: what is selected, and nodes on their way while dragged.
   const { presence } = live
@@ -1062,13 +1098,19 @@ export function BoardCanvas({
   const setCollapsed = (collapsed: boolean) =>
     setNodes((current) =>
       current.map((n) =>
-        n.selected && n.type === 'task_card' ? { ...n, data: { ...n.data, collapsed } } : n,
+        n.selected && n.type === 'task_card' && !locked?.has(n.id)
+          ? { ...n, data: { ...n.data, collapsed } }
+          : n,
       ),
     )
 
   // One call, so a style on many elements is one undo step.
   const setStyle = (style: Style) =>
-    setNodes((current) => current.map((n) => (n.selected ? withStyle(n, style) : n)))
+    setNodes((current) =>
+      current.map((n) =>
+        n.selected && !votingRound?.elements.includes(n.id) ? withStyle(n, style) : n,
+      ),
+    )
   const align = (how: Alignment | Distribution) =>
     setNodes((current) => {
       const moving = movers(current)
@@ -1159,7 +1201,14 @@ export function BoardCanvas({
   // Deleting a frame keeps its children: only what the user selected goes away.
   // An anchor goes with the last arrow that ends at it.
   const onBeforeDelete: OnBeforeDelete<AppNode, AppEdge> = useCallback(
-    async ({ nodes: doomed, edges: doomedEdges }) => {
+    async ({ nodes: asked, edges: doomedEdges }) => {
+      // What a running vote holds stays until it ends.
+      const kept = lockedRef.current
+      const doomed = kept ? asked.filter((n) => !kept.has(n.id)) : asked
+      if (doomed.length < asked.length) {
+        toast('Elements in a vote stay until it ends')
+        if (!doomed.length && !doomedEdges.length) return false
+      }
       const split = cutting.current ? null : splitDeletion(doomed, doomedEdges)
       if (split) {
         setNodes((current) => releaseChildren(current, new Set(split.nodes.map((n) => n.id))))
@@ -1174,7 +1223,7 @@ export function BoardCanvas({
         getNodes().filter((n) => !goneNodes.has(n.id)),
         edgesLeft,
       )
-      if (!split && orphans.length === 0) return true
+      if (!split && orphans.length === 0 && doomed.length === asked.length) return true
       return { nodes: [...plan.nodes, ...orphans], edges: plan.edges }
     },
     [setNodes, getNodes, getEdges],
@@ -1289,6 +1338,7 @@ export function BoardCanvas({
         className={[
           connecting && 'connecting',
           hits && 'searching',
+          voting.host.active && 'voting',
           tool === 'hand' && 'cursor-grab',
         ]
           .filter(Boolean)
@@ -1342,11 +1392,46 @@ export function BoardCanvas({
                   )
               : undefined
           }
+          onVote={
+            !guest && !votingRound && voteElements(nodes).length > 0
+              ? () => setVoteStarting(true)
+              : undefined
+          }
           onDuplicate={duplicate}
           onDelete={deleteSelection}
           onSaveSticker={saveSticker}
           savedStickers={savedStickers}
           controls={controls}
+        />
+      )}
+      {votingRound && (
+        <VotePanel
+          boardId={board.id}
+          round={votingRound}
+          folded={voting.folded}
+          onFold={voting.fold}
+          onRound={voting.put}
+        />
+      )}
+      {voteStarting && (
+        <StartVote
+          boardId={board.id}
+          elements={voteElements(nodes)}
+          number={(voting.overview?.past.length ?? 0) + 1}
+          open
+          onOpenChange={setVoteStarting}
+          onStarted={voting.put}
+        />
+      )}
+      {results !== undefined && !guest && (
+        <VoteResults
+          boardId={board.id}
+          overview={voting.overview}
+          roundId={results}
+          onPick={setResults}
+          onClose={() => setResults(undefined)}
+          onFly={jumpTo}
+          exists={(id) => nodes.some((n) => n.id === id)}
         />
       )}
       {tool === 'shape' && (
@@ -1384,91 +1469,93 @@ export function BoardCanvas({
     <TasksContext.Provider value={tasks}>
       <ImagesContext.Provider value={images}>
         <ReactionsContext.Provider value={reactions}>
-          <PlanningContext.Provider value={planning}>
-            <BoardSourcesContext.Provider value={boardSources}>
-              <ReadOnlyContext.Provider value={readOnly}>
-                <FarContext.Provider value={far}>
-                  <SelectedByContext.Provider value={live.selections}>
-                    <ModuleHostContext.Provider value={moduleHost}>
-                      <ExpandModuleContext.Provider value={setExpandedId}>
-                        {readOnly ? (
-                          surface
-                        ) : (
-                          <CanvasContextMenu
-                            target={menuTarget}
-                            onPlace={placeAt}
-                            onAddCards={addCards}
-                            onAddModule={addModule}
-                            onAddImages={(files, point) => void addImages(files, point)}
-                            onDelete={deleteSelection}
-                            cards={cardCounts}
-                            onCollapse={setCollapsed}
-                            onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
-                          >
-                            {surface}
-                          </CanvasContextMenu>
-                        )}
-                        {expandedNode && (
-                          <ModuleExpanded
-                            node={expandedNode}
-                            readOnly={readOnly}
-                            onChange={(content) =>
-                              flow.updateNodeData(expandedNode.id, { content })
-                            }
-                            onClose={() => setExpandedId(null)}
-                          />
-                        )}
-                      </ExpandModuleContext.Provider>
-                    </ModuleHostContext.Provider>
-                  </SelectedByContext.Provider>
-                  {guest ? (
-                    // Timers on the board are its people's reminders: a guest sees them, nothing rings.
-                    <div ref={topOverlay} className="absolute top-4 right-4 z-10">
-                      {indicator}
-                    </div>
-                  ) : (
-                    <BoardTimers
+          <VotingContext.Provider value={voting.host}>
+            <PlanningContext.Provider value={planning}>
+              <BoardSourcesContext.Provider value={boardSources}>
+                <ReadOnlyContext.Provider value={readOnly}>
+                  <FarContext.Provider value={far}>
+                    <SelectedByContext.Provider value={live.selections}>
+                      <ModuleHostContext.Provider value={moduleHost}>
+                        <ExpandModuleContext.Provider value={setExpandedId}>
+                          {readOnly ? (
+                            surface
+                          ) : (
+                            <CanvasContextMenu
+                              target={menuTarget}
+                              onPlace={placeAt}
+                              onAddCards={addCards}
+                              onAddModule={addModule}
+                              onAddImages={(files, point) => void addImages(files, point)}
+                              onDelete={deleteSelection}
+                              cards={cardCounts}
+                              onCollapse={setCollapsed}
+                              onAddTimer={timerHolder && (() => addTimer({ holder: timerHolder }))}
+                            >
+                              {surface}
+                            </CanvasContextMenu>
+                          )}
+                          {expandedNode && (
+                            <ModuleExpanded
+                              node={expandedNode}
+                              readOnly={readOnly}
+                              onChange={(content) =>
+                                flow.updateNodeData(expandedNode.id, { content })
+                              }
+                              onClose={() => setExpandedId(null)}
+                            />
+                          )}
+                        </ExpandModuleContext.Provider>
+                      </ModuleHostContext.Provider>
+                    </SelectedByContext.Provider>
+                    {guest ? (
+                      // Timers on the board are its people's reminders: a guest sees them, nothing rings.
+                      <div ref={topOverlay} className="absolute top-4 right-4 z-10">
+                        {indicator}
+                      </div>
+                    ) : (
+                      <BoardTimers
+                        nodes={nodes}
+                        tasks={tasks}
+                        onOpen={openTimer}
+                        onChange={updateTimer}
+                      >
+                        {indicator}
+                      </BoardTimers>
+                    )}
+                    <BoardSearch
+                      boardId={board.id}
                       nodes={nodes}
                       tasks={tasks}
-                      onOpen={openTimer}
-                      onChange={updateTimer}
-                    >
-                      {indicator}
-                    </BoardTimers>
-                  )}
-                  <BoardSearch
-                    boardId={board.id}
-                    nodes={nodes}
-                    tasks={tasks}
-                    onJump={jumpTo}
-                    onSelect={selectNodes}
-                  />
-                  {liveNotice && (
-                    <Alert
-                      variant={live.status === 'unsaved' ? 'destructive' : 'default'}
-                      className="absolute top-16 right-4 z-10 w-80"
-                    >
-                      <AlertDescription>{liveNotice}</AlertDescription>
-                    </Alert>
-                  )}
-                  {!readOnly && (
-                    <Toolbar
-                      tool={tool}
-                      onTool={setTool}
-                      onShape={(kind) => {
-                        setShapeKind(kind)
-                        setTool('shape')
-                      }}
-                      onAddCards={addCards}
-                      onAddModule={(kind) => addModule(kind, viewportCenter())}
-                      onImages={(files) => void addImages(files, viewportCenter())}
-                      onSticker={(choice) => void addSticker(choice, viewportCenter())}
+                      onJump={jumpTo}
+                      onSelect={selectNodes}
                     />
-                  )}
-                </FarContext.Provider>
-              </ReadOnlyContext.Provider>
-            </BoardSourcesContext.Provider>
-          </PlanningContext.Provider>
+                    {liveNotice && (
+                      <Alert
+                        variant={live.status === 'unsaved' ? 'destructive' : 'default'}
+                        className="absolute top-16 right-4 z-10 w-80"
+                      >
+                        <AlertDescription>{liveNotice}</AlertDescription>
+                      </Alert>
+                    )}
+                    {!readOnly && (
+                      <Toolbar
+                        tool={tool}
+                        onTool={setTool}
+                        onShape={(kind) => {
+                          setShapeKind(kind)
+                          setTool('shape')
+                        }}
+                        onAddCards={addCards}
+                        onAddModule={(kind) => addModule(kind, viewportCenter())}
+                        onImages={(files) => void addImages(files, viewportCenter())}
+                        onSticker={(choice) => void addSticker(choice, viewportCenter())}
+                      />
+                    )}
+                  </FarContext.Provider>
+                </ReadOnlyContext.Provider>
+              </BoardSourcesContext.Provider>
+            </PlanningContext.Provider>
+          </VotingContext.Provider>
         </ReactionsContext.Provider>
       </ImagesContext.Provider>
     </TasksContext.Provider>

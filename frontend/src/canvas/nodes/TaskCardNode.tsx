@@ -7,6 +7,8 @@ import type { TaskCardNode as TaskCardNodeType } from '@/canvas/types'
 import { CardDetails } from '@/canvas/nodes/CardDetails'
 import { Handles } from '@/canvas/nodes/Handles'
 import { Reactions } from '@/canvas/nodes/Reactions'
+import { useInVote } from '@/voting/useVoting'
+import { VoteControl } from '@/voting/VoteControl'
 import { StatusLozenge, TypeIcon } from '@/canvas/nodes/TaskBits'
 import { openSettings } from '@/settings/store'
 import { credentialName, shortKey, sourceName } from '@/sources/registry'
@@ -34,6 +36,7 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
   const missing = task?.state === 'not_found' || noToken || hidden
   const done = task?.status_category === 'done'
   const collapsed = Boolean(data.collapsed)
+  const inVote = useInVote(id)
 
   // The popover is anchored in screen space and would drift away from a panned card.
   useOnViewportChange({ onStart: () => setOpen(false) })
@@ -126,7 +129,8 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
               task={task}
               collapsed={collapsed}
               onToggleCollapsed={() => {
-                updateNodeData(id, { collapsed: !collapsed })
+                // A card in a running vote keeps its look until the end.
+                if (!inVote) updateNodeData(id, { collapsed: !collapsed })
                 setOpen(false)
               }}
             />
@@ -134,6 +138,7 @@ function TaskCardNodeView({ id, data, selected }: NodeProps<TaskCardNodeType>) {
         )}
       </Popover>
       <Reactions id={id} data={data} />
+      <VoteControl id={id} />
     </>
   )
 }

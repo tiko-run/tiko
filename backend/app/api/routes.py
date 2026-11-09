@@ -19,6 +19,7 @@ from app.api import (
     stickers,
     tasks,
     version,
+    votes,
 )
 
 router = APIRouter(prefix="/api")
@@ -29,6 +30,7 @@ router.include_router(accounts.router)
 router.include_router(planning.router)
 router.include_router(invites.router)
 router.include_router(boards.router)
+router.include_router(votes.router)
 router.include_router(files.boards)
 router.include_router(stickers.router)
 router.include_router(folders.router)

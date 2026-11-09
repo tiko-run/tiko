@@ -10,7 +10,16 @@ from typing import Any
 from pycrdt import Doc, Map
 from pydantic import TypeAdapter, ValidationError
 
-from app.domain.boards import CARD, LEGACY_CARD, MAX_NODES, BoardDoc, Edge, Node, check_doc
+from app.domain.boards import (
+    CARD,
+    LEGACY_CARD,
+    MAX_NODES,
+    REACTION_KEY,
+    BoardDoc,
+    Edge,
+    Node,
+    check_doc,
+)
 
 # Origin of the server's own writes (repairs, REST saves); never in anyone's undo history.
 SERVER = "server"
@@ -37,6 +46,8 @@ ROOM_FULL = 4429
 
 # A message type of our own next to y-protocols' 0–3: the instance's planning lists changed.
 PLANNING_CHANGED = 100
+# The board's votes changed: read them again (spec 043).
+VOTES_CHANGED = 101
 
 Stored = dict[str, dict[str, Any]]
 
@@ -143,6 +154,7 @@ def repaired(
     edges: dict[str, Any],
     previous: Stored,
     changed: tuple[set[str], set[str]] | None = None,
+    locked: frozenset[str] = frozenset(),
 ) -> tuple[Stored, Stored, list[str]]:
     """The same board with every rule of `BoardDoc` and `check_doc` holding again.
 
@@ -168,6 +180,17 @@ def repaired(
             notes.append("node_restored")
         else:
             notes.append("node_dropped")
+
+    # Elements in a running vote keep what they say and look like; they may still move.
+    for node_id in locked & previous.keys():
+        kept = _locked(previous[node_id], good.get(node_id))
+        if kept is not good.get(node_id):
+            good[node_id] = kept
+            notes.append("locked_restored")
+    holders = {previous[n]["place"].get("parentId") for n in locked & previous.keys()}
+    for node_id in (holders - {None}) & previous.keys() - good.keys():
+        good[node_id] = previous[node_id]
+        notes.append("locked_restored")
 
     if len(good) > MAX_NODES:
         # What the update added goes first, the topmost of it before the rest.
@@ -221,6 +244,21 @@ def repaired(
         del good[node_id]
         notes.append("anchor_dropped")
     return good, kept, notes
+
+
+def _locked(before: dict[str, Any], now: dict[str, Any] | None) -> dict[str, Any]:
+    """A locked node as it may be: moved and reacted to, otherwise as it was."""
+    if now is None:
+        return before
+    reactions = {k: v for k, v in now["data"].items() if k.startswith(REACTION_KEY)}
+    data = {k: v for k, v in before["data"].items() if not k.startswith(REACTION_KEY)}
+    allowed = {
+        **before,
+        "place": now["place"],
+        "order": now["order"],
+        "data": {**data, **reactions},
+    }
+    return now if now == allowed else allowed
 
 
 class LiveDoc:
@@ -380,7 +418,9 @@ class LiveDoc:
             viewport=last.viewport,
         )
 
-    def repair(self, last: BoardDoc) -> tuple[BoardDoc, list[str]]:
+    def repair(
+        self, last: BoardDoc, locked: frozenset[str] = frozenset()
+    ) -> tuple[BoardDoc, list[str]]:
         """Fixes what a merge broke and returns the board as it now stands, valid."""
         # Given the board the previous repair returned (its viewport may differ), only what
         # changed since is read and validated. Any other `last` means a check of everything.
@@ -395,7 +435,7 @@ class LiveDoc:
                 previous = from_board(last)[0]
                 nodes, edges = self.read()
                 changed = None
-            good, kept, notes = repaired(nodes, edges, previous, changed)
+            good, kept, notes = repaired(nodes, edges, previous, changed, locked)
             self.write(good, kept, current=(nodes, edges))
             board = self._board(good, kept, last)
             check_doc(board)

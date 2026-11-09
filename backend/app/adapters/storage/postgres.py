@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC
 from functools import cache
@@ -45,6 +45,7 @@ from app.domain.planning import (
 )
 from app.domain.stickers import PackSticker
 from app.domain.tasks import Task, now_iso
+from app.domain.voting import Ballot, Participant, Round
 from app.domain.workspaces import current_workspace
 from app.observability import DB_HELD, DB_HELD_BY_KIND, DB_WAIT
 
@@ -2134,3 +2135,163 @@ Workspaces = PgWorkspaces
 FileStore = PgFileStore
 UnusedFiles = PgUnusedFiles
 StickerPack = PgStickerPack
+
+
+_ROUND = (
+    "SELECT id, board_id, name, votes, stack, anonymous, elements, texts, started_by,"
+    " started_at, ends_at, ended_at FROM vote_rounds"
+)
+
+
+def _vote_round(row: dict) -> Round:
+    return Round(
+        **{**row, "elements": json.loads(row["elements"]), "texts": json.loads(row["texts"])}
+    )
+
+
+class PgVoteRepo(_Repo):
+    def running(self, board_id: str) -> Round | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                _ROUND + " WHERE board_id = %s AND ended_at IS NULL", (board_id,)
+            ).fetchone()
+        return _vote_round(row) if row else None
+
+    def get(self, board_id: str, round_id: str) -> Round | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                _ROUND + " WHERE board_id = %s AND id = %s", (board_id, round_id)
+            ).fetchone()
+        return _vote_round(row) if row else None
+
+    def add(self, round_: Round) -> bool:
+        try:
+            with self._tx() as conn:
+                conn.execute(
+                    "INSERT INTO vote_rounds (workspace_id, id, board_id, name, votes, stack,"
+                    " anonymous, elements, started_by, started_at, ends_at)"
+                    " VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s)",
+                    (
+                        self._ws,
+                        round_.id,
+                        round_.board_id,
+                        round_.name,
+                        round_.votes,
+                        round_.stack,
+                        round_.anonymous,
+                        json.dumps(round_.elements),
+                        round_.started_by,
+                        round_.started_at,
+                        round_.ends_at,
+                    ),
+                )
+        except UniqueViolation:
+            return False
+        return True
+
+    def past(self, board_id: str, limit: int) -> list[Round]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                _ROUND + " WHERE board_id = %s AND ended_at IS NOT NULL"
+                " ORDER BY started_at DESC, id LIMIT %s",
+                (board_id, limit),
+            ).fetchall()
+        return [_vote_round(row) for row in rows]
+
+    def people(self, round_id: str) -> list[Participant]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                "SELECT person_id, done FROM vote_people WHERE round_id = %s ORDER BY person_id",
+                (round_id,),
+            ).fetchall()
+        return [Participant(row["person_id"], row["done"]) for row in rows]
+
+    def ballots(self, round_id: str) -> list[Ballot]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                "SELECT person_id, element_id, count FROM vote_ballots WHERE round_id = %s"
+                " ORDER BY person_id, element_id",
+                (round_id,),
+            ).fetchall()
+        return [Ballot(row["person_id"], row["element_id"], row["count"]) for row in rows]
+
+    def _join(self, conn: psycopg.Connection, round_id: str, person_id: str) -> None:
+        conn.execute(
+            "INSERT INTO vote_people (workspace_id, round_id, person_id) VALUES (%s, %s, %s)"
+            " ON CONFLICT DO NOTHING",
+            (self._ws, round_id, person_id),
+        )
+
+    def join(self, round_id: str, person_id: str) -> None:
+        with self._tx() as conn:
+            self._join(conn, round_id, person_id)
+
+    def set_done(self, round_id: str, person_id: str, done: bool) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "UPDATE vote_people SET done = %s WHERE round_id = %s AND person_id = %s",
+                (done, round_id, person_id),
+            )
+
+    def cast(
+        self,
+        round_id: str,
+        person_id: str,
+        change: Callable[[dict[str, int]], dict[str, int]],
+    ) -> dict[str, int]:
+        with self._tx() as conn:
+            self._join(conn, round_id, person_id)
+            # The person's row is the lock: their clicks take turns, other people's do not wait.
+            conn.execute(
+                "SELECT 1 FROM vote_people WHERE round_id = %s AND person_id = %s FOR UPDATE",
+                (round_id, person_id),
+            )
+            rows = conn.execute(
+                "SELECT element_id, count FROM vote_ballots WHERE round_id = %s AND person_id = %s",
+                (round_id, person_id),
+            ).fetchall()
+            mine = {row["element_id"]: row["count"] for row in rows}
+            after = change(mine)
+            for element in mine.keys() - after.keys():
+                conn.execute(
+                    "DELETE FROM vote_ballots"
+                    " WHERE round_id = %s AND person_id = %s AND element_id = %s",
+                    (round_id, person_id, element),
+                )
+            for element, count in after.items():
+                if mine.get(element) != count:
+                    conn.execute(
+                        "INSERT INTO vote_ballots"
+                        " (workspace_id, round_id, person_id, element_id, count)"
+                        " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (round_id, person_id,"
+                        " element_id) DO UPDATE SET count = EXCLUDED.count",
+                        (self._ws, round_id, person_id, element, count),
+                    )
+        return after
+
+    def extend(self, round_id: str, ends_at: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "UPDATE vote_rounds SET ends_at = %s WHERE id = %s AND ended_at IS NULL",
+                (ends_at, round_id),
+            )
+
+    def end(self, round_id: str, ended_at: str, texts: dict[str, str]) -> bool:
+        with self._tx() as conn:
+            row = conn.execute(
+                "UPDATE vote_rounds SET ended_at = %s, texts = %s::jsonb"
+                " WHERE id = %s AND ended_at IS NULL RETURNING id",
+                (ended_at, json.dumps(texts), round_id),
+            ).fetchone()
+        return row is not None
+
+    def rename(self, round_id: str, name: str) -> None:
+        with self._tx() as conn:
+            conn.execute("UPDATE vote_rounds SET name = %s WHERE id = %s", (name, round_id))
+
+    def delete(self, round_id: str) -> None:
+        with self._tx() as conn:
+            conn.execute("DELETE FROM vote_rounds WHERE id = %s", (round_id,))
+
+
+VoteRepo = PgVoteRepo

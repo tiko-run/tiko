@@ -22,7 +22,9 @@ import {
   Timer,
   Trash2,
   UserPlus,
+  Vote,
 } from 'lucide-react'
+import { OPEN_VOTES_EVENT } from '@/voting/useVoting'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
@@ -406,6 +408,10 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
               <DropdownMenuItem onSelect={() => newBoard.mutate()} disabled={newBoard.isPending}>
                 <Plus strokeWidth={1.75} />
                 New board
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => window.dispatchEvent(new Event(OPEN_VOTES_EVENT))}>
+                <Vote strokeWidth={1.75} />
+                Votes
               </DropdownMenuItem>
               {canEdit(current.my_role) && (
                 <DropdownMenuItem onSelect={() => setRenaming(true)}>

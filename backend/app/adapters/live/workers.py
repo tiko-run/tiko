@@ -30,6 +30,7 @@ _TOLD = (
     "recheck_board",
     "end_public",
     "planning_changed",
+    "votes_changed",
 )
 
 
@@ -168,6 +169,12 @@ class Workers:
             self._rooms.recheck_board(board_id)
         else:
             self._tell_owner("recheck_board", board_id)
+
+    def votes_changed(self, board_id: str) -> None:
+        if self._mine(board_id):
+            self._rooms.votes_changed(board_id)
+        else:
+            self._tell_owner("votes_changed", board_id)
 
     def end_public(self, board_id: str | None = None) -> None:
         if board_id is None:

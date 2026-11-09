@@ -694,3 +694,27 @@
     display: none;
   }
 }
+
+/* Elements of a running vote: a grey frame that says they are held until it ends. */
+.react-flow__node.in-vote::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1.5px dashed var(--muted-foreground);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.react-flow__node.in-vote::before {
+  content: 'In vote';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -4px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+/* Voting: what is not in the round steps back. */
+.react-flow.voting .react-flow__node:not(.in-vote) {
+  opacity: 0.35;
+}
