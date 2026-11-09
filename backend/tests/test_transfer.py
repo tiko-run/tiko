@@ -232,6 +232,7 @@ def test_gantt_planning_is_matched_by_name_and_the_rest_is_added(client):
 
 
 def test_planning_off_here_is_said_and_the_board_still_comes(client):
+    client.patch("/api/planning", json={"enabled": False})
     doc = {"nodes": [gantt("far-build", "far-sam", "far-risk")]}
     response = import_file(client, pack({"manifest.json": manifest(), "board.json": doc}))
     assert response.status_code == 201, response.text

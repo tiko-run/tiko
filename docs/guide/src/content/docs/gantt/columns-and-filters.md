@@ -4,7 +4,7 @@ description: Show fields as columns, filter the rows and save filters as views.
 ---
 
 :::note[Needs Planning]
-An admin turns Planning on in **Settings → Stages and people**. It is off by default; on the [public demo](https://demo.tiko.run) it is always on.
+Planning is on in a new tiko, and always on on the [public demo](https://demo.tiko.run). An instance set up before keeps the switch where it was; an admin turns it on in **Settings → Stages and people**.
 :::
 
 ## Columns

@@ -386,6 +386,10 @@ def create_app(
         storage.PlanningStageRepo(db),
         on_change=lambda: app.state.live.planning_changed(current_workspace.get()),
     )
+    # A new install starts with Planning on, as people come for the Gantt; an instance that had
+    # people before keeps its own choice.
+    if created:
+        app.state.planning.set_enabled(True)
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
         demo.DemoVisitors(

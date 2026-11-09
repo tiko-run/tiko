@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- A new tiko starts with Planning on, so the Gantt shows stages, people and workload from the first board. Instances already running keep their setting.
 - Enter now adds a person in Share when the search finds exactly one, and adds the ticked tasks, or the only one found, in the CalDAV task picker.
 
 ### Fixed

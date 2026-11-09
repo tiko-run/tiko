@@ -952,7 +952,9 @@ def test_a_visitor_from_before_workspaces_goes_from_the_default_one(app):
 def test_people_of_a_demo_from_before_workspaces_each_get_one(app):
     admin = signed_in(app)
     users, boards, db = app.state.accounts._users, app.state.boards, app.state.boards._db
-    # As a demo copied from SQLite has them: everyone in the default workspace, one sample.
+    # As a demo copied from SQLite has them: everyone in the default workspace, one sample
+    # and no stage types of a new tiko.
+    run_sql(app, "DELETE FROM planning_types")
     app.state.planning.write_sample(sample.TYPES, sample.people(date.today()))
     visitor = demo.Person(
         id="visitor-before",
