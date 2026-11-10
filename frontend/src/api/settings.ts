@@ -17,6 +17,10 @@ const settingsSchema = z.object({
   }),
   /** Whether board owners may make a public link. */
   public_links: z.boolean(),
+  /** Whether people may make API keys in this workspace. */
+  api_keys: z.boolean().default(false),
+  /** How many keys are live; sent to an admin only. */
+  api_keys_live: z.number().nullish(),
   // Set in the environment by whoever deployed tiko; the form shows them read-only.
   locked: z.array(z.enum(['provider', 'jira_base_url'])).default([]),
 })
@@ -31,6 +35,7 @@ export type SettingsChange = {
   // Empty goes back to finding the field by name.
   jira_start_field?: string
   public_links?: boolean
+  api_keys?: boolean
 }
 
 export function getSettings() {

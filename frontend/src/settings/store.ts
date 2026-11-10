@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 export const SECTIONS = [
   'profile',
   'security',
+  'api-keys',
   'preferences',
   'tracker',
   'planning',

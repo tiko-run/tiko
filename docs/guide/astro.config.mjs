@@ -92,6 +92,7 @@ export default defineConfig({
                 ],
               },
               { label: 'Trackers', items: ['trackers', 'jira-data-center', 'jira-cloud', 'github-issues', 'caldav'] },
+              { label: 'API', items: ['api-keys'] },
               {
                 label: 'Self-hosting',
                 items: ['configuration', 'data-and-upgrades', 'updates', 'security', 'privacy', 'monitoring', 'demo'],

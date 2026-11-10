@@ -7,10 +7,12 @@ from pydantic import BaseModel, Field, SecretStr
 from app.api import deps
 from app.api.auth import me
 from app.api.deps import AccountsDep, CurrentPerson, NotDemoVisitor
+from app.domain.api_keys import ApiKey, ApiKeys, KeyIn
 from app.domain.caldav import CalDavAccount, CalDavIn, CalDavSource, TaskList, normalize_address
-from app.domain.errors import CalDavRejected, TrackerUnavailable, ValidationFailed
+from app.domain.errors import CalDavRejected, Forbidden, TrackerUnavailable, ValidationFailed
 from app.domain.onboarding import Onboarding, OnboardingChange
 from app.domain.settings import JiraKind, SettingsService, TokenState
+from app.domain.workspaces import current_workspace
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -226,3 +228,42 @@ def show_caldav_lists(
     )
     settings.set_caldav(person.id, changed)
     return ListsOut(lists=request.app.state.caldav_readers.of(person.id, changed).lists())
+
+
+ApiKeysDep = Annotated[ApiKeys, Depends(deps.api_keys)]
+
+
+class ApiKeyList(BaseModel):
+    keys: list[ApiKey]
+    # Whether the workspace lets people make keys.
+    enabled: bool
+
+
+class ApiKeyMade(BaseModel):
+    key: ApiKey
+    # Shown once; only its hash is kept.
+    token: str
+
+
+def _workspace() -> str:
+    workspace = current_workspace.get()
+    if workspace is None:
+        raise Forbidden("You are not in a workspace.")
+    return workspace
+
+
+@router.get("/api-keys", dependencies=[NotDemoVisitor])
+def list_api_keys(person: CurrentPerson, keys: ApiKeysDep) -> ApiKeyList:
+    return ApiKeyList(keys=keys.list(person.id, _workspace()), enabled=keys.enabled())
+
+
+@router.post("/api-keys", status_code=201, dependencies=[NotDemoVisitor])
+def create_api_key(body: KeyIn, person: CurrentPerson, keys: ApiKeysDep) -> ApiKeyMade:
+    key, token = keys.create(person, _workspace(), body)
+    return ApiKeyMade(key=key, token=token)
+
+
+@router.delete("/api-keys/{key_id}", status_code=204, dependencies=[NotDemoVisitor])
+def revoke_api_key(key_id: str, person: CurrentPerson, keys: ApiKeysDep) -> Response:
+    keys.revoke(person.id, _workspace(), key_id)
+    return Response(status_code=204)

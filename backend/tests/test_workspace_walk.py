@@ -130,6 +130,8 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "file_id": file_id,
         "sticker_id": sticker["id"],
         "round_id": round_id,
+        # A demo instance offers no API keys, so there is none to aim at.
+        "key_id": "none",
         "code": "1f525",
         "token": token,
         "workspace": me["workspace"]["id"],

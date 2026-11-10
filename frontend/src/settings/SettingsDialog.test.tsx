@@ -32,10 +32,11 @@ afterEach(() => {
 function mockApi(
   replies: Record<string, (init?: RequestInit) => Response> = {},
   me: typeof admin = admin,
+  demo = false,
 ) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (replies[url]) return replies[url](init)
-    if (url === '/api/auth/status') return Response.json({ signed_in: true, me })
+    if (url === '/api/auth/status') return Response.json({ signed_in: true, me, demo })
     const body = init?.body ? JSON.parse(String(init.body)) : {}
     return Response.json({ ...settings, ...body })
   })
@@ -212,7 +213,88 @@ test('a demo visitor gets no Profile, Security or My tracker, and plans in their
   const nav = await screen.findByRole('navigation', { name: 'Settings sections' })
   expect(nav).toHaveTextContent('Preferences')
   expect(nav).toHaveTextContent('Stages and people')
-  for (const hidden of ['Profile', 'Security', 'My tracker']) {
+  for (const hidden of ['Profile', 'Security', 'My tracker', 'API keys']) {
     expect(nav).not.toHaveTextContent(hidden)
   }
+})
+
+test('a member gets API keys among their own sections', async () => {
+  mockApi({}, { ...admin, role: 'member', server_admin: false })
+  show()
+  const nav = await screen.findByRole('navigation', { name: 'Settings sections' })
+  expect(nav).toHaveTextContent(/Security.*API keys.*Preferences/)
+})
+
+test('a demo instance offers API keys to nobody, its admin included', async () => {
+  mockApi({}, admin, true)
+  show('api-keys')
+  expect(await screen.findByLabelText('Name')).toBeInTheDocument()
+  const nav = screen.getByRole('navigation', { name: 'Settings sections' })
+  expect(nav).toHaveTextContent('Security')
+  expect(nav).not.toHaveTextContent('API keys')
+})
+
+test('an admin switches API keys on and sees how many are in use', async () => {
+  const fetchMock = mockApi({
+    '/api/settings': (init) =>
+      Response.json({
+        ...settings,
+        api_keys: false,
+        api_keys_live: 3,
+        ...(init?.body ? JSON.parse(String(init.body)) : {}),
+      }),
+  })
+  show('sharing')
+  const toggle = await screen.findByRole('switch', {
+    name: 'Let people make API keys for scripts and AI agents',
+  })
+  expect(await screen.findByText(/3 keys in use\./)).toBeInTheDocument()
+  fireEvent.click(toggle)
+  await waitFor(() =>
+    expect(callTo(fetchMock, '/api/settings')).toEqual({
+      method: 'PUT',
+      body: { api_keys: true },
+    }),
+  )
+  await waitFor(() => expect(toggle).toBeChecked())
+})
+
+test('a changed password says how many API keys stay active', async () => {
+  const key = {
+    id: 'k1',
+    name: 'My agent',
+    scope: 'read',
+    boards: null,
+    prefix: 'Ab3x',
+    created_at: '2026-11-01T10:00:00+00:00',
+    last_used_on: null,
+  }
+  const future = new Date(Date.now() + 86_400_000).toISOString()
+  const past = new Date(Date.now() - 86_400_000).toISOString()
+  mockApi({
+    '/api/me/password': () => new Response(null, { status: 204 }),
+    '/api/me/api-keys': () =>
+      Response.json({
+        enabled: true,
+        keys: [
+          { ...key, expires_at: future },
+          { ...key, id: 'k2', expires_at: future },
+          { ...key, id: 'k3', expires_at: past },
+        ],
+      }),
+  })
+  show('security')
+  expect(await screen.findByText(/This also ends your API keys\./)).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Current password'), {
+    target: { value: 'old-password' },
+  })
+  fireEvent.change(screen.getByLabelText('New password'), {
+    target: { value: 'new-password-1' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Change password' }))
+  expect(await screen.findByText('2 API keys stay active.')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Review keys' }))
+  await waitFor(() =>
+    expect(new URL(window.location.href).searchParams.get('settings')).toBe('api-keys'),
+  )
 })

@@ -48,6 +48,7 @@ The main hypothesis from the research (top by ICE): a lead will trust the canvas
 - Planning mode ([specs/027-planning](../specs/027-planning/spec.md)), off by default: Gantt rows cut into stages with people, one list of people per instance with their time off, columns that inherit down the task tree, saved filters, a person's workload across boards. Money and capacity come later.
 - Selection bar ([specs/023-selection-bar](../specs/023-selection-bar/spec.md)): one bar next to whatever is selected, with only the properties every selected element shares: fill, opacity, outline, text size and bold.
 - Images, GIFs and stickers ([specs/039-media](../specs/039-media/spec.md)): paste a screenshot, drop a file or pick one; each file stored once per workspace in Postgres, smaller copies keep big images light on the canvas; GIFs animate only in view; a sticker panel with a built-in set and the workspace's own pack.
+- Public API and MCP server ([specs/046-api-mcp](../specs/046-api-mcp/spec.md)): personal API keys tied to a workspace, a versioned `/api/v1/` for scripts and integrations, and an MCP server for the person's own AI agent to read boards, add notes and cards and lay them out. Boards only, never the tracker.
 
 **Won't**
 - Confluence, Todoist (only a hook in the provider interface)
@@ -56,7 +57,7 @@ The main hypothesis from the research (top by ICE): a lead will trust the canvas
 - Freehand drawing and shapes outside the fixed pack ([specs/022-shapes](../specs/022-shapes/spec.md))
 - Payments
 - i18n: English-only interface
-- LLM
+- An LLM inside tiko: tiko calls no AI provider; people connect their own agent through the API and MCP
 - Mobile version
 
 ## Stack

@@ -19,7 +19,7 @@ from tests.test_live import Tab, closed_with, sticky
 from tests.test_public import publish
 
 # Global lookups that carry workspace_id without holding workspace content.
-GLOBAL_WITH_WORKSPACE = {"board_index", "invites", "memberships"}
+GLOBAL_WITH_WORKSPACE = {"api_keys", "board_index", "invites", "memberships"}
 
 
 @pytest.fixture

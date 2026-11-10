@@ -75,6 +75,7 @@ class SettingsIn(BaseModel):
     # The Jira field a task's start is read from; empty goes back to finding it by name.
     jira_start_field: str | None = Field(default=None, max_length=100, pattern=r"^[\w.]*$")
     public_links: bool | None = None
+    api_keys: bool | None = None
 
 
 class JiraView(BaseModel):
@@ -94,6 +95,10 @@ class SettingsView(BaseModel):
     jira: JiraView
     # Whether board owners may make a public link.
     public_links: bool
+    # Whether people may make API keys (spec 046); absent means off.
+    api_keys: bool = False
+    # Live keys in the workspace, for an admin only.
+    api_keys_live: int | None = None
     # Fields set in the environment, which the API does not change.
     locked: list[LockedField] = Field(default_factory=list)
 
@@ -207,6 +212,12 @@ class SettingsService:
     def public_links(self) -> bool:
         return self._values().get("public_links") != "0"
 
+    def api_keys(self) -> bool:
+        return self._values().get("api_keys") == "1"
+
+    def set_api_keys(self, on: bool) -> None:
+        self._repo.set_many({"api_keys": "1" if on else None})
+
     def token_state(self, user_id: str) -> TokenState:
         return self._token(user_id, self.base_url())[0]
 
@@ -223,6 +234,7 @@ class SettingsService:
                 start_field=values.get("jira_start_field") or None,
             ),
             public_links=values.get("public_links") != "0",
+            api_keys=values.get("api_keys") == "1",
             locked=sorted(self._env),
         )
 
@@ -256,6 +268,8 @@ class SettingsService:
             values["jira_start_field"] = change.jira_start_field or None
         if change.public_links is not None:
             values["public_links"] = "1" if change.public_links else "0"
+        if change.api_keys is not None:
+            values["api_keys"] = "1" if change.api_keys else None
         self._repo.set_many(values)
         if change.jira is not None and (plain := _clean(change.jira.token)) is not None:
             self.set_token(user_id, SecretStr(plain), change.jira.email)

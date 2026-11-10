@@ -1,22 +1,40 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
+import { daysLeft, listApiKeys } from '@/api/apiKeys'
 import { changePassword, signOutEverywhere, type Me } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toastError } from '@/lib/toast'
 import { Group, SectionHeader } from '@/settings/sections/Section'
+import { openSettings } from '@/settings/store'
+
+// A changed password keeps the person's API keys, so the toast says how many still work.
+async function liveKeys() {
+  return listApiKeys()
+    .then(({ keys }) => keys.filter((key) => daysLeft(key) > 0).length)
+    .catch(() => 0)
+}
 
 function PasswordForm({ username }: { username: string }) {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const change = useMutation({
     mutationFn: () => changePassword({ current, new: next }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setCurrent('')
       setNext('')
-      toast.success('Password changed')
+      const live = await liveKeys()
+      toast.success(
+        'Password changed',
+        live > 0
+          ? {
+              description: `${live} API ${live === 1 ? 'key stays' : 'keys stay'} active.`,
+              action: { label: 'Review keys', onClick: () => openSettings('api-keys') },
+            }
+          : undefined,
+      )
     },
   })
   const submit = (event: FormEvent) => {
@@ -79,7 +97,7 @@ export function Security({ me }: { me: Me }) {
       <Group title="Sessions">
         <p className="text-muted-foreground text-[13px]">
           A sign-in lasts 30 days in each browser. Lost a device? Sign out of all of them, this one
-          included.
+          included. This also ends your API keys.
         </p>
         <div>
           <Button
