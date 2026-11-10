@@ -36,7 +36,7 @@ Principles check:
    - `stroke`: `1`, `1.5`, `3`; shape.
    - `dash`: shape.
    A field a kind does not have is refused, as `color` on a card is today. `add_notes` and `POST .../elements` take the same fields for new elements.
-   - The rest of the list in `tmp/api-mcp/coverage.md` (opacity, rotation, stroke, dash) costs the same as bold and size: each is a key in the element's data. Doing them all now spares a second round.
+   - Opacity, rotation, stroke and dash cost the same as bold and size: each is a key in the element's data. Doing them all now spares a second round.
 3. **Style changes reach any element; text stays the person's.** A key may change the colour and style of any element on a board it may write, the person's own included. Text, titles and removal stay limited to what the API added. This amends spec 046 FR-010, which today covers colour.
    - Why: tidying a board means colouring the frames and bolding the headings people made. A style change loses no words and the person can set it back in one click.
 4. **Reads show styles.** Board reads return `bold`, `size`, `opacity`, `rotation`, `stroke` and `dash` where set, so an agent sees what it changes. An addition to v1 (spec 046 Decision 22).
@@ -78,7 +78,7 @@ Principles check:
 
 ## Notes for the plan
 
-- Styles are data keys of the stored node: `frontend/src/canvas/types.ts` (`StickyData`, `ShapeData`, `TextData`, `FrameData`, `Faded`, `Turned`); left out until set, so older boards keep their look. The backend map is `_COLOR` and `_restyle` in `domain/batch.py`; the ownership check `_own` moves out of the style path.
+- Styles are data keys of the stored node: `frontend/src/canvas/types.ts` (`StickyData`, `ShapeData`, `TextData`, `FrameData`, `Faded`, `Turned`); left out until set, so older boards keep their look. The backend map is `_STYLES` and `_restyle` in `domain/batch.py`; the ownership check `_own` moves out of the style path.
 - Timer data: `TimerData` and `watchStatus` in `frontend/src/timers/timer.ts`; attaching is `parentId` plus `BESIDE` in `attach.ts`. `HOLDERS` there is the list of kinds a timer attaches to.
 - Rename: `service.rename_board` in `domain/boards.py`, which also ends public sessions so guests read the new name.
 

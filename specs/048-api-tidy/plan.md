@@ -20,7 +20,7 @@ Styles and timers already exist in the stored board, with validated models; the 
 
 - **Style fields.** `Change` and `NewElement` gain `bold`, `size`, `opacity`, `rotation`, `stroke`, `dash`, typed with the board's own `Opacity`, `TextSize` and stroke literal. `rotation` takes any number and is folded to -180–180 and rounded, as `Rotator.tsx` stores it.
 - **Which kind takes what** is one map in `batch.py`, `_STYLES`: note `color bold opacity rotation`, shape `color bold size opacity rotation stroke dash`, text `bold size opacity rotation`, frame `color opacity`. A field outside the map is refused with `422`, as colour on a card is today. `_data` writes the given style keys for new elements.
-- **Ownership split.** `_restyle` becomes two steps: text, title and the shape's form stay behind `_own`; colour and styles go through `_unlocked`, which keeps only the running-vote check. FR-010 of spec 046 gains one sentence.
+- **Ownership split.** `_restyle` becomes two steps: text, title and the shape's form stay behind `_own`; colour and styles keep only the running-vote check. FR-010 of spec 046 gains one sentence.
 - **Reads.** `Element` gains the six fields; `FIELDS` adds them per kind as the map says; `_element` copies them from the node data. Unset is `null`, as other optional fields are. The `editable` comment changes to "takes text changes and removal".
 - **Rename.** `PATCH /api/v1/boards/{id}` with `{name}` (`BoardName`) in `api/v1/elements.py`, `Writable`, write budget; answers the board as `GET /boards` lists it. MCP `rename_board(board, name)` in the write tools.
 - **MCP.** `update_elements` description names the styles and that they reach people's elements; `NoteIn` gains `bold`, `size`, `opacity`, `rotation`.
