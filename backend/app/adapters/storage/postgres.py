@@ -1706,6 +1706,10 @@ def _api_key(row: dict) -> ApiKey:
     return ApiKey(**{field: row[f"key_{field}"] for field in ApiKey.model_fields})
 
 
+# Named before the class, whose own `list` method would shadow the type there.
+ChosenBoards = list[str] | None
+
+
 class PgApiKeyRepo:
     """A global table: every query names the person or the workspace it means."""
 
@@ -1803,6 +1807,11 @@ class PgApiKeyRepo:
     def touch(self, key_id: str, day: str) -> None:
         with self._tx() as conn:
             conn.execute("UPDATE api_keys SET last_used_on = %s WHERE id = %s", (day, key_id))
+
+    def chosen_boards(self, key_id: str) -> ChosenBoards:
+        with self._tx() as conn:
+            row = conn.execute("SELECT boards FROM api_keys WHERE id = %s", (key_id,)).fetchone()
+        return row["boards"] if row else None
 
     def add_board(self, key_id: str, board_id: str) -> None:
         with self._tx() as conn:

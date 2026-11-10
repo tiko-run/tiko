@@ -114,6 +114,9 @@ class Change(BaseModel):
     def _together(self) -> "Change":
         if (self.x is None) != (self.y is None):
             raise ValueError("give x and y together, or neither")
+        for name in ("x", "y", "w", "h"):
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name} cannot be null; leave it out to keep it")
         return self
 
 
@@ -357,9 +360,9 @@ class _Plan:
         return {**node, "size": size}
 
     def _move(self, change: Change, node: dict[str, Any], given: set[str]) -> dict[str, Any]:
-        if not given & {"x", "y", "frame"}:
+        if change.x is None and "frame" not in given:
             return node
-        x, y = (change.x, change.y) if "x" in given else _absolute(self.nodes, change.id)
+        x, y = (change.x, change.y) if change.x is not None else _absolute(self.nodes, change.id)
         parent = node["place"].get("parentId")
         if "frame" in given:
             parent = change.frame
@@ -438,7 +441,12 @@ class _Plan:
         good, kept, notes = repaired(self.nodes, self.edges, self.before, self.changed, self.locked)
         if notes or good != self.nodes or kept != self.edges:
             reason = notes[0].replace("_", " ") if notes else "board rules"
-            raise ValidationFailed(f"This change would break the board: {reason}.")
+            broken = sorted(
+                {i for i in self.changed[0] if good.get(i) != self.nodes.get(i)}
+                | {i for i in self.changed[1] if kept.get(i) != self.edges.get(i)}
+            )
+            which = f" ({', '.join(broken[:5])})" if broken else ""
+            raise ValidationFailed(f"This change would break the board: {reason}{which}.")
 
 
 def plan(

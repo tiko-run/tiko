@@ -39,10 +39,11 @@ def boards_of(person, key, request: Request, board_id: str | None = None) -> lis
     # `listing` alone, never `list_boards`: a read must not make the welcome board.
     boards = request.app.state.boards
     rows = boards.listing(person.id, board_id) if board_id else boards.listing(person.id)
+    chosen = request.app.state.api_keys.chosen(key)
     found = []
     for row in rows:
         role = effective_role(person, row.member_role, row.everyone_role)
-        if role is None or (key.boards is not None and row.id not in key.boards):
+        if role is None or (chosen is not None and row.id not in chosen):
             continue
         found.append(
             Board(

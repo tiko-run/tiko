@@ -208,8 +208,12 @@ def test_an_api_write_reaches_a_tab_of_a_board_open_in_the_other_process(instanc
         assert written.status_code == 200, written.json()
         assert tab.ids() == {"agent-n1"}
         # A refusal from the room's process comes back with its own code.
-        taken = key.post(f"/api/v1/boards/{board_id}/elements/remove", json={"ids": ["x"]})
-        assert taken.status_code == 204
+        tab.add(sticky("by-a-person"))
+        assert tab.ids() == {"agent-n1", "by-a-person"}
+        url = f"/api/v1/boards/{board_id}/elements/remove"
+        refused = key.post(url, json={"ids": ["by-a-person"]})
+        assert refused.status_code == 409
+        assert refused.json()["error"]["code"] == "not_api_element"
 
 
 @pytest.mark.shared_rows

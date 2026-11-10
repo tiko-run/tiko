@@ -130,19 +130,12 @@ def _write(board_id: str, batch: Batch, request: Request, answer: bool = True) -
     elements = state.api_elements
     made = elements.of_board(board_id)
     batch.mine = [element_id for element_id, owner in made.items() if owner == person.id]
-    new = [e.id for e in batch.adds if e.id not in made]
-    if batch.arrange and batch.arrange.new_frame:
-        new.append(batch.arrange.new_frame[0])
+    applied = state.live.apply(board_id, batch)
+    # Rows only for what the board took: a row written ahead would make an element the caller's
+    # for a moment, even a person's. A crash between leaves an element counted as a person's.
     now = datetime.now(UTC).isoformat(timespec="seconds")
-    # Rows first: a crash after them leaves a row for an id that is not on the board, never an
-    # element the API added without its row.
-    elements.add(board_id, new, person.id, now)
-    try:
-        applied = state.live.apply(board_id, batch)
-    except Exception:
-        elements.remove(board_id, new)
-        raise
-    elements.remove(board_id, [i for i in new if i not in applied.created] + applied.removed)
+    elements.add(board_id, applied.created, person.id, now)
+    elements.remove(board_id, applied.removed)
     if not answer:
         return Written(elements=[], created=[])
     return _answer(board_id, applied, request)

@@ -169,9 +169,10 @@ def test_a_removal_never_takes_a_persons_arrow(app, admin, setup):
     assert (response.status_code, code(response)) == (409, "keeps_people_work")
 
 
-def test_a_batch_is_all_or_nothing(setup):
+def test_a_batch_is_all_or_nothing(app, setup):
     board_id, key = setup
     before = elements(key, board_id)
+    rows = app.state.api_elements.of_board(board_id)
     missing = add(
         key,
         board_id,
@@ -187,6 +188,10 @@ def test_a_batch_is_all_or_nothing(setup):
     )
     assert (bad_colour.status_code, code(bad_colour)) == (422, "validation_failed")
     assert elements(key, board_id) == before
+    taken = add(key, board_id, {"id": "n1", "kind": "note", "text": "mine now"})
+    assert code(taken) == "conflict"
+    # No row was written for any of them, not even for a moment's claim on a person's note.
+    assert app.state.api_elements.of_board(board_id) == rows
 
 
 def test_a_public_board_needs_a_key_that_chose_it(app, admin, setup):
@@ -278,3 +283,10 @@ def test_an_api_write_reaches_an_open_tab_and_keeps_a_persons_edit():
         assert "agent-n1" in elements(key, board_id)
     finally:
         world.sockets.__exit__(None, None, None)
+
+
+def test_a_null_place_is_refused_in_words(setup):
+    board_id, key = setup
+    nulls = {"changes": [{"id": "n1", "x": None, "y": None}]}
+    response = key.patch(f"/api/v1/boards/{board_id}/elements", json=nulls)
+    assert (response.status_code, code(response)) == (422, "invalid_request")

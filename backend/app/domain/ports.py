@@ -571,6 +571,10 @@ class SessionRepo(Protocol):
     def delete_expired(self, now: str) -> None: ...
 
 
+# Named before the class, whose own `list` method would shadow the type there.
+ChosenBoards = list[str] | None
+
+
 class ApiKeyRepo(Protocol):
     """Global: a key is found by its hash before the request's workspace is known."""
 
@@ -599,6 +603,10 @@ class ApiKeyRepo(Protocol):
         ...
 
     def touch(self, key_id: str, day: str) -> None: ...
+
+    def chosen_boards(self, key_id: str) -> ChosenBoards:
+        """The key's chosen boards as stored now; None for all boards."""
+        ...
 
     def add_board(self, key_id: str, board_id: str) -> None:
         """Adds a board to a key for chosen boards; a key for all boards stays as it is."""

@@ -54,8 +54,7 @@ def write_budget(request: Request) -> None:
 
 def viewable(board_id: str, request: Request) -> BoardRole:
     """The person's role on a board the key reaches; any other board is simply not found."""
-    chosen = key(request).boards
-    if chosen is not None and board_id not in chosen:
+    if not deps.api_keys(request).reaches(key(request), board_id):
         raise NotFound("board not found")
     return deps.members(request).require(person(request), board_id, "viewer")
 
@@ -67,7 +66,7 @@ def writable(board_id: str, request: Request) -> BoardRole:
     """A board the key may change: chosen for it, or, for a key of all boards, one without a
     public link, so a talked-into agent cannot copy private content onto a public page."""
     chosen = key(request).boards
-    if chosen is not None and board_id not in chosen:
+    if not deps.api_keys(request).reaches(key(request), board_id):
         raise NotFound("board not found")
     role = deps.members(request).require(person(request), board_id, "editor")
     if chosen is None and deps.public_links(request).token(board_id) is not None:
