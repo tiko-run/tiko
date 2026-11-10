@@ -386,16 +386,39 @@ if body["enabled"]:
     status, made = call(
         "POST", f"{API}/api/me/api-keys", {"name": "smoke", "password": PASSWORD, "days": 7}
     )
-    check(status == 201 and made["token"].startswith("tiko_"), "make an API key")
+    check(status == 201, "make an API key")
     try:
+        check(made["token"].startswith("tiko_"), "the key is shown once")
         request = urllib.request.Request(
             f"{WEB}/api/v1/me", headers={"authorization": f"Bearer {made['token']}"}
         )
         with urllib.request.urlopen(request, timeout=30) as response:
             me = json.loads(response.read())
         check(me["username"] == "admin" and me["key"]["name"] == "smoke", "v1 signs a key in")
-        status, body = call("GET", f"{WEB}/api/v1/me")
-        check(status == 401 and body["error"]["code"] == "auth_required", "v1 takes no cookie")
+        # A session of the UI's own address, so the cookie really goes along with the request.
+        web = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
+        )
+
+        def web_call(method: str, path: str, body: dict | None = None) -> int:
+            data = json.dumps(body).encode() if body is not None else None
+            request = urllib.request.Request(
+                f"{WEB}{path}", data=data, method=method,
+                headers={"content-type": "application/json"},
+            )
+            try:
+                with web.open(request, timeout=30) as response:
+                    return response.status
+            except urllib.error.HTTPError as error:
+                return error.code
+
+        login = {"username": "admin", "password": PASSWORD}
+        check(web_call("POST", "/api/auth/login", login) == 204, "sign in through the UI")
+        try:
+            check(web_call("GET", "/api/boards") == 200, "the UI session works")
+            check(web_call("GET", "/api/v1/me") == 401, "v1 takes no cookie")
+        finally:
+            web_call("POST", "/api/auth/logout")
     finally:
         status, _ = call("DELETE", f"{API}/api/me/api-keys/{made['key']['id']}")
         check(status == 204, "revoke the API key")

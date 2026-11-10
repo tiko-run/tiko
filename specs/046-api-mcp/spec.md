@@ -108,7 +108,7 @@ Principles check:
 18. **Task search** (`POST /api/v1/tasks/search`) names its tracker, and each takes what the card tool takes today:
     - `jira`: a JQL `query`;
     - `demo`: words of the title;
-    - `caldav`: words of the title, optionally a task list and whether to include done tasks;
+    - `caldav`: words of the title across every list the person shows, and whether to include done tasks;
     - `github` has no search in tiko: a GitHub card is added by its key or link, which the add operation already takes.
     One call returns up to 100 tasks; there are no further pages, as in the card tool. Search has a budget of its own, smaller than other reads, because it spends the person's tracker quota.
 

@@ -14,19 +14,19 @@ description: "Task list for the public API and MCP server"
 
 ## Phase 1: Slice `feat/api-keys` (released with slice 2)
 
-- [ ] T001 `012_api_keys.sql`; `api_keys` in the global list of `test_postgres.py`
-- [ ] T002 Port `ApiKeyRepo`, `PgApiKeyRepo`. Repository tests
-- [ ] T003 `domain/api_keys.py`: create (demo refused, 20 live, password behind a `Limiter`), resolve with the 30 s cache and refusal codes, list, revoke, `last_used_on` once a day, `end_for_person`, `end_for_member`. Domain tests with a fake clock
-- [ ] T004 `end_keys` message; wiring in `Accounts.set_disabled`, `Accounts.set_password`, `logout_all`, `Memberships.remove`; `change_password` returns the live key count. Test in `test_workers.py`: a key revoked in one process stops in the other within the bound
-- [ ] T005 Purge of ended keys after 30 days in `housekeeping`. Test
-- [ ] T006 `PasswordGate` key branch (lookup in a thread, per-address budget for unknown keys only, `WWW-Authenticate`, `must_change_password`, `/api/mcp` slash rewrite, open `openapi.json`); `WorkspaceScope` with the key's workspace, role `member`, `api_disabled`. Tests: cookie refused on v1, admin without override, removed member, a key on the live socket refused
-- [ ] T007 The switch: `api_keys` setting, `if created:` in `main.py`, `GET/PUT /api/settings` with the live count. Tests: new install on, existing off, off stops keys within the bound
-- [ ] T008 v1 sub-application: shared state, error handlers (`404`, `405`, validation, `500`, tracker sign-in → `403`), the bearer scheme, metrics label with the prefix; `GET /api/v1/me`
-- [ ] T009 `openapi-v1.json` committed; the contract test on a normalised document
-- [ ] T010 `test_workspace_walk.py`: a valid key on every route outside v1 and MCP answers `401`; a key from workspace A never reaches B through v1
-- [ ] T011 Internal routes `GET/POST/DELETE /api/me/api-keys`
-- [ ] T012 [P] Web: `api/apiKeys.ts`; `ApiKeys.tsx` (list, create with `read` scope only, boards picker, expiry, password; reveal; revoke); section id in `store.ts`, hidden for visitors and on demo; `Security.tsx` wording and the toast after a password change; the switch in `Sharing.tsx`. Vitest for the section and for who sees it
-- [ ] T013 Guide page "API keys"; CHANGELOG; `make smoke` makes a key and calls `/api/v1/me`
+- [x] T001 `012_api_keys.sql`; `api_keys` in the global list of `test_postgres.py`
+- [x] T002 Port `ApiKeyRepo`, `PgApiKeyRepo`. Repository tests
+- [x] T003 `domain/api_keys.py`: create (demo refused, 20 live, password behind a `Limiter`), resolve with the 30 s cache and refusal codes, list, revoke, `last_used_on` once a day, `end_for_person`, `end_for_member`. Domain tests with a fake clock
+- [x] T004 `end_keys` message; wiring in `Accounts.set_disabled`, `Accounts.set_password`, `logout_all`, `Memberships.remove`; `change_password` returns the live key count. Test in `test_workers.py`: a key revoked in one process stops in the other within the bound — no worker message: the 30 s cache re-read already bounds a revoke in other processes; ends hook into `Sessions.end_all` without a kept session and `Memberships.remove`
+- [x] T005 Purge of ended keys after 30 days in `housekeeping`. Test
+- [x] T006 `PasswordGate` key branch (lookup in a thread, per-address budget for unknown keys only, `WWW-Authenticate`, `must_change_password`, `/api/mcp` slash rewrite, open `openapi.json`); `WorkspaceScope` with the key's workspace, role `member`, `api_disabled`. Tests: cookie refused on v1, admin without override, removed member, a key on the live socket refused — the `/api/mcp` slash rewrite moves to slice 3 with the mount
+- [x] T007 The switch: `api_keys` setting, `if created:` in `main.py`, `GET/PUT /api/settings` with the live count. Tests: new install on, existing off, off stops keys within the bound
+- [x] T008 v1 sub-application: shared state, error handlers (`404`, `405`, validation, `500`, tracker sign-in → `403`), the bearer scheme, metrics label with the prefix; `GET /api/v1/me`
+- [x] T009 `openapi-v1.json` committed; the contract test on a normalised document
+- [x] T010 `test_workspace_walk.py`: a valid key on every route outside v1 and MCP answers `401`; a key from workspace A never reaches B through v1
+- [x] T011 Internal routes `GET/POST/DELETE /api/me/api-keys`
+- [x] T012 [P] Web: `api/apiKeys.ts`; `ApiKeys.tsx` (list, create with `read` scope only, boards picker, expiry, password; reveal; revoke); section id in `store.ts`, hidden for visitors and on demo; `Security.tsx` wording and the toast after a password change; the switch in `Sharing.tsx`. Vitest for the section and for who sees it — after a password change the toast links to the keys list instead of revoking them all at once
+- [x] T013 Guide page "API keys"; CHANGELOG; `make smoke` makes a key and calls `/api/v1/me`
 
 ## Phase 2: Slice `feat/api-read`
 

@@ -114,10 +114,10 @@ Without parameters, an outline:
 
 ```json
 {"id": "n7", "kind": "note", "x": 120, "y": 80, "w": 200, "h": 200, "frame": "f1",
- "text": "Ask legal about the export", "color": "yellow", "by_api": true}
+ "text": "Ask legal about the export", "color": "yellow", "editable": true}
 ```
 
-| Kind | Fields besides `id`, `kind`, `x`, `y`, `w`, `h`, `frame`, `by_api` |
+| Kind | Fields besides `id`, `kind`, `x`, `y`, `w`, `h`, `frame`, `editable` |
 |---|---|
 | `card` | `source`, `key`, `task`: `{title, status, assignee, due, url, fetched_at}`, or `null` when the person's credentials cannot read it |
 | `note` | `text`, `color` |
@@ -127,6 +127,8 @@ Without parameters, an outline:
 | `arrow` | `from`, `to`: element ids, or `null` for an end that points at no element; no `x`, `y`, `w`, `h`, `frame` |
 | `timer` | `note`, `due_at`, `attached_to` (an element id or `null`); read-only |
 | `image`, `module` | `title` where there is one; read-only |
+
+`editable` is true for an element the key's person added through the API, with any of their keys: only those take changes of text and colour, and removal. Elements other people added through the API are false.
 
 `w` and `h` are present when the board stores a size; a card's height is measured by the browser and may be absent.
 
@@ -210,7 +212,7 @@ Streamable HTTP, JSON answers, the same key as `Authorization: Bearer`. `/api/mc
 | `add_frame(board, title, id?, x?, y?, w?, h?)` | write | idempotent with an id | `POST /elements`, kind `frame` |
 | `connect(board, from, to, id?)` | write | idempotent with an id | `POST /elements`, kind `arrow` |
 | `update_elements(board, changes)` | write | idempotent | `PATCH /elements` |
-| `arrange(board, cards, layout, frame?)` | write | idempotent | `POST /arrange` |
+| `arrange(board, cards, layout, frame?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
 | `remove_elements(board, ids)` | write | destructive, idempotent | `POST /elements/remove` |
 
 A `read` key lists only the first three; a write tool called with one answers `scope_required`. Every answer that names a board carries its `url`.

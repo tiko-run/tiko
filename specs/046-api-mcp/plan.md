@@ -62,7 +62,7 @@ Keys live in a global table looked up by hash, each bound to a workspace. `Passw
 
 ### Reads
 
-- `domain/api_view.py`: kinds by name, absolute coordinates (frame offsets added), anchors hidden behind `null` arrow ends, `attached_to` for timers, `by_api` from `api_elements` (all false before slice 4), outline counts, pages of 500 ordered by id with `after`.
+- `domain/api_view.py`: kinds by name, absolute coordinates (frame offsets added), anchors hidden behind `null` arrow ends, `attached_to` for timers, `editable` from `api_elements` rows of the key's person (all false before slice 4), outline counts, pages of 500 ordered by id with `after`.
 - The board read comes from storage. Writes through the API save before they answer, so they show at once; browser edits show after the room's save, within 10 seconds, as the contract says.
 - Listing boards calls `boards.listing(person.id, others=False)` directly, never `create_welcome`.
 - Fresh cards: `RefreshService.refresh(..., max_age_s=interval)` polls only keys whose snapshot `fetched_at` is older than the interval; the browser path passes nothing and behaves as today.

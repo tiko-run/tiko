@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, SecretStr
 from app.api import deps
 from app.api.deps import CurrentPerson, NotDemoVisitor, WorkspaceAdmin
 from app.domain.accounts import Person
+from app.domain.api_keys import ApiKeys
 from app.domain.errors import Forbidden
 from app.domain.settings import (
     JiraCredentials,
@@ -20,6 +21,7 @@ from app.domain.workspaces import current_workspace
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 Settings = Annotated[SettingsService, Depends(deps.settings)]
+ApiKeysDep = Annotated[ApiKeys, Depends(deps.api_keys)]
 
 
 class TestIn(BaseModel):
@@ -35,9 +37,9 @@ class TestOut(BaseModel):
 
 
 @router.get("")
-def get_settings(person: CurrentPerson, settings: Settings, request: Request) -> SettingsView:
+def get_settings(person: CurrentPerson, settings: Settings, keys: ApiKeysDep) -> SettingsView:
     """Instance settings for everyone; `jira.token_state` is the person's own token."""
-    view = _with_key_count(settings.view(person.id), person, request)
+    view = _with_key_count(settings.view(person.id), person, keys)
     if person.demo_expires_at:
         # The instance's tracker is for people with an account; a visitor is not shown it.
         hidden = {"provider": "demo", "jira": JiraView(base_url=None, token_state="none")}
@@ -47,17 +49,17 @@ def get_settings(person: CurrentPerson, settings: Settings, request: Request) ->
 
 @router.put("")
 def put_settings(
-    body: SettingsIn, admin: WorkspaceAdmin, settings: Settings, request: Request
+    body: SettingsIn, admin: WorkspaceAdmin, settings: Settings, keys: ApiKeysDep
 ) -> SettingsView:
-    return _with_key_count(settings.update(body, admin.id), admin, request)
+    return _with_key_count(settings.update(body, admin.id), admin, keys)
 
 
-def _with_key_count(view: SettingsView, person: Person, request: Request) -> SettingsView:
+def _with_key_count(view: SettingsView, person: Person, keys: ApiKeys) -> SettingsView:
     """An admin sees how many API keys are live in the workspace, never the keys."""
     workspace = current_workspace.get()
     if person.role != "admin" or workspace is None:
         return view
-    return view.model_copy(update={"api_keys_live": deps.api_keys(request).live_count(workspace)})
+    return view.model_copy(update={"api_keys_live": keys.live_count(workspace)})
 
 
 @router.post("/jira/test", dependencies=[NotDemoVisitor])
