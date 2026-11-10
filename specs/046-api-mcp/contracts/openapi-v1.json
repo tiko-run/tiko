@@ -200,6 +200,17 @@
       "Change": {
         "additionalProperties": false,
         "properties": {
+          "bold": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bold"
+          },
           "color": {
             "anyOf": [
               {
@@ -211,6 +222,17 @@
               }
             ],
             "title": "Color"
+          },
+          "dash": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dash"
           },
           "frame": {
             "anyOf": [
@@ -242,6 +264,33 @@
             "title": "Id",
             "type": "string"
           },
+          "opacity": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 10.0,
+                "multipleOf": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opacity"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": -100000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
+          },
           "shape": {
             "anyOf": [
               {
@@ -262,6 +311,37 @@
               }
             ],
             "title": "Shape"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "stroke": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  1.5,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stroke"
           },
           "text": {
             "anyOf": [
@@ -381,6 +461,17 @@
             ],
             "title": "Attached To"
           },
+          "bold": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bold"
+          },
           "color": {
             "anyOf": [
               {
@@ -391,6 +482,17 @@
               }
             ],
             "title": "Color"
+          },
+          "dash": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dash"
           },
           "due_at": {
             "anyOf": [
@@ -493,6 +595,28 @@
             ],
             "title": "Note"
           },
+          "opacity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opacity"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
+          },
           "shape": {
             "anyOf": [
               {
@@ -504,6 +628,17 @@
             ],
             "title": "Shape"
           },
+          "size": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
           "source": {
             "anyOf": [
               {
@@ -514,6 +649,17 @@
               }
             ],
             "title": "Source"
+          },
+          "stroke": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stroke"
           },
           "task": {
             "anyOf": [
@@ -1100,6 +1246,17 @@
       "NewElement": {
         "additionalProperties": false,
         "properties": {
+          "bold": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bold"
+          },
           "color": {
             "anyOf": [
               {
@@ -1111,6 +1268,17 @@
               }
             ],
             "title": "Color"
+          },
+          "dash": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dash"
           },
           "frame": {
             "anyOf": [
@@ -1173,6 +1341,20 @@
             "title": "Kind",
             "type": "string"
           },
+          "opacity": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 10.0,
+                "multipleOf": 5.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opacity"
+          },
           "ref": {
             "anyOf": [
               {
@@ -1184,6 +1366,19 @@
               }
             ],
             "title": "Ref"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": -100000.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
           },
           "shape": {
             "anyOf": [
@@ -1205,6 +1400,37 @@
               }
             ],
             "title": "Shape"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "stroke": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  1.5,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stroke"
           },
           "text": {
             "anyOf": [
@@ -2296,6 +2522,102 @@
         "tags": [
           "boards"
         ]
+      },
+      "patch": {
+        "description": "Renames a board the key may change; an editor may, as in the web app.",
+        "operationId": "rename_boards__board_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "board_id",
+            "required": true,
+            "schema": {
+              "title": "Board Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewBoard"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Board"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No key, or a key that stopped working"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The key may not do this, or keys are switched off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found, or not among what the key reaches"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The request does not match the schema"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Over a budget; see Retry-After"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rename",
+        "tags": [
+          "writing"
+        ]
       }
     },
     "/boards/{board_id}/arrange": {
@@ -2398,7 +2720,7 @@
     },
     "/boards/{board_id}/elements": {
       "patch": {
-        "description": "Moves and resizes any element; changes text and colour of what the API added.",
+        "description": "Moves, resizes and restyles any element; changes text of what the API added.",
         "operationId": "change_elements_boards__board_id__elements_patch",
         "parameters": [
           {

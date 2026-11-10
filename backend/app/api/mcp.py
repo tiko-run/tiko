@@ -11,7 +11,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -65,7 +65,21 @@ class NoteIn(BaseModel):
     color: str | None = Field(
         default=None, description="A note's colour: yellow, orange, pink, violet, blue or green."
     )
+    bold: bool | None = None
+    size: Literal["small", "medium", "large"] | None = Field(
+        default=None, description="Text size; plain text only."
+    )
+    opacity: int | None = Field(default=None, description="Percent, 10 to 100 in steps of 5.")
+    rotation: float | None = Field(default=None, description="Degrees clockwise.")
     id: str | None = Field(default=None, description="Your own id for it.")
+
+    @model_validator(mode="after")
+    def _fits(self) -> "NoteIn":
+        if self.kind == "note" and self.size is not None:
+            raise ValueError("size is for plain text; a sticky note has none")
+        if self.kind == "text" and self.color is not None:
+            raise ValueError("plain text has no colour")
+        return self
 
 
 class TikoMCP(MCPServer):
@@ -302,6 +316,24 @@ def create(app: FastAPI) -> TikoMCP:
         )
 
     @server.tool(annotations=_ADDS)
+    def rename_board(
+        ctx: Context, board: Annotated[str, _BOARD], name: Annotated[str, Field(max_length=100)]
+    ) -> dict[str, Any]:
+        """Renames a board."""
+        return write(
+            ctx,
+            board,
+            lambda request: elements.rename(
+                board,
+                elements.NewBoard(name=name),
+                None,
+                deps.person(request),
+                deps.key(request),
+                request,
+            ).model_dump(),
+        )
+
+    @server.tool(annotations=_ADDS)
     def add_cards(
         ctx: Context,
         board: Annotated[str, _BOARD],
@@ -322,7 +354,10 @@ def create(app: FastAPI) -> TikoMCP:
     ) -> dict[str, Any]:
         """Puts sticky notes or plain text on a board, below what is there or in a frame."""
         items = [
-            NewElement(kind=n.kind, text=n.text, color=n.color, id=n.id, frame=frame) for n in notes
+            NewElement(
+                kind=n.kind, frame=frame, **n.model_dump(exclude_unset=True, exclude={"kind"})
+            )
+            for n in notes
         ]
         return write(ctx, board, lambda request: adds(board, items, request))
 
@@ -355,8 +390,9 @@ def create(app: FastAPI) -> TikoMCP:
         board: Annotated[str, _BOARD],
         changes: Annotated[list[Change], Field(min_length=1, max_length=200)],
     ) -> dict[str, Any]:
-        """Moves, resizes or puts elements in and out of frames, and changes the text and
-        colour of what you added. Text people wrote is theirs: it cannot be changed here."""
+        """Moves, resizes or puts elements in and out of frames, and restyles any element:
+        colour, bold, text size, opacity, rotation, a shape's stroke and dash. Changes the text
+        of what you added; text people wrote is theirs and cannot be changed here."""
         body = elements.ChangeIn(changes=changes)
         return write(
             ctx,

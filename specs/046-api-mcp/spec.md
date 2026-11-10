@@ -66,9 +66,9 @@ Principles check:
 11. **What a key may change.**
     - Add elements: notes, text, shapes, frames, cards, arrows.
     - Move, resize and put into a frame any element.
-    - Change text and colour, and remove, only elements added through the API (by any key of the same person). People's own text is never overwritten and their elements never removed by a key: a change by the server is in nobody's undo history and a board has no history, so this is what keeps an agent's mistake recoverable by hand.
+    - Change text, and remove, only elements added through the API (by any key of the same person). Colour and style reach any element since spec 048 Decision 3: a look loses no words and is set back from the style bar. People's own text is never overwritten and their elements never removed by a key: a change by the server is in nobody's undo history and a board has no history, so this is what keeps an agent's mistake recoverable by hand.
     - A removal that would take a person's arrow or timer with it is refused with `409`.
-    - Changing the text or colour of, or removing, an element locked by a running vote answers `409 vote_running` instead of a success that the vote then undoes. Moving it is allowed, as in the web app.
+    - Changing the text, colour or style of, or removing, an element locked by a running vote answers `409 vote_running` instead of a success that the vote then undoes. Moving it is allowed, as in the web app.
     - Which elements were added through the API is kept in a server table (board, element, person), not in the board document: copies a person makes are not marked, and the web app needs no change.
 
 12. **A batch is all or nothing.** Each call adds or changes up to 200 elements. A new room operation applies it: it builds the board as it would be after the batch, checks it with the rules every save uses (frame order, arrow ends, at most 2000 nodes and 4000 edges), and only then writes the touched keys into the board's shared document. A batch that breaks a rule changes nothing and answers `422` with the reason. The operation runs in the process that holds the board's room; a call that lands elsewhere is forwarded the way a REST save is today, with a message of its own. People with the board open see the change at once; no board version is needed.
@@ -136,7 +136,7 @@ Principles check:
 - **FR-007**: Board reads MUST return the public shape of Decision 19 in pages (Decision 17), with cards refreshed as Decision 16 says, and MUST write nothing.
 - **FR-008**: Task search MUST take Jira, demo and CalDAV queries as Decision 18 says and use the person's own credentials; a read MUST NOT ask the tracker for a card younger than the refresh interval.
 - **FR-009**: A `write` key MUST be able to create a board and add and change elements in batches of up to 200, applied to the live board so open browsers see them without reload; a batch that breaks a board rule MUST change nothing.
-- **FR-010**: A key MUST NOT change the text or colour of, or remove, an element not added through the API; a removal that would take a person's arrow or timer with it MUST be refused.
+- **FR-010**: A key MUST NOT change the text of, or remove, an element not added through the API (colour and style: spec 048); a removal that would take a person's arrow or timer with it MUST be refused.
 - **FR-011**: Retries MUST be safe as Decision 13 says.
 - **FR-012**: `arrange` MUST place only the named cards, as a grid or in columns by status, without overlapping elements already on the board.
 - **FR-013**: `/api/mcp` MUST serve the tools of Decision 15 to clients on protocol `2026-07-28` and to older ones, on an instance with several API processes, under any host name the instance is reached by.

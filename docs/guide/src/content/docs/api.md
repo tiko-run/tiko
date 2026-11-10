@@ -50,9 +50,9 @@ Reads the plan as the Gantt draws it, all rows at once, collapsed or filtered ou
 
 A key with read and write access can change the boards you can edit:
 
-- `POST /api/v1/boards` makes a new board.
+- `POST /api/v1/boards` makes a new board, and `PATCH /api/v1/boards/<id>` with `{"name": "…"}` renames one.
 - `POST /api/v1/boards/<id>/elements` adds notes, text, shapes, frames, cards (by a task key or link) and arrows. Without `x` and `y` they are laid out in rows below what is on the board, or inside the frame you name, which grows to hold them. Give each element your own `id` and a retry never adds it twice.
-- `PATCH /api/v1/boards/<id>/elements` moves and resizes elements and puts them in and out of frames.
+- `PATCH /api/v1/boards/<id>/elements` moves and resizes elements, puts them in and out of frames, and changes their look: `color`, `bold`, `size` (`small`, `medium`, `large`), `opacity` (10 to 100 in steps of 5), `rotation` (degrees), and a shape's `stroke` (1, 1.5, 3) and `dash`. New elements take the same fields. A field an element does not have in the web app, such as bold on a frame, is refused.
 - `POST /api/v1/boards/<id>/arrange` lays cards out as a grid or in a column per status, in a frame or below the board. Only the cards you name move.
 - `POST /api/v1/boards/<id>/elements/remove` removes elements.
 
@@ -62,7 +62,7 @@ curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
   https://tiko.example.com/api/v1/boards/<id>/elements
 ```
 
-What people made stays theirs: a key moves any element, but changes the text and colour of, and removes, only what was added through the API by you. Text people wrote never changes behind their back, and nothing they made disappears. During a vote, the elements in it keep their words.
+What people made stays theirs: a key moves and restyles any element, but changes the text of, and removes, only what was added through the API by you. Text people wrote never changes behind their back, and nothing they made disappears. During a vote, the elements in it keep their words and look.
 
 A call is applied whole or not at all: if one element breaks a rule, the board stays as it was and the answer says why. People with the board open see the change at once.
 

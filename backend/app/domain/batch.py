@@ -7,10 +7,10 @@ applied whole or not at all.
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.domain import layout
-from app.domain.boards import ShapeKind
+from app.domain.boards import Opacity, ShapeKind, TextSize
 from app.domain.errors import (
     Conflict,
     KeepsPeopleWork,
@@ -39,9 +39,17 @@ _TAKEN = {
 _PLACE = Field(default=None, ge=-1_000_000, le=1_000_000)
 _SIZE = Field(default=None, ge=1, le=20_000)
 _TYPES = {"card": "task_card", "note": "sticky", "text": "text", "shape": "shape", "frame": "frame"}
-# What text and colour mean for each stored type: the data key, or None where there is none.
+# The data key that holds each stored type's text.
 _TEXT = {"sticky": "text", "text": "text", "shape": "text", "frame": "title"}
-_COLOR = {"sticky": "color", "shape": "color", "frame": "color"}
+# The look each stored type takes, as the web app's style bar offers it; a key may set these on
+# any element, its person's included.
+_STYLES = {
+    "sticky": {"color", "bold", "opacity", "rotation"},
+    "shape": {"color", "bold", "size", "opacity", "rotation", "stroke", "dash"},
+    "text": {"bold", "size", "opacity", "rotation"},
+    "frame": {"color", "opacity"},
+}
+_STYLE_FIELDS = ("bold", "size", "opacity", "rotation", "stroke", "dash")
 _SIZED = {"sticky": "wh", "shape": "wh", "frame": "wh", "text": "w"}
 
 
@@ -51,7 +59,25 @@ def _free_name(value: str | None) -> str | None:
     return value
 
 
-class NewElement(BaseModel):
+class _Styled(BaseModel):
+    bold: bool | None = None
+    size: TextSize | None = None
+    opacity: Opacity | None = None
+    rotation: float | None = Field(default=None, ge=-100_000, le=100_000)
+    stroke: Literal[1, 1.5, 3] | None = None
+    dash: bool | None = None
+
+    @field_validator("rotation")
+    @classmethod
+    def _fold(cls, value: float | None) -> int | None:
+        # Stored as the web app's rotate handle stores it: whole degrees from -180 to 180.
+        return None if value is None else (round(value) + 180) % 360 - 180
+
+    def styles(self, given: set[str]) -> dict[str, Any]:
+        return {name: getattr(self, name) for name in _STYLE_FIELDS if name in given}
+
+
+class NewElement(_Styled):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     id: str | None = Field(default=None, pattern=ID_PATTERN)
@@ -95,7 +121,7 @@ class NewElement(BaseModel):
         return self
 
 
-class Change(BaseModel):
+class Change(_Styled):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(max_length=100)
@@ -114,7 +140,7 @@ class Change(BaseModel):
     def _together(self) -> "Change":
         if (self.x is None) != (self.y is None):
             raise ValueError("give x and y together, or neither")
-        for name in ("x", "y", "w", "h"):
+        for name in ("x", "y", "w", "h", *_STYLE_FIELDS):
             if name in self.model_fields_set and getattr(self, name) is None:
                 raise ValueError(f"{name} cannot be null; leave it out to keep it")
         return self
@@ -264,6 +290,15 @@ class _Plan:
         self.changed[1].add(element.id)
 
     def _data(self, element: NewElement) -> dict[str, Any]:
+        styles = element.styles(element.model_fields_set)
+        kind = _TYPES.get(element.kind, element.kind)
+        looks = [*styles, *(["color"] if element.color is not None else [])]
+        for name in looks:
+            if name not in _STYLES.get(kind, ()):
+                raise ValidationFailed(f"{element.id}: a {element.kind} has no {name}")
+        return self._content(element) | {k: v for k, v in styles.items() if v is not None}
+
+    def _content(self, element: NewElement) -> dict[str, Any]:
         if element.kind == "card":
             card = self.batch.cards.get(element.id)
             if card is None:
@@ -327,17 +362,25 @@ class _Plan:
             self.applied.ids.append(change.id)
 
     def _restyle(self, change: Change, node: dict[str, Any], given: set[str]) -> dict[str, Any]:
-        wanted = given & {"text", "title", "color", "shape"}
-        if not wanted:
+        words = given & {"text", "title", "shape"}
+        looks = given & {"color", *_STYLE_FIELDS}
+        if not (words or looks):
             return node
-        self._own(change.id, "change")
+        # Words and form are the person's; the look is not, so tidying needs no ownership.
+        if words:
+            self._own(change.id, "change")
+        elif change.id in self.locked:
+            raise VoteRunning(f"{change.id} is in a running vote.")
         data = dict(node["data"])
         kind = node["type"]
-        for name in wanted:
+        for name in words | looks:
             value = getattr(change, name)
-            key = _TEXT.get(kind) if name in ("text", "title") else _COLOR.get(kind)
             if name == "shape":
                 key = "shape" if kind == "shape" else None
+            elif name in ("text", "title"):
+                key = _TEXT.get(kind)
+            else:
+                key = name if name in _STYLES.get(kind, ()) else None
             if key is None or value is None:
                 raise ValidationFailed(f"{change.id}: a {kind} has no {name} to change")
             data[key] = value
