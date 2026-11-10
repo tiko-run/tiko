@@ -16,6 +16,8 @@ def test_defaults(client):
         "secret_key_configured": False,
         "jira": {"base_url": None, "token_state": "none", "kind": None, "start_field": None},
         "public_links": True,
+        "api_keys": True,
+        "api_keys_live": 0,
         "locked": [],
     }
 

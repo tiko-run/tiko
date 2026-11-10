@@ -378,3 +378,26 @@ check(
     "settings hide token",
 )
 check(isinstance(body["secret_key_configured"], bool), "secret key state reported")
+
+# A personal API key reaches v1 through the UI's proxy, and only with the key (spec 046).
+status, body = call("GET", f"{API}/api/me/api-keys")
+check(status == 200, "list API keys")
+if body["enabled"]:
+    status, made = call(
+        "POST", f"{API}/api/me/api-keys", {"name": "smoke", "password": PASSWORD, "days": 7}
+    )
+    check(status == 201 and made["token"].startswith("tiko_"), "make an API key")
+    try:
+        request = urllib.request.Request(
+            f"{WEB}/api/v1/me", headers={"authorization": f"Bearer {made['token']}"}
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            me = json.loads(response.read())
+        check(me["username"] == "admin" and me["key"]["name"] == "smoke", "v1 signs a key in")
+        status, body = call("GET", f"{WEB}/api/v1/me")
+        check(status == 401 and body["error"]["code"] == "auth_required", "v1 takes no cookie")
+    finally:
+        status, _ = call("DELETE", f"{API}/api/me/api-keys/{made['key']['id']}")
+        check(status == 204, "revoke the API key")
+else:
+    print("skip API keys: switched off on this tiko")

@@ -94,6 +94,10 @@ def _status(exc: DomainError) -> int:
     return 400
 
 
+# Sent with a refused API key, so a client knows a bearer token is what is missing.
+KEY_CHALLENGE = {"www-authenticate": 'Bearer realm="tiko", error="invalid_token"'}
+
+
 def error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 

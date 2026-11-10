@@ -1,9 +1,12 @@
+from collections.abc import Callable
+
 import anyio.to_thread
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.api.errors import error_body
+from app.api.errors import KEY_CHALLENGE, error_body
 from app.domain.accounts import Person
+from app.domain.api_keys import KeyIdentity
 from app.domain.workspaces import WorkspaceLookup, in_workspace
 
 BOARDS = "/api/boards/"
@@ -40,9 +43,28 @@ class WorkspaceScope:
     its board's workspace; a board route in its board's, when the person is a member there; the
     rest in the person's own, where a board of another workspace is simply not found."""
 
-    def __init__(self, app: ASGIApp, lookup: WorkspaceLookup) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        lookup: WorkspaceLookup,
+        keys_enabled: Callable[[], bool] = lambda: False,
+    ) -> None:
         self.app = app
         self.lookup = lookup
+        # The workspace's API key switch, read inside the workspace.
+        self.keys_enabled = keys_enabled
+
+    def _by_key(self, scope: Scope, key: KeyIdentity) -> tuple[str, str | None]:
+        """A key works in its own workspace only, as a member: no admin reaches every board
+        through it. Returns the workspace and why the key is refused there, if it is."""
+        state = scope["state"]
+        person: Person = state["person"]
+        if self.lookup.role_in(person.id, key.workspace_id) is None:
+            return key.workspace_id, "token_revoked"
+        state["person"] = person.model_copy(update={"role": "member"})
+        with in_workspace(key.workspace_id):
+            enabled = self.keys_enabled()
+        return key.workspace_id, None if enabled else "api_disabled"
 
     def _find(self, scope: Scope) -> str | None:
         path = scope["path"]
@@ -65,6 +87,24 @@ class WorkspaceScope:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "lifespan":
             await self.app(scope, receive, send)
+            return
+        key: KeyIdentity | None = scope.get("state", {}).get("api_key")
+        if key is not None:
+            workspace, refused = await anyio.to_thread.run_sync(self._by_key, scope, key)
+            if refused:
+                status, message = (
+                    (401, "This API key's person left its workspace.")
+                    if refused == "token_revoked"
+                    else (403, "Your admin has switched API keys off.")
+                )
+                headers = KEY_CHALLENGE if status == 401 else None
+                response = JSONResponse(
+                    error_body(refused, message), status_code=status, headers=headers
+                )
+                await response(scope, receive, send)
+                return
+            with in_workspace(workspace):
+                await self.app(scope, receive, send)
             return
         workspace = await anyio.to_thread.run_sync(self._find, scope)
         signed_in = scope.get("state", {}).get("person") is not None

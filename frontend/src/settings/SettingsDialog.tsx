@@ -5,6 +5,7 @@ import {
   ChartGantt,
   IdCard,
   KeyRound,
+  KeySquare,
   Link2,
   Plug,
   ShieldCheck,
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from 'cn'
 import { Accounts } from '@/settings/sections/Accounts'
+import { ApiKeys } from '@/settings/sections/ApiKeys'
 import { MyTracker } from '@/settings/sections/MyTracker'
 import { People } from '@/settings/sections/People'
 import { Planning } from '@/settings/sections/Planning'
@@ -47,9 +49,18 @@ type Entry = {
   need?: 'admin' | 'server'
 }
 
-const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker'])
-// A tracker token and everything of the Workspace group live in a workspace.
-const WORKSPACE_ONLY = new Set<Section>(['tracker', 'task-source', 'people', 'sharing', 'planning'])
+const VISITOR_HIDDEN = new Set<Section>(['profile', 'security', 'tracker', 'api-keys'])
+// A public demo instance offers no API keys to anyone.
+const DEMO_HIDDEN = new Set<Section>(['api-keys'])
+// A tracker token, API keys and everything of the Workspace group live in a workspace.
+const WORKSPACE_ONLY = new Set<Section>([
+  'tracker',
+  'api-keys',
+  'task-source',
+  'people',
+  'sharing',
+  'planning',
+])
 
 const GROUPS: { title: string; entries: Entry[] }[] = [
   {
@@ -57,6 +68,7 @@ const GROUPS: { title: string; entries: Entry[] }[] = [
     entries: [
       { id: 'profile', label: 'Profile', Icon: UserRound, render: (me) => <Profile me={me} /> },
       { id: 'security', label: 'Security', Icon: KeyRound, render: (me) => <Security me={me} /> },
+      { id: 'api-keys', label: 'API keys', Icon: KeySquare, render: () => <ApiKeys /> },
       {
         id: 'preferences',
         label: 'Preferences',
@@ -178,7 +190,7 @@ function Nav({
   )
 }
 
-function SettingsBody({ me, section }: { me: Me; section: Section }) {
+function SettingsBody({ me, demo, section }: { me: Me; demo: boolean; section: Section }) {
   const narrow = useNarrow()
   // On a narrow screen the window shows the list first, then one section with a Back button;
   // a link to another section opens it directly.
@@ -190,6 +202,7 @@ function SettingsBody({ me, section }: { me: Me; section: Section }) {
       (item) =>
         allowed(item, me) &&
         (!me.demo_expires_at || !VISITOR_HIDDEN.has(item.id)) &&
+        (!demo || !DEMO_HIDDEN.has(item.id)) &&
         (!!me.workspace || !WORKSPACE_ONLY.has(item.id)),
     ),
   })).filter((group) => group.entries.length > 0)
@@ -274,7 +287,7 @@ export function SettingsDialog() {
         <DialogDescription className="sr-only">
           Your account, preferences and the settings of this tiko.
         </DialogDescription>
-        {me && section && <SettingsBody me={me} section={section} />}
+        {me && section && <SettingsBody me={me} demo={!!auth.data?.demo} section={section} />}
       </DialogContent>
     </Dialog>
   )

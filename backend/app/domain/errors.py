@@ -192,3 +192,21 @@ class VoteRefused(DomainError):
 
 class NewerFile(DomainError):
     code = "newer_file"
+
+
+class KeyRefused(DomainError):
+    """An API key that signs nobody in; the code says why."""
+
+    code = "auth_required"
+
+
+class TokenExpired(KeyRefused):
+    code = "token_expired"
+
+
+class TokenRevoked(KeyRefused):
+    code = "token_revoked"
+
+
+class ApiDisabled(Forbidden):
+    code = "api_disabled"

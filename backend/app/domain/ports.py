@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
+    from app.domain.api_keys import ApiKey, EndReason, StoredKey
     from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow
     from app.domain.files import Picture, Served, StoredFile
     from app.domain.folders import Folder
@@ -562,6 +563,40 @@ class SessionRepo(Protocol):
     def delete_for_user(self, user_id: str, keep: str | None) -> None: ...
 
     def delete_expired(self, now: str) -> None: ...
+
+
+class ApiKeyRepo(Protocol):
+    """Global: a key is found by its hash before the request's workspace is known."""
+
+    def add(self, key: ApiKey, token_hash: str, user_id: str, workspace: str) -> None: ...
+
+    def get(self, token_hash: str) -> tuple[StoredKey, Person] | None:
+        """The key and its person as a member of the key's workspace."""
+        ...
+
+    def list(self, user_id: str, workspace: str) -> list[ApiKey]:
+        """The person's keys there that have not ended, expired ones included, newest first."""
+        ...
+
+    def count_live(self, user_id: str, workspace: str, now: str) -> int: ...
+
+    def count_workspace_live(self, workspace: str, now: str) -> int: ...
+
+    def end(self, key_id: str, user_id: str, workspace: str, now: str, reason: EndReason) -> bool:
+        """Ends one of the person's keys; False when there is no such key that has not ended."""
+        ...
+
+    def end_for_person(
+        self, user_id: str, workspace: str | None, now: str, reason: EndReason
+    ) -> None:
+        """Ends the person's keys in `workspace`, or in every workspace for None."""
+        ...
+
+    def touch(self, key_id: str, day: str) -> None: ...
+
+    def purge(self, before: str) -> int:
+        """Deletes keys that ended or expired before `before`; returns how many."""
+        ...
 
 
 class InviteRepo(Protocol):

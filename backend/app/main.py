@@ -34,6 +34,7 @@ from app.adapters.tasks.jira_cloud import JiraCloudProvider
 from app.adapters.tasks.jira_dc import JiraDateFields, JiraDcProvider
 from app.adapters.tasks.jira_kind import find_kind
 from app.adapters.updater.http import HttpUpdater, ensure_token
+from app.api import v1
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
@@ -41,6 +42,7 @@ from app.api.workspace import WorkspaceScope
 from app.config import DEFAULT_DB_PATH, Settings, get_settings
 from app.domain import demo, usage
 from app.domain.accounts import Accounts
+from app.domain.api_keys import ApiKeys
 from app.domain.boards import purge_trash
 from app.domain.errors import NotFound
 from app.domain.files import DEMO_QUOTA_MB, Files, clean_files
@@ -196,7 +198,9 @@ def create_app(
                 log.exception("demo cleanup failed")
             await asyncio.sleep(demo.CLEANUP_EVERY_S)
 
-    async def housekeeping(boards: BoardRepo, folders: FolderRepo, files: UnusedFiles) -> None:
+    async def housekeeping(
+        boards: BoardRepo, folders: FolderRepo, files: UnusedFiles, keys: ApiKeys
+    ) -> None:
         while True:
             try:
                 purged = await anyio.to_thread.run_sync(purge_trash, boards, datetime.now(UTC))
@@ -208,6 +212,9 @@ def create_app(
                 cleaned = await anyio.to_thread.run_sync(clean_files, files, datetime.now(UTC))
                 if cleaned:
                     log.info("housekeeping: %d unused pictures deleted", cleaned)
+                ended = await anyio.to_thread.run_sync(keys.purge)
+                if ended:
+                    log.info("housekeeping: %d ended API keys deleted", ended)
             except Exception:
                 log.exception("housekeeping failed")
             await asyncio.sleep(HOUSEKEEPING_EVERY_S)
@@ -231,7 +238,9 @@ def create_app(
         )
         keeper = (
             asyncio.create_task(
-                housekeeping(app.state.boards, app.state.folders, app.state.unused_files)
+                housekeeping(
+                    app.state.boards, app.state.folders, app.state.unused_files, app.state.api_keys
+                )
             )
             if settings.tiko_worker == 0
             else None
@@ -296,10 +305,18 @@ def create_app(
     )
     app.state.live = workers or rooms
     attempts = storage.Attempts(db)
+    app.state.api_keys = ApiKeys(
+        storage.ApiKeyRepo(db),
+        users,
+        attempts,
+        enabled=lambda: app.state.settings.api_keys(),
+        offered=not settings.tiko_demo,
+    )
     app.state.sessions = Sessions(
         storage.SessionRepo(db),
         app.state.live,
         touch_demo=partial(demo.touch, users) if settings.tiko_demo else None,
+        on_signed_out=app.state.api_keys.end_for_person,
     )
     if workers:
         # The other processes keep sessions for 30 s too.
@@ -336,7 +353,9 @@ def create_app(
         app.state.live,
     )
     rooms.locks = app.state.voting.running_elements
-    app.state.memberships = Memberships(users, app.state.sessions, app.state.live)
+    app.state.memberships = Memberships(
+        users, app.state.sessions, app.state.live, on_removed=app.state.api_keys.end_for_member
+    )
     # Added before the request context, so it runs inside it and 401s are logged and counted.
     metrics_token = (
         settings.tiko_metrics_token.get_secret_value().strip()
@@ -347,8 +366,16 @@ def create_app(
         register_secret(metrics_token)
     # Inside the gate, so the person is known.
     app.state.workspaces = storage.Workspaces(db)
-    app.add_middleware(WorkspaceScope, lookup=app.state.workspaces)
-    app.add_middleware(PasswordGate, sessions=app.state.sessions, metrics_token=metrics_token)
+    app.add_middleware(
+        WorkspaceScope, lookup=app.state.workspaces, keys_enabled=app.state.api_keys.enabled
+    )
+    app.add_middleware(
+        PasswordGate,
+        sessions=app.state.sessions,
+        metrics_token=metrics_token,
+        api_keys=app.state.api_keys,
+        attempts=attempts,
+    )
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
 
@@ -390,6 +417,8 @@ def create_app(
     # people before keeps its own choice.
     if created:
         app.state.planning.set_enabled(True)
+        # API keys too; on an instance that existed before, the admin decides (spec 046).
+        service.set_api_keys(True)
     # None unless the instance takes demo visitors; routes and dependencies read the switch here.
     app.state.visitors = (
         demo.DemoVisitors(
@@ -491,6 +520,7 @@ def create_app(
             transport=error_transport,
         )
     app.include_router(router)
+    app.mount("/api/v1", v1.create(app.state))
 
     @app.get("/health", include_in_schema=False)
     def health() -> dict:

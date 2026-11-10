@@ -20,6 +20,7 @@ from psycopg.types.string import TextBinaryLoader, TextLoader
 from psycopg_pool import ConnectionPool
 
 from app.domain.accounts import Account, Person, PersonRecord, Role
+from app.domain.api_keys import ApiKey, EndReason, StoredKey
 from app.domain.attempts import BROWSERS_PER_PERSON
 from app.domain.boards import (
     BoardDoc,
@@ -1693,6 +1694,123 @@ class PgSessionRepo(_Repo):
             conn.execute("DELETE FROM sessions WHERE expires_at <= %s", (now,))
 
 
+# Named apart, since a key is read next to its person and both have an id and a name.
+_KEY = (
+    "k.id AS key_id, k.name AS key_name, k.scope AS key_scope, k.boards AS key_boards,"
+    " k.prefix AS key_prefix, k.created_at AS key_created_at, k.expires_at AS key_expires_at,"
+    " k.last_used_on::text AS key_last_used_on"
+)
+
+
+def _api_key(row: dict) -> ApiKey:
+    return ApiKey(**{field: row[f"key_{field}"] for field in ApiKey.model_fields})
+
+
+class PgApiKeyRepo:
+    """A global table: every query names the person or the workspace it means."""
+
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def _tx(self):
+        return self._db.transaction(None, sys._getframe(1).f_code.co_qualname)
+
+    def add(self, key: ApiKey, token_hash: str, user_id: str, workspace: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO api_keys (id, token_hash, user_id, workspace_id, name, scope,"
+                " boards, prefix, created_at, expires_at)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    key.id,
+                    token_hash,
+                    user_id,
+                    workspace,
+                    key.name,
+                    key.scope,
+                    key.boards,
+                    key.prefix,
+                    key.created_at,
+                    key.expires_at,
+                ),
+            )
+
+    def get(self, token_hash: str) -> tuple[StoredKey, Person] | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                f"SELECT {_KEY}, k.user_id, k.workspace_id, k.ended_at, {_PERSON}"
+                " FROM api_keys k JOIN users u ON u.id = k.user_id"
+                " LEFT JOIN memberships m ON m.user_id = u.id AND m.workspace_id = k.workspace_id"
+                " WHERE k.token_hash = %s",
+                (token_hash,),
+            ).fetchone()
+        if row is None:
+            return None
+        stored = StoredKey(
+            key=_api_key(row),
+            user_id=row["user_id"],
+            workspace_id=row["workspace_id"],
+            ended_at=row["ended_at"],
+        )
+        return stored, _person(row)
+
+    def list(self, user_id: str, workspace: str) -> list[ApiKey]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                f"SELECT {_KEY} FROM api_keys k WHERE k.user_id = %s AND k.workspace_id = %s"
+                " AND k.ended_at IS NULL ORDER BY k.created_at DESC, k.id",
+                (user_id, workspace),
+            ).fetchall()
+        return [_api_key(row) for row in rows]
+
+    def count_live(self, user_id: str, workspace: str, now: str) -> int:
+        with self._tx() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) AS n FROM api_keys WHERE user_id = %s AND workspace_id = %s"
+                " AND ended_at IS NULL AND expires_at > %s",
+                (user_id, workspace, now),
+            ).fetchone()["n"]
+
+    def count_workspace_live(self, workspace: str, now: str) -> int:
+        with self._tx() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) AS n FROM api_keys WHERE workspace_id = %s"
+                " AND ended_at IS NULL AND expires_at > %s",
+                (workspace, now),
+            ).fetchone()["n"]
+
+    def end(self, key_id: str, user_id: str, workspace: str, now: str, reason: EndReason) -> bool:
+        with self._tx() as conn:
+            return (
+                conn.execute(
+                    "UPDATE api_keys SET ended_at = %s, ended_reason = %s WHERE id = %s"
+                    " AND user_id = %s AND workspace_id = %s AND ended_at IS NULL",
+                    (now, reason, key_id, user_id, workspace),
+                ).rowcount
+                == 1
+            )
+
+    def end_for_person(
+        self, user_id: str, workspace: str | None, now: str, reason: EndReason
+    ) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "UPDATE api_keys SET ended_at = %s, ended_reason = %s WHERE user_id = %s"
+                " AND (%s::text IS NULL OR workspace_id = %s) AND ended_at IS NULL",
+                (now, reason, user_id, workspace, workspace),
+            )
+
+    def touch(self, key_id: str, day: str) -> None:
+        with self._tx() as conn:
+            conn.execute("UPDATE api_keys SET last_used_on = %s WHERE id = %s", (day, key_id))
+
+    def purge(self, before: str) -> int:
+        with self._tx() as conn:
+            return conn.execute(
+                "DELETE FROM api_keys WHERE ended_at < %s OR expires_at < %s", (before, before)
+            ).rowcount
+
+
 # Invites join a workspace, password resets belong to the server; the domain sees one list.
 _LINKS = (
     "(SELECT id, 'invite' AS kind, role, NULL::text AS user_id, workspace_id, token_hash,"
@@ -2129,6 +2247,7 @@ DemoStatusRepo = PgDemoStatusRepo
 Attempts = PgAttempts
 KnownBrowsers = PgKnownBrowsers
 SessionRepo = PgSessionRepo
+ApiKeyRepo = PgApiKeyRepo
 InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces

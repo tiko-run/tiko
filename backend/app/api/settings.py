@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, SecretStr
 
 from app.api import deps
 from app.api.deps import CurrentPerson, NotDemoVisitor, WorkspaceAdmin
+from app.domain.accounts import Person
 from app.domain.errors import Forbidden
 from app.domain.settings import (
     JiraCredentials,
@@ -14,6 +15,7 @@ from app.domain.settings import (
     SettingsService,
     SettingsView,
 )
+from app.domain.workspaces import current_workspace
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -33,9 +35,9 @@ class TestOut(BaseModel):
 
 
 @router.get("")
-def get_settings(person: CurrentPerson, settings: Settings) -> SettingsView:
+def get_settings(person: CurrentPerson, settings: Settings, request: Request) -> SettingsView:
     """Instance settings for everyone; `jira.token_state` is the person's own token."""
-    view = settings.view(person.id)
+    view = _with_key_count(settings.view(person.id), person, request)
     if person.demo_expires_at:
         # The instance's tracker is for people with an account; a visitor is not shown it.
         hidden = {"provider": "demo", "jira": JiraView(base_url=None, token_state="none")}
@@ -44,8 +46,18 @@ def get_settings(person: CurrentPerson, settings: Settings) -> SettingsView:
 
 
 @router.put("")
-def put_settings(body: SettingsIn, admin: WorkspaceAdmin, settings: Settings) -> SettingsView:
-    return settings.update(body, admin.id)
+def put_settings(
+    body: SettingsIn, admin: WorkspaceAdmin, settings: Settings, request: Request
+) -> SettingsView:
+    return _with_key_count(settings.update(body, admin.id), admin, request)
+
+
+def _with_key_count(view: SettingsView, person: Person, request: Request) -> SettingsView:
+    """An admin sees how many API keys are live in the workspace, never the keys."""
+    workspace = current_workspace.get()
+    if person.role != "admin" or workspace is None:
+        return view
+    return view.model_copy(update={"api_keys_live": deps.api_keys(request).live_count(workspace)})
 
 
 @router.post("/jira/test", dependencies=[NotDemoVisitor])

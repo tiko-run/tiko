@@ -39,8 +39,11 @@ class Sessions:
         repo: SessionRepo,
         live: LiveBoards | None = None,
         touch_demo: Callable[[str, float], str | None] | None = None,
+        on_signed_out: Callable[[str], None] | None = None,
     ) -> None:
         self._repo = repo
+        # Runs when every session of a person ends with none kept: their API keys go too.
+        self._on_signed_out = on_signed_out
         # Moves a demo visitor's expiry; without it the instance is not a demo and has none.
         self._touch_demo = touch_demo
         self._touched: dict[str, float] = {}
@@ -118,6 +121,8 @@ class Sessions:
     def end_all(self, user_id: str, keep_token: str | None = None) -> None:
         self._repo.delete_for_user(user_id, token_hash(keep_token) if keep_token else None)
         self._forget(user_id)
+        if keep_token is None and self._on_signed_out:
+            self._on_signed_out(user_id)
         if self._live:
             self._live.end_person(user_id, keep_token)
 

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from app.domain.accounts import Accounts, Person
+from app.domain.api_keys import ApiKeys
 from app.domain.caldav import CalDavSource, NoCalDav
 from app.domain.errors import Forbidden, JiraNotConfigured
 from app.domain.invites import Invites
@@ -107,6 +108,10 @@ def refresher(request: Request) -> RefreshService:
 
 def demo(request: Request) -> DemoTasks:
     return request.app.state.demo.scoped(_statuses_owner(request))
+
+
+def api_keys(request: Request) -> ApiKeys:
+    return request.app.state.api_keys
 
 
 def accounts(request: Request) -> Accounts:

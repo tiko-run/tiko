@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Added
 
 - Take a board with you to another tiko, from your laptop to your company's server. Export board in the board's menu saves one `.tiko` file with the pictures, Gantts and the tasks as you last saw them; Import on Home makes a new board from it, and a short report says what still needs connecting. Cards from a tracker that tiko does not read yet keep their title until it is connected. See [Move a board to another tiko](https://docs.tiko.run/moving-boards/).
+- Let your scripts read your boards with a personal API key. Make one in Settings → API keys for all your boards or only the ones you pick; it lives at most a year and stops when you revoke it or sign out everywhere. Admins switch keys on and off for the workspace; a tiko updated from an earlier version starts with them off. See [API keys](https://docs.tiko.run/api-keys/).
 
 ### Changed
 

@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Protocol
@@ -60,10 +60,18 @@ class NoWorkspaces:
 class Memberships:
     """A person's place in the workspace. The account itself stays the server admin's."""
 
-    def __init__(self, users: UserRepo, sessions: Sessions, live: LiveBoards) -> None:
+    def __init__(
+        self,
+        users: UserRepo,
+        sessions: Sessions,
+        live: LiveBoards,
+        on_removed: Callable[[str, str | None], None] | None = None,
+    ) -> None:
         self._users = users
         self._sessions = sessions
         self._live = live
+        # Gets the person and the workspace they left: their API keys there end.
+        self._on_removed = on_removed
 
     def remove(self, by: Person, user_id: str) -> None:
         if user_id == by.id:
@@ -75,6 +83,8 @@ class Memberships:
         if boards is None:
             raise LastAdmin(LAST_ADMIN)
         self._sessions.forget(user_id)
+        if self._on_removed:
+            self._on_removed(user_id, current_workspace.get())
         # Their tabs read the account again and find no workspace.
         self._live.recheck_person(user_id)
         for board_id in boards:
