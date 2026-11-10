@@ -148,7 +148,10 @@ def workload(
     load = service.workload(person_id, start or date.today(), weeks, can_open, only_open=chosen)
     plan = service.view()
     names = {t.id: t.name for t in plan.types}
-    who = next(p for p in plan.people if p.id == person_id)
+    # Removed between the two reads: not found, as `workload` says for a missing person.
+    who = next((p for p in plan.people if p.id == person_id), None)
+    if who is None:
+        raise NotFound("No such person.")
     return WorkloadOut(
         person=Named(id=who.id, name=who.name),
         weeks=load.weeks,
