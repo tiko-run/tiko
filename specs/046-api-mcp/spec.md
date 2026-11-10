@@ -196,12 +196,3 @@ Follow-ups, each its own spec: gantt and Planning reads; OAuth for claude.ai and
 
 - Won't: "LLM" → "An LLM inside tiko: tiko calls no AI provider; people connect their own agent through the API and MCP".
 - Next: a line for this spec.
-
-## G1 decisions
-
-Decided on 2026-11-10:
-- Expiry: 90 days by default, 365 at most, no "never".
-- A key may move any element (Decision 11).
-- Chosen boards stay in slice 1 (Decision 7).
-- The admin switch is on for new installs and off on existing ones after the update (Decision 9).
-- A key changes text and colour, and removes, only elements the API added (Decision 11).
