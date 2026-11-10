@@ -42,7 +42,7 @@ Principles check:
    - Each key has a name, a scope (Decision 6), its boards (Decision 7) and an expiry of 7, 30, 90 (default) or 365 days. No key lives forever. Settings shows "expires in N days".
    - The key is shown once, as `tiko_` plus 40 random base62 characters. Only its SHA-256 hash is stored, as with sessions. The list shows name, scope, boards, the first 4 characters after the prefix, created, expires and last used (to the day). At most 20 live keys per person.
    - A key belongs to the workspace it was made in. Every request with it runs in that workspace, with the person's role there. A key never reaches another workspace, whatever board id it names.
-   - **Only granted roles count.** An admin acts as owner on every board in the web app; with a key every person, an admin too, acts as a member and reaches only boards they own, are a member of, or that are shared with everyone.
+   - **Only granted roles count.** An admin acts as owner on every board in the web app; with a key every person, an admin too, acts as a member and reaches only boards they own, are a member of, or that are shared with everyone. Limits that depend on who the person is, such as the board limit, still follow their real role.
    - A demo visitor cannot make keys, and a demo instance (`TIKO_DEMO`) offers none.
 
 5. **When a key stops working.** At once in the process that handled the change, and in the others within 30 seconds (the same bound sessions have today), when:

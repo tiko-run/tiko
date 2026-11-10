@@ -8,6 +8,7 @@ from app.main import create_app
 from tests.conftest import signed_in
 from tests.test_api_keys import make_key, with_key
 from tests.test_api_v1_read import board
+from tests.test_planning import LONG, member
 
 HUMAN = {
     "nodes": [
@@ -290,3 +291,17 @@ def test_a_null_place_is_refused_in_words(setup):
     nulls = {"changes": [{"id": "n1", "x": None, "y": None}]}
     response = key.patch(f"/api/v1/boards/{board_id}/elements", json=nulls)
     assert (response.status_code, code(response)) == (422, "invalid_request")
+
+
+def test_the_board_limit_follows_the_real_role():
+    # A key acts as a member on boards, but an admin is held to no board limit.
+    app = create_app(Settings(db_path=":memory:", tiko_board_limit=1))
+    admin = signed_in(app)
+    ann = member(admin)
+    admin_key = with_key(app, make_key(admin, scope="write")["token"])
+    ann_key = with_key(app, make_key(ann, LONG, scope="write")["token"])
+    for name in ("One", "Two"):
+        assert admin_key.post("/api/v1/boards", json={"name": name}).status_code == 201
+    assert ann_key.post("/api/v1/boards", json={"name": "One"}).status_code == 201
+    over = ann_key.post("/api/v1/boards", json={"name": "Two"})
+    assert (over.status_code, code(over)) == (409, "board_limit")

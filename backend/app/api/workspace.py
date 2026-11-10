@@ -59,8 +59,11 @@ class WorkspaceScope:
         through it. Returns the workspace and why the key is refused there, if it is."""
         state = scope["state"]
         person: Person = state["person"]
-        if self.lookup.role_in(person.id, key.workspace_id) is None:
+        role = self.lookup.role_in(person.id, key.workspace_id)
+        if role is None:
             return key.workspace_id, "token_revoked"
+        # Who the person is still sets limits such as the board limit; only board access drops.
+        state["workspace_role"] = role
         state["person"] = person.model_copy(update={"role": "member"})
         with in_workspace(key.workspace_id):
             enabled = self.keys_enabled()

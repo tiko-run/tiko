@@ -81,7 +81,10 @@ def make_board(body: NewBoard, person: KeyPerson, key: Key, request: Request) ->
         person,
         body.name,
         request.app.state.boards,
-        board_limit(person, request.app.state.board_limit),
+        board_limit(
+            person.model_copy(update={"role": request.state.workspace_role}),
+            request.app.state.board_limit,
+        ),
     )
     key = request.app.state.api_keys.add_board(key, made.id)
     return boards_of(person, key, request, made.id)[0]

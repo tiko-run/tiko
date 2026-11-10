@@ -10,12 +10,12 @@ description: "Task list for gantt and Planning reads in the API and MCP"
 
 ## Phase 0: Before the slices
 
-- [ ] T000 Spec, plan, tasks and contract in `specs/047-api-gantt/`; `docs/brief.md` Next line; `.launch/state.json` feature
+- [x] T000 Spec, plan, tasks and contract in `specs/047-api-gantt/`; `docs/brief.md` Next line; `.launch/state.json` feature
 
 ## Phase 1: Fix `fix/api-key-board-limit`
 
-- [ ] T001 `WorkspaceScope._by_key` keeps the real role in `state["workspace_role"]`; `make_board` builds the board limit from it. Test: with a limit of 1, an admin's key makes a second board, a member's key gets `409 board_limit`
-- [ ] T002 Spec 046 Decision 4: one sentence that the board limit follows the real role; CHANGELOG line under Fixed
+- [x] T001 `WorkspaceScope._by_key` keeps the real role in `state["workspace_role"]`; `make_board` builds the board limit from it. Test: with a limit of 1, an admin's key makes a second board, a member's key gets `409 board_limit`
+- [x] T002 Spec 046 Decision 4: one sentence that the board limit follows the real role — no CHANGELOG line: the API is not released yet
 
 ## Phase 2: Slice `feat/api-gantt`
 
