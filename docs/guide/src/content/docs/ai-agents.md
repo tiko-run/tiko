@@ -12,7 +12,7 @@ tiko itself runs no AI model and sends nothing to any AI provider. What the agen
 - An [API key](../api-keys/). A key for chosen boards keeps the agent to those boards.
 - Your tiko's address with `/api/mcp` at the end, such as `https://tiko.example.com/api/mcp`.
 
-The agent can list your boards, read one (an outline of its frames, one frame, or every element), and search your tasks in Jira or CalDAV. With a key that can also write, it can make boards, add cards, notes and frames, draw arrows, and lay cards out in rows or a column per status: "put the open tasks of the release on a new board, by status".
+The agent can list your boards, read one (an outline of its frames, one frame, or every element), read a Gantt plan with its live tasks, stages and people ("what is late on the release plan?"), and search your tasks in Jira or CalDAV. A big plan comes as its top rows first, and the agent reads on by branch or by dates. With a key that can also write, it can make boards, add cards, notes and frames, draw arrows, and lay cards out in rows or a column per status: "put the open tasks of the release on a new board, by status".
 
 What people made stays theirs: the agent may move your elements, but it changes the words of, and removes, only what it added itself. Your notes keep their text whatever it is told. Start with a key that only reads, and give one that writes when you want the agent to arrange things.
 

@@ -24,6 +24,22 @@ What an element looks like:
 
 What people change on the board itself, such as notes, frames and where cards sit, shows in the API within about 10 seconds. Task fields follow the refresh interval above.
 
+## Gantts
+
+The outline lists the board's modules under `modules`, each with its `id`, its kind in `module` (`gantt`), its title and, for a Gantt, how many rows it holds.
+
+```bash
+curl -H "Authorization: Bearer tiko_…" https://tiko.example.com/api/v1/boards/<id>/modules/<gantt id>
+```
+
+Reads the plan as the Gantt draws it, all rows at once, collapsed or filtered out on screen or not:
+
+- Rows come in the order you see them, with `parent` and `depth` for the tree. A task row carries its tracker, key and the task as a card does; a plain row its title.
+- `start` and `end` are the dates the bar shows. `dates` says where they come from: `tracker` for a row that follows the tracker (`guessed` names a side the tracker has no date for, drawn a week from the other), `own` for dates set on the plan, and `stored` for a row that follows the tracker while its task cannot be read right now.
+- `tracker` appears where the task's own dates differ from the bar, as the dashed frame does on screen. A parent row carries `span`, the dates its whole branch covers.
+- With Planning on, a row carries its `stages`, with the type and the people on each, and the values of the columns the Gantt shows. Each comes with its id and name, since two people may share a name.
+- `milestones` and `links` complete the plan; a link means its `to` row starts after its `from` row ends.
+
 ## Writing
 
 A key with read and write access can change the boards you can edit:

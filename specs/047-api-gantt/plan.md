@@ -36,8 +36,8 @@ A gantt read projects one module's stored `GanttContent` into a public shape, th
   - `values` for `content.columns` only, by inheritance, `inherited` true when it comes from an ancestor.
   - `stages` for leaves with Planning on, `[]` when none; ids with `name: null` where `Names` has none.
   - Milestones, links (`from`, `to`).
-- Models: `GanttOut {start, end, scale, rows, milestones, links}`, `RowOut {id, parent, depth, key, source, title, task, start, end, dates, guessed, tracker, span, stages, values}`. One rule for the answer: a field that does not apply is absent; only `task` on a task row, a module's `title` and `frame`, an unknown item's `name`, and the place fields of a hidden workload stage may be `null`. `title` only on rows without a key.
-- `BoardShape.outline()` gains `modules: [{id, module, title, frame, rows}]`; elements of kind `module` gain `module`. `rows` is `len(content["rows"])` for a gantt, absent for another kind.
+- Models: `GanttOut {start, end, scale, rows, milestones, links}`, `RowOut {id, parent, depth, key, source, title, task, start, end, dates, guessed, tracker, span, stages, values}`. One rule for the answer: a field that does not apply is absent; only `task` on a task row, a module's `title`, an unknown item's `name`, and the place fields of a hidden workload stage may be `null`. `title` only on rows without a key.
+- `BoardShape.outline()` gains `modules: [{id, module, title, rows}]` (modules never sit in a frame); elements of kind `module` gain `module`. `rows` is `len(content["rows"])` for a gantt, absent for another kind.
 - Route `GET /api/v1/boards/{id}/modules/{module_id}` in `api/v1/boards.py`, `Viewable`, read budget: `shape()` (whole-board refresh under the age rule), then the module node; not a module → `404 not_found`. With Planning on, `Names` from `Planning.view()` (archived items included, so old stages keep their names). Answer `{id, module, title, planning, gantt}`; `gantt` absent for another kind.
 - The content is parsed with `GanttContent.model_validate`; a board saved before a rule existed still opens, since the model ignores unknown fields and saves were validated.
 
@@ -47,7 +47,7 @@ A gantt read projects one module's stored `GanttContent` into a public shape, th
   - `branch`: the row and its subtree; an unknown id → `404 not_found`.
   - `start`/`end`: rows whose shown bar (or span, for a parent) touches the window, with their ancestors.
   - Whatever remains, over `cap` rows: its rows of the lowest depth, each with `holds` (rows under it among what remains), and `note` saying to pass a narrower `branch` or window.
-- `read_gantt(board, gantt?, branch?, start?, end?)` (`from` is a Python keyword, so MCP takes `start`/`end` as `connect` does): without `gantt`, the board's modules of kind `gantt` from the outline; exactly one → read it; none → tool error; several → `{"gantts": [{id, title, frame, rows}]}`.
+- `read_gantt(board, gantt?, branch?, start?, end?)` (`from` is a Python keyword, so MCP takes `start`/`end` as `connect` does): without `gantt`, the board's modules of kind `gantt` from the outline; exactly one → read it; none → tool error; several → `{"gantts": [{id, title, rows}]}`.
 
 ### Planning reads (`api/v1/planning.py`)
 

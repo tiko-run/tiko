@@ -7,7 +7,7 @@ Additions to [the v1 contract](../../046-api-mcp/contracts/api-v1.md). Its rules
 `GET /api/v1/boards/{id}` without parameters gains `modules`:
 
 ```json
-"modules": [{"id": "m1", "module": "gantt", "title": "Release plan", "frame": null, "rows": 42}]
+"modules": [{"id": "m1", "module": "gantt", "title": "Release plan", "rows": 42}]
 ```
 
 An element of kind `module` gains `"module": "gantt"`. `rows` is present for a gantt only.
@@ -45,7 +45,7 @@ An element of kind `module` gains `"module": "gantt"`. `rows` is present for a g
 }
 ```
 
-- A field that does not apply is absent. Only these may be `null`: `task` on a task row, a module's `title` and `frame`, the `name` of an id Planning does not know, and a hidden workload stage's `board`, `board_name`, `row` and `type`.
+- A field that does not apply is absent. Only these may be `null`: `task` on a task row, a module's `title`, the `name` of an id Planning does not know, and a hidden workload stage's `board`, `board_name`, `row` and `type`.
 - `planning`: whether Planning is on in the workspace. Off: rows carry no `stages` and no `values`.
 - Rows in display order; every row, collapsed or filtered out in the web app or not.
 - `parent` absent on top-level rows. `key`, `source` and `task` on task rows (`task: null` when the person's tracker credentials cannot read it); `title` on rows without a task.
@@ -95,7 +95,7 @@ Off: `{"enabled": false}`. Time off and days off from today on. A key for chosen
 | `read_planning()` | read | read-only | `GET /planning` |
 | `read_workload(person, start?, weeks?)` | read | read-only | `GET /planning/people/{id}/workload` |
 
-- `read_gantt` without `gantt`: the board's only gantt; with several, `{"gantts": [{id, title, frame, rows}]}`; with none, a tool error.
+- `read_gantt` without `gantt`: the board's only gantt; with several, `{"gantts": [{id, title, rows}]}`; with none, a tool error.
 - `branch`: one row and everything under it. `start`/`end`: rows whose bars touch the window, with their ancestors.
 - When more than 100 rows remain, narrowed or not, the answer holds the top level of what remains, each row with `holds` (rows under it), and `note` on how to narrow.
 - `read_workload` takes a Planning id or a name (any case); a name several people share answers `{"matches": [{id, name, teams}]}`.

@@ -414,6 +414,22 @@ if body["enabled"]:
             check(found["url"] == f"{WEB}/?board={mine['id']}", "v1 links to the board")
             outline = key_get(f"/api/v1/boards/{mine['id']}")
             check(outline["board"]["name"] == "smoke v1" and "frames" in outline, "v1 reads a board")
+            plan = {
+                "id": "g",
+                "type": "module",
+                "position": {"x": 0, "y": 0},
+                "data": {"kind": "gantt", "content": gantt},
+            }
+            status, _ = call(
+                "PUT",
+                f"{API}/api/boards/{mine['id']}",
+                {"version": 1, "doc": {"nodes": [plan], "edges": []}},
+            )
+            check(status == 200, "a gantt to read through v1")
+            modules = key_get(f"/api/v1/boards/{mine['id']}")["modules"]
+            check([m["id"] for m in modules] == ["g"], "v1 lists the board's gantt")
+            rows = key_get(f"/api/v1/boards/{mine['id']}/modules/g")["gantt"]["rows"]
+            check(rows[0]["key"] == "DEMO-7" and rows[0]["task"], "v1 reads the gantt's tasks")
 
             def key_post(path: str, body: dict) -> tuple[int, dict | None]:
                 request = urllib.request.Request(
@@ -471,7 +487,7 @@ if body["enabled"]:
         with urllib.request.urlopen(rpc, timeout=30) as response:
             listed = json.loads(response.read())
         names = {tool["name"] for tool in listed["result"]["tools"]}
-        check({"list_boards", "read_board", "search_tasks"} <= names, "MCP lists its tools")
+        check({"list_boards", "read_board", "read_gantt", "search_tasks"} <= names, "MCP lists its tools")
         try:
             urllib.request.urlopen(f"{WEB}/.well-known/oauth-protected-resource", timeout=30)
             found = 200

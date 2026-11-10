@@ -25,7 +25,7 @@ Principles check:
 ### Finding and reading a gantt
 
 1. **A gantt is read as a module of a board.**
-   - The board outline (`GET /api/v1/boards/{id}`) gains `modules`: `[{id, module, title, frame, rows}]`, where `module` is the kind (`"gantt"`) and `rows` the row count. Board elements of kind `module` gain the field `module` too. Both are additions to v1 (spec 046 Decision 22).
+   - The board outline (`GET /api/v1/boards/{id}`) gains `modules`: `[{id, module, title, rows}]`, where `module` is the kind (`"gantt"`) and `rows` the row count. Board elements of kind `module` gain the field `module` too. Both are additions to v1 (spec 046 Decision 22).
    - `GET /api/v1/boards/{id}/modules/{module_id}` answers `{"id", "module": "gantt", "title", "planning", "gantt": {...}}`. `planning` says whether Planning is on in the workspace.
    - Rejected: gantt rows inside the board read. A board holds up to 2000 elements and a gantt up to 200 rows with stages; one answer for both does not fit an agent's context.
 
@@ -74,7 +74,7 @@ Principles check:
 
 ## Requirements
 
-- **FR-001**: The board outline MUST list its modules with kind, title, frame and row count; elements of kind `module` MUST carry `module`.
+- **FR-001**: The board outline MUST list its modules with kind, title and row count; elements of kind `module` MUST carry `module`.
 - **FR-002**: `GET /api/v1/boards/{id}/modules/{module_id}` MUST return a gantt's rows, milestones and links as Decision 2 says, with following rows on their tasks' current dates and their source in `dates`; the read MUST write nothing.
 - **FR-003**: With Planning on, rows MUST carry stages (leaves only) and the values of shown fields with ids and names (Decision 3); with it off, neither.
 - **FR-004**: `GET /api/v1/planning` MUST return Planning as Decision 5 says, limited to what the key's boards use for a key for chosen boards.

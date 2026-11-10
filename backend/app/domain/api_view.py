@@ -37,7 +37,7 @@ FIELDS: dict[str, tuple[str, ...]] = {
     "frame": ("id", "kind", "x", "y", "w", "h", "editable", "title", "color"),
     "arrow": ("id", "kind", "editable", "from", "to"),
     "image": (*_PLACED,),
-    "module": (*_PLACED, "title"),
+    "module": (*_PLACED, "module", "title"),
     "timer": ("id", "kind", "x", "y", "w", "h", "editable", "note", "due_at", "attached_to"),
 }
 
@@ -70,6 +70,7 @@ class Element(BaseModel):
     title: str | None = None
     color: str | None = None
     shape: str | None = None
+    module: str | None = None
     source: str | None = None
     key: str | None = None
     task: TaskOut | None = None
@@ -99,9 +100,25 @@ class FrameOutline(BaseModel):
     counts: dict[str, int]
 
 
+class ModuleOutline(BaseModel):
+    id: str
+    module: str
+    title: str | None
+    # How many rows a gantt holds; absent for another kind.
+    rows: int | None = None
+
+    @model_serializer(mode="wrap")
+    def _rows_of_gantts(self, handler):
+        data = handler(self)
+        if self.rows is None:
+            data.pop("rows", None)
+        return data
+
+
 class Outline(BaseModel):
     frames: list[FrameOutline]
     outside: Counts
+    modules: list[ModuleOutline]
 
 
 class Page(BaseModel):
@@ -109,7 +126,7 @@ class Page(BaseModel):
     more: bool
 
 
-def _task(task: Task | None) -> TaskOut | None:
+def public_task(task: Task | None) -> TaskOut | None:
     if task is None or task.state != "ok":
         return None
     return TaskOut(
@@ -165,7 +182,12 @@ class BoardShape:
             source = node.data.source or self._default_source
             task = self._tasks.get(task_ref(source, node.data.key))
             return Element(
-                **base, kind="card", frame=frame, source=source, key=node.data.key, task=_task(task)
+                **base,
+                kind="card",
+                frame=frame,
+                source=source,
+                key=node.data.key,
+                task=public_task(task),
             )
         if isinstance(node, StickyNode):
             return Element(
@@ -186,7 +208,9 @@ class BoardShape:
         if isinstance(node, FrameNode):
             return Element(**base, kind="frame", title=node.data.title, color=node.data.color)
         if isinstance(node, ModuleNode):
-            return Element(**base, kind="module", frame=frame, title=node.data.title)
+            return Element(
+                **base, kind="module", frame=frame, module=node.data.kind, title=node.data.title
+            )
         if isinstance(node, ImageNode):
             return Element(**base, kind="image", frame=frame)
         if isinstance(node, TimerNode):
@@ -240,7 +264,19 @@ class BoardShape:
                 continue
             bucket = counts.setdefault(element.frame, {}) if element.frame else outside
             bucket[element.kind] = bucket.get(element.kind, 0) + 1
+        modules: list[ModuleOutline] = []
         for node in self._nodes.values():
+            # Modules never sit in a frame (`check_doc`).
+            if isinstance(node, ModuleNode):
+                gantt = node.data.kind == "gantt"
+                modules.append(
+                    ModuleOutline(
+                        id=node.id,
+                        module=node.data.kind,
+                        title=node.data.title,
+                        rows=len(node.data.content.get("rows") or []) if gantt else None,
+                    )
+                )
             if isinstance(node, FrameNode):
                 x, y = self._place(node)
                 frames.append(
@@ -254,7 +290,7 @@ class BoardShape:
                         counts=counts.get(node.id, {}),
                     )
                 )
-        return Outline(frames=frames, outside=Counts(counts=outside))
+        return Outline(frames=frames, outside=Counts(counts=outside), modules=modules)
 
 
 def page(elements: list[Element], after: str | None) -> Page:
