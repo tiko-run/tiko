@@ -22,7 +22,7 @@ What an element looks like:
 - A card carries its tracker and key, and the task as the tracker shows it: title, status, assignee, due date, link and when tiko last read it. Cards are read again when the copy tiko holds is older than the board's refresh interval, with your own tracker credentials. A task you cannot see comes back as its key only.
 - An arrow names the elements it joins in `from` and `to`; an end that points at nothing is `null`.
 
-Changes people make on the board show in the API within about 10 seconds.
+What people change on the board itself, such as notes, frames and where cards sit, shows in the API within about 10 seconds. Task fields follow the refresh interval above.
 
 ## Tasks
 

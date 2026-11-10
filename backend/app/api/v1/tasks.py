@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.api import deps
 from app.api.v1.deps import read_budget, search_budget
-from app.domain.caldav import MAX_LIST_TASKS
+from app.domain.caldav import MAX_LIST_TASKS, PICKER_TASKS
 from app.domain.errors import JiraNotConfigured, ValidationFailed
 from app.domain.tasks import MAX_SEARCH, Task, search_tasks
 
@@ -21,10 +21,13 @@ class SearchIn(BaseModel):
     query: str = Field(default="", max_length=2000)
     # CalDAV only: include done tasks.
     done: bool = False
-    limit: int = Field(default=50, ge=1, le=MAX_SEARCH)
+    # 50 by default, 20 for CalDAV, as its task picker shows.
+    limit: int | None = Field(default=None, ge=1, le=MAX_SEARCH)
 
     @model_validator(mode="after")
     def _limits(self) -> "SearchIn":
+        if self.limit is None:
+            self.limit = PICKER_TASKS if self.source == "caldav" else 50
         if self.source == "caldav" and self.limit > MAX_LIST_TASKS:
             raise ValueError(f"CalDAV returns at most {MAX_LIST_TASKS} tasks a call")
         return self

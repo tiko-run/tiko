@@ -199,3 +199,34 @@ def test_v1_answers_unknown_routes_in_its_own_shape(app, admin):
     assert (missing.status_code, missing.json()["error"]["code"]) == (404, "not_found")
     wrong = key.delete("/api/v1/boards")
     assert (wrong.status_code, wrong.json()["error"]["code"]) == (405, "method_not_allowed")
+
+
+def test_a_free_arrow_end_inside_a_frame_does_not_break_the_frame(app, admin):
+    doc = {
+        "nodes": [
+            *DOC["nodes"][:2],
+            {"id": "a2", "type": "anchor", "parentId": "f1", "position": {"x": 5, "y": 5}},
+        ],
+        "edges": [{"id": "e3", "source": "n1", "target": "a2"}],
+    }
+    board_id = board(admin, doc=doc)
+    key = with_key(app, make_key(admin)["token"])
+    body = key.get(f"/api/v1/boards/{board_id}?frame=f1").json()
+    assert {e["id"] for e in body["elements"]} == {"n1", "e3"}
+
+
+def test_caldav_search_defaults_to_the_picker_size():
+    from app.api.v1.tasks import SearchIn
+
+    assert SearchIn(source="caldav").limit == 20
+    assert SearchIn(source="jira", query="x").limit == 50
+
+
+def test_the_contract_documents_the_error_body_v1_sends(app):
+    document = TestClient(app).get("/api/v1/openapi.json").json()
+    schemas = document["components"]["schemas"]
+    assert "HTTPValidationError" not in schemas
+    assert set(schemas["Error"]["properties"]) == {"error"}
+    search = document["paths"]["/tasks/search"]["post"]["responses"]
+    assert search["422"]["content"]["application/json"]["schema"]["$ref"].endswith("/Error")
+    assert {"401", "403", "404", "429"} <= set(search)

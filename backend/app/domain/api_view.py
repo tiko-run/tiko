@@ -142,7 +142,7 @@ class BoardShape:
             parent = self._nodes.get(parent.parentId) if parent.parentId else None
         return x, y
 
-    def _element(self, node: Node) -> Element:
+    def _element(self, node: Node) -> Element | None:
         x, y = self._place(node)
         parent = self._nodes.get(node.parentId) if node.parentId else None
         frame = parent.id if isinstance(parent, FrameNode) else None
@@ -181,7 +181,8 @@ class BoardShape:
             return Element(
                 **base, kind="timer", note=node.data.note, due_at=due, attached_to=attached
             )
-        raise ValueError(f"no public kind for {node.type}")
+        # A kind v1 does not name yet is left out rather than failing the whole read.
+        return None
 
     def _end(self, node_id: str) -> str | None:
         return None if isinstance(self._nodes.get(node_id), AnchorNode) else node_id
@@ -191,16 +192,20 @@ class BoardShape:
             id=edge.id, kind="arrow", from_=self._end(edge.source), to=self._end(edge.target)
         )
 
+    def _shown(self, nodes: list[Node]) -> list[Element]:
+        made = (self._element(node) for node in nodes if not isinstance(node, AnchorNode))
+        return [element for element in made if element is not None]
+
     def elements(self) -> list[Element]:
-        shown = [n for n in self._nodes.values() if not isinstance(n, AnchorNode)]
-        return [self._element(node) for node in shown] + [self._arrow(e) for e in self._edges]
+        return self._shown(list(self._nodes.values())) + [self._arrow(e) for e in self._edges]
 
     def in_frame(self, frame_id: str) -> list[Element]:
         """The frame's elements, and arrows with at least one end among them."""
         if not isinstance(self._nodes.get(frame_id), FrameNode):
             raise NotFound("frame not found")
-        inside = {n.id for n in self._nodes.values() if n.parentId == frame_id}
-        nodes = [self._element(self._nodes[node_id]) for node_id in inside]
+        members = [n for n in self._nodes.values() if n.parentId == frame_id]
+        inside = {n.id for n in members}
+        nodes = self._shown(members)
         arrows = [
             self._arrow(edge)
             for edge in self._edges

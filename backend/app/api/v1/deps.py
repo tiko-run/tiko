@@ -59,5 +59,7 @@ Viewable = Annotated[BoardRole, Depends(viewable)]
 def board_url(request: Request, board_id: str) -> str:
     """The address the caller reached tiko by; the web proxy passes it on with its port."""
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
-    proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip()
+    proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip()
+    if proto not in ("http", "https"):
+        proto = request.url.scheme
     return f"{proto}://{host.split(',')[0].strip()}/?board={board_id}"

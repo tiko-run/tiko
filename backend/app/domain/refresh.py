@@ -175,9 +175,18 @@ def _stale(
     for source, source_keys in keys.items():
         for key in source_keys:
             task = cached.get(task_ref(source, key))
-            if task is None or datetime.fromisoformat(task.fetched_at) < since:
+            if task is None or _older(task.fetched_at, since):
                 stale.setdefault(source, []).append(key)
     return stale
+
+
+def _older(fetched_at: str, since: datetime) -> bool:
+    """A time that cannot be read counts as old: the task is asked for again."""
+    try:
+        fetched = datetime.fromisoformat(fetched_at)
+    except ValueError:
+        return True
+    return fetched.tzinfo is None or fetched < since
 
 
 def _unknown(source_id: str, keys: list[str]) -> list[Task]:

@@ -346,3 +346,14 @@ def test_a_paced_refresh_skips_tasks_cached_within_the_interval(repos):
     tasks, _ = refresh()
     assert provider.calls == 2
     assert set(tasks) == {"jira:DEMO-1"}
+
+
+def test_a_cached_time_without_a_zone_counts_as_old(repos):
+    board_id, boards, snapshots = repos
+    provider = Flaky()
+    service = RefreshService()
+    service.refresh(board_id, 30, boards, snapshots, {"jira": provider}, "jira", max_age_s=30)
+    cached = snapshots.get_many(["jira:DEMO-1"])["jira:DEMO-1"]
+    snapshots.put_many([cached.model_copy(update={"fetched_at": "2030-01-01T00:00:00"})])
+    service.refresh(board_id, 30, boards, snapshots, {"jira": provider}, "jira", max_age_s=30)
+    assert provider.calls == 2
