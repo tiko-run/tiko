@@ -298,6 +298,7 @@ def create_app(
     member_repo = storage.MemberRepo(db)
     app.state.boards = storage.BoardRepo(db)
     app.state.folders = storage.FolderRepo(db)
+    app.state.api_elements = storage.ApiElementRepo(db)
     app.state.unused_files = storage.UnusedFiles(db)
     rooms = LiveRooms(app.state.boards, member_repo, storage.Workspaces(db))
     workers = (

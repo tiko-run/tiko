@@ -291,6 +291,12 @@ class LiveDoc:
         shaped = isinstance(node, Map) and isinstance(node.get("data"), Map)
         return node.to_py() if shaped else None
 
+    def checked(self) -> tuple[Stored, Stored] | None:
+        """The document as the last repair left it, while nothing has touched it since."""
+        if self._checked is None or any(self._touched):
+            return None
+        return dict(self._checked[0]), dict(self._checked[1])
+
     def read(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """Nodes and edges as plain values; a node that is not a map of the right shape is None."""
         nodes = {node_id: self._plain_node(node) for node_id, node in self._nodes.items()}

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal, Protocol
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
     from app.domain.api_keys import ApiKey, EndReason, StoredKey
+    from app.domain.batch import Applied, Batch
     from app.domain.boards import BoardDoc, BoardRecord, BoardRow, TrashRow
     from app.domain.files import Picture, Served, StoredFile
     from app.domain.folders import Folder
@@ -271,6 +272,11 @@ class LiveBoards(Protocol):
     def put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         """A REST save, applied to the shared document as one update so people on the board
         see it; compare-and-set on version like `BoardRepo.save`."""
+        ...
+
+    def apply(self, board_id: str, batch: Batch) -> Applied:
+        """An API batch, written whole into the shared document or not at all, and saved
+        before it returns."""
         ...
 
 
@@ -565,6 +571,10 @@ class SessionRepo(Protocol):
     def delete_expired(self, now: str) -> None: ...
 
 
+# Named before the class, whose own `list` method would shadow the type there.
+ChosenBoards = list[str] | None
+
+
 class ApiKeyRepo(Protocol):
     """Global: a key is found by its hash before the request's workspace is known."""
 
@@ -594,9 +604,29 @@ class ApiKeyRepo(Protocol):
 
     def touch(self, key_id: str, day: str) -> None: ...
 
+    def chosen_boards(self, key_id: str) -> ChosenBoards:
+        """The key's chosen boards as stored now; None for all boards."""
+        ...
+
+    def add_board(self, key_id: str, board_id: str) -> None:
+        """Adds a board to a key for chosen boards; a key for all boards stays as it is."""
+        ...
+
     def purge(self, before: str) -> int:
         """Deletes keys that ended or expired before `before`; returns how many."""
         ...
+
+
+class ApiElementRepo(Protocol):
+    """Which elements of a board people added through the API, in the request's workspace."""
+
+    def of_board(self, board_id: str) -> dict[str, str]:
+        """Element id to the person who added it."""
+        ...
+
+    def add(self, board_id: str, element_ids: list[str], user_id: str, now: str) -> None: ...
+
+    def remove(self, board_id: str, element_ids: list[str]) -> None: ...
 
 
 class InviteRepo(Protocol):

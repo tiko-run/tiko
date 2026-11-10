@@ -230,3 +230,14 @@ def test_a_demo_instance_offers_no_keys(app, admin):
     with pytest.raises(Forbidden):
         demo.create(person, "w", KeyIn(name="agent", password=PASSWORD))
     assert demo.enabled() is False
+
+
+def test_a_board_added_to_a_key_elsewhere_is_reached_at_once(app, admin):
+    first = admin.post("/api/boards", json={"name": "First"}).json()["id"]
+    second = admin.post("/api/boards", json={"name": "Second"}).json()["id"]
+    made = make_key(admin, boards=[first])
+    client = with_key(app, made["token"])
+    assert client.get(f"/api/v1/boards/{first}").status_code == 200
+    # Another process adds the board; this one still holds the key in its cache.
+    app.state.api_keys._repo.add_board(made["key"]["id"], second)
+    assert client.get(f"/api/v1/boards/{second}").status_code == 200

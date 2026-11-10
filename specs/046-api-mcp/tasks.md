@@ -53,20 +53,20 @@ description: "Task list for the public API and MCP server"
 
 ## Phase 4: Slice `feat/api-write`
 
-- [ ] T031 `013_api_elements.sql`; `ApiElementRepo`, `PgApiElementRepo`; the policy test covers it; read across workspaces refused
-- [ ] T032 `frontend/src/canvas/sizes.ts` with the defaults now in `layout.ts`, `Canvas.tsx`, `shapes.ts`; `domain/layout.py` constants and the test that reads both
-- [ ] T033 `domain/batch.py`: schema bounds, id rules, idempotent re-add, `conflict`, `not_api_element`, `vote_running`, `keeps_people_work`, cascades, coordinates to stored places, placement, frames that grow, acceptance by an unchanged repair. Tests per rule, including each repair note a valid batch used to cause
-- [ ] T034 `LiveRooms` loop at start; `LiveRooms.apply` awaiting the lock of a room it opened; `Room.apply` with `_stay`/`_left`, reuse of the last check, save before answering; the drop guard. Tests: an API add reaches an open tab, a person's concurrent edit survives, a write during a slow drop is kept, the first batch on a cold board under a vote
-- [ ] T035 `Workers.apply` and its error codes. Test in `test_workers.py`
-- [ ] T036 `api_elements` rows before the room, deleted on refusal. Test: a refused batch leaves no rows
-- [ ] T037 Card resolution: one `poll` per tracker, links, 50 a call, search budget, `invalid_ref`, `host_mismatch`, `task_not_found`
-- [ ] T038 `POST /api/v1/boards` (board limit, chosen-board keys extended), `POST`, `PATCH /elements`, `POST /elements/remove`; the public-link rule; write budget; `write` in the key dialog
-- [ ] T039 Write tools with optional ids and hints
-- [ ] T040 Measure `Room.apply` on a 2000-element board with sockets open
-- [ ] T041 OpenAPI snapshot; guide pages; CHANGELOG; `make smoke` adds and removes a note
+- [x] T031 `013_api_elements.sql`; `ApiElementRepo`, `PgApiElementRepo`; the policy test covers it; read across workspaces refused
+- [x] T032 `frontend/src/canvas/sizes.ts` with the defaults now in `layout.ts`, `Canvas.tsx`, `shapes.ts`; `domain/layout.py` constants and the test that reads both — no new `sizes.ts`: a backend test reads the defaults from `layout.ts`, `Canvas.tsx` and `shapes.ts` and fails when the Python constants differ
+- [x] T033 `domain/batch.py`: schema bounds, id rules, idempotent re-add, `conflict`, `not_api_element`, `vote_running`, `keeps_people_work`, cascades, coordinates to stored places, placement, frames that grow, acceptance by an unchanged repair. Tests per rule, including each repair note a valid batch used to cause
+- [x] T034 `LiveRooms` loop at start; `LiveRooms.apply` awaiting the lock of a room it opened; `Room.apply` with `_stay`/`_left`, reuse of the last check, save before answering; the drop guard. Tests: an API add reaches an open tab, a person's concurrent edit survives, a write during a slow drop is kept, the first batch on a cold board under a vote — `LiveRooms` keeps its loop as it was: a batch for a board with no room open is written to the stored state, as a REST save is; the room path reads the vote lock from the votes themselves and the drop gives up while a batch is in flight
+- [x] T035 `Workers.apply` and its error codes. Test in `test_workers.py`
+- [x] T036 `api_elements` rows before the room, deleted on refusal. Test: a refused batch leaves no rows
+- [x] T037 Card resolution: one `poll` per tracker, links, 50 a call, search budget, `invalid_ref`, `host_mismatch`, `task_not_found`
+- [x] T038 `POST /api/v1/boards` (board limit, chosen-board keys extended), `POST`, `PATCH /elements`, `POST /elements/remove`; the public-link rule; write budget; `write` in the key dialog
+- [x] T039 Write tools with optional ids and hints
+- [x] T040 Measure `Room.apply` on a 2000-element board with sockets open — a write on a board of 1900 elements takes about 2.5 ms on the loop, reading the copy the last repair keeps instead of the whole document (about 23 ms)
+- [x] T041 OpenAPI snapshot; guide pages; CHANGELOG; `make smoke` adds and removes a note
 
 ## Phase 5: Slice `feat/api-arrange`
 
-- [ ] T042 `domain/layout.py` grid and status columns inside a named, new or no frame; the frame grows; no overlaps. Tests
-- [ ] T043 `POST /api/v1/boards/{id}/arrange` and the `arrange` tool
-- [ ] T044 By hand: "lay out the open tasks of the demo project by status" from Claude Code; guide; CHANGELOG
+- [x] T042 `domain/layout.py` grid and status columns inside a named, new or no frame; the frame grows; no overlaps. Tests
+- [x] T043 `POST /api/v1/boards/{id}/arrange` and the `arrange` tool
+- [x] T044 By hand: "lay out the open tasks of the demo project by status" from Claude Code; guide; CHANGELOG

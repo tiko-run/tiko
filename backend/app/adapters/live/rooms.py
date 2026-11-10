@@ -27,6 +27,7 @@ from pycrdt import (
 )
 
 from app.domain.accounts import Person
+from app.domain.batch import Applied, Batch, plan
 from app.domain.boards import BoardDoc
 from app.domain.errors import NotFound, VersionConflict
 from app.domain.live import (
@@ -150,6 +151,8 @@ class Room:
             rooms.keepalive_s, self._keepalive
         )
         self._saving = asyncio.Lock()
+        # API batches being written; the room is not dropped under one.
+        self.busy = 0
         # Elements of a running vote, and when its timer runs out (spec 043).
         self.locked: frozenset[str] = frozenset()
         self.locked_until: float | None = None
@@ -383,6 +386,24 @@ class Room:
         await self.save()
         return self.version
 
+    async def apply(self, batch: Batch, locked: frozenset[str]) -> Applied:
+        self._stay()
+        self.busy += 1
+        try:
+            # A check first, so the document and the copy its repair keeps agree.
+            self.check()
+            # From the read to the write nothing awaits, so no update from a tab lands between.
+            nodes, edges = self.live.checked() or self.live.read()
+            planned, kept, applied = plan(nodes, edges, batch, locked)
+            self.live.write(planned, kept, current=(nodes, edges))
+            self.check()
+            # Saved before the answer, so a read right after it sees the change.
+            await self.save()
+            return applied
+        finally:
+            self.busy -= 1
+            self._left()
+
     def close(self, code: int) -> None:
         for connection in (*self.connections, *self.guests):
             connection.kick(code)
@@ -510,6 +531,9 @@ class LiveRooms:
         if room.connections or room.guests or self._rooms.get(room.board_id) is not room:
             return
         await room.save()
+        if room.busy or room._dirty_since is not None:
+            # An API batch came in during the save: the room stays until it is quiet again.
+            return
         if not (room.connections or room.guests):
             del self._rooms[room.board_id]
             room.stop()
@@ -542,6 +566,36 @@ class LiveRooms:
             saved = self.boards.save(board_id, version, doc, live.state())
             note_mass_delete(board_id, before, live.node_count(), "a REST save")
             return saved
+
+    def apply(self, board_id: str, batch: Batch) -> Applied:
+        loop = self._loop
+        if loop and loop.is_running() and (board_id in self._rooms or board_id in self._opening):
+            return asyncio.run_coroutine_threadsafe(self._apply(board_id, batch), loop).result(30)
+        # Nobody has the board open in this process: the stored state takes the batch.
+        with in_workspace(self._workspaces.of_board(board_id)):
+            found = self.boards.load(board_id)
+            if found is None:
+                raise NotFound("board not found")
+            record, state = found
+            live = LiveDoc(state)
+            if state is None:
+                live.apply_json(record.doc)
+            locked = self._locked_now(board_id)
+            nodes, edges = live.read()
+            planned, kept, applied = plan(nodes, edges, batch, locked)
+            live.write(planned, kept, current=(nodes, edges))
+            doc, _ = live.repair(record.doc, locked)
+            self.boards.save(board_id, record.version, doc, live.state())
+            return applied
+
+    async def _apply(self, board_id: str, batch: Batch) -> Applied:
+        room = await self._room(board_id)
+        if room is None:
+            raise NotFound("board not found")
+        with in_workspace(room.workspace):
+            # Read from the votes themselves: a room just opened may not hold its lock yet.
+            locked = await anyio.to_thread.run_sync(self._locked_now, board_id)
+        return await room.apply(batch, locked)
 
     async def _put(self, board_id: str, version: int, doc: BoardDoc) -> int:
         room = await self._room(board_id)

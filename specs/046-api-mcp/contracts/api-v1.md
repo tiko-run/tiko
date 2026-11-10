@@ -150,7 +150,7 @@ Without parameters, an outline:
 - A card takes `ref`: a key or a link, resolved the way the card tool resolves it. At most 50 cards per call.
 - Sizes: `w` and `h` within 1 – 20 000 for notes, shapes and frames, `w` only for text; cards take none. Coordinates within ±1 000 000.
 - An arrow joins two elements of the board or of the same call, never an element to itself. v1 makes no arrow with a free end.
-- Answers `200` with `{"elements": [...]}` as they now stand, each with `created: true`, or `false` for a re-add of an id the person already added through the API.
+- Answers `200` with `{"elements": [...], "created": [ids]}`: the elements as they now stand, and which of them this call made. A re-add of an id the person already added through the API answers with the element as it is and leaves it out of `created`.
 
 ### `PATCH /api/v1/boards/{id}/elements`
 
@@ -178,7 +178,7 @@ Without parameters, an outline:
 
 - `layout`: `grid` (4 per row) or `status` (a column per status: to do, then in progress, then done, by the tracker's status category, and by name within each).
 - `frame`: `{"id": "f1"}` for an existing frame, which grows to hold the cards; `{"title": "..."}` to make one below what is on the board; absent to lay the cards out below what is on the board.
-- Only the named cards move. Answers with the moved cards and the frame.
+- Only the named cards move. Answers like adding elements: the moved cards and the frame, with a new frame in `created`.
 
 ## Tasks
 
@@ -210,9 +210,9 @@ Streamable HTTP, JSON answers, the same key as `Authorization: Bearer`. `/api/mc
 | `add_cards(board, cards: [{ref, id?}], frame?)` | write | idempotent where ids are given | `POST /elements`, kind `card` |
 | `add_notes(board, notes: [{text, color?, kind?, id?}], frame?)` | write | idempotent where ids are given | `POST /elements`, kind `note` or `text` |
 | `add_frame(board, title, id?, x?, y?, w?, h?)` | write | idempotent with an id | `POST /elements`, kind `frame` |
-| `connect(board, from, to, id?)` | write | idempotent with an id | `POST /elements`, kind `arrow` |
+| `connect(board, start, end, id?)` | write | idempotent with an id | `POST /elements`, kind `arrow` |
 | `update_elements(board, changes)` | write | idempotent | `PATCH /elements` |
-| `arrange(board, cards, layout, frame?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
+| `arrange(board, cards, layout, frame?, new_frame?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
 | `remove_elements(board, ids)` | write | destructive, idempotent | `POST /elements/remove` |
 
 A `read` key lists only the first three; a write tool called with one answers `scope_required`. Every answer that names a board carries its `url`.

@@ -45,6 +45,8 @@ KEPT_DAYS = 30
 
 Scope = Literal["read", "write"]
 EndReason = Literal["revoked", "signed_out", "removed"]
+# Named here: inside `ApiKeys` its own `list` method would shadow the type.
+ChosenBoards = list[str] | None
 
 
 class ApiKey(BaseModel):
@@ -228,6 +230,24 @@ class ApiKeys:
         with self._lock:
             self._cache[hashed] = (identity, person, now.timestamp())
         return identity, person
+
+    def chosen(self, key: KeyIdentity) -> ChosenBoards:
+        """The key's boards as stored now: another process may have added one since this one
+        cached the key. None: every board."""
+        return None if key.boards is None else self._repo.chosen_boards(key.id) or []
+
+    def reaches(self, key: KeyIdentity, board_id: str) -> bool:
+        if key.boards is None or board_id in key.boards:
+            return True
+        return board_id in (self.chosen(key) or [])
+
+    def add_board(self, key: KeyIdentity, board_id: str) -> KeyIdentity:
+        """A board made with a key for chosen boards joins them."""
+        if key.boards is None:
+            return key
+        self._repo.add_board(key.id, board_id)
+        self._drop(lambda identity, _: identity.id == key.id)
+        return key.model_copy(update={"boards": [*key.boards, board_id]})
 
     def purge(self) -> int:
         """Rows of keys that ended or expired long enough ago to need no answer."""
