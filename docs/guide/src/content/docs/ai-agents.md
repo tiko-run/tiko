@@ -63,18 +63,25 @@ Claude Desktop reaches remote servers through the [mcp-remote](https://github.co
   "mcpServers": {
     "tiko": {
       "command": "npx",
-      "args": ["mcp-remote", "https://tiko.example.com/api/mcp", "--header", "Authorization: Bearer ${TIKO_KEY}"],
-      "env": { "TIKO_KEY": "tiko_…" }
+      "args": ["mcp-remote", "https://tiko.example.com/api/mcp", "--header", "Authorization:${TIKO_AUTH}"],
+      "env": { "TIKO_AUTH": "Bearer tiko_…" }
     }
   }
 }
 ```
 
-claude.ai and ChatGPT connect to servers from their own cloud and sign in only with OAuth, which tiko does not offer yet.
+The header has no space after the colon and `Bearer` sits in the variable: on Windows a space in the arguments breaks the header.
+
+## claude.ai and ChatGPT
+
+Both connect from their own cloud, so your tiko must be reachable from the internet.
+
+- **claude.ai**: on plans where custom connectors take request headers, add the address and `Authorization: Bearer tiko_…` as a header. Everyone in the organization then uses that one key, so make it a key for chosen boards that everyone there may see.
+- **ChatGPT** signs in to connectors only with OAuth, which tiko does not offer yet.
 
 ## When it does not connect
 
 - `401`: the key is missing, wrong, expired or revoked. Make a new one in Settings → API keys.
 - `403 api_disabled`: your admin has switched API keys off.
 - The agent sees fewer boards than you: the key is for chosen boards, or a board is shared with you in a way the key does not reach. A key gives an admin no more than any member.
-- The agent gets "rate_limited": it asked more than 120 times in a minute. It may try again shortly.
+- The agent gets "rate_limited": you get 120 reads and 20 task searches a minute, counted for you across all your keys. It may try again shortly.
