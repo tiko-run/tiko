@@ -323,3 +323,26 @@ def test_a_poll_with_the_same_token_fills_the_cache(store, repos):
     refresh_with_tokens(repos, settings, snapshots, Racing("github", lambda: None))
     refs = ["github:DEMO-1", "github:DEMO-2"]
     assert set(snapshots.get_many(refs)) == set(refs)
+
+
+def test_a_paced_refresh_skips_tasks_cached_within_the_interval(repos):
+    board_id, boards, snapshots = repos
+    provider = Flaky()
+    service = RefreshService()
+
+    def refresh():
+        return service.refresh(
+            board_id, 30, boards, snapshots, {"jira": provider}, "jira", max_age_s=30
+        )
+
+    refresh()
+    assert provider.calls == 1
+    tasks, _ = refresh()
+    # Both cards are fresh in the cache, so the tracker is not asked again.
+    assert provider.calls == 1
+    assert tasks == {}
+    stale = snapshots.get_many(["jira:DEMO-1"])["jira:DEMO-1"]
+    snapshots.put_many([stale.model_copy(update={"fetched_at": "2020-01-01T00:00:00+00:00"})])
+    tasks, _ = refresh()
+    assert provider.calls == 2
+    assert set(tasks) == {"jira:DEMO-1"}

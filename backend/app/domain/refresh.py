@@ -3,6 +3,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
@@ -16,7 +17,7 @@ from app.domain.errors import (
     TrackerUnreachable,
 )
 from app.domain.ports import BoardRepo, SnapshotRepo, TaskProvider
-from app.domain.tasks import Task, now_iso, split_ref
+from app.domain.tasks import Task, now_iso, split_ref, task_ref
 
 MAX_BACKOFF_S = 300
 
@@ -74,13 +75,17 @@ class RefreshService:
         owner: str = "",
         tokens_before: dict[str, str | None] | None = None,
         tokens_now: Callable[[], dict[str, str | None]] = dict,
+        max_age_s: float | None = None,
     ) -> tuple[dict[str, Task], list[SourceStatus]]:
         """Polls each tracker of the board once with the providers of `owner`; each person's
         tracker errors and backoff are their own, since each uses their own token. A failing
         tracker leaves the others alone. Tasks come back by ref.
 
         `tokens_before` stamps the tokens the providers were built with, `tokens_now` reads
-        them again: a tracker whose token changed meanwhile has its tasks dropped."""
+        them again: a tracker whose token changed meanwhile has its tasks dropped.
+
+        `max_age_s`: tasks cached more recently than this are not asked for again. A browser
+        tab paces itself; a caller of the API may not."""
         record = boards.get(board_id)
         if record is None:
             raise NotFound("board not found")
@@ -88,6 +93,8 @@ class RefreshService:
         for ref in task_refs(record.doc, default_source):
             source_id, key = split_ref(ref)
             keys.setdefault(source_id, []).append(key)
+        if max_age_s is not None:
+            keys = _stale(keys, snapshots, max_age_s)
         # The instance's own tracker is reported even while the board has none of its tasks.
         keys.setdefault(default_source, [])
         tasks: list[Task] = []
@@ -155,6 +162,22 @@ class RefreshService:
         source.error = None
         source.synced_at = now_iso()
         return tasks
+
+
+def _stale(
+    keys: dict[str, list[str]], snapshots: SnapshotRepo, max_age_s: float
+) -> dict[str, list[str]]:
+    """Only the keys whose cached task is missing or older than `max_age_s`."""
+    refs = [task_ref(source, key) for source, source_keys in keys.items() for key in source_keys]
+    cached = snapshots.get_many(refs)
+    since = datetime.now(UTC) - timedelta(seconds=max_age_s)
+    stale: dict[str, list[str]] = {}
+    for source, source_keys in keys.items():
+        for key in source_keys:
+            task = cached.get(task_ref(source, key))
+            if task is None or datetime.fromisoformat(task.fetched_at) < since:
+                stale.setdefault(source, []).append(key)
+    return stale
 
 
 def _unknown(source_id: str, keys: list[str]) -> list[Task]:

@@ -395,6 +395,26 @@ if body["enabled"]:
         with urllib.request.urlopen(request, timeout=30) as response:
             me = json.loads(response.read())
         check(me["username"] == "admin" and me["key"]["name"] == "smoke", "v1 signs a key in")
+
+        def key_get(path: str) -> dict:
+            request = urllib.request.Request(
+                f"{WEB}{path}", headers={"authorization": f"Bearer {made['token']}"}
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.loads(response.read())
+
+        status, mine = call("POST", f"{API}/api/boards", {"name": "smoke v1"})
+        check(status == 201, "a board to read through v1")
+        try:
+            listed = key_get("/api/v1/boards")["boards"]
+            found = next(b for b in listed if b["id"] == mine["id"])
+            # The link keeps the address and port the caller used, through the proxy.
+            check(found["url"] == f"{WEB}/?board={mine['id']}", "v1 links to the board")
+            outline = key_get(f"/api/v1/boards/{mine['id']}")
+            check(outline["board"]["name"] == "smoke v1" and "frames" in outline, "v1 reads a board")
+        finally:
+            call("DELETE", f"{API}/api/boards/{mine['id']}")
+            call("DELETE", f"{API}/api/boards/{mine['id']}?forever=true")
         # A session of the UI's own address, so the cookie really goes along with the request.
         web = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())

@@ -30,14 +30,14 @@ description: "Task list for the public API and MCP server"
 
 ## Phase 2: Slice `feat/api-read`
 
-- [ ] T014 `api/v1/schemas.py` and `domain/api_view.py`: kinds, absolute coordinates, `null` arrow ends, timers with `attached_to`, outline counts, pages by id with `after`. Tests on made-up boards with frames, free arrows, modules and timers
-- [ ] T015 `GET /api/v1/boards` (no welcome board), `GET /api/v1/boards/{id}` with `frame`, `elements`, `after`; chosen boards as `404`; `public`, `shared_with_everyone`; links `/?board=` from `X-Forwarded-Host`
-- [ ] T016 `RefreshService.refresh(max_age_s=...)`; reads refresh by age; `fetched_at`; an unreadable card as key and source. Test: a read within the interval does not reach the tracker
-- [ ] T017 `POST /api/v1/tasks/search` for `jira`, `demo`, `caldav` with their limits; `github` refused with the message
-- [ ] T018 Budgets for reads and search through `Attempts.spend`. Test across processes
-- [ ] T019 nginx: `X-Forwarded-Host`, v1 board routing in `api-workers.envsh`. Test with an instance on a port
-- [ ] T020 Measure budgets and key lookups with the load scripts on a laptop stand
-- [ ] T021 OpenAPI snapshot (additions only); guide page "API"; CHANGELOG; `make smoke` reads a board
+- [x] T014 `api/v1/schemas.py` and `domain/api_view.py`: kinds, absolute coordinates, `null` arrow ends, timers with `attached_to`, outline counts, pages by id with `after`. Tests on made-up boards with frames, free arrows, modules and timers
+- [x] T015 `GET /api/v1/boards` (no welcome board), `GET /api/v1/boards/{id}` with `frame`, `elements`, `after`; chosen boards as `404`; `public`, `shared_with_everyone`; links `/?board=` from `X-Forwarded-Host`
+- [x] T016 `RefreshService.refresh(max_age_s=...)`; reads refresh by age; `fetched_at`; an unreadable card as key and source. Test: a read within the interval does not reach the tracker
+- [x] T017 `POST /api/v1/tasks/search` for `jira`, `demo`, `caldav` with their limits; `github` refused with the message
+- [x] T018 Budgets for reads and search through `Attempts.spend`. Test across processes
+- [x] T019 nginx: `X-Forwarded-Host`, v1 board routing in `api-workers.envsh`. Test with an instance on a port — the port test is in `make smoke` through nginx
+- [x] T020 Measure budgets and key lookups with the load scripts on a laptop stand — a quick latency comparison on a local stack instead of the load scripts: v1 adds a couple of milliseconds to a board read
+- [x] T021 OpenAPI snapshot (additions only); guide page "API"; CHANGELOG; `make smoke` reads a board
 
 ## Phase 3: Slice `feat/mcp-read`
 

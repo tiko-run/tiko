@@ -34,7 +34,7 @@ Each slice fixes its part before its code. Names here are final for v1: a later 
 | 409 | `keeps_people_work` | A removal would take a person's arrow or timer with it |
 | 409 | `vote_running` | Changing text or colour of, or removing, an element in a running vote (moving is allowed) |
 | 409 | `board_limit` | The person's board limit is reached |
-| 409 | `jira_not_configured` | The instance has no Jira address set |
+| 400 | `jira_not_configured` | Jira search on a tiko that does not read Jira |
 | 422 | `invalid_request` | The body or query does not match the schema |
 | 422 | `validation_failed` | The batch would break a board rule; the message names it |
 | 422 | `invalid_ref` | A card reference is neither a key nor a link tiko reads |

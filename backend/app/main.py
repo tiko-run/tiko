@@ -304,7 +304,7 @@ def create_app(
         else None
     )
     app.state.live = workers or rooms
-    attempts = storage.Attempts(db)
+    attempts = app.state.attempts = storage.Attempts(db)
     app.state.api_keys = ApiKeys(
         storage.ApiKeyRepo(db),
         users,

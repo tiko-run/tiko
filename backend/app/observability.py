@@ -228,7 +228,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             request_id_var.reset(token)
         elapsed = time.perf_counter() - start
         # Route template, not raw path, keeps metric cardinality bounded.
-        route = getattr(request.scope.get("route"), "path", "unmatched")
+        route = getattr(request.scope.get("route"), "path", None)
+        # A mounted app's routes are relative to its mount: /api/v1 stays apart from /api.
+        route = request.scope.get("root_path", "") + route if route else "unmatched"
         HTTP_REQUESTS.labels(request.method, route, response.status_code).inc()
         HTTP_LATENCY.labels(request.method, route).observe(elapsed)
         response.headers["x-request-id"] = request_id

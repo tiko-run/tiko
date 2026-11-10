@@ -1,9 +1,19 @@
+import math
+import time
 from typing import Annotated
 
 from fastapi import Depends, Request
 
+from app.api import deps
 from app.domain.accounts import Person
 from app.domain.api_keys import KeyIdentity
+from app.domain.errors import NotFound, RateLimited
+from app.domain.members import BoardRole
+
+# Requests per person and minute, whatever key they use (contract: Budgets).
+READS = 120
+SEARCHES = 20
+WINDOW_S = 60.0
 
 
 def person(request: Request) -> Person:
@@ -17,3 +27,37 @@ def key(request: Request) -> KeyIdentity:
 
 KeyPerson = Annotated[Person, Depends(person)]
 Key = Annotated[KeyIdentity, Depends(key)]
+
+
+def _spend(request: Request, scope: str, limit: int) -> None:
+    now = time.time()
+    opened = request.app.state.attempts.spend(scope, person(request).id, limit, WINDOW_S, now)
+    if opened is not None:
+        wait = max(math.ceil(opened + WINDOW_S - now), 1)
+        raise RateLimited(f"Too many requests; try again in {wait} s.", wait)
+
+
+def read_budget(request: Request) -> None:
+    _spend(request, "api-read", READS)
+
+
+def search_budget(request: Request) -> None:
+    _spend(request, "api-search", SEARCHES)
+
+
+def viewable(board_id: str, request: Request) -> BoardRole:
+    """The person's role on a board the key reaches; any other board is simply not found."""
+    chosen = key(request).boards
+    if chosen is not None and board_id not in chosen:
+        raise NotFound("board not found")
+    return deps.members(request).require(person(request), board_id, "viewer")
+
+
+Viewable = Annotated[BoardRole, Depends(viewable)]
+
+
+def board_url(request: Request, board_id: str) -> str:
+    """The address the caller reached tiko by; the web proxy passes it on with its port."""
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip()
+    return f"{proto}://{host.split(',')[0].strip()}/?board={board_id}"

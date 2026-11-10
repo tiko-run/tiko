@@ -210,3 +210,11 @@ class TokenRevoked(KeyRefused):
 
 class ApiDisabled(Forbidden):
     code = "api_disabled"
+
+
+class RateLimited(DomainError):
+    code = "rate_limited"
+
+    def __init__(self, message: str, retry_after: int) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after

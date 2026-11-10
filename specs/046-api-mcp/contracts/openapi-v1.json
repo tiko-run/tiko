@@ -1,6 +1,492 @@
 {
   "components": {
     "schemas": {
+      "Board": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "public": {
+            "title": "Public",
+            "type": "boolean"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "shared_with_everyone": {
+            "title": "Shared With Everyone",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "updated_at",
+          "public",
+          "shared_with_everyone",
+          "url"
+        ],
+        "title": "Board",
+        "type": "object"
+      },
+      "BoardList": {
+        "properties": {
+          "boards": {
+            "items": {
+              "$ref": "#/components/schemas/Board"
+            },
+            "title": "Boards",
+            "type": "array"
+          }
+        },
+        "required": [
+          "boards"
+        ],
+        "title": "BoardList",
+        "type": "object"
+      },
+      "BoardOutline": {
+        "properties": {
+          "board": {
+            "$ref": "#/components/schemas/Board"
+          },
+          "frames": {
+            "items": {
+              "$ref": "#/components/schemas/FrameOutline"
+            },
+            "title": "Frames",
+            "type": "array"
+          },
+          "outside": {
+            "$ref": "#/components/schemas/Counts"
+          }
+        },
+        "required": [
+          "frames",
+          "outside",
+          "board"
+        ],
+        "title": "BoardOutline",
+        "type": "object"
+      },
+      "BoardPage": {
+        "properties": {
+          "board": {
+            "$ref": "#/components/schemas/Board"
+          },
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/Element"
+            },
+            "title": "Elements",
+            "type": "array"
+          },
+          "more": {
+            "title": "More",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "elements",
+          "more",
+          "board"
+        ],
+        "title": "BoardPage",
+        "type": "object"
+      },
+      "Counts": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "counts"
+        ],
+        "title": "Counts",
+        "type": "object"
+      },
+      "Element": {
+        "description": "One element; fields that do not belong to its kind are left out of the answer.",
+        "properties": {
+          "attached_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attached To"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "editable": {
+            "default": false,
+            "title": "Editable",
+            "type": "boolean"
+          },
+          "frame": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
+          "h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "H"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "kind": {
+            "enum": [
+              "card",
+              "note",
+              "text",
+              "shape",
+              "frame",
+              "arrow",
+              "image",
+              "module",
+              "timer"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "shape": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shape"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          },
+          "w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "W"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "required": [
+          "id",
+          "kind"
+        ],
+        "title": "Element",
+        "type": "object"
+      },
+      "FoundTask": {
+        "properties": {
+          "assignee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due"
+          },
+          "fetched_at": {
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "key",
+          "title",
+          "status",
+          "assignee",
+          "due",
+          "url",
+          "fetched_at"
+        ],
+        "title": "FoundTask",
+        "type": "object"
+      },
+      "FrameOutline": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "H"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "W"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "x",
+          "y",
+          "w",
+          "h",
+          "counts"
+        ],
+        "title": "FrameOutline",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "KeyOut": {
         "properties": {
           "boards": {
@@ -74,6 +560,162 @@
         "title": "MeOut",
         "type": "object"
       },
+      "SearchIn": {
+        "properties": {
+          "done": {
+            "default": false,
+            "title": "Done",
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "query": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Query",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "jira",
+              "demo",
+              "caldav",
+              "github"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "SearchIn",
+        "type": "object"
+      },
+      "SearchOut": {
+        "properties": {
+          "estimated": {
+            "default": false,
+            "title": "Estimated",
+            "type": "boolean"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/FoundTask"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tasks",
+          "total"
+        ],
+        "title": "SearchOut",
+        "type": "object"
+      },
+      "TaskOut": {
+        "properties": {
+          "assignee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due"
+          },
+          "fetched_at": {
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "assignee",
+          "due",
+          "url",
+          "fetched_at"
+        ],
+        "title": "TaskOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
       "WorkspaceOut": {
         "properties": {
           "id": {
@@ -107,6 +749,140 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/boards": {
+      "get": {
+        "description": "Every board the key reaches, newest change first.",
+        "operationId": "list_boards_boards_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Boards",
+        "tags": [
+          "boards"
+        ]
+      }
+    },
+    "/boards/{board_id}": {
+      "get": {
+        "description": "An outline of the board, or its elements a page at a time: all of them, or one frame's.",
+        "operationId": "read_board_boards__board_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "board_id",
+            "required": true,
+            "schema": {
+              "title": "Board Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "frame",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Frame"
+            }
+          },
+          {
+            "in": "query",
+            "name": "elements",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "all",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Elements"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/BoardOutline"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BoardPage"
+                    }
+                  ],
+                  "title": "Response Read Board Boards  Board Id  Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Board",
+        "tags": [
+          "boards"
+        ]
+      }
+    },
     "/me": {
       "get": {
         "description": "Who the key signs in, where, and what it may do.",
@@ -131,6 +907,53 @@
         "summary": "Get Me",
         "tags": [
           "key"
+        ]
+      }
+    },
+    "/tasks/search": {
+      "post": {
+        "description": "Tasks of one tracker, with the person's own credentials.",
+        "operationId": "search_tasks_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search",
+        "tags": [
+          "tasks"
         ]
       }
     }

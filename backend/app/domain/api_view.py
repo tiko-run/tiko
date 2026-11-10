@@ -1,0 +1,243 @@
+"""A board in the public shape of API v1 (spec 046): stable kind names, places on the board
+rather than inside a frame, and the free ends of arrows hidden."""
+
+from datetime import date
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
+
+from app.domain.boards import (
+    AnchorNode,
+    BoardDoc,
+    Edge,
+    FrameNode,
+    ImageNode,
+    ModuleNode,
+    Node,
+    ShapeNode,
+    StickyNode,
+    TaskCardNode,
+    TextNode,
+    TimerNode,
+)
+from app.domain.errors import NotFound
+from app.domain.tasks import Task, task_ref
+
+PAGE = 500
+
+Kind = Literal["card", "note", "text", "shape", "frame", "arrow", "image", "module", "timer"]
+
+_PLACED = ("id", "kind", "x", "y", "w", "h", "frame", "editable")
+# What each kind answers with; a field of its kind stays even when it is null.
+FIELDS: dict[str, tuple[str, ...]] = {
+    "card": (*_PLACED, "source", "key", "task"),
+    "note": (*_PLACED, "text", "color"),
+    "text": (*_PLACED, "text"),
+    "shape": (*_PLACED, "shape", "text", "color"),
+    "frame": ("id", "kind", "x", "y", "w", "h", "editable", "title", "color"),
+    "arrow": ("id", "kind", "editable", "from", "to"),
+    "image": (*_PLACED,),
+    "module": (*_PLACED, "title"),
+    "timer": ("id", "kind", "x", "y", "w", "h", "editable", "note", "due_at", "attached_to"),
+}
+
+
+class TaskOut(BaseModel):
+    title: str
+    status: str
+    assignee: str | None
+    due: date | None
+    url: str
+    fetched_at: str
+
+
+class Element(BaseModel):
+    """One element; fields that do not belong to its kind are left out of the answer."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    kind: Kind
+    x: float | None = None
+    y: float | None = None
+    w: float | None = None
+    h: float | None = None
+    frame: str | None = None
+    # True for an element the key's person added through the API: only those take changes of
+    # text and colour, and removal.
+    editable: bool = False
+    text: str | None = None
+    title: str | None = None
+    color: str | None = None
+    shape: str | None = None
+    source: str | None = None
+    key: str | None = None
+    task: TaskOut | None = None
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = None
+    note: str | None = None
+    due_at: str | None = None
+    attached_to: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _kind_fields(self, handler):
+        data = handler(self)
+        return {name: data.get(name, data.get(f"{name}_")) for name in FIELDS[self.kind]}
+
+
+class Counts(BaseModel):
+    counts: dict[str, int]
+
+
+class FrameOutline(BaseModel):
+    id: str
+    title: str
+    x: float
+    y: float
+    w: float | None
+    h: float | None
+    counts: dict[str, int]
+
+
+class Outline(BaseModel):
+    frames: list[FrameOutline]
+    outside: Counts
+
+
+class Page(BaseModel):
+    elements: list[Element]
+    more: bool
+
+
+def _task(task: Task | None) -> TaskOut | None:
+    if task is None or task.state != "ok":
+        return None
+    return TaskOut(
+        title=task.summary,
+        status=task.status_name,
+        assignee=task.assignee_name,
+        due=task.due,
+        url=task.url,
+        fetched_at=task.fetched_at,
+    )
+
+
+class BoardShape:
+    """One board read once: elements by id with their places on the board."""
+
+    def __init__(self, doc: BoardDoc, tasks: dict[str, Task], default_source: str) -> None:
+        self._nodes = {node.id: node for node in doc.nodes}
+        self._edges = doc.edges
+        self._tasks = tasks
+        self._default_source = default_source
+
+    def _place(self, node: Node) -> tuple[float, float]:
+        x, y = node.position.x, node.position.y
+        parent = self._nodes.get(node.parentId) if node.parentId else None
+        # Frames do not nest and a timer hangs on a top-level element or one in a frame.
+        for _ in range(3):
+            if parent is None:
+                break
+            x, y = x + parent.position.x, y + parent.position.y
+            parent = self._nodes.get(parent.parentId) if parent.parentId else None
+        return x, y
+
+    def _element(self, node: Node) -> Element:
+        x, y = self._place(node)
+        parent = self._nodes.get(node.parentId) if node.parentId else None
+        frame = parent.id if isinstance(parent, FrameNode) else None
+        base = {"id": node.id, "x": x, "y": y, "w": node.width, "h": node.height}
+        if isinstance(node, TaskCardNode):
+            source = node.data.source or self._default_source
+            task = self._tasks.get(task_ref(source, node.data.key))
+            return Element(
+                **base, kind="card", frame=frame, source=source, key=node.data.key, task=_task(task)
+            )
+        if isinstance(node, StickyNode):
+            return Element(
+                **base, kind="note", frame=frame, text=node.data.text, color=node.data.color
+            )
+        if isinstance(node, TextNode):
+            return Element(**base, kind="text", frame=frame, text=node.data.text)
+        if isinstance(node, ShapeNode):
+            data = node.data
+            return Element(
+                **base,
+                kind="shape",
+                frame=frame,
+                shape=data.shape,
+                text=data.text,
+                color=data.color,
+            )
+        if isinstance(node, FrameNode):
+            return Element(**base, kind="frame", title=node.data.title, color=node.data.color)
+        if isinstance(node, ModuleNode):
+            return Element(**base, kind="module", frame=frame, title=node.data.title)
+        if isinstance(node, ImageNode):
+            return Element(**base, kind="image", frame=frame)
+        if isinstance(node, TimerNode):
+            due = node.data.dueAt.isoformat() if node.data.dueAt else None
+            attached = node.parentId if parent is not None else None
+            return Element(
+                **base, kind="timer", note=node.data.note, due_at=due, attached_to=attached
+            )
+        raise ValueError(f"no public kind for {node.type}")
+
+    def _end(self, node_id: str) -> str | None:
+        return None if isinstance(self._nodes.get(node_id), AnchorNode) else node_id
+
+    def _arrow(self, edge: Edge) -> Element:
+        return Element(
+            id=edge.id, kind="arrow", from_=self._end(edge.source), to=self._end(edge.target)
+        )
+
+    def elements(self) -> list[Element]:
+        shown = [n for n in self._nodes.values() if not isinstance(n, AnchorNode)]
+        return [self._element(node) for node in shown] + [self._arrow(e) for e in self._edges]
+
+    def in_frame(self, frame_id: str) -> list[Element]:
+        """The frame's elements, and arrows with at least one end among them."""
+        if not isinstance(self._nodes.get(frame_id), FrameNode):
+            raise NotFound("frame not found")
+        inside = {n.id for n in self._nodes.values() if n.parentId == frame_id}
+        nodes = [self._element(self._nodes[node_id]) for node_id in inside]
+        arrows = [
+            self._arrow(edge)
+            for edge in self._edges
+            if edge.source in inside or edge.target in inside
+        ]
+        return nodes + arrows
+
+    def outline(self) -> Outline:
+        frames: list[FrameOutline] = []
+        outside: dict[str, int] = {}
+        counts: dict[str, dict[str, int]] = {}
+        for element in self.elements():
+            if element.kind == "frame":
+                continue
+            bucket = counts.setdefault(element.frame, {}) if element.frame else outside
+            bucket[element.kind] = bucket.get(element.kind, 0) + 1
+        for node in self._nodes.values():
+            if isinstance(node, FrameNode):
+                x, y = self._place(node)
+                frames.append(
+                    FrameOutline(
+                        id=node.id,
+                        title=node.data.title,
+                        x=x,
+                        y=y,
+                        w=node.width,
+                        h=node.height,
+                        counts=counts.get(node.id, {}),
+                    )
+                )
+        return Outline(frames=frames, outside=Counts(counts=outside))
+
+
+def page(elements: list[Element], after: str | None) -> Page:
+    """Elements by id, `PAGE` at a time after the id `after`: a boundary that stays valid
+    while people edit the board."""
+    ordered = sorted(elements, key=lambda element: element.id)
+    if after is not None:
+        ordered = [element for element in ordered if element.id > after]
+    return Page(elements=ordered[:PAGE], more=len(ordered) > PAGE)
