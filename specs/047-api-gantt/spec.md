@@ -2,7 +2,7 @@
 
 **Status**: Approved at G1 and G2 on 2026-11-10.
 
-**Input**: Spec 046 left the gantt and Planning out: an agent sees a gantt module as a box with a title. People ask an agent "what is late on the release plan", "who works on what next week", "is Mira overloaded in December". The ideas backlog has it as the second half of the request "an agent answers about status and plans, reads the gantt".
+**Input**: Spec 046 left the gantt and Planning out: an agent sees a gantt module as a box with a title. People ask an agent "what is late on the release plan", "who works on what next week", "is Mira overloaded in December".
 
 ## Why
 
