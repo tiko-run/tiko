@@ -41,15 +41,15 @@ description: "Task list for the public API and MCP server"
 
 ## Phase 3: Slice `feat/mcp-read`
 
-- [ ] T022 Confirm on a real call of each protocol version: the request on the tool context, `tools/list` filtered by middleware. Outcome noted in `plan.md`
-- [ ] T023 `mcp` dependency; `make licenses`; `THIRD_PARTY.md`; image size before and after
-- [ ] T024 `api/mcp.py`: `MCPServer` with `scope_filter`, the mount, the lifespan
-- [ ] T025 Read tools over the v1 operations; `ToolError` mapping; budgets as tool errors; `in_workspace` from the key
-- [ ] T026 nginx `/.well-known/` → `404`
-- [ ] T027 Tests with the SDK client: a read key's tools, a call on the second process, a host other than localhost, `/api/mcp` with and without the slash, workspace isolation through MCP, the older protocol if the client can be pinned
-- [ ] T028 `make smoke`: an MCP call through nginx without the slash, and the `.well-known` 404
-- [ ] T029 By hand: Claude Code, Cursor, Codex on a local stack with made-up boards; recorded in the PR
-- [ ] T030 Guide page "Connect your AI agent" (Claude Code, Cursor, VS Code, Codex, Claude Desktop through connectors or `mcp-remote`; what leaves tiko through the agent); CHANGELOG
+- [x] T022 Confirm on a real call of each protocol version: the request on the tool context, `tools/list` filtered by middleware. Outcome noted in `plan.md`
+- [x] T023 `mcp` dependency; `make licenses`; `THIRD_PARTY.md`; image size before and after
+- [x] T024 `api/mcp.py`: `MCPServer` with `scope_filter`, the mount, the lifespan
+- [x] T025 Read tools over the v1 operations; `ToolError` mapping; budgets as tool errors; `in_workspace` from the key
+- [x] T026 nginx `/.well-known/` → `404`
+- [x] T027 Tests with the SDK client: a read key's tools, a call on the second process, a host other than localhost, `/api/mcp` with and without the slash, workspace isolation through MCP, the older protocol if the client can be pinned — through a live uvicorn and the SDK's client: both protocol versions, a read key's tools, another host name, both spellings of the address, budgets, a removed member
+- [x] T028 `make smoke`: an MCP call through nginx without the slash, and the `.well-known` 404
+- [x] T029 By hand: Claude Code, Cursor, Codex on a local stack with made-up boards; recorded in the PR — Claude Code read a seeded board and its note on a local stack; Codex, Cursor and VS Code were not run, their setup in the guide follows their own docs
+- [x] T030 Guide page "Connect your AI agent" (Claude Code, Cursor, VS Code, Codex, Claude Desktop through connectors or `mcp-remote`; what leaves tiko through the agent); CHANGELOG
 
 ## Phase 4: Slice `feat/api-write`
 

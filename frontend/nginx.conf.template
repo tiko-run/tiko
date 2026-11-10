@@ -14,6 +14,12 @@ server {
     # The client's address for the API, from TIKO_TRUSTED_PROXIES: real-ip.envsh.
     include /etc/nginx/real-ip.conf;
 
+    # MCP clients look here for OAuth after a 401; tiko signs in with API keys, so there is nothing
+    # to find, and the page fallback below would answer with HTML and 200.
+    location ^~ /.well-known/ {
+        return 404;
+    }
+
     location /api/ {
         # $api_upstream is the process of the board in the path, or any of them, over the
         # network or a Unix socket: api-workers.envsh.

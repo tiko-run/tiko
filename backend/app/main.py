@@ -34,7 +34,7 @@ from app.adapters.tasks.jira_cloud import JiraCloudProvider
 from app.adapters.tasks.jira_dc import JiraDateFields, JiraDcProvider
 from app.adapters.tasks.jira_kind import find_kind
 from app.adapters.updater.http import HttpUpdater, ensure_token
-from app.api import v1
+from app.api import mcp, v1
 from app.api.errors import register_error_handlers
 from app.api.gate import PasswordGate
 from app.api.routes import router
@@ -268,7 +268,9 @@ def create_app(
         listener = (
             serve_metrics(port, metrics_token, demo_gauges) if port and metrics_token else None
         )
-        yield
+        # A mounted app's own lifespan never runs: the MCP server's session manager starts here.
+        async with app.state.mcp.session_manager.run():
+            yield
         if listener:
             await anyio.to_thread.run_sync(listener.shutdown)
             listener.server_close()
@@ -521,6 +523,7 @@ def create_app(
         )
     app.include_router(router)
     app.mount("/api/v1", v1.create(app.state))
+    app.state.mcp = mcp.mount(app)
 
     @app.get("/health", include_in_schema=False)
     def health() -> dict:

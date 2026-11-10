@@ -432,6 +432,29 @@ if body["enabled"]:
             except urllib.error.HTTPError as error:
                 return error.code
 
+        # MCP through the proxy, at the address people paste: without the slash.
+        rpc = urllib.request.Request(
+            f"{WEB}/api/mcp",
+            data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).encode(),
+            method="POST",
+            headers={
+                "authorization": f"Bearer {made['token']}",
+                "content-type": "application/json",
+                "accept": "application/json, text/event-stream",
+                "mcp-protocol-version": "2025-11-25",
+            },
+        )
+        with urllib.request.urlopen(rpc, timeout=30) as response:
+            listed = json.loads(response.read())
+        names = {tool["name"] for tool in listed["result"]["tools"]}
+        check({"list_boards", "read_board", "search_tasks"} <= names, "MCP lists its tools")
+        try:
+            urllib.request.urlopen(f"{WEB}/.well-known/oauth-protected-resource", timeout=30)
+            found = 200
+        except urllib.error.HTTPError as error:
+            found = error.code
+        check(found == 404, "no OAuth discovery to follow")
+
         login = {"username": "admin", "password": PASSWORD}
         check(web_call("POST", "/api/auth/login", login) == 204, "sign in through the UI")
         try:

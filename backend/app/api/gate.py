@@ -85,6 +85,9 @@ class PasswordGate:
             await self.app(scope, receive, send)
             return
         if by_key(scope["path"]):
+            if scope["path"] == "/api/mcp":
+                # The mount would answer with a redirect built from the address inside the proxy.
+                scope["path"], scope["raw_path"] = "/api/mcp/", b"/api/mcp/"
             await self._by_key(scope, receive, send)
             return
         token = HTTPConnection(scope).cookies.get(COOKIE)

@@ -17,6 +17,7 @@
 | psycopg_pool | LGPL-3.0 | Postgres connection pool |
 | rlottie-python | LGPL-2.1 | Draws the built-in stickers from Lottie to animated WebP; the wheel bundles [rlottie](https://github.com/Samsung/rlottie) (MIT) |
 | Pillow | MIT-CMU (HPND) | Reads pictures put on boards, removes their metadata and makes their smaller WebP copies; the wheel bundles libwebp, libjpeg-turbo, libpng and zlib (BSD-style licenses) |
+| MCP Python SDK (`mcp`) | MIT | The MCP server for a person's own AI agent; brings httpx2, sse-starlette, jsonschema, pyjwt and others, all MIT, BSD or Apache-2.0 |
 | PostgreSQL (`postgres:18` Docker image) | PostgreSQL License | The database in the compose files, unchanged |
 | React | MIT | UI |
 | driver.js | MIT | Product tour, loaded only when the tour runs |
