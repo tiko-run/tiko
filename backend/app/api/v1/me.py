@@ -1,11 +1,11 @@
 from typing import Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from app.api.v1.deps import Key, KeyPerson
+from app.api.v1.deps import Key, KeyPerson, read_budget
 
-router = APIRouter(tags=["key"])
+router = APIRouter(tags=["key"], dependencies=[Depends(read_budget)])
 
 
 class WorkspaceOut(BaseModel):

@@ -25,7 +25,7 @@ Send it in the `Authorization` header to the API under `/api/v1/`:
 curl -H "Authorization: Bearer tiko_…" https://tiko.example.com/api/v1/me
 ```
 
-`/api/v1/me` answers with your name, your workspace and what the key may do. The API's own description is at `/api/v1/openapi.json`.
+`/api/v1/me` answers with your name, your workspace and what the key may do. What else the API reads is in [API](../api/).
 
 The API takes keys only, never the browser's sign-in, and a key opens nothing outside `/api/v1/`.
 

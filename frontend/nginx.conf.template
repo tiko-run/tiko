@@ -19,6 +19,8 @@ server {
         # network or a Unix socket: api-workers.envsh.
         proxy_pass http://$api_upstream;
         proxy_set_header Host $host;
+        # With its port: the public API builds board links from it.
+        proxy_set_header X-Forwarded-Host $http_host;
         proxy_set_header X-Request-Id $request_id;
         proxy_set_header X-Real-IP $remote_addr;
         # The platform edge ends TLS; the API needs the scheme to mark the session cookie Secure.

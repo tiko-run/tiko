@@ -22,6 +22,7 @@ first=${API_UPSTREAM##*:}
   echo 'map $uri $board_key {'
   echo '    default "";'
   echo '    "~^/api/boards/([^/]+)" $1;'
+  echo '    "~^/api/v1/boards/([^/]+)" $1;'
   echo '    "~^/api/public/[^/]+/live/([^/]+)$" $1;'
   echo '}'
   echo 'split_clients $request_id $any_api_port {'
