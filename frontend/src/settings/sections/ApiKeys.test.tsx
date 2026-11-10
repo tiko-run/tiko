@@ -179,3 +179,9 @@ test('revokes a key after asking', async () => {
   await waitFor(() => expect(methods(fetchMock)).toContain('DELETE /api/me/api-keys/k1'))
   expect(await screen.findByText('My agent revoked')).toBeInTheDocument()
 })
+
+test('says the key reads Planning too', async () => {
+  mockApi()
+  await fillDialog()
+  expect(screen.getByText(/the Planning they use: people, teams and days away/)).toBeInTheDocument()
+})

@@ -49,6 +49,7 @@ The main hypothesis from the research (top by ICE): a lead will trust the canvas
 - Selection bar ([specs/023-selection-bar](../specs/023-selection-bar/spec.md)): one bar next to whatever is selected, with only the properties every selected element shares: fill, opacity, outline, text size and bold.
 - Images, GIFs and stickers ([specs/039-media](../specs/039-media/spec.md)): paste a screenshot, drop a file or pick one; each file stored once per workspace in Postgres, smaller copies keep big images light on the canvas; GIFs animate only in view; a sticker panel with a built-in set and the workspace's own pack.
 - Public API and MCP server ([specs/046-api-mcp](../specs/046-api-mcp/spec.md)): personal API keys tied to a workspace, a versioned `/api/v1/` for scripts and integrations, and an MCP server for the person's own AI agent to read boards, add notes and cards and lay them out. Boards only, never the tracker.
+- Gantt and Planning reads in the API and MCP ([specs/047-api-gantt](../specs/047-api-gantt/spec.md)): an agent reads the plan as the gantt draws it, with live tasks, stages and people, and a person's load.
 
 **Won't**
 - Confluence, Todoist (only a hook in the provider interface)

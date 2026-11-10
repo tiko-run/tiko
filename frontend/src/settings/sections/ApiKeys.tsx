@@ -158,8 +158,8 @@ function CreateDialog({
           <DialogHeader>
             <DialogTitle>New API key</DialogTitle>
             <DialogDescription>
-              The key reaches what you can see on its boards. What it reads leaves tiko through
-              whatever uses it.
+              The key reaches what you can see on its boards, and the Planning they use: people,
+              teams and days away. What it reads leaves tiko through whatever uses it.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">

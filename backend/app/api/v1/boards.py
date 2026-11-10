@@ -1,12 +1,13 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 
 from app.api import deps
 from app.api.v1.deps import Key, KeyPerson, Viewable, board_url, read_budget
+from app.domain.api_gantt import GanttOut, Names, gantt_view
 from app.domain.api_view import BoardShape, Outline, Page, page
-from app.domain.boards import task_refs
+from app.domain.boards import ModuleNode, task_refs
 from app.domain.errors import NotFound
 from app.domain.members import BoardRole, effective_role
 
@@ -25,6 +26,22 @@ class Board(BaseModel):
 
 class BoardList(BaseModel):
     boards: list[Board]
+
+
+class ModuleRead(BaseModel):
+    id: str
+    module: str
+    title: str | None
+    planning: bool
+    # Absent for a module kind without a public shape yet.
+    gantt: GanttOut | None = None
+
+    @model_serializer(mode="wrap")
+    def _gantt_only(self, handler):
+        data = handler(self)
+        if self.gantt is None:
+            data.pop("gantt", None)
+        return data
 
 
 class BoardOutline(Outline):
@@ -87,6 +104,34 @@ def read_board(
     if elements == "all":
         return BoardPage(board=found[0], **page(board_shape.elements(), after).model_dump())
     return BoardOutline(board=found[0], **board_shape.outline().model_dump())
+
+
+@router.get("/{board_id}/modules/{module_id}")
+def read_module(board_id: str, module_id: str, _: Viewable, request: Request) -> ModuleRead:
+    """One module of the board; a gantt as the web app draws it, its tasks fresh."""
+    state = request.app.state
+    _refresh(board_id, request)
+    record = state.boards.get(board_id)
+    node = next((n for n in record.doc.nodes if n.id == module_id), None) if record else None
+    if not isinstance(node, ModuleNode):
+        raise NotFound("module not found")
+    plan = state.planning.view()
+    found = ModuleRead(
+        id=node.id, module=node.data.kind, title=node.data.title, planning=plan.enabled
+    )
+    if node.data.kind != "gantt":
+        return found
+    tracker = deps.tracker(request)
+    tasks = deps.snapshots(request).get_many(task_refs(record.doc, tracker))
+    names = None
+    if plan.enabled:
+        names = Names(
+            types={t.id: t.name for t in plan.types},
+            people={p.id: p.name for p in plan.people},
+            fields={f.id: f.name for f in plan.fields},
+        )
+    found.gantt = gantt_view(node.data.content, tasks, tracker, names)
+    return found
 
 
 def editable(board_id: str, request: Request) -> set[str]:

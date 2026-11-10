@@ -209,12 +209,48 @@ def test_the_live_socket_takes_no_key(app, admin):
         pass
 
 
+# Prose that may change within v1.
+_WORDING = {"description", "summary", "title"}
+
+
+def _lost(old, new, at: str = ""):
+    """What the committed document has and the served one does not: paths, fields, enum values
+    and types. A removal or a change of meaning there needs v2."""
+    if isinstance(old, dict) and isinstance(new, dict):
+        for name, value in old.items():
+            if name in _WORDING:
+                continue
+            if name not in new:
+                yield f"{at}/{name}"
+            else:
+                yield from _lost(value, new[name], f"{at}/{name}")
+    elif isinstance(old, list) and isinstance(new, list):
+        if all(not isinstance(item, dict | list) for item in old):
+            yield from (f"{at}: {item}" for item in old if item not in new)
+    elif old != new:
+        yield f"{at}: {old} -> {new}"
+
+
+def test_the_contract_check_catches_a_removal():
+    old = {"paths": {"/a": {"get": {}}}, "x": {"enum": ["grid", "status"], "type": "string"}}
+    grown = {"paths": {"/a": {"get": {}}, "/b": {}}, "x": {"enum": ["grid", "status", "more"]}}
+    grown["x"]["type"] = "string"
+    assert list(_lost(old, grown)) == []
+    assert list(_lost(old, {"paths": {}, "x": {"enum": ["grid"], "type": "integer"}})) == [
+        "/paths//a",
+        "/x/enum: status",
+        "/x/type: string -> integer",
+    ]
+
+
 def test_the_v1_contract_matches_what_is_served(app):
     served = TestClient(app).get("/api/v1/openapi.json")
     assert served.status_code == 200
     document = served.json()
     assert "bearer" in json.dumps(document["components"]["securitySchemes"]).lower()
     assert not any(path.startswith("/api/") for path in document["paths"]), "internal routes leaked"
+    lost = list(_lost(json.loads(CONTRACT.read_text()), document))
+    assert not lost, f"v1 lost what it promised; that needs v2 (spec 046): {lost}"
     if os.environ.get("TIKO_WRITE_CONTRACT"):
         CONTRACT.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
     assert document == json.loads(CONTRACT.read_text()), (

@@ -14,6 +14,8 @@ An API key lets a script reach tiko as you, without your password. It sees what 
 5. Choose how long it lives: 7, 30, 90 or 365 days. No key lives forever.
 6. Enter your password and copy the key. tiko shows it once and keeps only a fingerprint of it, so nobody can read it back, you included.
 
+A key also reads the Planning of the workspace: its people, their teams and days away, and stage types. A key for chosen boards reads only the people and types those boards plan with.
+
 Whatever the key reads leaves tiko through the program that holds it. Give it only to software you trust with those boards.
 
 ## Use a key

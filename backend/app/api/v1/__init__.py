@@ -10,7 +10,7 @@ from starlette.datastructures import State
 from starlette.exceptions import HTTPException
 
 from app.api.errors import error_body, register_error_handlers
-from app.api.v1 import boards, elements, me, tasks
+from app.api.v1 import boards, elements, me, planning, tasks
 from app.domain.errors import JiraUnauthorized
 
 # Documents the scheme; the gate checks the key before any route runs.
@@ -78,6 +78,7 @@ def create(state: State) -> FastAPI:
     app.include_router(boards.router)
     app.include_router(elements.router)
     app.include_router(tasks.router)
+    app.include_router(planning.router)
     register_error_handlers(app)
     _our_errors(app)
 

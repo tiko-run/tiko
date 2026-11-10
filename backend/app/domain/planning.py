@@ -485,9 +485,15 @@ class Planning:
         return DaysOff(dates=dates)
 
     def workload(
-        self, person_id: str, start: date, weeks: int, can_open: Callable[[str], bool]
+        self,
+        person_id: str,
+        start: date,
+        weeks: int,
+        can_open: Callable[[str], bool],
+        only_open: bool = False,
     ) -> Workload:
-        """Weeks from the Monday of `start`: stages per week, overlaps on working days, time off."""
+        """Weeks from the Monday of `start`: stages per week, overlaps on working days, time off.
+        `only_open` leaves out stages on boards the reader cannot open instead of hiding them."""
         self._require_enabled()
         person = self._person(person_id)
         first = start - timedelta(days=start.weekday())
@@ -495,6 +501,8 @@ class Planning:
         stages = [
             s for s in self._stages.for_person(person_id) if s.start <= last and s.end >= first
         ]
+        if only_open:
+            stages = [s for s in stages if can_open(s.board)]
         days_off = set(self._days_off())
         away = [(o.start, o.end) for o in person.off]
         out: list[WorkloadWeek] = []
@@ -531,6 +539,10 @@ class Planning:
                 )
             )
         return Workload(weeks=out, stages=listed)
+
+    def boards_of(self, person_id: str) -> set[str]:
+        """Boards where the person has a stage, whenever it is."""
+        return {s.board for s in self._stages.for_person(person_id)}
 
     def _changed(self) -> None:
         self._settings.set_many({TOUCHED_KEY: "1"})

@@ -4,6 +4,7 @@ import asyncio
 import socket
 import threading
 import time
+import uuid
 
 import httpx2
 import pytest
@@ -12,15 +13,25 @@ from fastapi.testclient import TestClient
 from mcp.client import Client
 from mcp.client.streamable_http import streamable_http_client
 
+from app.adapters.storage import postgres as pg
 from app.api.v1 import deps as v1_deps
 from app.config import Settings
+from app.domain.accounts import Person, hash_password
 from app.main import create_app
-from tests.conftest import signed_in
+from tests.conftest import PASSWORD, signed_in
 from tests.test_api_keys import make_key
 from tests.test_api_v1_read import DOC, board
+from tests.test_membership import add_workspace
 from tests.test_people import invite, join
 
-READ_TOOLS = ["list_boards", "read_board", "search_tasks"]
+READ_TOOLS = [
+    "list_boards",
+    "read_board",
+    "read_gantt",
+    "read_planning",
+    "read_workload",
+    "search_tasks",
+]
 
 
 @pytest.fixture
@@ -223,3 +234,113 @@ def test_a_read_key_cannot_call_a_write_tool(served):
 
     result = call(url, token, steps)
     assert result.is_error and "scope_required" in result.content[0].text
+
+
+def gantt_node(node_id: str, rows: list[dict], y: int = 0) -> dict:
+    content = {"start": "2026-10-01", "end": "2026-12-31", "rows": rows}
+    return {
+        "id": node_id,
+        "type": "module",
+        "position": {"x": 0, "y": y},
+        "data": {"kind": "gantt", "title": f"Plan {node_id}", "content": content},
+    }
+
+
+def epics(count: int, under: int) -> list[dict]:
+    rows = []
+    for i in range(count):
+        rows.append(
+            {"id": f"e{i}", "title": f"Epic {i}", "start": "2026-10-05", "end": "2026-10-09"}
+        )
+        rows += [
+            {
+                "id": f"e{i}-{j}",
+                "parent": f"e{i}",
+                "title": "x",
+                "start": "2026-11-02",
+                "end": "2026-11-06",
+            }
+            for j in range(under)
+        ]
+    return rows
+
+
+def test_read_gantt_finds_the_boards_gantt_and_narrows_a_big_one(served):
+    app, url, admin = served
+    one = board(admin, "One", {"nodes": [gantt_node("g", epics(3, 50))], "edges": []})
+    two = board(
+        admin,
+        "Two",
+        {"nodes": [gantt_node("a", epics(1, 1)), gantt_node("b", [], 900)], "edges": []},
+    )
+    none = board(admin, "None")
+    token = make_key(admin)["token"]
+
+    async def steps(client):
+        whole = await client.call_tool("read_gantt", {"board": one})
+        branch = await client.call_tool("read_gantt", {"board": one, "branch": "e1"})
+        window = await client.call_tool(
+            "read_gantt", {"board": one, "start": "2026-10-05", "end": "2026-10-09"}
+        )
+        pick = await client.call_tool("read_gantt", {"board": two})
+        picked = await client.call_tool("read_gantt", {"board": two, "gantt": "a"})
+        missing = await client.call_tool("read_gantt", {"board": none})
+        return whole, branch, window, pick, picked, missing
+
+    whole, branch, window, pick, picked, missing = call(url, token, steps)
+    folded = whole.structured_content
+    assert [(r["id"], r["holds"]) for r in folded["gantt"]["rows"]] == [
+        ("e0", 50),
+        ("e1", 50),
+        ("e2", 50),
+    ]
+    assert "branch" in folded["note"] and folded["url"].endswith(f"?board={one}")
+    assert len(branch.structured_content["gantt"]["rows"]) == 51
+    assert "note" not in branch.structured_content
+    # The children start in November: only the epics' own bars touch the window.
+    assert [r["id"] for r in window.structured_content["gantt"]["rows"]] == ["e0", "e1", "e2"]
+    assert [g["id"] for g in pick.structured_content["gantts"]] == ["a", "b"]
+    assert [r["id"] for r in picked.structured_content["gantt"]["rows"]] == ["e0", "e0-0"]
+    assert missing.is_error and "no gantt" in missing.content[0].text
+
+
+def test_read_workload_asks_which_of_two_namesakes(served):
+    app, url, admin = served
+    first = admin.post("/api/planning/people", json={"name": "Ivan", "teams": ["Web"]}).json()
+    admin.post("/api/planning/people", json={"name": "Ivan", "teams": ["Ops"]})
+    token = make_key(admin)["token"]
+
+    async def steps(client):
+        plan = await client.call_tool("read_planning", {})
+        both = await client.call_tool("read_workload", {"person": "ivan"})
+        one = await client.call_tool("read_workload", {"person": first["id"], "weeks": 2})
+        nobody = await client.call_tool("read_workload", {"person": "Nobody"})
+        return plan, both, one, nobody
+
+    plan, both, one, nobody = call(url, token, steps)
+    assert [p["name"] for p in plan.structured_content["people"]].count("Ivan") == 2
+    assert [m["teams"] for m in both.structured_content["matches"]] == [["Web"], ["Ops"]]
+    assert one.structured_content["person"] == {"id": first["id"], "name": "Ivan"}
+    assert len(one.structured_content["weeks"]) == 2
+    assert nobody.is_error and "not_found" in nobody.content[0].text
+
+
+def test_planning_tools_read_the_keys_own_workspace(served):
+    # Planning names no board: a read in the wrong workspace would show another team's people.
+    app, url, admin = served
+    admin.post("/api/planning/people", json={"name": "Default Dora"})
+    db = app.state.boards._db
+    other = add_workspace(db)
+    bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="admin")
+    pg.PgUserRepo(db, other).add(bob, hash_password(PASSWORD))
+    bob_client = signed_in(app, "bob")
+    assert bob_client.put("/api/settings", json={"api_keys": True}).status_code == 200
+    bob_client.patch("/api/planning", json={"enabled": True})
+    bob_client.post("/api/planning/people", json={"name": "Other Olga"})
+    token = make_key(bob_client)["token"]
+
+    async def steps(client):
+        return await client.call_tool("read_planning", {})
+
+    people = [p["name"] for p in call(url, token, steps).structured_content["people"]]
+    assert people == ["Other Olga"]
