@@ -11,7 +11,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -72,6 +72,14 @@ class NoteIn(BaseModel):
     opacity: int | None = Field(default=None, description="Percent, 10 to 100 in steps of 5.")
     rotation: float | None = Field(default=None, description="Degrees clockwise.")
     id: str | None = Field(default=None, description="Your own id for it.")
+
+    @model_validator(mode="after")
+    def _fits(self) -> "NoteIn":
+        if self.kind == "note" and self.size is not None:
+            raise ValueError("size is for plain text; a sticky note has none")
+        if self.kind == "text" and self.color is not None:
+            raise ValueError("plain text has no colour")
+        return self
 
 
 class TikoMCP(MCPServer):

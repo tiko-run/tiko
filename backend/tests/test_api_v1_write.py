@@ -208,6 +208,12 @@ def test_new_elements_take_a_look(setup):
     assert now["agent-t"]["opacity"] is None
     card = add(key, board_id, {"kind": "card", "ref": "DEMO-1", "bold": True})
     assert (card.status_code, code(card)) == (422, "validation_failed")
+    for odd in (
+        {"kind": "card", "ref": "DEMO-1", "color": "pink"},
+        {"kind": "text", "color": "blue"},
+    ):
+        refused = add(key, board_id, odd)
+        assert (refused.status_code, code(refused)) == (422, "validation_failed")
 
 
 def test_an_editor_key_renames_a_board(app, admin, setup):

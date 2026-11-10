@@ -292,7 +292,8 @@ class _Plan:
     def _data(self, element: NewElement) -> dict[str, Any]:
         styles = element.styles(element.model_fields_set)
         kind = _TYPES.get(element.kind, element.kind)
-        for name in styles:
+        looks = [*styles, *(["color"] if element.color is not None else [])]
+        for name in looks:
             if name not in _STYLES.get(kind, ()):
                 raise ValidationFailed(f"{element.id}: a {element.kind} has no {name}")
         return self._content(element) | {k: v for k, v in styles.items() if v is not None}

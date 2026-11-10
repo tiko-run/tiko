@@ -226,6 +226,10 @@ def test_a_write_key_lays_a_board_out(served):
             "update_elements",
             {"board": board_id, "changes": [{"id": "n1", "color": "green", "bold": True}]},
         )
+        sized = await client.call_tool(
+            "add_notes", {"board": board_id, "notes": [{"text": "x", "size": "large"}]}
+        )
+        assert sized.is_error and "plain text" in sized.content[0].text
         return names, cards, arrow, laid, gone, human, renamed, styled, tidied
 
     names, cards, arrow, laid, gone, human, renamed, styled, tidied = call(url, token, steps)

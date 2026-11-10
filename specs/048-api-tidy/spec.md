@@ -68,7 +68,7 @@ Principles check:
 - **API tests**: rename on a read-only key and on a viewer's board refused; styles round-trip through a read.
 - **MCP tests**: a `write` key lists `rename_board` and `add_reminder`; a `read` key does not.
 - **Contract test**: the OpenAPI snapshot grows only by additions.
-- **By hand**: Claude Code against a local stack: "rename the board to Sprint 12 and make the frame titles bold", "remind me in 10 minutes", "tell me when DEMO-2 leaves In progress"; the timer rings in the open tab. Recorded in the slice PR.
+- **By hand**: Claude Code against a local stack: "rename the board to Sprint 12, make the headings bold and colour the blocked frame pink", "remind me in 10 minutes", "tell me when DEMO-2 leaves In progress"; the timer rings in the open tab. Recorded in the slice PR.
 - `make check`, `make smoke`.
 
 ## Slices
