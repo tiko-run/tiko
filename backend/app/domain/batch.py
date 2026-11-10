@@ -5,9 +5,10 @@ writes the result only when the board's own repair would change nothing in it, s
 applied whole or not at all.
 """
 
+from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.domain import layout
 from app.domain.boards import Opacity, ShapeKind, TextSize
@@ -16,6 +17,7 @@ from app.domain.errors import (
     KeepsPeopleWork,
     NotApiElement,
     NotFound,
+    TimerLimit,
     ValidationFailed,
     VoteRunning,
 )
@@ -38,7 +40,20 @@ _TAKEN = {
 }
 _PLACE = Field(default=None, ge=-1_000_000, le=1_000_000)
 _SIZE = Field(default=None, ge=1, le=20_000)
-_TYPES = {"card": "task_card", "note": "sticky", "text": "text", "shape": "shape", "frame": "frame"}
+_TYPES = {
+    "card": "task_card",
+    "note": "sticky",
+    "text": "text",
+    "shape": "shape",
+    "frame": "frame",
+    "timer": "timer",
+}
+# Waiting reminders a board may hold before the API stops adding them; the web app sets none.
+MAX_TIMERS = 50
+# What a reminder attaches to, and where it sits: left of the top edge (`attach.ts`).
+_HOLDERS = {"task_card", "sticky", "shape", "text", "image", "module"}
+_BESIDE = {"x": -46.0, "y": 0.0}
+Repeat = Literal["daily", "weekdays", "weekly"]
 # The data key that holds each stored type's text.
 _TEXT = {"sticky": "text", "text": "text", "shape": "text", "frame": "title"}
 # The look each stored type takes, as the web app's style bar offers it; a key may set these on
@@ -81,7 +96,7 @@ class NewElement(_Styled):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     id: str | None = Field(default=None, pattern=ID_PATTERN)
-    kind: Literal["card", "note", "text", "shape", "frame", "arrow"]
+    kind: Literal["card", "note", "text", "shape", "frame", "arrow", "timer"]
     x: float | None = _PLACE
     y: float | None = _PLACE
     w: float | None = _SIZE
@@ -95,10 +110,28 @@ class NewElement(_Styled):
     ref: str | None = Field(default=None, max_length=500)
     from_: str | None = Field(default=None, alias="from", max_length=100)
     to: str | None = Field(default=None, max_length=100)
+    # A reminder: at a moment, or when the task of the card it sits on leaves `status`.
+    note: str | None = Field(default=None, max_length=500)
+    at: AwareDatetime | None = None
+    repeat: Repeat | None = None
+    status: str | None = Field(default=None, max_length=200)
+    on: str | None = Field(default=None, max_length=100)
 
     @model_validator(mode="after")
     def _fits_its_kind(self) -> "NewElement":
         _free_name(self.id)
+        timed = {"note", "at", "repeat", "status", "on"} & self.model_fields_set
+        if self.kind != "timer" and timed:
+            raise ValueError(f"only a reminder takes {sorted(timed)[0]}")
+        if self.kind == "timer":
+            if self.x is not None or self.frame is not None or self.w or self.h:
+                raise ValueError("a reminder takes no place, size or frame: give on")
+            if self.at is not None and (self.ref or self.status):
+                raise ValueError("a reminder goes off at a moment or on a status change, not both")
+            if self.at is None and self.repeat:
+                raise ValueError("only a reminder at a moment repeats")
+            if self.at is None and not (self.ref or self.on):
+                raise ValueError("give at, or a task or card whose status to watch")
         if (self.x is None) != (self.y is None):
             raise ValueError("give x and y together, or neither")
         if self.kind == "arrow":
@@ -124,6 +157,11 @@ class NewElement(_Styled):
 class Change(_Styled):
     model_config = ConfigDict(extra="forbid")
 
+    # A reminder's own fields; `repeat` null makes it go off once.
+    note: str | None = Field(default=None, max_length=500)
+    at: AwareDatetime | None = None
+    repeat: Repeat | None = None
+
     id: str = Field(max_length=100)
     x: float | None = _PLACE
     y: float | None = _PLACE
@@ -140,7 +178,7 @@ class Change(_Styled):
     def _together(self) -> "Change":
         if (self.x is None) != (self.y is None):
             raise ValueError("give x and y together, or neither")
-        for name in ("x", "y", "w", "h", *_STYLE_FIELDS):
+        for name in ("x", "y", "w", "h", "note", "at", *_STYLE_FIELDS):
             if name in self.model_fields_set and getattr(self, name) is None:
                 raise ValueError(f"{name} cannot be null; leave it out to keep it")
         return self
@@ -161,6 +199,14 @@ class Arrange(BaseModel):
     statuses: dict[str, tuple[int, str]] = {}
 
 
+class Watch(BaseModel):
+    """What a status reminder watches: its card's task as the card names it."""
+
+    key: str
+    source: str | None = None
+    status: str
+
+
 class Batch(BaseModel):
     """What one API call asks of a board; ids of new elements are set before it is planned."""
 
@@ -170,6 +216,8 @@ class Batch(BaseModel):
     changes: list[Change] = []
     removes: list[str] = []
     arrange: Arrange | None = None
+    # Status reminders by id, resolved against their card before the plan.
+    watches: dict[str, Watch] = {}
     # Elements the caller's person added through the API: theirs to change and remove.
     mine: list[str] = []
 
@@ -178,6 +226,11 @@ class Applied(BaseModel):
     ids: list[str] = []
     created: list[str] = []
     removed: list[str] = []
+
+
+def iso(moment: datetime) -> str:
+    """A moment as the web app writes one: UTC with milliseconds and Z."""
+    return moment.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _absolute(nodes: Stored, node_id: str | None) -> tuple[float, float]:
@@ -253,7 +306,12 @@ class _Plan:
             if child["place"].get("parentId") != node_id:
                 continue
             if child["type"] == "timer":
-                raise KeepsPeopleWork(f"{node_id} has a reminder on it; remove that first.")
+                if child_id not in self.mine:
+                    raise KeepsPeopleWork(f"{node_id} has a reminder on it; remove that first.")
+                # The API's own reminder goes with its element, as its own arrow does.
+                del self.nodes[child_id]
+                self.applied.removed.append(child_id)
+                continue
             x, y = _absolute(self.nodes, child_id)
             self._put(child_id, {**child, "place": {"x": x, "y": y}})
         del self.nodes[node_id]
@@ -273,13 +331,17 @@ class _Plan:
                 self._add_arrow(element)
             else:
                 self._add_node(element)
-                if element.x is None:
+                if element.x is None and not (element.kind == "timer" and element.on):
                     unplaced.setdefault(element.frame, []).append(element_id)
             self.applied.ids.append(element_id)
             self.applied.created.append(element_id)
             self.mine.add(element_id)
         for frame_id, ids in unplaced.items():
             self._place(frame_id, ids)
+        timers = [n for n in self.nodes.values() if n["type"] == "timer"]
+        made = any(self.nodes.get(i, {}).get("type") == "timer" for i in self.applied.created)
+        if made and sum(not n["data"].get("done") for n in timers) > MAX_TIMERS:
+            raise TimerLimit(f"A board holds at most {MAX_TIMERS} waiting reminders.")
 
     def _add_arrow(self, element: NewElement) -> None:
         for end in (element.from_, element.to):
@@ -299,6 +361,8 @@ class _Plan:
         return self._content(element) | {k: v for k, v in styles.items() if v is not None}
 
     def _content(self, element: NewElement) -> dict[str, Any]:
+        if element.kind == "timer":
+            return self._timer(element)
         if element.kind == "card":
             card = self.batch.cards.get(element.id)
             if card is None:
@@ -314,10 +378,27 @@ class _Plan:
         data = {"title": element.title or element.text or ""}
         return data | ({"color": element.color} if element.color else {})
 
+    def _timer(self, element: NewElement) -> dict[str, Any]:
+        data: dict[str, Any] = {"note": element.note or ""}
+        if element.at is not None:
+            data["dueAt"] = iso(element.at)
+            return data | ({"repeat": element.repeat} if element.repeat else {})
+        watch = self.batch.watches.get(element.id or "")
+        holder = self.nodes.get(element.on or "")
+        if watch is None or holder is None or holder["type"] != "task_card":
+            raise ValidationFailed(f"{element.id}: a status reminder sits on its task's card")
+        named = watch.model_dump(exclude_none=True)
+        return data | {"dueAt": None, "watch": named}
+
     def _add_node(self, element: NewElement) -> None:
         kind = _TYPES[element.kind]
         place: dict[str, Any] = {"x": 0.0, "y": 0.0}
-        if element.frame is not None:
+        if kind == "timer" and element.on:
+            holder = self.nodes.get(element.on)
+            if holder is None or holder["type"] not in _HOLDERS:
+                raise NotFound(f"no element {element.on} a reminder can sit on")
+            place = {**_BESIDE, "parentId": element.on}
+        elif element.frame is not None:
             self._frame(element.frame)
             place["parentId"] = element.frame
             if element.x is not None:
@@ -329,7 +410,7 @@ class _Plan:
         size: dict[str, float] = {}
         if kind != "task_card":
             size["width"] = element.w or width
-        if kind in ("sticky", "shape", "frame"):
+        if kind in ("sticky", "shape", "frame", "timer"):
             size["height"] = element.h or height
         self.order += 1
         node = {"type": kind, "place": place, "size": size, "order": self.order}
@@ -357,6 +438,7 @@ class _Plan:
             if node is None or node["type"] == "anchor":
                 raise NotFound(f"element {change.id} not found")
             node = self._restyle(change, node, given)
+            node = self._retime(change, node, given)
             node = self._resize(change, node, given)
             self._put(change.id, self._move(change, node, given))
             self.applied.ids.append(change.id)
@@ -384,6 +466,28 @@ class _Plan:
             if key is None or value is None:
                 raise ValidationFailed(f"{change.id}: a {kind} has no {name} to change")
             data[key] = value
+        return {**node, "data": data}
+
+    def _retime(self, change: Change, node: dict[str, Any], given: set[str]) -> dict[str, Any]:
+        wanted = given & {"note", "at", "repeat"}
+        if not wanted:
+            return node
+        if node["type"] != "timer":
+            raise ValidationFailed(f"{change.id}: only a reminder takes {sorted(wanted)[0]}")
+        self._own(change.id, "change")
+        data = dict(node["data"])
+        if change.note is not None:
+            data["note"] = change.note
+        if change.at is not None:
+            # A new moment, as the editor sets one: no snooze, not done, no status watched.
+            for gone in ("snoozedUntil", "done", "watch"):
+                data.pop(gone, None)
+            data["dueAt"] = iso(change.at)
+        if "repeat" in given:
+            if change.repeat and data.get("watch"):
+                raise ValidationFailed(f"{change.id}: a status reminder does not repeat")
+            data.pop("repeat", None)
+            data |= {"repeat": change.repeat} if change.repeat else {}
         return {**node, "data": data}
 
     def _resize(self, change: Change, node: dict[str, Any], given: set[str]) -> dict[str, Any]:

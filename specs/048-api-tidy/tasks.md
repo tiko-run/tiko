@@ -21,5 +21,5 @@ description: "Task list for tidying a board and reminders through the API and MC
 
 ## Phase 2: Slice `feat/api-reminders`
 
-- [ ] T005 `batch.py` timer adds and changes, attach rules, limit of 50 waiting timers. Domain tests per the spec
-- [ ] T006 Route and MCP `add_reminder`; reads gain `repeat`, `watch`, `done`; guide; CHANGELOG; snapshot; by hand: a reminder rings in an open tab
+- [x] T005 `batch.py` timer adds and changes, attach rules, limit of 50 waiting timers. Domain tests per the spec
+- [x] T006 Route and MCP `add_reminder`; reads gain `repeat`, `watch`, `done`; guide; CHANGELOG; snapshot; by hand: a reminder rings in an open tab

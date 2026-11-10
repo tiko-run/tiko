@@ -182,6 +182,7 @@ WRITE_TOOLS = [
     "add_cards",
     "add_frame",
     "add_notes",
+    "add_reminder",
     "arrange",
     "connect",
     "create_board",
@@ -230,6 +231,18 @@ def test_a_write_key_lays_a_board_out(served):
             "add_notes", {"board": board_id, "notes": [{"text": "x", "size": "large"}]}
         )
         assert sized.is_error and "plain text" in sized.content[0].text
+        watched = await client.call_tool(
+            "add_reminder", {"board": board_id, "note": "Tell me", "task": "DEMO-2"}
+        )
+        assert watched.structured_content["elements"][0]["attached_to"] == "agent-c"
+        alone = await client.call_tool(
+            "add_reminder", {"board": board_id, "at": "2099-01-01T09:00:00+00:00"}
+        )
+        assert alone.structured_content["elements"][0]["attached_to"] is None
+        naive = await client.call_tool(
+            "add_reminder", {"board": board_id, "at": "2099-01-01T09:00:00"}
+        )
+        assert naive.is_error
         return names, cards, arrow, laid, gone, human, renamed, styled, tidied
 
     names, cards, arrow, laid, gone, human, renamed, styled, tidied = call(url, token, steps)

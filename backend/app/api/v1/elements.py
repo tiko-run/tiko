@@ -19,6 +19,7 @@ from app.domain.batch import (
     CardRef,
     Change,
     NewElement,
+    Watch,
 )
 from app.domain.boards import BoardName, create_board, rename_board
 from app.domain.demo import board_limit
@@ -104,13 +105,15 @@ def rename(
 def add_elements(board_id: str, body: AddIn, _: Writable, request: Request) -> Written:
     """Adds notes, text, shapes, frames, cards and arrows, all of them or none."""
     adds = [e if e.id else e.model_copy(update={"id": uuid.uuid4().hex}) for e in body.elements]
-    batch = Batch(adds=adds, cards=_cards(adds, request))
-    return _write(board_id, batch, request)
+    cards = _cards(adds, request)
+    adds, watches = _reminders(board_id, adds, cards, request)
+    return _write(board_id, Batch(adds=adds, cards=cards, watches=watches), request)
 
 
 @router.patch("/{board_id}/elements")
 def change_elements(board_id: str, body: ChangeIn, _: Writable, request: Request) -> Written:
-    """Moves, resizes and restyles any element; changes text of what the API added."""
+    """Moves, resizes and restyles any element; changes text and reminders the API added."""
+    _not_past([c.at for c in body.changes])
     return _write(board_id, Batch(changes=body.changes), request)
 
 
@@ -184,6 +187,59 @@ def _cards(adds: list[NewElement], request: Request) -> dict[str, CardRef]:
             raise TaskNotFound(f"{source} has no task {missing[0]} that you can see.")
         snapshots.put_many(list(tasks.values()))
     return found
+
+
+def _not_past(moments: list[datetime | None]) -> None:
+    now = datetime.now(UTC)
+    if any(at is not None and at <= now for at in moments):
+        raise ValidationFailed("A reminder cannot go off in the past.")
+
+
+def _reminders(
+    board_id: str, adds: list[NewElement], cards: dict[str, CardRef], request: Request
+) -> tuple[list[NewElement], dict[str, Watch]]:
+    """Status reminders find their card, on the board or added in this call, and the status
+    to wait on: given, or the task's status now."""
+    timers = [e for e in adds if e.kind == "timer"]
+    _not_past([e.at for e in timers])
+    watching = [e for e in timers if e.at is None]
+    if not watching:
+        return adds, {}
+    tracker = deps.tracker(request)
+    record = request.app.state.boards.get(board_id)
+    shown = {
+        node.id: (node.data.source, node.data.key)
+        for node in (record.doc.nodes if record else [])
+        if node.type == "task_card"
+    }
+    shown |= {element_id: (card.source, card.key) for element_id, card in cards.items()}
+    placed: dict[str, NewElement] = {}
+    watches: dict[str, Watch] = {}
+    for element in watching:
+        card_id = element.on
+        if card_id is None:
+            source, key = _parse(element.ref or "", deps.providers(request), tracker)
+            matches = [i for i, (s, k) in shown.items() if (s or tracker, k) == (source, key)]
+            if len(matches) != 1:
+                which = "no card" if not matches else "several cards"
+                raise ValidationFailed(f"{element.id}: {which} of {key} on the board; give on.")
+            card_id = matches[0]
+        if card_id not in shown:
+            raise ValidationFailed(f"{element.id}: a status reminder sits on a task card.")
+        source, key = shown[card_id]
+        status = element.status or _status_now(source or tracker, key, request)
+        watches[element.id or ""] = Watch(key=key, source=source, status=status)
+        placed[element.id or ""] = element.model_copy(update={"on": card_id})
+    return [placed.get(e.id or "", e) for e in adds], watches
+
+
+def _status_now(source: str, key: str, request: Request) -> str:
+    search_budget(request)
+    found = [t for t in deps.providers(request)[source].poll([key]) if t.state == "ok"]
+    if not found:
+        raise TaskNotFound(f"{source} has no task {key} that you can read.")
+    deps.snapshots(request).put_many(found)
+    return found[0].status_name
 
 
 def _parse(ref: str, providers: dict, tracker: str) -> tuple[str, str]:

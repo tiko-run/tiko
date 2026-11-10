@@ -19,6 +19,7 @@ from app.domain.errors import (
     KeepsPeopleWork,
     NotApiElement,
     NotFound,
+    TimerLimit,
     ValidationFailed,
     VersionConflict,
     VoteRunning,
@@ -41,6 +42,7 @@ _ERRORS = {
         NotApiElement,
         KeepsPeopleWork,
         VoteRunning,
+        TimerLimit,
     )
 }
 _TOLD = (
