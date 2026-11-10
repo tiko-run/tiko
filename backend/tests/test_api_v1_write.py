@@ -137,6 +137,92 @@ def test_people_elements_move_but_keep_their_words(setup):
     )
 
 
+def test_any_element_takes_a_new_look_but_only_api_ones_new_words(setup):
+    board_id, key = setup
+    url = f"/api/v1/boards/{board_id}/elements"
+    looks = key.patch(
+        url,
+        json={
+            "changes": [
+                {"id": "n1", "color": "blue", "bold": True, "opacity": 50, "rotation": 270},
+                {"id": "f1", "color": "green", "opacity": 80},
+            ]
+        },
+    )
+    assert looks.status_code == 200, looks.json()
+    now = elements(key, board_id)
+    note, frame = now["n1"], now["f1"]
+    assert (note["color"], note["bold"], note["opacity"], note["rotation"]) == (
+        "blue",
+        True,
+        50,
+        -90,
+    )
+    assert note["text"] == "Written by a person" and note["editable"] is False
+    assert (frame["color"], frame["opacity"]) == ("green", 80)
+    words = key.patch(url, json={"changes": [{"id": "n1", "bold": False, "text": "edited"}]})
+    assert (words.status_code, code(words)) == (409, "not_api_element")
+    assert elements(key, board_id)["n1"]["bold"] is True
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"id": "n1", "size": "large"},
+        {"id": "n1", "stroke": 3},
+        {"id": "f1", "bold": True},
+        {"id": "f1", "rotation": 10},
+        {"id": "n1", "opacity": 33},
+        {"id": "n1", "bold": None},
+    ],
+)
+def test_a_look_an_element_does_not_have_is_refused(setup, change):
+    board_id, key = setup
+    response = key.patch(f"/api/v1/boards/{board_id}/elements", json={"changes": [change]})
+    assert response.status_code == 422, response.json()
+
+
+def test_new_elements_take_a_look(setup):
+    board_id, key = setup
+    made = add(
+        key,
+        board_id,
+        {
+            "id": "agent-s",
+            "kind": "shape",
+            "shape": "ellipse",
+            "stroke": 3,
+            "dash": True,
+            "size": "small",
+        },
+        {"id": "agent-t", "kind": "text", "text": "Title", "bold": True, "rotation": -45.4},
+    )
+    assert made.status_code == 200, made.json()
+    now = elements(key, board_id)
+    assert (now["agent-s"]["stroke"], now["agent-s"]["dash"], now["agent-s"]["size"]) == (
+        3,
+        True,
+        "small",
+    )
+    assert (now["agent-t"]["bold"], now["agent-t"]["rotation"]) == (True, -45)
+    assert now["agent-t"]["opacity"] is None
+    card = add(key, board_id, {"kind": "card", "ref": "DEMO-1", "bold": True})
+    assert (card.status_code, code(card)) == (422, "validation_failed")
+
+
+def test_an_editor_key_renames_a_board(app, admin, setup):
+    board_id, key = setup
+    renamed = key.patch(f"/api/v1/boards/{board_id}", json={"name": "Sprint 12"})
+    assert renamed.status_code == 200, renamed.json()
+    assert renamed.json()["name"] == "Sprint 12"
+    assert admin.get(f"/api/boards/{board_id}").json()["name"] == "Sprint 12"
+    reader = with_key(app, make_key(admin)["token"])
+    refused = reader.patch(f"/api/v1/boards/{board_id}", json={"name": "Nope"})
+    assert (refused.status_code, code(refused)) == (403, "scope_required")
+    empty = key.patch(f"/api/v1/boards/{board_id}", json={"name": ""})
+    assert empty.status_code == 422
+
+
 def test_taking_an_element_out_of_its_frame_keeps_its_place(setup):
     board_id, key = setup
     add(key, board_id, {"id": "agent-n1", "kind": "note", "x": 150, "y": 200, "frame": "f1"})

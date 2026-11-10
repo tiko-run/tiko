@@ -20,7 +20,7 @@ from app.domain.batch import (
     Change,
     NewElement,
 )
-from app.domain.boards import BoardName, create_board
+from app.domain.boards import BoardName, create_board, rename_board
 from app.domain.demo import board_limit
 from app.domain.errors import InvalidRef, TaskNotFound, ValidationFailed
 from app.domain.tasks import GITHUB, github_key, parse_ref, task_ref, valid_key
@@ -90,6 +90,16 @@ def make_board(body: NewBoard, person: KeyPerson, key: Key, request: Request) ->
     return boards_of(person, key, request, made.id)[0]
 
 
+@router.patch("/{board_id}")
+def rename(
+    board_id: str, body: NewBoard, _: Writable, person: KeyPerson, key: Key, request: Request
+) -> Board:
+    """Renames a board the key may change; an editor may, as in the web app."""
+    state = request.app.state
+    rename_board(person, board_id, body.name, state.boards, state.live)
+    return boards_of(person, key, request, board_id)[0]
+
+
 @router.post("/{board_id}/elements")
 def add_elements(board_id: str, body: AddIn, _: Writable, request: Request) -> Written:
     """Adds notes, text, shapes, frames, cards and arrows, all of them or none."""
@@ -100,7 +110,7 @@ def add_elements(board_id: str, body: AddIn, _: Writable, request: Request) -> W
 
 @router.patch("/{board_id}/elements")
 def change_elements(board_id: str, body: ChangeIn, _: Writable, request: Request) -> Written:
-    """Moves and resizes any element; changes text and colour of what the API added."""
+    """Moves, resizes and restyles any element; changes text of what the API added."""
     return _write(board_id, Batch(changes=body.changes), request)
 
 

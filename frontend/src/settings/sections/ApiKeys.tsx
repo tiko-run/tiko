@@ -345,7 +345,7 @@ export function ApiKeys() {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="API keys"
-        description="A key lets your scripts and your own AI agent read your boards, and with write access add to them. What the agent reads leaves tiko through that agent."
+        description="A key lets your scripts and your own AI agent read your boards, and with write access add to them, rename them and restyle what is on them. What the agent reads leaves tiko through that agent."
         action={
           keys.data?.enabled && (
             <Button size="sm" onClick={() => setCreating(true)}>

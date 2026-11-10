@@ -2,7 +2,7 @@
 rather than inside a frame, and the free ends of arrows hidden."""
 
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
@@ -31,10 +31,21 @@ _PLACED = ("id", "kind", "x", "y", "w", "h", "frame", "editable")
 # What each kind answers with; a field of its kind stays even when it is null.
 FIELDS: dict[str, tuple[str, ...]] = {
     "card": (*_PLACED, "source", "key", "task"),
-    "note": (*_PLACED, "text", "color"),
-    "text": (*_PLACED, "text"),
-    "shape": (*_PLACED, "shape", "text", "color"),
-    "frame": ("id", "kind", "x", "y", "w", "h", "editable", "title", "color"),
+    "note": (*_PLACED, "text", "color", "bold", "opacity", "rotation"),
+    "text": (*_PLACED, "text", "bold", "size", "opacity", "rotation"),
+    "shape": (
+        *_PLACED,
+        "shape",
+        "text",
+        "color",
+        "bold",
+        "size",
+        "opacity",
+        "rotation",
+        "stroke",
+        "dash",
+    ),
+    "frame": ("id", "kind", "x", "y", "w", "h", "editable", "title", "color", "opacity"),
     "arrow": ("id", "kind", "editable", "from", "to"),
     "image": (*_PLACED,),
     "module": (*_PLACED, "module", "title"),
@@ -64,11 +75,17 @@ class Element(BaseModel):
     h: float | None = None
     frame: str | None = None
     # True for an element the key's person added through the API: only those take changes of
-    # text and colour, and removal.
+    # text and removal. The look of any element can change.
     editable: bool = False
     text: str | None = None
     title: str | None = None
     color: str | None = None
+    bold: bool | None = None
+    size: str | None = None
+    opacity: int | None = None
+    rotation: int | None = None
+    stroke: float | None = None
+    dash: bool | None = None
     shape: str | None = None
     module: str | None = None
     source: str | None = None
@@ -84,6 +101,13 @@ class Element(BaseModel):
     def _kind_fields(self, handler):
         data = handler(self)
         return {name: data.get(name, data.get(f"{name}_")) for name in FIELDS[self.kind]}
+
+
+_LOOK = ("color", "bold", "size", "opacity", "rotation", "stroke", "dash")
+
+
+def _look(data: BaseModel) -> dict[str, Any]:
+    return {name: getattr(data, name) for name in _LOOK if hasattr(data, name)}
 
 
 class Counts(BaseModel):
@@ -191,22 +215,19 @@ class BoardShape:
             )
         if isinstance(node, StickyNode):
             return Element(
-                **base, kind="note", frame=frame, text=node.data.text, color=node.data.color
+                **base, **_look(node.data), kind="note", frame=frame, text=node.data.text
             )
         if isinstance(node, TextNode):
-            return Element(**base, kind="text", frame=frame, text=node.data.text)
+            return Element(
+                **base, **_look(node.data), kind="text", frame=frame, text=node.data.text
+            )
         if isinstance(node, ShapeNode):
             data = node.data
             return Element(
-                **base,
-                kind="shape",
-                frame=frame,
-                shape=data.shape,
-                text=data.text,
-                color=data.color,
+                **base, **_look(data), kind="shape", frame=frame, shape=data.shape, text=data.text
             )
         if isinstance(node, FrameNode):
-            return Element(**base, kind="frame", title=node.data.title, color=node.data.color)
+            return Element(**base, **_look(node.data), kind="frame", title=node.data.title)
         if isinstance(node, ModuleNode):
             return Element(
                 **base, kind="module", frame=frame, module=node.data.kind, title=node.data.title

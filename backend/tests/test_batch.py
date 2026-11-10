@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from app.domain import layout
-from app.domain.batch import Batch, Change, NewElement, plan
-from app.domain.errors import KeepsPeopleWork, ValidationFailed
+from app.domain import boards, layout
+from app.domain.batch import _STYLES, Batch, Change, NewElement, plan
+from app.domain.errors import KeepsPeopleWork, ValidationFailed, VoteRunning
 
 FRONTEND = Path(__file__).parents[2] / "frontend/src/canvas"
 
@@ -82,3 +82,25 @@ def test_a_card_takes_no_size_and_text_takes_a_width_only():
 def test_names_the_browser_holds_are_not_ids():
     with pytest.raises(ValueError):
         NewElement(id="constructor", kind="note")
+
+
+def test_every_style_is_a_field_of_the_stored_element():
+    models = {
+        "sticky": boards.StickyData,
+        "shape": boards.ShapeData,
+        "text": boards.TextData,
+        "frame": boards.FrameData,
+    }
+    for kind, styles in _STYLES.items():
+        assert styles <= set(models[kind].model_fields), kind
+
+
+@pytest.mark.parametrize(("given", "stored"), [(270, -90), (180, -180), (-190.6, 169), (725, 5)])
+def test_rotation_is_folded_as_the_rotate_handle_stores_it(given, stored):
+    assert Change(id="n", rotation=given).rotation == stored
+
+
+def test_a_running_vote_keeps_the_look_too():
+    nodes = {"n": node("sticky", 0, 0)}
+    with pytest.raises(VoteRunning):
+        plan(nodes, {}, Batch(changes=[Change(id="n", bold=True)]), frozenset({"n"}))

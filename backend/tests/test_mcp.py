@@ -186,6 +186,7 @@ WRITE_TOOLS = [
     "connect",
     "create_board",
     "remove_elements",
+    "rename_board",
     "update_elements",
 ]
 
@@ -213,9 +214,26 @@ def test_a_write_key_lays_a_board_out(served):
         )
         gone = await client.call_tool("remove_elements", {"board": board_id, "ids": ["agent-n"]})
         human = await client.call_tool("remove_elements", {"board": board_id, "ids": ["n1"]})
-        return names, cards, arrow, laid, gone, human
+        renamed = await client.call_tool("rename_board", {"board": board_id, "name": "Sprint 12"})
+        styled = await client.call_tool(
+            "add_notes",
+            {
+                "board": board_id,
+                "notes": [{"text": "Heading", "kind": "text", "bold": True, "size": "large"}],
+            },
+        )
+        tidied = await client.call_tool(
+            "update_elements",
+            {"board": board_id, "changes": [{"id": "n1", "color": "green", "bold": True}]},
+        )
+        return names, cards, arrow, laid, gone, human, renamed, styled, tidied
 
-    names, cards, arrow, laid, gone, human = call(url, token, steps)
+    names, cards, arrow, laid, gone, human, renamed, styled, tidied = call(url, token, steps)
+    assert renamed.structured_content["name"] == "Sprint 12"
+    heading = styled.structured_content["elements"][0]
+    assert (heading["bold"], heading["size"]) == (True, "large")
+    note = tidied.structured_content["elements"][0]
+    assert (note["color"], note["bold"], note["text"]) == ("green", True, "Ask legal")
     assert names == sorted(READ_TOOLS + WRITE_TOOLS)
     assert cards.structured_content["created"] == ["agent-c"]
     assert not arrow.is_error
