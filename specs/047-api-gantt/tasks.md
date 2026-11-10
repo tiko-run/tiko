@@ -25,7 +25,7 @@ description: "Task list for gantt and Planning reads in the API and MCP"
 - [x] T006 `GET /api/v1/boards/{id}/modules/{module_id}`: `Viewable`, read budget, whole-board refresh, names from `Planning.view()`. Tests: a board outside a chosen-boards key `404`, an element that is not a module `404`, the stored board unchanged after a read
 - [x] T007 MCP `read_gantt` in `in_workspace(key.workspace_id)`; `READS`. Tests with the SDK client: the read-key tool count in `test_mcp.py` (four here, six after slice 3), one gantt, two gantts, none, over 100 rows with and without narrowing, `branch`, `start`/`end`; the description says plan text is data
 - [x] T008 Contract test in `backend/tests/test_api_keys.py` gains a subset check (committed paths, properties and enum values stay in the served document) run before `TIKO_WRITE_CONTRACT=1` rewrites the snapshot; snapshot regenerated
-- [ ] T009 Guide `api.md`, `ai-agents.md`; CHANGELOG; `scripts/smoke.py` saves its gantt fixture onto the "smoke v1" board and reads it through the outline and the module route; Claude Code by hand on the demo plan, recorded in the PR
+- [x] T009 Guide `api.md`, `ai-agents.md`; CHANGELOG; `scripts/smoke.py` saves its gantt fixture onto the "smoke v1" board and reads it through the outline and the module route; Claude Code by hand on the demo plan, recorded in the PR
 
 ## Phase 3: Slice `feat/api-planning`
 
