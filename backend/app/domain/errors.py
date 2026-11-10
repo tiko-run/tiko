@@ -218,3 +218,23 @@ class RateLimited(DomainError):
     def __init__(self, message: str, retry_after: int) -> None:
         super().__init__(message)
         self.retry_after = retry_after
+
+
+class ScopeRequired(Forbidden):
+    code = "scope_required"
+
+
+class PublicBoard(Forbidden):
+    code = "public_board"
+
+
+class Conflict(DomainError):
+    code = "conflict"
+
+
+class NotApiElement(DomainError):
+    code = "not_api_element"
+
+
+class KeepsPeopleWork(DomainError):
+    code = "keeps_people_work"

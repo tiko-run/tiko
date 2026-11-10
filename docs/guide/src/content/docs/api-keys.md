@@ -9,9 +9,10 @@ An API key lets a script reach tiko as you, without your password. It sees what 
 
 1. Open Settings → API keys and press **New key**.
 2. Give it a name you will recognise later, such as the laptop or the script it is for.
-3. Choose the boards it reaches: all of yours, or only the ones you tick. A key for chosen boards never sees the others.
-4. Choose how long it lives: 7, 30, 90 or 365 days. No key lives forever.
-5. Enter your password and copy the key. tiko shows it once and keeps only a fingerprint of it, so nobody can read it back, you included.
+3. Choose what it may do: read, or read and write. A key that writes can add to the boards you can edit and lay them out; it never changes the words of, or removes, what people made.
+4. Choose the boards it reaches: all of yours, or only the ones you tick. A key for chosen boards never sees the others.
+5. Choose how long it lives: 7, 30, 90 or 365 days. No key lives forever.
+6. Enter your password and copy the key. tiko shows it once and keeps only a fingerprint of it, so nobody can read it back, you included.
 
 A key reads your boards. Keys that can also change boards come in a later release.
 

@@ -88,7 +88,6 @@ test('creates a read key for chosen boards and shows its token once', async () =
   const fetchMock = mockApi()
   await fillDialog()
   expect(screen.getByLabelText('Read')).toBeChecked()
-  expect(screen.queryByLabelText('Read and write')).not.toBeInTheDocument()
   expect(screen.getByLabelText('90 days')).toBeChecked()
   fireEvent.click(screen.getByLabelText('Chosen boards'))
   const create = screen.getByRole('button', { name: 'Create key' })
@@ -111,6 +110,16 @@ test('creates a read key for chosen boards and shows its token once', async () =
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   expect(screen.queryByLabelText('Key')).not.toBeInTheDocument()
   expect(screen.queryByText(/tiko_secret/)).not.toBeInTheDocument()
+})
+
+test('makes a key that can also write', async () => {
+  const fetchMock = mockApi()
+  await fillDialog()
+  fireEvent.click(screen.getByLabelText('Read and write'))
+  fireEvent.click(screen.getByRole('button', { name: 'Create key' }))
+  await screen.findByLabelText('Key')
+  const call = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
+  expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ scope: 'write' })
 })
 
 test('sends all boards as null', async () => {

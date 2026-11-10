@@ -34,8 +34,7 @@ import { SectionHeader } from '@/settings/sections/Section'
 const API_KEYS = ['api-keys']
 
 const SCOPE_NAMES: Record<ApiKeyScope, string> = { read: 'Read', write: 'Read and write' }
-// The scopes a new key may get; write arrives with the API's writes.
-const SCOPES: ApiKeyScope[] = ['read']
+const SCOPES: ApiKeyScope[] = ['read', 'write']
 const EXPIRY_DAYS = [7, 30, 90, 365]
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -346,7 +345,7 @@ export function ApiKeys() {
     <div className="flex flex-col gap-5">
       <SectionHeader
         title="API keys"
-        description="A key lets your scripts and your own AI agent read your boards. What the agent reads leaves tiko through that agent."
+        description="A key lets your scripts and your own AI agent read your boards, and with write access add to them. What the agent reads leaves tiko through that agent."
         action={
           keys.data?.enabled && (
             <Button size="sm" onClick={() => setCreating(true)}>

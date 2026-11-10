@@ -229,6 +229,14 @@ class ApiKeys:
             self._cache[hashed] = (identity, person, now.timestamp())
         return identity, person
 
+    def add_board(self, key: KeyIdentity, board_id: str) -> KeyIdentity:
+        """A board made with a key for chosen boards joins them."""
+        if key.boards is None:
+            return key
+        self._repo.add_board(key.id, board_id)
+        self._drop(lambda identity, _: identity.id == key.id)
+        return key.model_copy(update={"boards": [*key.boards, board_id]})
+
     def purge(self) -> int:
         """Rows of keys that ended or expired long enough ago to need no answer."""
         return self._repo.purge(_iso(self._clock() - timedelta(days=KEPT_DAYS)))

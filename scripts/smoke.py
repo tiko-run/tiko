@@ -384,7 +384,9 @@ status, body = call("GET", f"{API}/api/me/api-keys")
 check(status == 200, "list API keys")
 if body["enabled"]:
     status, made = call(
-        "POST", f"{API}/api/me/api-keys", {"name": "smoke", "password": PASSWORD, "days": 7}
+        "POST",
+        f"{API}/api/me/api-keys",
+        {"name": "smoke", "password": PASSWORD, "days": 7, "scope": "write"},
     )
     check(status == 201, "make an API key")
     try:
@@ -412,6 +414,28 @@ if body["enabled"]:
             check(found["url"] == f"{WEB}/?board={mine['id']}", "v1 links to the board")
             outline = key_get(f"/api/v1/boards/{mine['id']}")
             check(outline["board"]["name"] == "smoke v1" and "frames" in outline, "v1 reads a board")
+
+            def key_post(path: str, body: dict) -> tuple[int, dict | None]:
+                request = urllib.request.Request(
+                    f"{WEB}{path}",
+                    data=json.dumps(body).encode(),
+                    method="POST",
+                    headers={
+                        "authorization": f"Bearer {made['token']}",
+                        "content-type": "application/json",
+                    },
+                )
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    raw = response.read()
+                    return response.status, json.loads(raw) if raw else None
+
+            note = {"id": "smoke-note", "kind": "note", "text": "added by smoke"}
+            status, wrote = key_post(f"/api/v1/boards/{mine['id']}/elements", {"elements": [note]})
+            check(status == 200 and wrote["created"] == ["smoke-note"], "v1 adds a note")
+            status, _ = key_post(
+                f"/api/v1/boards/{mine['id']}/elements/remove", {"ids": ["smoke-note"]}
+            )
+            check(status == 204, "v1 removes its note")
         finally:
             call("DELETE", f"{API}/api/boards/{mine['id']}")
             call("DELETE", f"{API}/api/boards/{mine['id']}?forever=true")

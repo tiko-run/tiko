@@ -12,8 +12,17 @@ import anyio.to_thread
 
 from app.adapters.live.rooms import Connection, Listener, LiveRooms
 from app.domain.accounts import Person
+from app.domain.batch import Applied, Batch
 from app.domain.boards import BoardDoc
-from app.domain.errors import NotFound, ValidationFailed, VersionConflict
+from app.domain.errors import (
+    Conflict,
+    KeepsPeopleWork,
+    NotApiElement,
+    NotFound,
+    ValidationFailed,
+    VersionConflict,
+    VoteRunning,
+)
 from app.domain.live import GOING_AWAY, room_key
 
 log = logging.getLogger(__name__)
@@ -22,7 +31,18 @@ TELL_TIMEOUT_S = 2.0
 PUT_TIMEOUT_S = 30.0
 _HEX = set(string.hexdigits)
 # What a save may answer with; anything else is a failure of the other process.
-_ERRORS = {error.code: error for error in (NotFound, VersionConflict, ValidationFailed)}
+_ERRORS = {
+    error.code: error
+    for error in (
+        NotFound,
+        VersionConflict,
+        ValidationFailed,
+        Conflict,
+        NotApiElement,
+        KeepsPeopleWork,
+        VoteRunning,
+    )
+}
 _TOLD = (
     "end_session",
     "end_person",
@@ -81,6 +101,12 @@ class Workers:
                 reply["version"] = await anyio.to_thread.run_sync(
                     put, board_id, version, BoardDoc.model_validate(doc)
                 )
+            elif what == "apply":
+                board_id, batch = args
+                applied = await anyio.to_thread.run_sync(
+                    self._rooms.apply, board_id, Batch.model_validate(batch)
+                )
+                reply["applied"] = applied.model_dump(mode="json")
             else:
                 # Off the loop: what runs here may wait for a lock or the database.
                 await anyio.to_thread.run_sync(self._hear, what, args)
@@ -208,3 +234,15 @@ class Workers:
                 raise _ERRORS[code](message)
             raise RuntimeError(f"board {board_id} was not saved by its process")
         return reply["version"]
+
+    def apply(self, board_id: str, batch: Batch) -> Applied:
+        if self._mine(board_id):
+            return self._rooms.apply(board_id, batch)
+        sent = batch.model_dump(mode="json", by_alias=True, exclude_unset=True)
+        reply = self._ask(owner(board_id, self._count), "apply", [board_id, sent], PUT_TIMEOUT_S)
+        if "error" in reply:
+            code, message = reply["error"]
+            if code in _ERRORS:
+                raise _ERRORS[code](message)
+            raise RuntimeError(f"board {board_id} did not take the batch in its process")
+        return Applied.model_validate(reply["applied"])

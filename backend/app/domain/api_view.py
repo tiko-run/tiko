@@ -125,7 +125,14 @@ def _task(task: Task | None) -> TaskOut | None:
 class BoardShape:
     """One board read once: elements by id with their places on the board."""
 
-    def __init__(self, doc: BoardDoc, tasks: dict[str, Task], default_source: str) -> None:
+    def __init__(
+        self,
+        doc: BoardDoc,
+        tasks: dict[str, Task],
+        default_source: str,
+        editable: set[str] = frozenset(),
+    ) -> None:
+        self._editable = editable
         self._nodes = {node.id: node for node in doc.nodes}
         self._edges = doc.edges
         self._tasks = tasks
@@ -146,7 +153,14 @@ class BoardShape:
         x, y = self._place(node)
         parent = self._nodes.get(node.parentId) if node.parentId else None
         frame = parent.id if isinstance(parent, FrameNode) else None
-        base = {"id": node.id, "x": x, "y": y, "w": node.width, "h": node.height}
+        base = {
+            "id": node.id,
+            "x": x,
+            "y": y,
+            "w": node.width,
+            "h": node.height,
+            "editable": node.id in self._editable,
+        }
         if isinstance(node, TaskCardNode):
             source = node.data.source or self._default_source
             task = self._tasks.get(task_ref(source, node.data.key))
@@ -189,7 +203,11 @@ class BoardShape:
 
     def _arrow(self, edge: Edge) -> Element:
         return Element(
-            id=edge.id, kind="arrow", from_=self._end(edge.source), to=self._end(edge.target)
+            id=edge.id,
+            kind="arrow",
+            from_=self._end(edge.source),
+            to=self._end(edge.target),
+            editable=edge.id in self._editable,
         )
 
     def _shown(self, nodes: list[Node]) -> list[Element]:

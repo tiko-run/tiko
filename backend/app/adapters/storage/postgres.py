@@ -1804,11 +1804,47 @@ class PgApiKeyRepo:
         with self._tx() as conn:
             conn.execute("UPDATE api_keys SET last_used_on = %s WHERE id = %s", (day, key_id))
 
+    def add_board(self, key_id: str, board_id: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "UPDATE api_keys SET boards = array_append(boards, %s)"
+                " WHERE id = %s AND boards IS NOT NULL",
+                (board_id, key_id),
+            )
+
     def purge(self, before: str) -> int:
         with self._tx() as conn:
             return conn.execute(
                 "DELETE FROM api_keys WHERE ended_at < %s OR expires_at < %s", (before, before)
             ).rowcount
+
+
+class PgApiElementRepo(_Repo):
+    def of_board(self, board_id: str) -> dict[str, str]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                "SELECT element_id, user_id FROM api_elements WHERE board_id = %s", (board_id,)
+            ).fetchall()
+        return {row["element_id"]: row["user_id"] for row in rows}
+
+    def add(self, board_id: str, element_ids: list[str], user_id: str, now: str) -> None:
+        if not element_ids:
+            return
+        with self._tx() as conn:
+            conn.cursor().executemany(
+                "INSERT INTO api_elements (workspace_id, board_id, element_id, user_id, created_at)"
+                " VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                [(self._ws, board_id, element_id, user_id, now) for element_id in element_ids],
+            )
+
+    def remove(self, board_id: str, element_ids: list[str]) -> None:
+        if not element_ids:
+            return
+        with self._tx() as conn:
+            conn.execute(
+                "DELETE FROM api_elements WHERE board_id = %s AND element_id = ANY(%s)",
+                (board_id, element_ids),
+            )
 
 
 # Invites join a workspace, password resets belong to the server; the domain sees one list.
@@ -2248,6 +2284,7 @@ Attempts = PgAttempts
 KnownBrowsers = PgKnownBrowsers
 SessionRepo = PgSessionRepo
 ApiKeyRepo = PgApiKeyRepo
+ApiElementRepo = PgApiElementRepo
 InviteRepo = PgInviteRepo
 MemberRepo = PgMemberRepo
 Workspaces = PgWorkspaces

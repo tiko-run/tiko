@@ -1,9 +1,9 @@
 ---
 title: API
-description: Read your boards and search your tasks from a script, with an API key.
+description: Read and arrange your boards and search your tasks from a script, with an API key.
 ---
 
-The API under `/api/v1/` lets a script read what you see in tiko: your boards, what is on them, and the tasks of your trackers. Every call needs an [API key](../api-keys/) in the `Authorization` header. The full description, with every field, is at `/api/v1/openapi.json` on your tiko.
+The API under `/api/v1/` lets a script read what you see in tiko, your boards, what is on them and the tasks of your trackers, and, with a key that can write, add to boards and lay them out. Every call needs an [API key](../api-keys/) in the `Authorization` header. The full description, with every field, is at `/api/v1/openapi.json` on your tiko.
 
 ## Boards
 
@@ -24,6 +24,28 @@ What an element looks like:
 
 What people change on the board itself, such as notes, frames and where cards sit, shows in the API within about 10 seconds. Task fields follow the refresh interval above.
 
+## Writing
+
+A key with read and write access can change the boards you can edit:
+
+- `POST /api/v1/boards` makes a new board.
+- `POST /api/v1/boards/<id>/elements` adds notes, text, shapes, frames, cards (by a task key or link) and arrows. Without `x` and `y` they are laid out in rows below what is on the board, or inside the frame you name, which grows to hold them. Give each element your own `id` and a retry never adds it twice.
+- `PATCH /api/v1/boards/<id>/elements` moves and resizes elements and puts them in and out of frames.
+- `POST /api/v1/boards/<id>/arrange` lays cards out as a grid or in a column per status, in a frame or below the board. Only the cards you name move.
+- `POST /api/v1/boards/<id>/elements/remove` removes elements.
+
+```bash
+curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
+  -d '{"elements": [{"id": "qa-note", "kind": "note", "text": "Blocked on QA", "frame": "<frame id>"}]}' \
+  https://tiko.example.com/api/v1/boards/<id>/elements
+```
+
+What people made stays theirs: a key moves any element, but changes the text and colour of, and removes, only what was added through the API by you. Text people wrote never changes behind their back, and nothing they made disappears. During a vote, the elements in it keep their words.
+
+A call is applied whole or not at all: if one element breaks a rule, the board stays as it was and the answer says why. People with the board open see the change at once.
+
+A key for all your boards does not write to a board with a public link. To write there, make a key for chosen boards and choose it.
+
 ## Tasks
 
 ```bash
@@ -36,7 +58,7 @@ curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
 
 ## Limits
 
-Each person has a budget per minute, whatever key they use: 120 reads, and 20 task searches on top. Over it, the API answers `429` with `Retry-After` in seconds.
+Each person has a budget per minute, whatever key they use: 120 reads, 60 writes, and 20 task searches on top. Adding cards counts as a search too, since tiko asks your tracker about them. Over it, the API answers `429` with `Retry-After` in seconds.
 
 ## Errors
 

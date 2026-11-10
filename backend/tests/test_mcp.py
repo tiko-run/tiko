@@ -165,3 +165,61 @@ def test_a_removed_member_loses_mcp_too(served):
     refused = httpx2.post(f"{url}/api/mcp/", headers={"authorization": f"Bearer {token}"})
     assert refused.status_code == 401
     assert refused.json()["error"]["code"] == "token_revoked"
+
+
+WRITE_TOOLS = [
+    "add_cards",
+    "add_frame",
+    "add_notes",
+    "arrange",
+    "connect",
+    "create_board",
+    "remove_elements",
+    "update_elements",
+]
+
+
+def test_a_write_key_lays_a_board_out(served):
+    app, url, admin = served
+    board_id = board(admin)
+    token = make_key(admin, scope="write")["token"]
+
+    async def steps(client):
+        names = await tool_names(client)
+        frame = await client.call_tool("add_frame", {"board": board_id, "title": "Agent"})
+        frame_id = frame.structured_content["created"][0]
+        cards = await client.call_tool(
+            "add_cards", {"board": board_id, "cards": [{"ref": "DEMO-2", "id": "agent-c"}]}
+        )
+        await client.call_tool(
+            "add_notes", {"board": board_id, "notes": [{"text": "Check with QA", "id": "agent-n"}]}
+        )
+        arrow = await client.call_tool(
+            "connect", {"board": board_id, "start": "agent-n", "end": "agent-c"}
+        )
+        laid = await client.call_tool(
+            "arrange", {"board": board_id, "cards": ["agent-c"], "frame": frame_id}
+        )
+        gone = await client.call_tool("remove_elements", {"board": board_id, "ids": ["agent-n"]})
+        human = await client.call_tool("remove_elements", {"board": board_id, "ids": ["n1"]})
+        return names, cards, arrow, laid, gone, human
+
+    names, cards, arrow, laid, gone, human = call(url, token, steps)
+    assert names == sorted(READ_TOOLS + WRITE_TOOLS)
+    assert cards.structured_content["created"] == ["agent-c"]
+    assert not arrow.is_error
+    assert laid.structured_content["elements"][0]["frame"]
+    assert not gone.is_error
+    assert human.is_error and "not_api_element" in human.content[0].text
+
+
+def test_a_read_key_cannot_call_a_write_tool(served):
+    app, url, admin = served
+    board_id = board(admin)
+    token = make_key(admin)["token"]
+
+    async def steps(client):
+        return await client.call_tool("add_notes", {"board": board_id, "notes": [{"text": "x"}]})
+
+    result = call(url, token, steps)
+    assert result.is_error and "scope_required" in result.content[0].text

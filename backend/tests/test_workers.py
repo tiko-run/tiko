@@ -194,6 +194,25 @@ def test_a_rest_save_reaches_a_tab_of_a_board_open_in_the_other_process(instance
 
 
 @pytest.mark.shared_rows
+def test_an_api_write_reaches_a_tab_of_a_board_open_in_the_other_process(instance):
+    admin = instance.sign_in(0)
+    board_id = instance.board(admin, 1)
+    body = {"name": "agent", "password": PASSWORD, "scope": "write"}
+    token = admin.post("/api/me/api-keys", json=body).json()["token"]
+    key = instance.client(0)
+    key.headers["authorization"] = f"Bearer {token}"
+    with instance.socket(1, board_id, admin.cookies["tiko_session"]) as conn:
+        tab = Tab(_Socket(conn))
+        note = {"id": "agent-n1", "kind": "note", "text": "from the other process"}
+        written = key.post(f"/api/v1/boards/{board_id}/elements", json={"elements": [note]})
+        assert written.status_code == 200, written.json()
+        assert tab.ids() == {"agent-n1"}
+        # A refusal from the room's process comes back with its own code.
+        taken = key.post(f"/api/v1/boards/{board_id}/elements/remove", json={"ids": ["x"]})
+        assert taken.status_code == 204
+
+
+@pytest.mark.shared_rows
 def test_a_socket_that_reaches_the_wrong_process_is_sent_back(instance):
     admin = instance.sign_in(0)
     board_id = instance.board(admin, 1)

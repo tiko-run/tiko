@@ -1,6 +1,6 @@
 ---
 title: Connect your AI agent
-description: Let Claude, Codex, Copilot or Cursor read your boards over MCP.
+description: Let Claude, Codex, Copilot or Cursor read and arrange your boards over MCP.
 ---
 
 tiko speaks MCP, the protocol AI agents use to reach other tools. Connect your agent and ask it about your boards in plain words: "what is in progress on the release board?", "which tasks on my plan are overdue?". It reads the board as you laid it out, with the live status of every card.
@@ -12,7 +12,9 @@ tiko itself runs no AI model and sends nothing to any AI provider. What the agen
 - An [API key](../api-keys/). A key for chosen boards keeps the agent to those boards.
 - Your tiko's address with `/api/mcp` at the end, such as `https://tiko.example.com/api/mcp`.
 
-The agent can list your boards, read one (an outline of its frames, one frame, or every element), and search your tasks in Jira or CalDAV. It reads only; it changes nothing.
+The agent can list your boards, read one (an outline of its frames, one frame, or every element), and search your tasks in Jira or CalDAV. With a key that can also write, it can make boards, add cards, notes and frames, draw arrows, and lay cards out in rows or a column per status: "put the open tasks of the release on a new board, by status".
+
+What people made stays theirs: the agent may move your elements, but it changes the words of, and removes, only what it added itself. Your notes keep their text whatever it is told. Start with a key that only reads, and give one that writes when you want the agent to arrange things.
 
 ## Claude Code
 

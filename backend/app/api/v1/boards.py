@@ -35,7 +35,7 @@ class BoardPage(Page):
     board: Board
 
 
-def _boards(person, key, request: Request, board_id: str | None = None) -> list[Board]:
+def boards_of(person, key, request: Request, board_id: str | None = None) -> list[Board]:
     # `listing` alone, never `list_boards`: a read must not make the welcome board.
     boards = request.app.state.boards
     rows = boards.listing(person.id, board_id) if board_id else boards.listing(person.id)
@@ -61,7 +61,7 @@ def _boards(person, key, request: Request, board_id: str | None = None) -> list[
 @router.get("")
 def list_boards(person: KeyPerson, key: Key, request: Request) -> BoardList:
     """Every board the key reaches, newest change first."""
-    boards = sorted(_boards(person, key, request), key=lambda b: b.updated_at, reverse=True)
+    boards = sorted(boards_of(person, key, request), key=lambda b: b.updated_at, reverse=True)
     return BoardList(boards=boards)
 
 
@@ -77,26 +77,43 @@ def read_board(
     after: Annotated[str | None, Query(max_length=100)] = None,
 ) -> BoardOutline | BoardPage:
     """An outline of the board, or its elements a page at a time: all of them, or one frame's."""
-    found = _boards(person, key, request, board_id)
+    found = boards_of(person, key, request, board_id)
     if not found:
         raise NotFound("board not found")
-    shape = _shape(board_id, request)
+    board_shape = shape(board_id, request)
     if frame is not None:
-        return BoardPage(board=found[0], **page(shape.in_frame(frame), after).model_dump())
+        return BoardPage(board=found[0], **page(board_shape.in_frame(frame), after).model_dump())
     if elements == "all":
-        return BoardPage(board=found[0], **page(shape.elements(), after).model_dump())
-    return BoardOutline(board=found[0], **shape.outline().model_dump())
+        return BoardPage(board=found[0], **page(board_shape.elements(), after).model_dump())
+    return BoardOutline(board=found[0], **board_shape.outline().model_dump())
 
 
-def _shape(board_id: str, request: Request) -> BoardShape:
+def editable(board_id: str, request: Request) -> set[str]:
+    """Elements the caller's person added through the API."""
+    me = deps.current_person(request).id
+    made = request.app.state.api_elements.of_board(board_id)
+    return {element_id for element_id, person_id in made.items() if person_id == me}
+
+
+def shape(board_id: str, request: Request, refresh: bool = True) -> BoardShape:
     state = request.app.state
     record = state.boards.get(board_id)
     if record is None:
         raise NotFound("board not found")
-    settings = state.settings
     tracker = deps.tracker(request)
     snapshots = deps.snapshots(request)
+    if refresh:
+        _refresh(board_id, request)
+    tasks = snapshots.get_many(task_refs(record.doc, tracker))
+    return BoardShape(record.doc, tasks, tracker, editable(board_id, request))
+
+
+def _refresh(board_id: str, request: Request) -> None:
+    state = request.app.state
+    settings = state.settings
     owner = deps.owner(request)
+    tracker = deps.tracker(request)
+    snapshots = deps.snapshots(request)
     # Stamps first: the providers read the tokens after them, as on the board's own refresh.
     before = deps.token_stamps(request)
     state.refresher.refresh(
@@ -111,5 +128,3 @@ def _shape(board_id: str, request: Request) -> BoardShape:
         lambda: settings.token_stamps(owner),
         max_age_s=settings.refresh_interval_s(),
     )
-    tasks = snapshots.get_many(task_refs(record.doc, tracker))
-    return BoardShape(record.doc, tasks, tracker)
