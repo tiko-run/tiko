@@ -463,6 +463,28 @@ def stage_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
     return types, people, fields
 
 
+def drawn_refs(doc: BoardDoc) -> tuple[set[str], set[str], set[str]]:
+    """Stage type and person ids of the stages the board's Gantts draw, and the field ids they
+    show as columns: what a reader of the plan sees, without saved filters."""
+    types: set[str] = set()
+    people: set[str] = set()
+    fields: set[str] = set()
+    for node in doc.nodes:
+        if not (isinstance(node, ModuleNode) and node.data.kind == "gantt"):
+            continue
+        fields.update(node.data.content.get("columns") or [])
+        rows = node.data.content.get("rows", [])
+        # A parent keeps stages from before it had children; they are not drawn.
+        parents = {row.get("parent") for row in rows}
+        for row in rows:
+            if row.get("id") in parents:
+                continue
+            for stage in row.get("stages") or []:
+                types.add(stage["type"])
+                people.update(stage.get("people", []))
+    return types, people, fields
+
+
 class PlannedStage(NamedTuple):
     person: str
     row: str

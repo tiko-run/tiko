@@ -40,6 +40,12 @@ Reads the plan as the Gantt draws it, all rows at once, collapsed or filtered ou
 - With Planning on, a row carries its `stages`, with the type and the people on each, and the values of the columns the Gantt shows. Each comes with its id and name, since two people may share a name.
 - `milestones` and `links` complete the plan; a link means its `to` row starts after its `from` row ends.
 
+## Planning
+
+`GET /api/v1/planning` gives the lists the Gantts plan with: stage types, people with their teams and the time off still ahead, fields, and the workspace's days off from today on. With Planning off, it says only `{"enabled": false}`. A key for chosen boards gets only the people, types and fields those boards' Gantts use.
+
+`GET /api/v1/planning/people/<id>/workload?from=2026-11-09&weeks=12` shows how busy one person is, as Settings does: for each week from that Monday, how many stages they are on, whether two overlap on a working day and whether they are away, and the stages themselves. A stage on a board the key does not reach shows only its dates; a key for chosen boards counts only the stages on its boards. Up to 26 weeks.
+
 ## Writing
 
 A key with read and write access can change the boards you can edit:

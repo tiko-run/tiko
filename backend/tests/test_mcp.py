@@ -4,6 +4,7 @@ import asyncio
 import socket
 import threading
 import time
+import uuid
 
 import httpx2
 import pytest
@@ -12,15 +13,25 @@ from fastapi.testclient import TestClient
 from mcp.client import Client
 from mcp.client.streamable_http import streamable_http_client
 
+from app.adapters.storage import postgres as pg
 from app.api.v1 import deps as v1_deps
 from app.config import Settings
+from app.domain.accounts import Person, hash_password
 from app.main import create_app
-from tests.conftest import signed_in
+from tests.conftest import PASSWORD, signed_in
 from tests.test_api_keys import make_key
 from tests.test_api_v1_read import DOC, board
+from tests.test_membership import add_workspace
 from tests.test_people import invite, join
 
-READ_TOOLS = ["list_boards", "read_board", "read_gantt", "search_tasks"]
+READ_TOOLS = [
+    "list_boards",
+    "read_board",
+    "read_gantt",
+    "read_planning",
+    "read_workload",
+    "search_tasks",
+]
 
 
 @pytest.fixture
@@ -291,3 +302,45 @@ def test_read_gantt_finds_the_boards_gantt_and_narrows_a_big_one(served):
     assert [g["id"] for g in pick.structured_content["gantts"]] == ["a", "b"]
     assert [r["id"] for r in picked.structured_content["gantt"]["rows"]] == ["e0", "e0-0"]
     assert missing.is_error and "no gantt" in missing.content[0].text
+
+
+def test_read_workload_asks_which_of_two_namesakes(served):
+    app, url, admin = served
+    first = admin.post("/api/planning/people", json={"name": "Ivan", "teams": ["Web"]}).json()
+    admin.post("/api/planning/people", json={"name": "Ivan", "teams": ["Ops"]})
+    token = make_key(admin)["token"]
+
+    async def steps(client):
+        plan = await client.call_tool("read_planning", {})
+        both = await client.call_tool("read_workload", {"person": "ivan"})
+        one = await client.call_tool("read_workload", {"person": first["id"], "weeks": 2})
+        nobody = await client.call_tool("read_workload", {"person": "Nobody"})
+        return plan, both, one, nobody
+
+    plan, both, one, nobody = call(url, token, steps)
+    assert [p["name"] for p in plan.structured_content["people"]].count("Ivan") == 2
+    assert [m["teams"] for m in both.structured_content["matches"]] == [["Web"], ["Ops"]]
+    assert one.structured_content["person"] == {"id": first["id"], "name": "Ivan"}
+    assert len(one.structured_content["weeks"]) == 2
+    assert nobody.is_error and "not_found" in nobody.content[0].text
+
+
+def test_planning_tools_read_the_keys_own_workspace(served):
+    # Planning names no board: a read in the wrong workspace would show another team's people.
+    app, url, admin = served
+    admin.post("/api/planning/people", json={"name": "Default Dora"})
+    db = app.state.boards._db
+    other = add_workspace(db)
+    bob = Person(id=uuid.uuid4().hex, username="bob", name="Bob", role="admin")
+    pg.PgUserRepo(db, other).add(bob, hash_password(PASSWORD))
+    bob_client = signed_in(app, "bob")
+    assert bob_client.put("/api/settings", json={"api_keys": True}).status_code == 200
+    bob_client.patch("/api/planning", json={"enabled": True})
+    bob_client.post("/api/planning/people", json={"name": "Other Olga"})
+    token = make_key(bob_client)["token"]
+
+    async def steps(client):
+        return await client.call_tool("read_planning", {})
+
+    people = [p["name"] for p in call(url, token, steps).structured_content["people"]]
+    assert people == ["Other Olga"]

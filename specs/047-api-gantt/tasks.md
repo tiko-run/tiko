@@ -29,7 +29,7 @@ description: "Task list for gantt and Planning reads in the API and MCP"
 
 ## Phase 3: Slice `feat/api-planning`
 
-- [ ] T010 `Planning.workload` gains `only_open`; `drawn_refs(doc)` in `domain/boards.py` (types and people of drawn stages, fields of columns); internal routes unchanged. Tests
-- [ ] T011 `api/v1/planning.py`: `GET /planning` for both key kinds with off lists cut to today on; workload with `can_open` (reaches and role), chosen-boards person check through the index, a chosen board with a lost role not counted, Planning off `404`, type names. Tests per the spec
-- [ ] T012 MCP `read_planning`, `read_workload` by id or name with matches, each in `in_workspace(key.workspace_id)`, descriptions saying plan text is data; tool count six. Tests, one with a key in a second workspace whose Planning differs from the default one's
-- [ ] T013 Key dialog line in `ApiKeys.tsx` (Vitest); guide `api.md`, `ai-agents.md`, `api-keys.md`; CHANGELOG; OpenAPI snapshot
+- [x] T010 `Planning.workload` gains `only_open`; `drawn_refs(doc)` in `domain/boards.py` (types and people of drawn stages, fields of columns); internal routes unchanged. Tests
+- [x] T011 `api/v1/planning.py`: `GET /planning` for both key kinds with off lists cut to today on; workload with `can_open` (reaches and role), chosen-boards person check through the index, a chosen board with a lost role not counted, Planning off `404`, type names. Tests per the spec
+- [x] T012 MCP `read_planning`, `read_workload` by id or name with matches, each in `in_workspace(key.workspace_id)`, descriptions saying plan text is data; tool count six. Tests, one with a key in a second workspace whose Planning differs from the default one's
+- [x] T013 Key dialog line in `ApiKeys.tsx` (Vitest); guide `api.md`, `ai-agents.md`, `api-keys.md`; CHANGELOG; OpenAPI snapshot

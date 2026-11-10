@@ -56,6 +56,26 @@
         "title": "ArrangeIn",
         "type": "object"
       },
+      "Away": {
+        "properties": {
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "Away",
+        "type": "object"
+      },
       "Board": {
         "properties": {
           "id": {
@@ -608,6 +628,29 @@
           "message"
         ],
         "title": "ErrorDetail",
+        "type": "object"
+      },
+      "FieldOut": {
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "archived"
+        ],
+        "title": "FieldOut",
         "type": "object"
       },
       "FoundTask": {
@@ -1245,6 +1288,91 @@
         "title": "NewElement",
         "type": "object"
       },
+      "PersonOut": {
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "off": {
+            "items": {
+              "$ref": "#/components/schemas/Away"
+            },
+            "title": "Off",
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Teams",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "teams",
+          "archived",
+          "off"
+        ],
+        "title": "PersonOut",
+        "type": "object"
+      },
+      "PlanningOut": {
+        "properties": {
+          "days_off": {
+            "default": [],
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Days Off",
+            "type": "array"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fields": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FieldOut"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "people": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PersonOut"
+            },
+            "title": "People",
+            "type": "array"
+          },
+          "types": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TypeOut"
+            },
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PlanningOut",
+        "type": "object"
+      },
       "RemoveIn": {
         "properties": {
           "ids": {
@@ -1520,6 +1648,73 @@
         "title": "Span",
         "type": "object"
       },
+      "StageLoad": {
+        "properties": {
+          "board": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Board"
+          },
+          "board_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Board Name"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Named"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "board",
+          "board_name",
+          "row",
+          "type",
+          "start",
+          "end"
+        ],
+        "title": "StageLoad",
+        "type": "object"
+      },
       "StageOut": {
         "properties": {
           "end": {
@@ -1645,6 +1840,29 @@
         "title": "Tracked",
         "type": "object"
       },
+      "TypeOut": {
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "archived"
+        ],
+        "title": "TypeOut",
+        "type": "object"
+      },
       "ValueOut": {
         "properties": {
           "field": {
@@ -1665,6 +1883,63 @@
           "inherited"
         ],
         "title": "ValueOut",
+        "type": "object"
+      },
+      "WorkloadOut": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/Named"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageLoad"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WorkloadWeek"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "person",
+          "weeks",
+          "stages"
+        ],
+        "title": "WorkloadOut",
+        "type": "object"
+      },
+      "WorkloadWeek": {
+        "properties": {
+          "off": {
+            "title": "Off",
+            "type": "boolean"
+          },
+          "overlap": {
+            "title": "Overlap",
+            "type": "boolean"
+          },
+          "stages": {
+            "title": "Stages",
+            "type": "integer"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "stages",
+          "overlap",
+          "off"
+        ],
+        "title": "WorkloadWeek",
         "type": "object"
       },
       "WorkspaceOut": {
@@ -2567,6 +2842,190 @@
         "summary": "Get Me",
         "tags": [
           "key"
+        ]
+      }
+    },
+    "/planning": {
+      "get": {
+        "description": "Stage types, people with their time off, fields and days off. A key for chosen boards\nreads only what those boards' gantts use.",
+        "operationId": "read_planning_planning_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No key, or a key that stopped working"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The key may not do this, or keys are switched off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found, or not among what the key reaches"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Over a budget; see Retry-After"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Planning",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/planning/people/{person_id}/workload": {
+      "get": {
+        "description": "A person's stages per week, from the Monday of `from`, as Settings shows them. A stage\non a board the key does not reach keeps only its dates.",
+        "operationId": "read_workload_planning_people__person_id__workload_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "weeks",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 26,
+              "minimum": 1,
+              "title": "Weeks",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkloadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No key, or a key that stopped working"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The key may not do this, or keys are switched off"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not found, or not among what the key reaches"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The request does not match the schema"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Over a budget; see Retry-After"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Workload",
+        "tags": [
+          "planning"
         ]
       }
     },
