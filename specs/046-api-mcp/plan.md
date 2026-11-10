@@ -94,6 +94,7 @@ Keys live in a global table looked up by hash, each bound to a workspace. `Passw
 - Identity: `ctx.request_context.request.state` holds what the gate and the scope set. Each tool sets `in_workspace(key.workspace)` itself.
 - `scope_filter`: drops write tools from `tools/list` for a `read` key and refuses their `tools/call` with `scope_required`.
 - Slice 3 starts by confirming two things on a real call of each protocol version: the request is on the context, and the middleware can filter `tools/list`. If the first fails, an ASGI wrapper puts the identity into a context variable; if the second fails, all tools are listed and write tools refuse.
+- Confirmed with `mcp` 2.3.0 on both protocol versions, through a real HTTP client: a tool sees the gate's `request.state` and a context variable set around the mounted app, on a worker thread. The middleware list is provisional in the SDK, so `scope_filter` became an override of `MCPServer.list_tools`, which reads that context variable. `/api/mcp` without the slash answers `307`, so the gate adds the slash.
 - Errors: domain errors and budgets become `ToolError` with the contract's message. Answers are the pydantic models of `api/v1/schemas.py`.
 
 ### nginx
