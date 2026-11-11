@@ -200,6 +200,18 @@
       "Change": {
         "additionalProperties": false,
         "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
           "bold": {
             "anyOf": [
               {
@@ -264,6 +276,18 @@
             "title": "Id",
             "type": "string"
           },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
           "opacity": {
             "anyOf": [
               {
@@ -277,6 +301,22 @@
               }
             ],
             "title": "Opacity"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "enum": [
+                  "daily",
+                  "weekdays",
+                  "weekly"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat"
           },
           "rotation": {
             "anyOf": [
@@ -494,6 +534,17 @@
             ],
             "title": "Dash"
           },
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          },
           "due_at": {
             "anyOf": [
               {
@@ -606,6 +657,17 @@
             ],
             "title": "Opacity"
           },
+          "repeat": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat"
+          },
           "rotation": {
             "anyOf": [
               {
@@ -714,6 +776,27 @@
               }
             ],
             "title": "W"
+          },
+          "watch": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watch"
           },
           "x": {
             "anyOf": [
@@ -1246,6 +1329,18 @@
       "NewElement": {
         "additionalProperties": false,
         "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
           "bold": {
             "anyOf": [
               {
@@ -1336,10 +1431,35 @@
               "text",
               "shape",
               "frame",
-              "arrow"
+              "arrow",
+              "timer"
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "on": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On"
           },
           "opacity": {
             "anyOf": [
@@ -1366,6 +1486,22 @@
               }
             ],
             "title": "Ref"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "enum": [
+                  "daily",
+                  "weekdays",
+                  "weekly"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat"
           },
           "rotation": {
             "anyOf": [
@@ -1416,6 +1552,18 @@
               }
             ],
             "title": "Size"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
           },
           "stroke": {
             "anyOf": [
@@ -2720,7 +2868,7 @@
     },
     "/boards/{board_id}/elements": {
       "patch": {
-        "description": "Moves, resizes and restyles any element; changes text of what the API added.",
+        "description": "Moves, resizes and restyles any element; changes text and reminders the API added.",
         "operationId": "change_elements_boards__board_id__elements_patch",
         "parameters": [
           {

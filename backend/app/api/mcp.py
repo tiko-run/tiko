@@ -3,7 +3,7 @@ wrapper over an operation of API v1, signed in by the same key."""
 
 from collections.abc import Callable
 from contextvars import ContextVar
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI
@@ -370,6 +370,56 @@ def create(app: FastAPI) -> TikoMCP:
     ) -> dict[str, Any]:
         """Adds an empty frame below what is on the board, to put cards and notes in."""
         items = [NewElement(kind="frame", title=title, id=id)]
+        return write(ctx, board, lambda request: adds(board, items, request))
+
+    @server.tool(annotations=_ADDS)
+    def add_reminder(
+        ctx: Context,
+        board: Annotated[str, _BOARD],
+        note: Annotated[str, Field(max_length=500, description="What to remember.")] = "",
+        at: Annotated[
+            datetime | None,
+            Field(description="When it goes off: an ISO moment with its time zone."),
+        ] = None,
+        repeat: Annotated[
+            Literal["daily", "weekdays", "weekly"] | None,
+            Field(description="Repeats a reminder that has `at`."),
+        ] = None,
+        task: Annotated[
+            str | None,
+            Field(
+                description="Instead of `at`: a task key or link. The reminder sits on that "
+                "task's card and goes off when the task leaves `status`."
+            ),
+        ] = None,
+        status: Annotated[
+            str | None,
+            Field(description="The status to wait on; the task's status now when left out."),
+        ] = None,
+        on: Annotated[
+            str | None,
+            Field(
+                description="The element it sits on: a card, note, shape, text, picture or "
+                "Gantt. For a status reminder, the card when the task has several."
+            ),
+        ] = None,
+        id: Annotated[str | None, _ID] = None,
+    ) -> dict[str, Any]:
+        """Sets a reminder on a board: at a moment, or when a task on the board changes status.
+        It rings in tiko for whoever has the board open, with a sound and a browser
+        notification; nothing reaches the person when no tiko tab is open, so say so instead
+        of promising a message. A status change is noticed only while the board is open."""
+        fields = {
+            "note": note,
+            "at": at,
+            "repeat": repeat,
+            "ref": task,
+            "status": status,
+            "on": on,
+            "id": id,
+        }
+        given = {name: value for name, value in fields.items() if value is not None}
+        items = [NewElement(kind="timer", **given)]
         return write(ctx, board, lambda request: adds(board, items, request))
 
     @server.tool(annotations=_ADDS)

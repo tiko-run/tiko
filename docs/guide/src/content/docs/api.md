@@ -64,6 +64,15 @@ curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
 
 What people made stays theirs: a key moves and restyles any element, but changes the text of, and removes, only what was added through the API by you. Text people wrote never changes behind their back, and nothing they made disappears. During a vote, the elements in it keep their words and look.
 
+### Reminders
+
+A reminder is an element of kind `timer`. It rings in tiko for whoever has the board open, as one you set by hand: nothing reaches anyone without an open tiko tab.
+
+- At a moment: `{"kind": "timer", "note": "Call legal", "at": "2026-11-12T15:00:00+01:00"}`, with `repeat` (`daily`, `weekdays`, `weekly`) if it should come back. Give `on` with an element's id to hang it on a card, note, shape, text, picture or Gantt; without it, it stands alone.
+- When a task moves: `{"kind": "timer", "ref": "PROJ-12"}` goes off when the task leaves the status it has now, or the one you give in `status`. It sits on the task's card, so the card must be on the board; when several cards show the task, name one in `on`. The board notices the move only while it is open.
+
+A board holds at most 50 reminders that have not gone off and been marked done; one more is refused with `409 timer_limit`. A moment in the past is refused. `PATCH …/elements` changes the `note`, `at` and `repeat` of reminders you added; removing an element you added takes your reminders on it along.
+
 A call is applied whole or not at all: if one element breaks a rule, the board stays as it was and the answer says why. People with the board open see the change at once.
 
 A key for all your boards does not write to a board with a public link. To write there, make a key for chosen boards and choose it.

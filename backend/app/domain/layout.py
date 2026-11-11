@@ -11,6 +11,7 @@ SIZES: dict[str, tuple[float, float]] = {
     "text": (240, 40),
     "frame": (480, 320),
     "shape": (160, 100),
+    "timer": (40, 40),
 }
 GAP = 40
 PER_ROW = 4

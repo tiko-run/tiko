@@ -238,3 +238,7 @@ class NotApiElement(DomainError):
 
 class KeepsPeopleWork(DomainError):
     code = "keeps_people_work"
+
+
+class TimerLimit(DomainError):
+    code = "timer_limit"

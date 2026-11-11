@@ -49,7 +49,21 @@ FIELDS: dict[str, tuple[str, ...]] = {
     "arrow": ("id", "kind", "editable", "from", "to"),
     "image": (*_PLACED,),
     "module": (*_PLACED, "module", "title"),
-    "timer": ("id", "kind", "x", "y", "w", "h", "editable", "note", "due_at", "attached_to"),
+    "timer": (
+        "id",
+        "kind",
+        "x",
+        "y",
+        "w",
+        "h",
+        "editable",
+        "note",
+        "due_at",
+        "repeat",
+        "watch",
+        "done",
+        "attached_to",
+    ),
 }
 
 
@@ -95,6 +109,10 @@ class Element(BaseModel):
     to: str | None = None
     note: str | None = None
     due_at: str | None = None
+    repeat: str | None = None
+    # A status reminder: the task it watches, the status it waits to leave, and where it went.
+    watch: dict[str, str | None] | None = None
+    done: bool | None = None
     attached_to: str | None = None
 
     @model_serializer(mode="wrap")
@@ -237,8 +255,24 @@ class BoardShape:
         if isinstance(node, TimerNode):
             due = node.data.dueAt.isoformat() if node.data.dueAt else None
             attached = node.parentId if parent is not None else None
+            watch = node.data.watch
+            watched = None
+            if watch is not None:
+                watched = {
+                    "key": watch.key,
+                    "source": watch.source or self._default_source,
+                    "status": watch.status,
+                    "changed_to": watch.changedTo,
+                }
             return Element(
-                **base, kind="timer", note=node.data.note, due_at=due, attached_to=attached
+                **base,
+                kind="timer",
+                note=node.data.note,
+                due_at=due,
+                repeat=node.data.repeat,
+                watch=watched,
+                done=node.data.done,
+                attached_to=attached,
             )
         # A kind v1 does not name yet is left out rather than failing the whole read.
         return None

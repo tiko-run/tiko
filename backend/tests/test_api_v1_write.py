@@ -1,5 +1,7 @@
 """Writing to boards through API v1 (spec 046, slices api-write and api-arrange)."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -397,3 +399,169 @@ def test_the_board_limit_follows_the_real_role():
     assert ann_key.post("/api/v1/boards", json={"name": "One"}).status_code == 201
     over = ann_key.post("/api/v1/boards", json={"name": "Two"})
     assert (over.status_code, code(over)) == (409, "board_limit")
+
+
+def soon(minutes: int = 30) -> str:
+    return (datetime.now(UTC) + timedelta(minutes=minutes)).isoformat()
+
+
+def stored(admin, board_id: str) -> dict:
+    return {n["id"]: n for n in admin.get(f"/api/boards/{board_id}").json()["doc"]["nodes"]}
+
+
+def test_a_reminder_at_a_moment_sits_on_its_element_or_alone(admin, setup):
+    board_id, key = setup
+    made = add(
+        key,
+        board_id,
+        {"id": "agent-r1", "kind": "timer", "note": "Call legal", "at": soon(), "on": "n1"},
+        {"id": "agent-r2", "kind": "timer", "at": soon(60), "repeat": "weekdays"},
+    )
+    assert made.status_code == 200, made.json()
+    now = elements(key, board_id)
+    on, alone = now["agent-r1"], now["agent-r2"]
+    assert (on["attached_to"], on["note"], on["repeat"], on["done"]) == (
+        "n1",
+        "Call legal",
+        None,
+        False,
+    )
+    assert (alone["attached_to"], alone["repeat"], alone["editable"]) == (None, "weekdays", True)
+    node = stored(admin, board_id)["agent-r1"]
+    assert (node["parentId"], node["position"], node["width"]) == ("n1", {"x": -46, "y": 0}, 40)
+    assert node["data"]["dueAt"].endswith("Z") and "watch" not in node["data"]
+
+
+@pytest.mark.parametrize(
+    "timer",
+    [
+        {"kind": "timer", "at": "2020-01-01T09:00:00Z"},
+        {"kind": "timer", "at": "2030-01-01T09:00:00"},
+        {"kind": "timer"},
+        {"kind": "timer", "at": "2030-01-01T09:00:00Z", "ref": "DEMO-1"},
+        {"kind": "timer", "ref": "DEMO-1", "repeat": "daily"},
+        {"kind": "timer", "at": "2030-01-01T09:00:00Z", "x": 1, "y": 2},
+        {"kind": "note", "text": "x", "at": "2030-01-01T09:00:00Z"},
+    ],
+)
+def test_a_reminder_that_cannot_ring_is_refused(setup, timer):
+    board_id, key = setup
+    response = add(key, board_id, timer)
+    assert response.status_code == 422, response.json()
+
+
+def test_a_status_reminder_sits_on_its_tasks_card(admin, setup):
+    board_id, key = setup
+    made = add(
+        key,
+        board_id,
+        {"id": "agent-c1", "kind": "card", "ref": "DEMO-1"},
+        {"id": "agent-r", "kind": "timer", "note": "Tell me", "ref": "DEMO-1"},
+    )
+    assert made.status_code == 200, made.json()
+    reminder = elements(key, board_id)["agent-r"]
+    assert reminder["attached_to"] == "agent-c1" and reminder["due_at"] is None
+    watch = reminder["watch"]
+    assert (watch["key"], watch["source"], watch["changed_to"]) == ("DEMO-1", "demo", None)
+    assert watch["status"]
+    given = add(key, board_id, {"kind": "timer", "on": "agent-c1", "status": "Done"})
+    assert given.status_code == 200, given.json()
+    assert given.json()["elements"][0]["watch"]["status"] == "Done"
+
+
+def test_a_status_reminder_needs_one_card_of_its_task(setup):
+    board_id, key = setup
+    none = add(key, board_id, {"kind": "timer", "ref": "DEMO-2"})
+    assert (none.status_code, code(none)) == (422, "validation_failed")
+    assert "no card" in none.json()["error"]["message"]
+    add(
+        key,
+        board_id,
+        {"id": "agent-a", "kind": "card", "ref": "DEMO-2"},
+        {"id": "agent-b", "kind": "card", "ref": "DEMO-2"},
+    )
+    two = add(key, board_id, {"kind": "timer", "ref": "DEMO-2"})
+    assert "several cards" in two.json()["error"]["message"]
+    note = add(key, board_id, {"kind": "timer", "on": "n1"})
+    assert note.status_code == 422
+    chosen = add(key, board_id, {"kind": "timer", "ref": "DEMO-2", "on": "agent-b"})
+    assert chosen.status_code == 200, chosen.json()
+    other = add(key, board_id, {"kind": "timer", "ref": "DEMO-1", "on": "agent-b"})
+    assert (other.status_code, code(other)) == (422, "validation_failed")
+    assert "does not show DEMO-1" in other.json()["error"]["message"]
+
+
+def test_a_status_reminder_on_a_card_this_tiko_cannot_read_needs_status(admin, setup):
+    board_id, key = setup
+    current = admin.get(f"/api/boards/{board_id}").json()
+    card = {
+        "id": "c9",
+        "type": "task_card",
+        "position": {"x": 0, "y": 0},
+        "data": {"key": "PROJ-1", "source": "jira"},
+    }
+    doc = current["doc"] | {"nodes": [*current["doc"]["nodes"], card]}
+    saved = admin.put(f"/api/boards/{board_id}", json={"version": current["version"], "doc": doc})
+    assert saved.status_code == 200, saved.json()
+    asked = add(key, board_id, {"kind": "timer", "on": "c9"})
+    assert asked.status_code == 422, asked.json()
+    assert "give status" in asked.json()["error"]["message"]
+    given = add(key, board_id, {"kind": "timer", "on": "c9", "status": "Done"})
+    assert given.status_code == 200, given.json()
+
+
+def test_a_board_holds_fifty_waiting_reminders(admin, setup):
+    board_id, key = setup
+    fifty = [{"id": f"agent-r{i}", "kind": "timer", "at": soon()} for i in range(50)]
+    assert add(key, board_id, *fifty).status_code == 200
+    over = add(key, board_id, {"kind": "timer", "at": soon()})
+    assert (over.status_code, code(over)) == (409, "timer_limit")
+    current = admin.get(f"/api/boards/{board_id}").json()
+    doc = current["doc"]
+    for node in doc["nodes"]:
+        if node["id"] == "agent-r0":
+            node["data"]["done"] = True
+    saved = admin.put(f"/api/boards/{board_id}", json={"version": current["version"], "doc": doc})
+    assert saved.status_code == 200
+    assert add(key, board_id, {"kind": "timer", "at": soon()}).status_code == 200
+
+
+def test_only_the_apis_reminders_change_and_go_with_their_card(admin, setup):
+    board_id, key = setup
+    url = f"/api/v1/boards/{board_id}/elements"
+    add(
+        key,
+        board_id,
+        {"id": "agent-c", "kind": "card", "ref": "DEMO-1"},
+        {"id": "agent-r", "kind": "timer", "at": soon(), "on": "agent-c", "repeat": "daily"},
+    )
+    later = soon(90)
+    moved = key.patch(url, json={"changes": [{"id": "agent-r", "at": later, "note": "Later"}]})
+    assert moved.status_code == 200, moved.json()
+    once = key.patch(url, json={"changes": [{"id": "agent-r", "repeat": None}]})
+    reminder = once.json()["elements"][0]
+    assert (reminder["note"], reminder["repeat"]) == ("Later", None)
+    past = key.patch(url, json={"changes": [{"id": "agent-r", "at": "2020-01-01T00:00:00Z"}]})
+    assert past.status_code == 422
+    not_timer = key.patch(url, json={"changes": [{"id": "n1", "note": "x"}]})
+    assert not_timer.status_code == 422
+    current = admin.get(f"/api/boards/{board_id}").json()
+    person_timer = {
+        "id": "t-person",
+        "type": "timer",
+        "position": {"x": 0, "y": 0},
+        "data": {"note": "mine", "dueAt": soon()},
+    }
+    doc = current["doc"] | {"nodes": [*current["doc"]["nodes"], person_timer]}
+    assert (
+        admin.put(
+            f"/api/boards/{board_id}", json={"version": current["version"], "doc": doc}
+        ).status_code
+        == 200
+    )
+    theirs = key.patch(url, json={"changes": [{"id": "t-person", "note": "agent"}]})
+    assert (theirs.status_code, code(theirs)) == (409, "not_api_element")
+    gone = key.post(f"{url}/remove", json={"ids": ["agent-c"]})
+    assert gone.status_code == 204
+    left = elements(key, board_id)
+    assert "agent-c" not in left and "agent-r" not in left and "t-person" in left

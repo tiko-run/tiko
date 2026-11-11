@@ -46,12 +46,13 @@ Principles check:
 5. **A reminder is a timer element.** MCP gains `add_reminder(board, note, at?, repeat?, task?, status?, on?)`; REST takes `kind: "timer"` in `POST .../elements`.
    - `at`: an ISO moment, with `repeat` (`daily`, `weekdays`, `weekly`) as the editor offers.
    - `task` and `status`: a status reminder that goes off when the task leaves `status`. `status` defaults to the task's current status read through the person's credentials; a task the person cannot read is refused.
+   - A status reminder sits on a card of its task, on the board or added in the same call, and watches the task as that card names it: the web app reads a task's status only through its cards. One card of the task → that card; none or several → refused, and `on` names the card.
    - Exactly one of `at` or `task` is given.
-   - `on`: an element id the reminder attaches to (card, note, shape, text, image, module). Without it, a status reminder attaches to the task's card when exactly one is on the board, and any other reminder stands alone below what is on the board.
+   - `on`: an element id the reminder attaches to (card, note, shape, text, image, module). A reminder at a moment without `on` stands alone below what is on the board.
 6. **Where it rings, said plainly.** A reminder rings in the web app for whoever has the board open, as a hand-set one does; a status reminder is checked only while a tab of the board is open. The tool description says so, so the agent does not promise a message to the person's phone.
 7. **Limits.** At most 50 waiting timers on a board at a time, people's included, so a looping agent cannot fill it with reminders. A timer marked done no longer counts. Only the API is held to it: the web app has no limit, and an API call that would pass 50 is refused with `409`. A reminder in the past is refused.
 8. **Reads.** Timer elements in a read gain `repeat`, `watch` (`{key, source, status, changed_to}`) and `done`, next to the `note`, `due_at` and `attached_to` they have.
-9. **Change and removal.** `update_elements` changes the `note`, `at` and `repeat` of a reminder the API added; `remove_elements` removes it. A person's timers stay theirs.
+9. **Change and removal.** `update_elements` changes the `note`, `at` and `repeat` of a reminder the API added; a new `at` makes a status reminder a clock one, as the editor does. `remove_elements` removes it, and removing an element the API added takes the API's reminders on it along. A person's timers stay theirs.
 
 ## Requirements
 
@@ -63,7 +64,7 @@ Principles check:
 
 ## Testing
 
-- **Domain tests**: each style field on each kind, allowed and refused; style on a person's element allowed, text on it refused; rotation folded into -180..180; rename limits; a clock timer with each repeat; a status timer with and without `status`; attach to a given element, to the one card of a task, standalone when two cards show it; the limit of 50 waiting timers, done ones not counted; a past moment.
+- **Domain tests**: each style field on each kind, allowed and refused; style on a person's element allowed, text on it refused; rotation folded into -180..180; rename limits; a clock timer with each repeat; a status timer with and without `status`; attach to a given element, to the one card of a task, refused with no card or two; standalone without `on`; the API's reminder goes with its card; the limit of 50 waiting timers, done ones not counted; a past moment.
 - **Frontend check**: a board with API-made reminders and styles opens and rings as hand-made ones do (`timer.test.ts` shapes reused as fixtures).
 - **API tests**: rename on a read-only key and on a viewer's board refused; styles round-trip through a read.
 - **MCP tests**: a `write` key lists `rename_board` and `add_reminder`; a `read` key does not.
