@@ -84,6 +84,7 @@
 
 - **Fog it clears**: [what the user can't see or understand today that this feature shows]
 - **Trade-offs**: [principles this feature bends and why the gain outweighs it, or "none"; trust is never traded off]
+- **API and MCP**: [what an agent gains through API v1 and MCP in this spec; or "later, spec N"; or "closed by design" and why; or "nothing to expose" for changes with no board action]
 
 ## Requirements *(mandatory)*
 

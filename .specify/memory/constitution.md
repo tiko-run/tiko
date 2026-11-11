@@ -33,6 +33,7 @@ Every task has a checkable done criterion (test, curl, screenshot). Unit tests c
 - Deferred by default: payments, admin panels, i18n — unless the hypothesis cannot be tested without them.
 - Every third-party library, model and dataset is disclosed in `THIRD_PARTY.md`.
 - Secrets never enter git; configuration comes from environment variables with safe defaults.
+- What a person does with a board in the web app is open to agents through API v1 and MCP, unless it is closed by design (sharing, settings, people, trackers, other people's text); each spec says which it is, and a spec without that answer does not pass G2 (spec 046).
 - Usage stats carry no personal data, are on by default, documented field by field in the guide and off with one setting; error reports are off by default. Nothing personal leaves an instance (spec 025).
 
 ## Development Workflow
@@ -46,4 +47,4 @@ Every task has a checkable done criterion (test, curl, screenshot). Unit tests c
 
 This constitution guides all specs, plans and reviews. Amendments are recorded in `docs/decisions.md` with a reason; methodology changes go upstream to launchpad.
 
-**Version**: 1.1.0 | **Profile**: oss
+**Version**: 1.2.0 | **Profile**: oss
