@@ -227,6 +227,10 @@ def _reminders(
         if card_id not in shown:
             raise ValidationFailed(f"{element.id}: a status reminder sits on a task card.")
         source, key = shown[card_id]
+        if element.ref and element.on is not None:
+            wanted = _parse(element.ref, deps.providers(request), tracker)
+            if wanted != (source or tracker, key):
+                raise ValidationFailed(f"{element.id}: card {card_id} does not show {element.ref}.")
         status = element.status or _status_now(source or tracker, key, request)
         watches[element.id or ""] = Watch(key=key, source=source, status=status)
         placed[element.id or ""] = element.model_copy(update={"on": card_id})
@@ -235,7 +239,10 @@ def _reminders(
 
 def _status_now(source: str, key: str, request: Request) -> str:
     search_budget(request)
-    found = [t for t in deps.providers(request)[source].poll([key]) if t.state == "ok"]
+    provider = deps.providers(request).get(source)
+    if provider is None:
+        raise InvalidRef(f"This tiko does not read {source}; give status.")
+    found = [t for t in provider.poll([key]) if t.state == "ok"]
     if not found:
         raise TaskNotFound(f"{source} has no task {key} that you can read.")
     deps.snapshots(request).put_many(found)

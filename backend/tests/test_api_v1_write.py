@@ -486,6 +486,28 @@ def test_a_status_reminder_needs_one_card_of_its_task(setup):
     assert note.status_code == 422
     chosen = add(key, board_id, {"kind": "timer", "ref": "DEMO-2", "on": "agent-b"})
     assert chosen.status_code == 200, chosen.json()
+    other = add(key, board_id, {"kind": "timer", "ref": "DEMO-1", "on": "agent-b"})
+    assert (other.status_code, code(other)) == (422, "validation_failed")
+    assert "does not show DEMO-1" in other.json()["error"]["message"]
+
+
+def test_a_status_reminder_on_a_card_this_tiko_cannot_read_needs_status(admin, setup):
+    board_id, key = setup
+    current = admin.get(f"/api/boards/{board_id}").json()
+    card = {
+        "id": "c9",
+        "type": "task_card",
+        "position": {"x": 0, "y": 0},
+        "data": {"key": "PROJ-1", "source": "jira"},
+    }
+    doc = current["doc"] | {"nodes": [*current["doc"]["nodes"], card]}
+    saved = admin.put(f"/api/boards/{board_id}", json={"version": current["version"], "doc": doc})
+    assert saved.status_code == 200, saved.json()
+    asked = add(key, board_id, {"kind": "timer", "on": "c9"})
+    assert asked.status_code == 422, asked.json()
+    assert "give status" in asked.json()["error"]["message"]
+    given = add(key, board_id, {"kind": "timer", "on": "c9", "status": "Done"})
+    assert given.status_code == 200, given.json()
 
 
 def test_a_board_holds_fifty_waiting_reminders(admin, setup):
