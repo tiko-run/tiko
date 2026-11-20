@@ -32,9 +32,9 @@ function hint(data: TimerData, state: TimerState, now: number) {
     return state === 'fired' ? watch : `Goes off ${watch}`
   }
   if (at === null) return 'Waiting'
-  if (state === 'fired') return `Went off ${formatDue(at)}`
+  if (state === 'fired') return `Went off ${formatDue(at, now)}`
   if (state === 'done') return 'Done'
-  return `${formatDue(at)} · in ${formatLeftLong(at - now)}`
+  return `${formatDue(at, now)} · in ${formatLeftLong(at - now)}`
 }
 
 function TimerNodeView({ id, data, parentId, selected, dragging }: NodeProps<TimerNodeType>) {

@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { copyLink } from '@/lib/copy'
 import { toastError } from '@/lib/toast'
 import { SectionHeader } from '@/settings/sections/Section'
+import { formatDate } from '@/timers/time'
 
 const API_KEYS = ['api-keys']
 
@@ -37,12 +38,9 @@ const SCOPE_NAMES: Record<ApiKeyScope, string> = { read: 'Read', write: 'Read an
 const SCOPES: ApiKeyScope[] = ['read', 'write']
 const EXPIRY_DAYS = [7, 30, 90, 365]
 
-const pad = (n: number) => String(n).padStart(2, '0')
-
-/** "08.11.2026" in the person's time zone. */
+/** "Nov 8" ("Nov 8, 2025" in another year) in the person's time zone. */
 function day(iso: string) {
-  const d = new Date(iso)
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
+  return formatDate(Date.parse(iso))
 }
 
 function expiry(key: ApiKey) {
@@ -54,8 +52,8 @@ function expiry(key: ApiKey) {
 function lastUsed(key: ApiKey) {
   if (!key.last_used_on) return 'Never used'
   // A plain day from the server, so it is not shifted by the time zone.
-  const [year, month, date] = key.last_used_on.split('-')
-  return `Last used ${date}.${month}.${year}`
+  const [year, month, date] = key.last_used_on.split('-').map(Number)
+  return `Last used ${formatDate(new Date(year, month - 1, date).getTime())}`
 }
 
 function TokenBox({ token, onDone }: { token: string; onDone: () => void }) {

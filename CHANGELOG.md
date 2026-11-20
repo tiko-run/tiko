@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- API keys and reminders write dates in words (`Nov 16`, or `Nov 16, 2026` outside the current year) like the rest of the app, instead of `16.11.2026` and `16.11`. The reminder field still reads `25.10 15:00` as typed input.
+
 ### Fixed
 
 - Importing a board whose Gantt has stages with no type no longer warns that stages arrived without their types, and the import report shows one Planning button instead of one per note.
