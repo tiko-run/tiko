@@ -30,7 +30,7 @@ from app.domain.accounts import Person
 from app.domain.batch import Applied, Batch, plan
 from app.domain.boards import BoardDoc
 from app.domain.copies import holds, same, written
-from app.domain.errors import Conflict, NotFound, VersionConflict, VoteRunning
+from app.domain.errors import Conflict, NotFound, ValidationFailed, VersionConflict, VoteRunning
 from app.domain.live import (
     ACCESS_CHANGED,
     GOING_AWAY,
@@ -44,6 +44,7 @@ from app.domain.live import (
     LiveDoc,
     Stored,
     from_board,
+    to_json,
 )
 from app.domain.members import role_on
 from app.domain.ports import BoardCopies, BoardRepo, MemberRepo
@@ -402,6 +403,8 @@ class Room:
                 self.check()
                 nodes, edges = self.live.checked() or self.live.read()
                 planned, kept, applied = plan(nodes, edges, batch, locked)
+                if batch.dry:
+                    return _dry(applied, planned, kept)
                 copy_id = None
                 if applied.overwrote:
                     copy_id = await self._copied(nodes, edges, applied, batch)
@@ -644,6 +647,8 @@ class LiveRooms:
             return saved
 
     def apply(self, board_id: str, batch: Batch) -> Applied:
+        if batch.dry and batch.restore is not None:
+            raise ValidationFailed("A restore cannot be tried first.")
         loop = self._loop
         if loop and loop.is_running() and (board_id in self._rooms or board_id in self._opening):
             return asyncio.run_coroutine_threadsafe(self._apply(board_id, batch), loop).result(30)
@@ -661,6 +666,8 @@ class LiveRooms:
             if batch.restore is not None:
                 return self._restore_stored(board_id, record, live, batch, locked)
             planned, kept, applied = plan(nodes, edges, batch, locked)
+            if batch.dry:
+                return _dry(applied, planned, kept)
             if applied.overwrote:
                 if self.copies is None:
                     raise RuntimeError("people's work cannot change without a place for copies")
@@ -806,3 +813,9 @@ class LiveRooms:
             if role is not None and (role != "viewer") == connection.can_edit:
                 return
         connection.kick(ACCESS_CHANGED)
+
+
+def _dry(applied: Applied, planned: Stored, kept: Stored) -> Applied:
+    """A dry run stops at the plan: the board, copies and tabs stay as they were."""
+    applied.planned = to_json(planned, kept)
+    return applied

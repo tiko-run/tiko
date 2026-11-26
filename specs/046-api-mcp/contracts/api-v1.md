@@ -177,6 +177,10 @@ Without parameters, an outline:
 
 `{"ids": ["agent-n1"]}` → `204`. Only elements added through the API. An id that is already gone counts as removed, so a retry succeeds. Arrows added through the API that touch a removed element go with it; a person's arrow or timer on it refuses the call (`keeps_people_work`). Removing a frame keeps its content in place.
 
+### Trying first (spec 057)
+
+`"dry_run": true` in the body of `POST /elements`, `PATCH /elements`, `POST /elements/remove`, `POST /arrange` and `PATCH /modules/{module}` plans the call on the board as it stands and answers as the real call would, plus `"dry_run": true`; nothing is written, no copy is saved, open tabs see nothing. Errors are the real ones. Ids the caller did not give are new on every call, so give your own to get the same elements from the real call. A dry remove answers `200` with `{removed, overwrote, dry_run}`; the real one stays `204`. Every write answer carries `overwrote`: people's elements, arrows and reminders the call changes the words of or removes. `removed` lists arrows that go with a removed element. A dry run spends the write budget, and a card in it asks its tracker as the real call does.
+
 ### Full access (spec 055)
 
 A key is `read`, `write` or `full`; each does what the one before does. A `full` key, while the workspace setting `full_keys` is on, changes the text and title of any element and removes any element, arrow and reminder on a board its person may edit. With the setting off it acts as a `write` key, and a refusal (`409 not_api_element`) says the admin does not allow it. A running vote still locks its elements (`409 vote_running`).
@@ -237,7 +241,7 @@ Streamable HTTP, JSON answers, the same key as `Authorization: Bearer`. `/api/mc
 | `connect(board, start, end, label?, id?)` | write | idempotent with an id | `POST /elements`, kind `arrow` |
 | `update_elements(board, changes)` | write | idempotent | `PATCH /elements` |
 | `arrange(board, cards, layout, frame?, new_frame?, columns?, order?, fit?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
-| `remove_elements(board, ids)` | write | destructive, idempotent | `POST /elements/remove` |
+| `remove_elements(board, ids, dry_run?)` | write | destructive, idempotent; answers `{removed, overwrote, dry_run}` | `POST /elements/remove` |
 | `add_gantt(board, start, end, title?, scale?, x?, y?, id?)` | write | idempotent with an id | `POST /modules` |
 | `change_gantt(board, gantt, steps)` | write | destructive | `PATCH /modules/{module}` |
 | `list_copies(board)` | write | read-only | `GET /copies` |

@@ -286,6 +286,8 @@ class Batch(BaseModel):
     by: str | None = None
     # A saved copy of the board to put back instead of any change.
     restore: str | None = None
+    # Planned and answered, never written (spec 057).
+    dry: bool = False
     new_gantt: NewGantt | None = None
     gantt: GanttCall | None = None
 
@@ -296,6 +298,8 @@ class Applied(BaseModel):
     removed: list[str] = []
     # People's elements and arrows the call changes the words of or removes; a copy comes first.
     overwrote: list[str] = []
+    # A dry run's planned board as JSON: the answer is built from it, not from a saved board.
+    planned: dict[str, Any] | None = None
     gantt: gantt_steps.Result | None = None
 
 
@@ -384,6 +388,8 @@ class _Plan:
                     )
                 self._own(edge_id, "remove")
                 self._drop_edge(edge_id)
+                # Said in the answer: a person approving a removal sees the arrows go too.
+                self.applied.removed.append(edge_id)
         node = self.nodes[node_id]
         for child_id, child in list(self.nodes.items()):
             if child["place"].get("parentId") != node_id:

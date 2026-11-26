@@ -57,6 +57,10 @@ _REMOVES = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentH
 _BOARD = Field(description="The board's id from list_boards.")
 _FRAME = Field(description="A frame's id to put them in; it grows to hold them.")
 _ID = Field(description="Your own id for it, so a retry does not add it twice.")
+_DRY = Field(
+    description="Plan the call and answer as if it were made, without making it: show the "
+    "person, then send the same call without it. Give your own ids to get the same elements."
+)
 
 
 _X = Field(default=None, description="Left edge on the board, also inside a frame; with y.")
@@ -545,6 +549,7 @@ def create(app: FastAPI) -> TikoMCP:
         ctx: Context,
         board: Annotated[str, _BOARD],
         changes: Annotated[list[Change], Field(min_length=1, max_length=200)],
+        dry_run: Annotated[bool, _DRY] = False,
     ) -> dict[str, Any]:
         """Moves, resizes or puts elements in and out of frames. A reminder on an element
         moves with it: `on` puts it on another element, `on: null` frees it, and a free one
@@ -553,7 +558,7 @@ def create(app: FastAPI) -> TikoMCP:
         and marked lines. Changes the text of what you added, and the label of an arrow you
         drew (empty removes it). Text people wrote changes only with a key that has full
         access, after tiko saves a copy of the board (see list_copies)."""
-        body = elements.ChangeIn(changes=changes)
+        body = elements.ChangeIn(changes=changes, dry_run=dry_run)
         return write(
             ctx,
             board,
@@ -590,6 +595,7 @@ def create(app: FastAPI) -> TikoMCP:
         fit: Annotated[
             bool, Field(description="Size the frame to what it holds, smaller or larger.")
         ] = False,
+        dry_run: Annotated[bool, _DRY] = False,
     ) -> dict[str, Any]:
         """Lays cards of a board out, below what is there or in a frame. Only these cards
         move."""
@@ -597,7 +603,13 @@ def create(app: FastAPI) -> TikoMCP:
         if frame or new_frame:
             target = elements.FrameRef(id=frame, title=None if frame else new_frame)
         body = elements.ArrangeIn(
-            cards=cards, layout=layout, frame=target, columns=columns, order=order, fit=fit
+            cards=cards,
+            layout=layout,
+            frame=target,
+            columns=columns,
+            order=order,
+            fit=fit,
+            dry_run=dry_run,
         )
         return write(
             ctx,
@@ -639,6 +651,7 @@ def create(app: FastAPI) -> TikoMCP:
             list[gantt_steps.Step],
             Field(min_length=1, max_length=gantt_steps.MAX_STEPS),
         ],
+        dry_run: Annotated[bool, _DRY] = False,
     ) -> dict[str, Any]:
         """Changes a Gantt plan with steps applied in order, all or none; an error names the
         failing step. Rows, by the ids read_gantt gives or ids your earlier steps gave:
@@ -654,7 +667,7 @@ def create(app: FastAPI) -> TikoMCP:
         follow: false before giving it dates. At most 50 steps name a task. A key changes a
         Gantt it added; a person's needs full access. tiko saves a copy of the board first
         (see list_copies); calls in a row with no one else's edit between share that copy."""
-        body = elements.StepsIn(steps=steps)
+        body = elements.StepsIn(steps=steps, dry_run=dry_run)
         return write(
             ctx,
             board,
@@ -693,12 +706,15 @@ def create(app: FastAPI) -> TikoMCP:
         ctx: Context,
         board: Annotated[str, _BOARD],
         ids: Annotated[list[str], Field(min_length=1, max_length=200)],
-    ) -> str:
+        dry_run: Annotated[bool, _DRY] = False,
+    ) -> dict[str, Any]:
         """Removes elements you added; with a key that has full access, any element, arrow
-        or reminder, after tiko saves a copy of the board (see list_copies)."""
-        body = elements.RemoveIn(ids=ids)
-        write(ctx, board, lambda request: elements.remove_elements(board, body, None, request))
-        return "removed"
+        or reminder, after tiko saves a copy of the board (see list_copies). Answers what
+        went, arrows that went with them included, and `overwrote`: people's work among it."""
+        body = elements.RemoveIn(ids=ids, dry_run=dry_run)
+        return write(
+            ctx, board, lambda request: elements.removal(board, body, request).model_dump()
+        )
 
     return server
 

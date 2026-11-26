@@ -115,6 +115,16 @@ curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
 
 What people made stays theirs: a key moves and restyles any element, but changes the text of, and removes, only what was added through the API by you, unless it has full access (below). Text people wrote never changes behind their back, and nothing they made disappears. During a vote, the elements in it keep their words and look.
 
+### Trying a change first
+
+Add `"dry_run": true` to a change, a removal, an arrangement or a Gantt's steps, and tiko answers as if it made the change, without making it: nothing on the board moves, nobody with it open sees anything, and no copy is saved. Show the answer to the person, then send the same call without it.
+
+- The answer says `"dry_run": true`. Errors are the ones the real call would give.
+- `overwrote` lists people's elements, arrows and reminders the call would change the words of or remove; every write answer carries it.
+- A dry removal answers what would go in `removed`, arrows that go with removed elements included; the real one answers `204` as before.
+- Ids you did not give are new on every call: give your own ids to get the same elements from the real call.
+- The board may change between the two calls; the real call is planned again on the board as it then is.
+
 ### Reminders
 
 A reminder is an element of kind `timer`. It rings in tiko for whoever has the board open, as one you set by hand: nothing reaches anyone without an open tiko tab.

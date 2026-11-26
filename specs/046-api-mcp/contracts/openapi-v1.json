@@ -3,6 +3,11 @@
     "schemas": {
       "AddIn": {
         "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "elements": {
             "items": {
               "$ref": "#/components/schemas/NewElement"
@@ -42,6 +47,11 @@
               }
             ],
             "title": "Columns"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
           },
           "fit": {
             "default": false,
@@ -595,6 +605,11 @@
             "minItems": 1,
             "title": "Changes",
             "type": "array"
+          },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1431,11 +1446,24 @@
             "title": "Created",
             "type": "array"
           },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "kept": {
             "items": {
               "type": "string"
             },
             "title": "Kept",
+            "type": "array"
+          },
+          "overwrote": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Overwrote",
             "type": "array"
           },
           "rows": {
@@ -2247,6 +2275,11 @@
       },
       "RemoveIn": {
         "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "ids": {
             "items": {
               "type": "string"
@@ -2261,6 +2294,35 @@
           "ids"
         ],
         "title": "RemoveIn",
+        "type": "object"
+      },
+      "Removed": {
+        "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "overwrote": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Overwrote",
+            "type": "array"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Removed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "removed"
+        ],
+        "title": "Removed",
         "type": "object"
       },
       "RowOut": {
@@ -2940,6 +3002,11 @@
       },
       "StepsIn": {
         "properties": {
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "steps": {
             "items": {
               "$ref": "#/components/schemas/Step"
@@ -3173,11 +3240,24 @@
             "title": "Created",
             "type": "array"
           },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "elements": {
             "items": {
               "$ref": "#/components/schemas/Element"
             },
             "title": "Elements",
+            "type": "array"
+          },
+          "overwrote": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Overwrote",
             "type": "array"
           }
         },
@@ -4159,7 +4239,7 @@
     },
     "/boards/{board_id}/elements/remove": {
       "post": {
-        "description": "Removes elements the API added. One that is gone already counts as removed.",
+        "description": "Removes elements the API added. One that is gone already counts as removed. A dry run\nanswers what would go instead.",
         "operationId": "remove_elements_boards__board_id__elements_remove_post",
         "parameters": [
           {
@@ -4183,6 +4263,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Removed"
+                }
+              }
+            },
+            "description": "A dry run: what the call would remove"
+          },
           "204": {
             "description": "Successful Response"
           },
