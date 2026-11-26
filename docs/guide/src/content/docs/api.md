@@ -111,6 +111,7 @@ A key with full access changes the text of, and removes, anything on boards you 
 - `GET /api/v1/boards/<id>/copies` lists the copies, newest first: when, by whom, and whether it came before a key's change or a restore.
 - `POST /api/v1/boards/<id>/copies/<copy>/restore` puts the board back as that copy has it, for everyone at once. It needs a key with full access. The board as it is now is saved first, so a restore can be undone the same way. During a vote it is refused.
 - A board keeps its newest 20 copies, for up to 14 days.
+- In the web app, anyone who may edit the board finds them under **Saved copies** in the board menu and restores one there, with no agent needed.
 
 ### How writes behave
 

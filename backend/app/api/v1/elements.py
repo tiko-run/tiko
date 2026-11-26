@@ -181,6 +181,22 @@ def arrange(board_id: str, body: ArrangeIn, _: Writable, request: Request) -> Wr
 def list_copies(board_id: str, _: Writable, request: Request) -> CopyList:
     """Copies of the board tiko saved before a key with full access changed people's work, and
     before each restore, newest first."""
+    return copy_list(board_id, request)
+
+
+@router.post(
+    "/{board_id}/copies/{copy_id}/restore",
+    status_code=204,
+    dependencies=[Depends(full_budget)],
+)
+def restore_copy(board_id: str, copy_id: str, _: Writable, request: Request) -> Response:
+    """Puts the board back as the copy has it, for everyone at once. The board as it is now is
+    saved first, so a restore can be undone the same way. Needs a key with full access."""
+    restore(board_id, copy_id, request)
+    return Response(status_code=204)
+
+
+def copy_list(board_id: str, request: Request) -> CopyList:
     found = request.app.state.copies.list(board_id)
     return CopyList(
         copies=[
@@ -192,19 +208,11 @@ def list_copies(board_id: str, _: Writable, request: Request) -> CopyList:
     )
 
 
-@router.post(
-    "/{board_id}/copies/{copy_id}/restore",
-    status_code=204,
-    dependencies=[Depends(full_budget)],
-)
-def restore_copy(board_id: str, copy_id: str, _: Writable, request: Request) -> Response:
-    """Puts the board back as the copy has it, for everyone at once. The board as it is now is
-    saved first, so a restore can be undone the same way. Needs a key with full access."""
+def restore(board_id: str, copy_id: str, request: Request) -> None:
     if request.app.state.copies.get(board_id, copy_id) is None:
         raise NotFound("copy not found")
     person = deps.current_person(request)
     request.app.state.live.apply(board_id, Batch(restore=copy_id, by=person.id))
-    return Response(status_code=204)
 
 
 def _write(board_id: str, batch: Batch, request: Request, answer: bool = True) -> Written:

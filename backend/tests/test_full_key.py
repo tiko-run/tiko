@@ -225,3 +225,24 @@ def test_a_copy_past_its_days_does_not_spare_a_new_one(app, full):
         )
     remove(key, board_id, "n2")
     assert len(copies(key, board_id)) == 2
+
+
+def test_an_editor_lists_and_restores_copies_in_the_web_app(app, admin, full):
+    from tests.test_folders import join, me
+
+    board_id, key = full
+    remove(key, board_id, "n2", "f1")
+    ann, carl = join(app, admin, "ann"), join(app, admin, "carl")
+    for who, role in ((ann, "editor"), (carl, "viewer")):
+        shared = admin.put(f"/api/boards/{board_id}/members/{me(who)}", json={"role": role})
+        assert shared.is_success, shared.text
+    (saved,) = ann.get(f"/api/boards/{board_id}/copies").json()["copies"]
+    assert (saved["reason"], saved["by"]) == ("key", "Admin")
+    assert carl.get(f"/api/boards/{board_id}/copies").status_code == 403
+    assert carl.post(f"/api/boards/{board_id}/copies/{saved['id']}/restore").status_code == 403
+    restored = ann.post(f"/api/boards/{board_id}/copies/{saved['id']}/restore")
+    assert restored.status_code == 204, restored.text
+    assert {"f1", "n2"} <= stored(admin, board_id).keys()
+    newest = ann.get(f"/api/boards/{board_id}/copies").json()["copies"]
+    assert [(c["reason"], c["by"]) for c in newest] == [("restore", "Ann"), ("key", "Admin")]
+    assert ann.post(f"/api/boards/{board_id}/copies/nope/restore").status_code == 404

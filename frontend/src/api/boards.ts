@@ -274,3 +274,28 @@ export function downloadBoard(id: string) {
   link.download = ''
   link.click()
 }
+
+const copySchema = z.object({
+  id: z.string(),
+  saved_at: z.string(),
+  // The person whose call it came before; null once they are gone.
+  by: z.string().nullable(),
+  reason: z.enum(['key', 'restore']),
+  elements: z.number().int(),
+})
+export type BoardCopy = z.infer<typeof copySchema>
+
+export const copiesKey = (boardId: string) => ['board-copies', boardId] as const
+
+/** Copies saved before an API key with full access changed people's work, newest first. */
+export function listCopies(boardId: string) {
+  return fetchJson(`/api/boards/${boardId}/copies`, z.object({ copies: z.array(copySchema) })).then(
+    (body) => body.copies,
+  )
+}
+
+export function restoreCopy(boardId: string, copyId: string) {
+  return fetchJson(`/api/boards/${boardId}/copies/${copyId}/restore`, z.null(), {
+    method: 'POST',
+  })
+}

@@ -217,3 +217,53 @@ test('admins find boards shared with no one under Other boards', async () => {
   expect(await screen.findByText('Other boards')).toBeInTheDocument()
   expect(screen.getByRole('menuitemradio', { name: /Team Platform/ })).toBeInTheDocument()
 })
+
+test('Saved copies lists the copies and restores one after a confirmation', async () => {
+  const copy = {
+    id: 'c1',
+    saved_at: '2026-11-20T09:30:00Z',
+    by: 'Admin',
+    reason: 'key',
+    elements: 12,
+  }
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
+    url === '/api/boards/a/copies'
+      ? Response.json({ copies: [copy] })
+      : new Response(null, { status: 204 }),
+  )
+  vi.stubGlobal('fetch', fetch)
+  renderBar()
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/boards/a/copies', expect.anything()))
+  fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Saved copies…' }))
+  const list = await screen.findByRole('dialog', { name: 'Saved copies' })
+  expect(list).toHaveTextContent("Before Admin's API key changed it")
+  expect(list).toHaveTextContent('12 elements')
+  fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
+  const confirm = await screen.findByRole('dialog', { name: 'Restore this copy?' })
+  expect(confirm).toHaveTextContent('for everyone who has it open')
+  expect(fetch).not.toHaveBeenCalledWith('/api/boards/a/copies/c1/restore', expect.anything())
+  fireEvent.click(screen.getAllByRole('button', { name: 'Restore' }).at(-1)!)
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/boards/a/copies/c1/restore',
+      expect.objectContaining({ method: 'POST' }),
+    ),
+  )
+  vi.unstubAllGlobals()
+})
+
+test('a board without copies has no Saved copies item', async () => {
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
+    url === '/api/boards/a/copies'
+      ? Response.json({ copies: [] })
+      : new Response(null, { status: 204 }),
+  )
+  vi.stubGlobal('fetch', fetch)
+  renderBar()
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/boards/a/copies', expect.anything()))
+  fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
+  await screen.findByRole('menuitem', { name: 'All boards' })
+  expect(screen.queryByRole('menuitem', { name: 'Saved copies…' })).toBeNull()
+  vi.unstubAllGlobals()
+})

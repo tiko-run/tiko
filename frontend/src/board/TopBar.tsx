@@ -2,6 +2,7 @@ import {
   ChevronDown,
   Download,
   Globe,
+  History,
   House,
   Keyboard,
   KeyRound,
@@ -30,10 +31,11 @@ import { OPEN_VOTES_EVENT } from '@/voting/useVoting'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getAuthStatus, signOut } from '@/api/auth'
-import { canEdit, downloadBoard, type BoardSummary } from '@/api/boards'
+import { canEdit, copiesKey, downloadBoard, listCopies, type BoardSummary } from '@/api/boards'
 import { RenameBoardForm, TrashBoardDialog } from '@/board/BoardActions'
 import { DemoMark } from '@/board/DemoMark'
 import { SignUpDialog } from '@/auth/SignUp'
+import { SavedCopiesDialog } from '@/board/SavedCopies'
 import { ShareDialog } from '@/board/ShareDialog'
 import { Faces } from '@/live/Avatar'
 import { useBoardPeople } from '@/live/presence'
@@ -134,6 +136,13 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
     enabled: Boolean(current),
   }).data
   const hasVotes = Boolean(votes?.past.length)
+  // Copies exist only on boards a key with full access touched: no item for everyone else.
+  const copies = useQuery({
+    queryKey: copiesKey(boardId),
+    queryFn: () => listCopies(boardId),
+    enabled: Boolean(current && canEdit(current.my_role)),
+  }).data
+  const [copiesOpen, setCopiesOpen] = useState(false)
   // A demo visitor has no account yet: nothing to share with, no password to come back by.
   const demoUntil = me?.demo_expires_at
   const [leaving, setLeaving] = useState(false)
@@ -433,6 +442,12 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
                   Rename board
                 </DropdownMenuItem>
               )}
+              {copies && copies.length > 0 && (
+                <DropdownMenuItem onSelect={() => setCopiesOpen(true)}>
+                  <History strokeWidth={1.75} />
+                  Saved copies…
+                </DropdownMenuItem>
+              )}
               {current.my_role === 'owner' && (
                 <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(current)}>
                   <Trash2 strokeWidth={1.75} />
@@ -468,6 +483,14 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
         </>
       )}
       <SignUpDialog open={signingUp} onOpenChange={setSigningUp} />
+      {current && copies && (
+        <SavedCopiesDialog
+          board={current}
+          copies={copies}
+          open={copiesOpen}
+          onOpenChange={setCopiesOpen}
+        />
+      )}
       {current && hasVotes && (
         <Button
           variant="ghost"
