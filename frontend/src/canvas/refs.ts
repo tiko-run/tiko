@@ -10,8 +10,11 @@ const CONCURRENCY = 4
 export type Resolved = {
   tasks: Task[]
   failed: { ref: string; message: string }[]
-  /** Set for a JQL query: how many tasks matched, including the ones past the limit. */
-  total?: number
+  /** Set for a JQL query: how many tasks matched, including the ones past the limit; null
+   *  when the tracker gives no count. */
+  total?: number | null
+  /** Set for a query: more tasks match than were added. */
+  more?: boolean
   /** True when `total` is the tracker's estimate. */
   estimated?: boolean
 }

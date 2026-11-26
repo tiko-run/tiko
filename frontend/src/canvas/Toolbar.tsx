@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { getCalDav } from '@/api/caldav'
+import { getTracker } from '@/api/settings'
 import { searchTasks, type Task } from '@/api/tasks'
 import { CalDavPicker } from '@/canvas/CalDavPicker'
 import { useImagePicker } from '@/canvas/ImagePicker'
@@ -75,63 +76,88 @@ export function isJql(input: string) {
 
 const WHAT_YOU_CAN_ADD = 'https://docs.tiko.run/what-you-can-add/'
 
-function matchCount(total: number, estimated: boolean) {
+// A saved Linear view adds its issues the way a query does.
+const LINEAR_VIEW = /^https?:\/\/linear\.app\/[\w-]+\/view\/\S+$/i
+
+function matchCount(total: number | null, estimated: boolean, more: boolean) {
+  if (total === null) {
+    return more ? `More than 100 tasks match, the first ${MAX_REFS} are added.` : ''
+  }
   const tasks = `${estimated ? 'About ' : ''}${total} ${total === 1 ? 'task matches' : 'tasks match'}`
   return `${tasks}${total > MAX_REFS ? `, the first ${MAX_REFS} are added` : ''}.`
 }
 
-async function addFromInput(input: string): Promise<Resolved> {
-  if (!isJql(input)) return resolveAll(splitRefs(input))
-  const { tasks, total, estimated } = await searchTasks(input.trim(), MAX_REFS)
-  return { tasks, failed: [], total, estimated }
+function isQuery(input: string, source?: string) {
+  return isJql(input) || (source === 'linear' && LINEAR_VIEW.test(input.trim()))
+}
+
+async function addFromInput({
+  input,
+  source,
+}: {
+  input: string
+  source?: string
+}): Promise<Resolved> {
+  if (!isQuery(input, source)) return resolveAll(splitRefs(input))
+  const { tasks, total, estimated, more } = await searchTasks(input.trim(), MAX_REFS, source)
+  return { tasks, failed: [], total, estimated, more }
 }
 
 /** Takes keys, links or a JQL query; keys that fail stay in the field with their errors. */
 export function AddCardForm({
   onAdd,
   onDone,
+  source,
+  placeholder = 'DEMO-1, DEMO-2',
 }: {
   onAdd: (tasks: Task[]) => void
   onDone: () => void
+  /** The tracker a query goes to, when not the instance's. */
+  source?: string
+  placeholder?: string
 }) {
   const [input, setInput] = useState('')
   const [recent, setRecent] = useState(readRecentInputs)
   const resolve = useMutation({
     mutationFn: addFromInput,
-    onSuccess: ({ tasks, failed, total }, sent) => {
+    onSuccess: ({ tasks, failed, total, more }, sent) => {
       if (tasks.length > 0) {
         onAdd(tasks)
-        rememberInput(sent)
+        rememberInput(sent.input)
         setRecent(readRecentInputs())
       }
       // A query that found nothing or more than fits stays open to be narrowed.
-      if (total !== undefined && (tasks.length === 0 || total > tasks.length)) return
+      const narrow = tasks.length === 0 || more || (total ?? 0) > tasks.length
+      if (total !== undefined && narrow) return
       if (failed.length === 0) onDone()
       else setInput(failed.map((f) => f.ref).join(', '))
     },
   })
-  const jql = isJql(input)
-  const count = useJqlCount(input, jql && !resolve.isPending)
+  const jql = isQuery(input, source)
+  const count = useJqlCount(input, jql && !resolve.isPending, source)
   const keys = jql ? 0 : splitRefs(input).length
   const tooMany = keys > MAX_REFS
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (input.trim() && !tooMany) resolve.mutate(input)
+    if (input.trim() && !tooMany) resolve.mutate({ input, source })
   }
 
   const found = resolve.data?.total
+  const added = resolve.data?.tasks.length ?? 0
   const errors = tooMany
     ? [`Up to ${MAX_REFS} cards at a time.`]
     : resolve.isError
       ? [errorMessage(resolve.error)]
       : found === 0
         ? ['No tasks match this query.']
-        : found !== undefined && found > (resolve.data?.tasks.length ?? 0)
-          ? [
-              `Added ${resolve.data?.tasks.length} of ${resolve.data?.estimated ? 'about ' : ''}${found}. Narrow the query to add the rest.`,
-            ]
-          : (resolve.data?.failed.map((f) => `${f.ref}: ${f.message}`) ?? [])
+        : resolve.data?.more && found == null
+          ? [`Added ${added}; more match. Narrow the query to add the rest.`]
+          : found != null && found > added
+            ? [
+                `Added ${added} of ${resolve.data?.estimated ? 'about ' : ''}${found}. Narrow the query to add the rest.`,
+              ]
+            : (resolve.data?.failed.map((f) => `${f.ref}: ${f.message}`) ?? [])
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-1.5">
@@ -145,9 +171,10 @@ export function AddCardForm({
         recent={recent}
         onPickRecent={(picked) => {
           setInput(picked)
-          resolve.mutate(picked)
+          resolve.mutate({ input: picked, source })
         }}
-        placeholder="DEMO-1, DEMO-2"
+        source={source}
+        placeholder={placeholder}
         autoComplete="off"
         spellCheck={false}
         autoFocus
@@ -185,9 +212,10 @@ export function AddCardForm({
           ) : count.isError ? (
             errorMessage(count.error)
           ) : count.data !== undefined ? (
-            matchCount(count.data.total, count.data.estimated)
+            matchCount(count.data.total, count.data.estimated, count.data.more) ||
+            `Query, up to ${MAX_REFS} tasks.`
           ) : (
-            `JQL query, up to ${MAX_REFS} tasks.`
+            `${source === 'linear' ? 'Query' : 'JQL query'}, up to ${MAX_REFS} tasks.`
           )}
         </p>
       )}
@@ -195,7 +223,9 @@ export function AddCardForm({
   )
 }
 
-/** The card form, with a tab for CalDAV lists once the person has connected an account. */
+type CardTab = 'keys' | 'linear' | 'caldav'
+
+/** The card form, with a tab for a Linear query and for CalDAV lists once the person has connected them. */
 export function CardSources({
   onAdd,
   onDone,
@@ -204,8 +234,14 @@ export function CardSources({
   onDone: () => void
 }) {
   const caldav = useQuery({ queryKey: ['caldav'], queryFn: getCalDav })
-  const [tab, setTab] = useState<'keys' | 'caldav'>('keys')
-  if (caldav.data?.state !== 'set') return <AddCardForm onAdd={onAdd} onDone={onDone} />
+  const tracker = useQuery({ queryKey: ['tracker'], queryFn: getTracker })
+  const [tab, setTab] = useState<CardTab>('keys')
+  const tabs: [CardTab, string][] = [
+    ['keys', 'Keys and queries'],
+    ...(tracker.data?.tokens.linear === 'set' ? [['linear', 'Linear'] as [CardTab, string]] : []),
+    ...(caldav.data?.state === 'set' ? [['caldav', 'CalDAV'] as [CardTab, string]] : []),
+  ]
+  if (tabs.length === 1) return <AddCardForm onAdd={onAdd} onDone={onDone} />
   return (
     <div className="flex flex-col gap-2">
       <ToggleGroup
@@ -213,20 +249,27 @@ export function CardSources({
         variant="outline"
         size="sm"
         value={tab}
-        onValueChange={(value) => value && setTab(value as 'keys' | 'caldav')}
+        onValueChange={(value) => value && setTab(value as CardTab)}
         aria-label="Add cards from"
       >
-        <ToggleGroupItem value="keys" className="px-3 text-[13px]">
-          Keys and queries
-        </ToggleGroupItem>
-        <ToggleGroupItem value="caldav" className="px-3 text-[13px]">
-          CalDAV
-        </ToggleGroupItem>
+        {tabs.map(([value, label]) => (
+          <ToggleGroupItem key={value} value={value} className="px-3 text-[13px]">
+            {label}
+          </ToggleGroupItem>
+        ))}
       </ToggleGroup>
-      {tab === 'keys' ? (
-        <AddCardForm onAdd={onAdd} onDone={onDone} />
-      ) : (
+      {tab === 'caldav' ? (
         <CalDavPicker onAdd={onAdd} onDone={onDone} />
+      ) : tab === 'linear' ? (
+        <AddCardForm
+          key="linear"
+          onAdd={onAdd}
+          onDone={onDone}
+          source="linear"
+          placeholder="team = ENG AND cycle in openSprints()"
+        />
+      ) : (
+        <AddCardForm key="keys" onAdd={onAdd} onDone={onDone} />
       )}
     </div>
   )

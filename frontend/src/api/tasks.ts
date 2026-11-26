@@ -59,18 +59,21 @@ export function forgetPrefix(prefix: string) {
   })
 }
 
-export function searchTasks(jql: string, limit: number) {
+/** `source` asks another tracker than the instance's, such as a Linear query or view link. */
+export function searchTasks(jql: string, limit: number, source?: string) {
   return fetchJson(
     '/api/tasks/search',
     // `estimated`: the tracker only estimates `total`, as Jira Cloud does past its first page.
+    // `total` is null when the tracker gives no count, as Linear; `more` then says more match.
     z.object({
       tasks: z.array(taskSchema),
-      total: z.number(),
+      total: z.number().nullable(),
       estimated: z.boolean().default(false),
+      more: z.boolean().default(false),
     }),
     {
       method: 'POST',
-      body: JSON.stringify({ jql, limit }),
+      body: JSON.stringify(source ? { jql, limit, source } : { jql, limit }),
     },
   )
 }
@@ -85,12 +88,13 @@ const vocabularySchema = z.object({
 
 export type JqlVocabulary = z.infer<typeof vocabularySchema>
 
-export function getJqlVocabulary() {
-  return fetchJson('/api/jql/vocabulary', vocabularySchema)
+export function getJqlVocabulary(source?: string) {
+  const params = source ? `?${new URLSearchParams({ source })}` : ''
+  return fetchJson(`/api/jql/vocabulary${params}`, vocabularySchema)
 }
 
-export function getJqlValues(field: string, prefix: string) {
-  const params = new URLSearchParams({ field, prefix })
+export function getJqlValues(field: string, prefix: string, source?: string) {
+  const params = new URLSearchParams({ field, prefix, ...(source ? { source } : {}) })
   return fetchJson(
     `/api/jql/values?${params}`,
     z.object({ values: z.array(z.object({ value: z.string(), label: z.string() })) }),
