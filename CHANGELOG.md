@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Ask your AI agent to show a big change before it makes it: it tries the change, tells you what would move or go, people's work included, and makes it only after your yes. See [AI agents](https://docs.tiko.run/ai-agents/).
 - Let your AI agent keep your Gantt plan current: from the notes of a planning call it adds tasks under their goals, shifts a branch by two weeks, ticks stages done, sets milestones and dependencies, all in one change you can put back from Saved copies. A plan someone made by hand needs a key with full access. See [AI agents](https://docs.tiko.run/ai-agents/).
 - Let your AI agent keep the whole board, not just what it added: a key with full access renames your frames, fixes the words of notes and clears old elements on boards you can edit. tiko saves a copy of the board before the key changes people's work, and you put the board back from Saved copies in the board menu, no agent needed. An admin turns it on in Settings → Sharing. See [API keys](https://docs.tiko.run/api-keys/).
 - Put your Linear issues on a board: paste an issue's link and it becomes a live card with its status, priority, labels, project and cycle, read with your own Linear API key. Teammates see a card only with a key of their own, and guests of a public link see just its identifier. Typing just `ENG-12` works too: it goes to the tracker that knows `ENG`, and when Jira and Linear both do, tiko asks once and can remember your answer. See [Linear](https://docs.tiko.run/linear/).
@@ -13,6 +14,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The MCP tool `remove_elements` now answers what it removed, arrows that went with the elements included, instead of a line of text.
 - Your AI agent lays a board out right the first time: it puts cards, notes and frames exactly where it means to, fits a grid of cards to its frame, sorts them by key or status, and sizes the frame to what it holds. On a large board it reads only what it needs, such as the done cards outside frames. See [AI agents](https://docs.tiko.run/ai-agents/).
 - Rearranging a Gantt plan is no longer guesswork: while you drag a row, the other rows move aside and a gap shows where and at which level it will land. Near an edge the expanded view scrolls and the board pans, and Esc puts the row back. A row dropped into a collapsed row now opens it instead of vanishing from view. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).
 - Rearrange a Gantt plan in batches: select rows with Shift and Cmd-click or by dragging a box, then move them together in one drag, drop them on the board as cards and notes, or remove them with Delete. Backspace with rows selected no longer deletes the whole Gantt. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).

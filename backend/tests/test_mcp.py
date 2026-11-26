@@ -530,3 +530,32 @@ def test_an_agent_makes_and_keeps_a_gantt_plan(served):
     payments = read.structured_content["gantt"]["rows"][0]
     assert payments["id"] == "p"
     assert (payments["start"], payments["end"]) == ("2026-10-12", "2026-10-16")
+
+
+def test_an_agent_tries_a_change_before_making_it(served):
+    app, url, admin = served
+    board_id = board(admin)
+    token = make_key(admin, scope="write")["token"]
+
+    async def steps(client):
+        await client.call_tool(
+            "add_notes", {"board": board_id, "notes": [{"text": "Draft", "id": "agent-n"}]}
+        )
+        tried = await client.call_tool(
+            "update_elements",
+            {"board": board_id, "changes": [{"id": "agent-n", "text": "Final"}], "dry_run": True},
+        )
+        dry_gone = await client.call_tool(
+            "remove_elements", {"board": board_id, "ids": ["agent-n"], "dry_run": True}
+        )
+        read = await client.call_tool("read_board", {"board": board_id, "all": True})
+        gone = await client.call_tool("remove_elements", {"board": board_id, "ids": ["agent-n"]})
+        return tried, dry_gone, read, gone
+
+    tried, dry_gone, read, gone = call(url, token, steps)
+    assert tried.structured_content["dry_run"] is True
+    assert tried.structured_content["elements"][0]["text"] == "Final"
+    assert dry_gone.structured_content["removed"] == ["agent-n"]
+    texts = [e.get("text") for e in read.structured_content["elements"]]
+    assert "Draft" in texts and "Final" not in texts
+    assert gone.structured_content == {"removed": ["agent-n"], "overwrote": [], "dry_run": False}

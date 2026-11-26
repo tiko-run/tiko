@@ -5,11 +5,12 @@ from datetime import UTC, date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
 from app.api import deps
 from app.api.v1 import planning
-from app.api.v1.boards import Board, boards_of, shape
+from app.api.v1.boards import Board, boards_of, editable, shape
 from app.api.v1.deps import (
     Key,
     KeyPerson,
@@ -20,7 +21,7 @@ from app.api.v1.deps import (
     write_budget,
 )
 from app.domain.api_gantt import Names, RowOut, gantt_view, tracker_span
-from app.domain.api_view import Element
+from app.domain.api_view import BoardShape, Element
 from app.domain.batch import (
     MAX_CARDS,
     MAX_ELEMENTS,
@@ -34,7 +35,7 @@ from app.domain.batch import (
     NewGantt,
     Watch,
 )
-from app.domain.boards import BoardName, create_board, rename_board
+from app.domain.boards import BoardDoc, BoardName, create_board, rename_board, task_refs
 from app.domain.copies import Reason
 from app.domain.demo import board_limit
 from app.domain.errors import InvalidRef, NotApiElement, NotFound, TaskNotFound, ValidationFailed
@@ -55,14 +56,20 @@ class NewBoard(BaseModel):
 
 class AddIn(BaseModel):
     elements: list[NewElement] = Field(min_length=1, max_length=MAX_ELEMENTS)
+    # Planned and answered as the real call would be, never written (spec 057).
+    dry_run: bool = False
 
 
 class ChangeIn(BaseModel):
     changes: list[Change] = Field(min_length=1, max_length=MAX_ELEMENTS)
+    # Planned and answered as the real call would be, never written (spec 057).
+    dry_run: bool = False
 
 
 class RemoveIn(BaseModel):
     ids: list[str] = Field(min_length=1, max_length=MAX_ELEMENTS)
+    # Planned and answered as the real call would be, never written (spec 057).
+    dry_run: bool = False
 
 
 class FrameRef(BaseModel):
@@ -87,6 +94,8 @@ class ArrangeIn(BaseModel):
     order: Literal["given", "key", "status"] = "given"
     # The frame takes the size of what it holds, smaller or larger.
     fit: bool = False
+    # Planned and answered as the real call would be, never written (spec 057).
+    dry_run: bool = False
 
 
 class CopyOut(BaseModel):
@@ -121,6 +130,8 @@ class GanttIn(BaseModel):
 
 class StepsIn(BaseModel):
     steps: list[Step] = Field(min_length=1, max_length=MAX_STEPS)
+    # Planned and answered as the real call would be, never written (spec 057).
+    dry_run: bool = False
 
 
 class Made(BaseModel):
@@ -134,12 +145,27 @@ class GanttWritten(BaseModel):
     created: list[Made]
     # Rows that follow their task and stayed on its dates when their branch shifted.
     kept: list[str]
+    # People's work the call changes or removes; a saved copy holds it.
+    overwrote: list[str] = []
+    dry_run: bool = False
 
 
 class Written(BaseModel):
     elements: list[Element]
     # Ids among them that this call made; the others were there already.
     created: list[str]
+    # People's elements, arrows and reminders the call changes the words of or removes; when
+    # there are any, the real call leaves them in a saved copy.
+    overwrote: list[str] = []
+    # A dry run: nothing was written, and ids the caller did not give are new on every call.
+    dry_run: bool = False
+
+
+class Removed(BaseModel):
+    # What goes, arrows that go with removed elements included; ids gone already are left out.
+    removed: list[str]
+    overwrote: list[str] = []
+    dry_run: bool = False
 
 
 @router.post("", status_code=201)
@@ -175,21 +201,34 @@ def add_elements(board_id: str, body: AddIn, _: Writable, request: Request) -> W
     adds = [e if e.id else e.model_copy(update={"id": uuid.uuid4().hex}) for e in body.elements]
     cards = _cards(adds, request)
     adds, watches = _reminders(board_id, adds, cards, request)
-    return _write(board_id, Batch(adds=adds, cards=cards, watches=watches), request)
+    batch = Batch(adds=adds, cards=cards, watches=watches, dry=body.dry_run)
+    return _write(board_id, batch, request)
 
 
 @router.patch("/{board_id}/elements")
 def change_elements(board_id: str, body: ChangeIn, _: Writable, request: Request) -> Written:
     """Moves, resizes and restyles any element; changes text and reminders the API added."""
     _not_past([c.at for c in body.changes])
-    return _write(board_id, Batch(changes=body.changes), request)
+    return _write(board_id, Batch(changes=body.changes, dry=body.dry_run), request)
 
 
-@router.post("/{board_id}/elements/remove", status_code=204)
+@router.post(
+    "/{board_id}/elements/remove",
+    status_code=204,
+    responses={200: {"model": Removed, "description": "A dry run: what the call would remove"}},
+)
 def remove_elements(board_id: str, body: RemoveIn, _: Writable, request: Request) -> Response:
-    """Removes elements the API added. One that is gone already counts as removed."""
-    _write(board_id, Batch(removes=body.ids), request, answer=False)
+    """Removes elements the API added. One that is gone already counts as removed. A dry run
+    answers what would go instead."""
+    found = removal(board_id, body, request)
+    if body.dry_run:
+        return JSONResponse(found.model_dump())
     return Response(status_code=204)
+
+
+def removal(board_id: str, body: RemoveIn, request: Request) -> Removed:
+    applied = _applied(board_id, Batch(removes=body.ids, dry=body.dry_run), request)
+    return Removed(removed=applied.removed, overwrote=applied.overwrote, dry_run=body.dry_run)
 
 
 @router.post("/{board_id}/arrange")
@@ -213,7 +252,7 @@ def arrange(board_id: str, body: ArrangeIn, _: Writable, request: Request) -> Wr
             else {}
         ),
     )
-    return _write(board_id, Batch(arrange=plan), request)
+    return _write(board_id, Batch(arrange=plan, dry=body.dry_run), request)
 
 
 @router.get("/{board_id}/copies")
@@ -276,7 +315,8 @@ def change_gantt(
         types=usable(plan.types),
         people=usable(plan.people),
     )
-    batch = Batch(gantt=GanttCall(module=module_id, steps=body.steps, context=context))
+    call = GanttCall(module=module_id, steps=body.steps, context=context)
+    batch = Batch(gantt=call, dry=body.dry_run)
     applied = _applied(board_id, batch, request)
     result = applied.gantt
     assert result is not None
@@ -284,6 +324,8 @@ def change_gantt(
         rows=_rows(result.content, result.touched, request),
         created=[Made(step=i, id=made) for i, made in sorted(result.created.items())],
         kept=result.kept,
+        overwrote=applied.overwrote,
+        dry_run=body.dry_run,
     )
 
 
@@ -349,6 +391,8 @@ def _applied(board_id: str, batch: Batch, request: Request) -> Applied:
                 f"{error.message} Your admin does not let keys change everyone's work now."
             ) from error
         raise
+    if batch.dry:
+        return applied
     # Rows only for what the board took: a row written ahead would make an element the caller's
     # for a moment, even a person's. A crash between leaves an element counted as a person's.
     now = datetime.now(UTC).isoformat(timespec="seconds")
@@ -363,9 +407,23 @@ def deps_key_full(request: Request) -> bool:
 
 
 def _answer(board_id: str, applied: Applied, request: Request) -> Written:
-    found = {e.id: e for e in shape(board_id, request, refresh=False).elements()}
+    if applied.planned is None:
+        board = shape(board_id, request, refresh=False)
+    else:
+        # A dry run answers from the board it planned; its new elements read as the caller's.
+        doc = BoardDoc.model_validate(applied.planned)
+        tracker = deps.tracker(request)
+        tasks = deps.snapshots(request).get_many(task_refs(doc, tracker))
+        mine = editable(board_id, request, doc) | set(applied.created)
+        board = BoardShape(doc, tasks, tracker, mine)
+    found = {e.id: e for e in board.elements()}
     ids = list(dict.fromkeys(applied.ids))
-    return Written(elements=[found[i] for i in ids if i in found], created=applied.created)
+    return Written(
+        elements=[found[i] for i in ids if i in found],
+        created=applied.created,
+        overwrote=applied.overwrote,
+        dry_run=applied.planned is not None,
+    )
 
 
 def _cards(adds: list[NewElement], request: Request) -> dict[str, CardRef]:

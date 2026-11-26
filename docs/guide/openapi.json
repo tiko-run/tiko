@@ -959,7 +959,7 @@
           "Writing"
         ],
         "summary": "Remove Elements",
-        "description": "Removes elements the API added. One that is gone already counts as removed.",
+        "description": "Removes elements the API added. One that is gone already counts as removed. A dry run\nanswers what would go instead.",
         "operationId": "remove-elements",
         "security": [
           {
@@ -1027,6 +1027,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "A dry run: what the call would remove",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Removed"
                 }
               }
             }
@@ -1702,6 +1712,11 @@
             "maxItems": 200,
             "minItems": 1,
             "title": "Elements"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
@@ -1766,6 +1781,11 @@
           "fit": {
             "type": "boolean",
             "title": "Fit",
+            "default": false
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
             "default": false
           }
         },
@@ -2286,6 +2306,11 @@
             "maxItems": 200,
             "minItems": 1,
             "title": "Changes"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
@@ -3135,6 +3160,19 @@
             },
             "type": "array",
             "title": "Kept"
+          },
+          "overwrote": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Overwrote",
+            "default": []
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
@@ -3946,6 +3984,11 @@
             "maxItems": 200,
             "minItems": 1,
             "title": "Ids"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
@@ -3953,6 +3996,35 @@
           "ids"
         ],
         "title": "RemoveIn"
+      },
+      "Removed": {
+        "properties": {
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "overwrote": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Overwrote",
+            "default": []
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "removed"
+        ],
+        "title": "Removed"
       },
       "RowOut": {
         "properties": {
@@ -4639,6 +4711,11 @@
             "maxItems": 200,
             "minItems": 1,
             "title": "Steps"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
@@ -4870,6 +4947,19 @@
             },
             "type": "array",
             "title": "Created"
+          },
+          "overwrote": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Overwrote",
+            "default": []
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
           }
         },
         "type": "object",
