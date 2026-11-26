@@ -173,7 +173,8 @@ export function useRowDrag({
       d.target?.fits === target?.fits &&
       d.target?.aboveId === target?.aboveId &&
       d.outside === outside &&
-      store.layout?.hidden.size === lifted.length
+      store.layout?.hidden.size === lifted.length &&
+      store.ghost?.count === moving.size
     d.target = target
     d.outside = outside
     d.rowsKey = rowsKey
