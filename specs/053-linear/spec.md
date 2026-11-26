@@ -61,7 +61,7 @@ A second reason: more trackers will follow, and each must be one adapter and one
     ```
 
     tiko turns it into Linear's own filter; nothing reusable exists for this (research of 2026-11-21: Linear has no typed query language in the app, the API, the CLI or its MCP server, and no community library translates one). The query adds its issues in one batch, up to 50, and says when more match, as a JQL query does. `text ~` searches the title and the description. A link to a saved Linear view is a query too: its issues come from the view as Linear stores it.
-14. **No mark yet.** Linear's brand page grants no use of its logo in integrations, so Linear cards carry the name only until Linear agrees; then its logo files go in unchanged.
+14. **The mark** is Linear's logo from its brand page, unchanged, in the colors its guidelines allow. Linear agreed to this use in writing on 2026-11-26.
 15. **Read only.** tiko never writes to Linear.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -82,7 +82,7 @@ A developer adds a tracker. They write its adapter, one source description and o
 
 ### User Story 1 - A Linear issue is a live card (Priority: P1) 🎯
 
-A person opens Settings → My tracker, follows the link to Linear's Security & access page, creates a key and pastes it: "Connected as Ada Lovelace in Example". They paste a link to `ENG-42` on the board: a card with `ENG-42`, the title, "In Progress" in the color of work in progress, the name Linear on a mixed board. In Linear the issue moves to Done; within a refresh the card is struck through and reads "Done". The sync list has a "Linear" row. A teammate without a key sees the key and the hint; a guest of the public link sees the key and the link.
+A person opens Settings → My tracker, follows the link to Linear's Security & access page, creates a key and pastes it: "Connected as Ada Lovelace in Example". They paste a link to `ENG-42` on the board: a card with `ENG-42`, the title, "In Progress" in the color of work in progress, the Linear mark. In Linear the issue moves to Done; within a refresh the card is struck through and reads "Done". The sync list has a "Linear" row with the mark. A teammate without a key sees the key and the hint; a guest of the public link sees the key and the link.
 
 **Why this priority**: this is the whole value; bare keys and queries are faster ways in on top of it.
 
@@ -92,7 +92,7 @@ A person opens Settings → My tracker, follows the link to Linear's Security & 
 
 1. **Given** Settings → My tracker, **Then** a person can save and remove a Linear API key; saving answers with their name and workspace, a key Linear rejects is refused with a plain message.
 2. **Given** a connected person, **When** they paste or type a Linear issue link, **Then** a card with the source `linear` appears.
-3. **Given** a Linear card, **Then** it shows the identifier, the title, the state name in its category's color; a sub-issue reads "Sub-issue".
+3. **Given** a Linear card, **Then** it shows the identifier, the title, the state name in its category's color and the Linear mark; a sub-issue reads "Sub-issue".
 4. **Given** the issue changes in Linear, **Then** the card follows within one refresh interval.
 5. **Given** an issue that was archived, **Then** the card keeps showing it; **Given** one that was deleted or is in another workspace, **Then** the card says not found and the other cards still refresh.
 6. **Given** Linear answers that the limit is used up, or tiko reaches its reserve, **Then** the cards keep their last data, the sync list shows when tiko tries again, and the other sources refresh as usual.
@@ -154,7 +154,7 @@ A person types `team = ENG AND cycle in openSprints() AND labels = bug` in the c
 - **FR-006**: A poll asks Linear for up to 100 issues by identifier in one request, archived ones included, with at most 10 labels each; it reads both limit headers and stops before a tenth of either is left.
 - **FR-007**: A rejected key at poll time keeps the cards' last data and says so in the sync list; at save time it is refused.
 - **FR-008**: A guest reads no Linear task; every Linear ref on a public board is `private`, with a link built from its key.
-- **FR-009**: The web registry gets `linear`, without a mark until Linear agrees to its use (decision 14).
+- **FR-009**: The web registry gets `linear` with its mark; `THIRD_PARTY.md` and `TRADEMARKS.md` list the mark and its terms.
 - **FR-010**: Usage stats count `linear`; the collector accepts the value before the release that sends it.
 - **FR-011**: Works without keys: tests and the smoke run against a fake Linear; with the network down the source reports an error while the rest of the board works.
 - **FR-012**: No new dependency; no new ENV variable.

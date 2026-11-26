@@ -31,6 +31,7 @@
 | Jira icon (`frontend/src/sources/marks/jira.svg`, from `@atlaskit/logo` 23.3.1) | Apache-2.0 for the file; the mark is a trademark of Atlassian, used unchanged under its [trademark guidelines](https://www.atlassian.com/legal/trademark) | Marks tasks that come from Jira |
 | simple-icons 16 (devDependency of `site/`) | CC0-1.0 for the files; each mark is a trademark of its owner, shown unchanged in its brand color to name trackers on the landing page | Logos of trackers other than Jira and GitHub on tiko.run |
 | GitHub mark (`frontend/src/sources/marks/github.svg` and `github-dark.svg`, the `mark-github` icon of GitHub's Octicons) | MIT for the files; the mark is a trademark of GitHub, used unchanged in black and in white under its [logo policy](https://docs.github.com/en/site-policy/other-site-policies/github-logo-policy) | Marks tasks that come from GitHub |
+| Linear logo (`frontend/src/sources/marks/linear.svg` and `linear-dark.svg`, the `logo-dark` and `logo-light` files of Linear's brand assets) | A trademark of Linear, used unchanged with Linear's written consent, under its [brand guidelines](https://linear.app/brand) | Marks tasks that come from Linear |
 | React Flow (@xyflow/react) | MIT | Infinite canvas, nodes and edges |
 | Yjs, y-websocket, y-protocols, lib0 | MIT | Shared document (CRDT) of a live board in the browser and its WebSocket sync |
 | IBM Plex Sans (@fontsource-variable/ibm-plex-sans) | OFL-1.1 | UI font; outlined in the logo and covers in `brand/` |
