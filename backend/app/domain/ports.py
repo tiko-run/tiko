@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from app.domain.accounts import Account, Person, PersonRecord, Role
@@ -60,6 +60,21 @@ class TaskProvider(Protocol):
         ...
 
     def jql_values(self, field: str, prefix: str) -> list[JqlValue]: ...
+
+
+@runtime_checkable
+class KnowsPrefixes(Protocol):
+    """A tracker that can say whether a key prefix like `ENG` is one of its projects or teams."""
+
+    source_id: str
+
+    def has_prefix(self, prefix: str) -> bool | None:
+        """None when the tracker could not be asked: it may still know the prefix."""
+        ...
+
+    def key_for(self, identifier: str) -> str:
+        """The key a bare identifier like `ENG-12` has in this tracker."""
+        ...
 
 
 class BoardRepo(Protocol):
@@ -345,6 +360,18 @@ class SecretBox(Protocol):
     def decrypt(self, token: str) -> str:
         """Raises SecretUnreadable when the key is missing or different."""
         ...
+
+
+class PrefixChoiceRepo(Protocol):
+    """Which tracker a person picked for a key prefix two of their trackers know."""
+
+    def all(self, user_id: str) -> dict[str, str]: ...
+
+    def get(self, user_id: str, prefix: str) -> str | None: ...
+
+    def set(self, user_id: str, prefix: str, source: str) -> None: ...
+
+    def delete(self, user_id: str, prefix: str) -> None: ...
 
 
 class SettingsRepo(Protocol):

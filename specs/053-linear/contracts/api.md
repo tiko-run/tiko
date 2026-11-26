@@ -45,7 +45,7 @@ A Linear task has the source `linear` and the key `<workspace slug>/<identifier>
            "prefix": "CORE", "sources": ["jira", "linear"]}}
 ```
 
-with status `409`. The web app shows the dialog and sends the ref again with `source`. API v1 and MCP answer the same and ask the caller to write `jira:CORE-5` or `linear:<workspace>/CORE-5`.
+with status `409`. The web app shows the dialog and sends the ref again with `source`. API v1 and MCP answer the same and ask the caller to write `jira:CORE-5` or `linear:CORE-5`; the short `linear:CORE-5` takes the person's own workspace, and `linear:<workspace>/CORE-5` works too.
 
 | Route | Answer |
 |---|---|

@@ -12,8 +12,9 @@ from app.domain.api_keys import ApiKey, ApiKeys, KeyIn
 from app.domain.caldav import CalDavAccount, CalDavIn, CalDavSource, TaskList, normalize_address
 from app.domain.errors import CalDavRejected, Forbidden, TrackerUnavailable, ValidationFailed
 from app.domain.onboarding import Onboarding, OnboardingChange
+from app.domain.ports import PrefixChoiceRepo
 from app.domain.settings import JiraKind, SettingsService, TokenState
-from app.domain.sources import credential_kinds
+from app.domain.sources import credential_kinds, prefix_choice
 from app.domain.workspaces import current_workspace
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -251,6 +252,53 @@ def _workspace() -> str:
     if workspace is None:
         raise Forbidden("You are not in a workspace.")
     return workspace
+
+
+class PrefixChoice(BaseModel):
+    prefix: str
+    source: str
+
+
+class PrefixChoices(BaseModel):
+    choices: list[PrefixChoice]
+
+
+class PrefixChoiceIn(BaseModel):
+    source: str = Field(max_length=40)
+
+
+def _choices(repo: PrefixChoiceRepo, person_id: str) -> PrefixChoices:
+    found = repo.all(person_id)
+    return PrefixChoices(choices=[PrefixChoice(prefix=p, source=s) for p, s in found.items()])
+
+
+@router.get("/key-prefixes", dependencies=[NotDemoVisitor])
+def key_prefixes(
+    person: CurrentPerson, repo: Annotated[PrefixChoiceRepo, Depends(deps.prefix_choices)]
+) -> PrefixChoices:
+    """Which tracker a bare key goes to when two of the person's trackers know its prefix."""
+    return _choices(repo, person.id)
+
+
+@router.put("/key-prefixes/{prefix}", dependencies=[NotDemoVisitor])
+def choose_key_prefix(
+    prefix: str,
+    body: PrefixChoiceIn,
+    person: CurrentPerson,
+    repo: Annotated[PrefixChoiceRepo, Depends(deps.prefix_choices)],
+) -> PrefixChoices:
+    repo.set(person.id, *prefix_choice(prefix, body.source))
+    return _choices(repo, person.id)
+
+
+@router.delete("/key-prefixes/{prefix}", status_code=204, dependencies=[NotDemoVisitor])
+def forget_key_prefix(
+    prefix: str,
+    person: CurrentPerson,
+    repo: Annotated[PrefixChoiceRepo, Depends(deps.prefix_choices)],
+) -> Response:
+    repo.delete(person.id, prefix.strip().upper())
+    return Response(status_code=204)
 
 
 @router.get("/api-keys", dependencies=[NotDemoVisitor])

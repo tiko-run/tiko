@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { MyTracker } from '@/settings/sections/MyTracker'
 
@@ -114,4 +114,40 @@ test('saves my Linear key and says who it signs in as', async () => {
   expect(await screen.findByText(/Your token is stored/)).toBeInTheDocument()
   const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')
   expect(JSON.parse(String(put?.[1]?.body))).toEqual({ token: 'lin-key', source: 'linear' })
+})
+
+test('lists remembered key prefixes, switches and removes them', async () => {
+  let choices = [{ prefix: 'CORE', source: 'linear' }]
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.startsWith('/api/me/key-prefixes/')) {
+      if (init?.method === 'DELETE') {
+        choices = []
+        return new Response(null, { status: 204 })
+      }
+      choices = [{ prefix: 'CORE', source: JSON.parse(String(init?.body)).source as string }]
+      return Response.json({ choices })
+    }
+    if (url === '/api/me/key-prefixes') return Response.json({ choices })
+    return Response.json(jira)
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MyTracker />
+    </QueryClientProvider>,
+  )
+  const group = await screen.findByRole('radiogroup', { name: 'Tracker for CORE' })
+  expect(within(group).getByRole('radio', { name: /Linear/ })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  fireEvent.click(within(group).getByRole('radio', { name: /Jira/ }))
+  await waitFor(() =>
+    expect(within(group).getByRole('radio', { name: /Jira/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    ),
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+  await waitFor(() => expect(screen.queryByText('Key prefixes')).toBeNull())
 })

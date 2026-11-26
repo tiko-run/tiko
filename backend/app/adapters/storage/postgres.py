@@ -891,6 +891,40 @@ class PgCredentialRepo(_Repo):
             conn.execute("DELETE FROM settings WHERE key = 'jira_token_enc'")
 
 
+class PgPrefixChoiceRepo(_Repo):
+    def all(self, user_id: str) -> dict[str, str]:
+        with self._tx() as conn:
+            rows = conn.execute(
+                "SELECT prefix, source FROM key_prefix_choices WHERE user_id = %s ORDER BY prefix",
+                (user_id,),
+            ).fetchall()
+        return {row["prefix"]: row["source"] for row in rows}
+
+    def get(self, user_id: str, prefix: str) -> str | None:
+        with self._tx() as conn:
+            row = conn.execute(
+                "SELECT source FROM key_prefix_choices WHERE user_id = %s AND prefix = %s",
+                (user_id, prefix),
+            ).fetchone()
+        return row["source"] if row else None
+
+    def set(self, user_id: str, prefix: str, source: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO key_prefix_choices (workspace_id, user_id, prefix, source)"
+                " VALUES (%s, %s, %s, %s) ON CONFLICT (workspace_id, user_id, prefix)"
+                " DO UPDATE SET source = excluded.source",
+                (self._ws, user_id, prefix, source),
+            )
+
+    def delete(self, user_id: str, prefix: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "DELETE FROM key_prefix_choices WHERE user_id = %s AND prefix = %s",
+                (user_id, prefix),
+            )
+
+
 class PgSettingsRepo(_Repo):
     def get_all(self) -> dict[str, str]:
         with self._tx() as conn:
@@ -1439,7 +1473,12 @@ class PgUserRepo(_Repo):
                 " ON CONFLICT (board_id, user_id) DO UPDATE SET role = 'owner'",
                 [(ws, row["board_id"], by_id) for row in boards if row["role"] == "owner"],
             )
-            for table in ("board_members", "user_credentials", "task_snapshots"):
+            for table in (
+                "board_members",
+                "user_credentials",
+                "task_snapshots",
+                "key_prefix_choices",
+            ):
                 conn.execute(f"DELETE FROM {table} WHERE user_id = %s", (user_id,))
             conn.execute(
                 "DELETE FROM memberships WHERE workspace_id = %s AND user_id = %s", (ws, user_id)
@@ -2386,6 +2425,7 @@ UserRepo = PgUserRepo
 DemoStatusRepo = PgDemoStatusRepo
 Attempts = PgAttempts
 KnownBrowsers = PgKnownBrowsers
+PrefixChoiceRepo = PgPrefixChoiceRepo
 SessionRepo = PgSessionRepo
 ApiKeyRepo = PgApiKeyRepo
 ApiElementRepo = PgApiElementRepo

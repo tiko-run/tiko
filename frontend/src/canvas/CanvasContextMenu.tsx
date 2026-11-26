@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/context-menu'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { keepOpenWhileSuggesting } from '@/canvas/JqlInput'
+import { keepOpenWhileAsking } from '@/canvas/prefixQuestion'
 import { useImagePicker } from '@/canvas/ImagePicker'
 import { CardSources } from '@/canvas/Toolbar'
 import { MODULES } from '@/modules/registry'
@@ -169,6 +170,7 @@ export function CanvasContextMenu({
           align="start"
           className="w-96 p-2"
           onEscapeKeyDown={keepOpenWhileSuggesting}
+          onInteractOutside={keepOpenWhileAsking}
         >
           <CardSources
             onAdd={(tasks) => cardAt && onAddCards(tasks, cardAt)}

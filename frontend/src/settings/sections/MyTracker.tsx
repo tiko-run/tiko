@@ -8,6 +8,7 @@ import {
   testJira,
   type Tracker,
 } from '@/api/settings'
+import { choosePrefix, forgetPrefix, getPrefixChoices } from '@/api/tasks'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,8 @@ import { toastError } from '@/lib/toast'
 import { CalDavForm } from '@/settings/sections/CalDavForm'
 import { SectionHeader } from '@/settings/sections/Section'
 import { didOnboarding } from '@/onboarding/done'
-import { TOKEN_SOURCES } from '@/sources/registry'
+import { SourceMark } from '@/sources/SourceMark'
+import { TOKEN_SOURCES, sourceLabel } from '@/sources/registry'
 
 const ATLASSIAN_TOKENS = 'https://id.atlassian.com/manage-profile/security/api-tokens'
 
@@ -241,6 +243,63 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
   )
 }
 
+/** The remembered answers of the prefix dialog: where a bare key with each prefix goes. */
+function KeyPrefixes({ provider }: { provider: string }) {
+  // A bare key is the instance's tracker's or Linear's; a stored choice stays one of them.
+  const options = (source: string) => [...new Set([provider, 'linear', source])]
+  const queryClient = useQueryClient()
+  const choices = useQuery({ queryKey: ['key-prefixes'], queryFn: getPrefixChoices })
+  const change = useMutation({
+    mutationFn: ({ prefix, source }: { prefix: string; source: string | null }) =>
+      source ? choosePrefix(prefix, source) : forgetPrefix(prefix).then(() => null),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['key-prefixes'] }),
+    onError: toastError,
+  })
+  const list = choices.data?.choices ?? []
+  if (list.length === 0) return null
+  return (
+    <fieldset>
+      <legend className="mb-2 font-medium">Key prefixes</legend>
+      <p className="text-muted-foreground mb-3 text-[13px]">
+        A bare key like ENG-12 goes to the tracker that knows its prefix. When two of yours know it,
+        tiko asks once and remembers your answer here.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {list.map(({ prefix, source }) => (
+          <li key={prefix} className="flex items-center gap-2">
+            <span className="w-24 truncate font-mono text-[13px]">{prefix}</span>
+            <div role="radiogroup" aria-label={`Tracker for ${prefix}`} className="flex gap-1">
+              {options(source).map((option) => (
+                <Button
+                  key={option}
+                  role="radio"
+                  aria-checked={option === source}
+                  size="sm"
+                  variant={option === source ? 'secondary' : 'ghost'}
+                  disabled={change.isPending}
+                  onClick={() => option !== source && change.mutate({ prefix, source: option })}
+                >
+                  <SourceMark source={option} />
+                  {sourceLabel(option)}
+                </Button>
+              ))}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              disabled={change.isPending}
+              onClick={() => change.mutate({ prefix, source: null })}
+            >
+              Remove
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </fieldset>
+  )
+}
+
 export function MyTracker() {
   const tracker = useQuery({ queryKey: ['tracker'], queryFn: getTracker })
   return (
@@ -285,6 +344,7 @@ export function MyTracker() {
           <CalDavForm />
         </fieldset>
       )}
+      {tracker.data && <KeyPrefixes provider={tracker.data.provider} />}
     </div>
   )
 }

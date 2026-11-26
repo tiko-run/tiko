@@ -17,9 +17,7 @@ PASSWORD = (
     or os.environ.get("TIKO_PASSWORD")
     or (PASSWORD_FILE.read_text().strip() if PASSWORD_FILE.exists() else "")
 )
-opener = urllib.request.build_opener(
-    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
-)
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
 
 def call(method: str, url: str, body: dict | None = None) -> tuple[int, dict | None]:
@@ -46,9 +44,7 @@ check(status == 200, "health")
 
 status, _ = call("GET", f"{API}/api/boards")
 check(status == 401, "closed without a session")
-status, _ = call(
-    "POST", f"{API}/api/auth/login", {"username": "admin", "password": PASSWORD}
-)
+status, _ = call("POST", f"{API}/api/auth/login", {"username": "admin", "password": PASSWORD})
 check(status == 204, "sign in")
 status, auth = call("GET", f"{API}/api/auth/status")
 check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
@@ -56,7 +52,9 @@ check(status == 200 and auth["me"]["username"] == "admin", "signed in as admin")
 if auth["me"]["must_change_password"]:
     # A fresh stack: the first admin must replace the password before anything else.
     status, held = call("GET", f"{API}/api/boards")
-    check(status == 403 and held["error"]["code"] == "password_change_required", "new password first")
+    check(
+        status == 403 and held["error"]["code"] == "password_change_required", "new password first"
+    )
     # Changing it away and back leaves the startup password valid with no mark, so only a
     # throwaway stack (CI) may do that; anywhere else the owner sets a password first.
     if os.environ.get("SMOKE_FIRST_PASSWORD") != "1":
@@ -87,6 +85,18 @@ status, settings = call("GET", f"{API}/api/settings")
 check(status == 200, "read settings")
 status, tracker = call("GET", f"{API}/api/me/tracker")
 check(status == 200 and set(tracker) == TRACKER_FIELDS, "my tracker")
+# A remembered prefix choice, removed again so the person's list stays as it was.
+status, chosen = call("PUT", f"{API}/api/me/key-prefixes/SMOKEPFX", {"source": "demo"})
+check(
+    status == 200 and {"prefix": "SMOKEPFX", "source": "demo"} in chosen["choices"],
+    "remember a key prefix",
+)
+status, _ = call("DELETE", f"{API}/api/me/key-prefixes/SMOKEPFX")
+status, left = call("GET", f"{API}/api/me/key-prefixes")
+check(
+    status == 200 and all(c["prefix"] != "SMOKEPFX" for c in left["choices"]),
+    "forget a key prefix",
+)
 call("PUT", f"{API}/api/settings", {"provider": "demo"})
 # Boards made here are deleted at the end, so a run leaves the user's list as it was.
 created: list[str] = []
@@ -99,9 +109,7 @@ try:
         status == 200 and members["members"][0]["role"] == "owner",
         "board lists its owner",
     )
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{board['id']}/everyone", {"role": "viewer"}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{board['id']}/everyone", {"role": "viewer"})
     check(status == 204, "share board with everyone")
     status, _ = call("PUT", f"{API}/api/boards/{board['id']}/everyone", {"role": None})
     check(status == 204, "stop sharing with everyone")
@@ -118,9 +126,7 @@ try:
 
     # A GitHub key goes to the GitHub source on any instance. The answer depends on the
     # network and on GitHub's limit, so only the routing is checked: never "not a key".
-    status, body = call(
-        "POST", f"{API}/api/tasks/resolve", {"ref": "octo-org/widgets#1"}
-    )
+    status, body = call("POST", f"{API}/api/tasks/resolve", {"ref": "octo-org/widgets#1"})
     routed = status == 200 or body["error"]["code"] != "invalid_ref"
     check(routed, "a GitHub key reaches the GitHub source")
 
@@ -178,14 +184,30 @@ try:
                 "position": {"x": 600, "y": 240},
                 "width": 160,
                 "height": 100,
-                "data": {"shape": "rhombus", "text": "Valid?", "color": "none", "opacity": 60, "stroke": 3, "dash": True, "bold": True, "size": "large"},
+                "data": {
+                    "shape": "rhombus",
+                    "text": "Valid?",
+                    "color": "none",
+                    "opacity": 60,
+                    "stroke": 3,
+                    "dash": True,
+                    "bold": True,
+                    "size": "large",
+                },
             },
             {
                 "id": "k",
                 "type": "code",
                 "position": {"x": 900, "y": 240},
                 "width": 480,
-                "data": {"title": "Ping", "text": "SELECT 1;", "language": "sql", "collapsed": True, "numbered": True, "marked": [1]},
+                "data": {
+                    "title": "Ping",
+                    "text": "SELECT 1;",
+                    "language": "sql",
+                    "collapsed": True,
+                    "numbered": True,
+                    "marked": [1],
+                },
             },
         ],
         "edges": [
@@ -195,28 +217,27 @@ try:
                 "target": "b",
                 "sourceHandle": "l",
                 "targetHandle": "r",
-                "data": {"label": {"text": "waits for", "at": 0.3, "color": "blue", "size": "large"}},
+                "data": {
+                    "label": {"text": "waits for", "at": 0.3, "color": "blue", "size": "large"}
+                },
             }
         ],
         "viewport": {"x": 0, "y": 0, "zoom": 1},
     }
-    status, body = call(
-        "PUT", f"{API}/api/boards/{board['id']}", {"version": 1, "doc": doc}
-    )
+    status, body = call("PUT", f"{API}/api/boards/{board['id']}", {"version": 1, "doc": doc})
     check(status == 200 and body["version"] == 2, "save board")
 
     status, body = call("GET", f"{API}/api/boards/{board['id']}")
     check(
-        body["doc"] == doc, "board with styled frame, sticky, text, shape, code and labelled arrow reopens unchanged"
+        body["doc"] == doc,
+        "board with styled frame, sticky, text, shape, code and labelled arrow reopens unchanged",
     )
     check(
         set(body["tasks"]) == {"demo:DEMO-1", "demo:DEMO-2"},
         "board carries task snapshots",
     )
 
-    status, body = call(
-        "PUT", f"{API}/api/demo/tasks/DEMO-1/status", {"status": "Done"}
-    )
+    status, body = call("PUT", f"{API}/api/demo/tasks/DEMO-1/status", {"status": "Done"})
     check(status == 200, "change demo status")
     status, body = call("POST", f"{API}/api/boards/{board['id']}/refresh")
     check(
@@ -240,9 +261,7 @@ try:
             }
         ]
     }
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 1, "doc": other_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 1, "doc": other_doc})
     check(status == 200, "save second board")
     status, body = call("POST", f"{API}/api/boards/{board['id']}/refresh")
     check(
@@ -268,9 +287,7 @@ try:
             },
         ]
     }
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 2, "doc": module_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 2, "doc": module_doc})
     check(status == 200, "save board with modules")
     status, body = call("GET", f"{API}/api/boards/{other['id']}")
     nodes = body["doc"]["nodes"]
@@ -284,9 +301,7 @@ try:
     status, body = call("GET", f"{API}/api/boards/{other['id']}")
     check("demo:DEMO-7" in body["tasks"], "board carries gantt task snapshots")
     module_doc["nodes"][0]["data"]["content"] = gantt | {"end": "2026-09-01"}
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 3, "doc": module_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 3, "doc": module_doc})
     check(status == 422, "invalid gantt rejected")
     child = {
         "id": "c",
@@ -297,22 +312,16 @@ try:
     }
     orphan = child | {"id": "o", "parent": "missing"}
     module_doc["nodes"][0]["data"]["content"] = gantt | {"rows": [row, child]}
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 3, "doc": module_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 3, "doc": module_doc})
     check(status == 200, "gantt rows nest in a tree")
     module_doc["nodes"][0]["data"]["content"] = gantt | {"rows": [row, orphan]}
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 4, "doc": module_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 4, "doc": module_doc})
     check(status == 422, "row under a missing parent rejected")
     milestone = {"id": "m", "date": "2026-11-01", "title": "Beta"}
     link = {"id": "l", "from": "r", "to": "c"}
     planned = gantt | {"rows": [row, child], "milestones": [milestone], "links": [link]}
     module_doc["nodes"][0]["data"]["content"] = planned
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 4, "doc": module_doc}
-    )
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 4, "doc": module_doc})
     check(status == 200, "save gantt milestones and links")
     status, body = call("GET", f"{API}/api/boards/{other['id']}")
     content = body["doc"]["nodes"][0]["data"]["content"]
@@ -320,17 +329,11 @@ try:
         content["milestones"] == [milestone] and content["links"] == [link],
         "gantt milestones and links reopen",
     )
-    module_doc["nodes"][0]["data"]["content"] = planned | {
-        "links": [link | {"to": "r"}]
-    }
-    status, _ = call(
-        "PUT", f"{API}/api/boards/{other['id']}", {"version": 5, "doc": module_doc}
-    )
+    module_doc["nodes"][0]["data"]["content"] = planned | {"links": [link | {"to": "r"}]}
+    status, _ = call("PUT", f"{API}/api/boards/{other['id']}", {"version": 5, "doc": module_doc})
     check(status == 422, "link from a row to itself rejected")
 
-    status, body = call(
-        "POST", f"{API}/api/tasks/search", {"jql": 'status = "Backlog"'}
-    )
+    status, body = call("POST", f"{API}/api/tasks/search", {"jql": 'status = "Backlog"'})
     check(
         status == 200 and {t["key"] for t in body["tasks"]} == {"DEMO-5", "DEMO-12"},
         "add cards by JQL",
@@ -343,29 +346,19 @@ try:
     )
     status, body = call("GET", f"{API}/api/jql/values?field=status&prefix=in")
     check(status == 200 and body["values"][0]["value"] == '"In Progress"', "jql values")
-    status, body = call(
-        "POST", f"{API}/api/tasks/search", {"jql": 'status = "Closed"', "limit": 0}
-    )
-    check(
-        status == 200 and body["total"] == 1 and body["tasks"] == [], "jql match count"
-    )
+    status, body = call("POST", f"{API}/api/tasks/search", {"jql": 'status = "Closed"', "limit": 0})
+    check(status == 200 and body["total"] == 1 and body["tasks"] == [], "jql match count")
 
-    status, body = call(
-        "PATCH", f"{API}/api/boards/{board['id']}", {"name": "smoke renamed"}
-    )
+    status, body = call("PATCH", f"{API}/api/boards/{board['id']}", {"name": "smoke renamed"})
     check(status == 200 and body["name"] == "smoke renamed", "rename board")
-    status, body = call(
-        "PUT", f"{API}/api/boards/{board['id']}", {"version": 2, "doc": doc}
-    )
+    status, body = call("PUT", f"{API}/api/boards/{board['id']}", {"version": 2, "doc": doc})
     check(status == 200, "rename keeps the board saving")
 
     status, _ = call("DELETE", f"{API}/api/boards/{other['id']}")
     check(status == 204, "delete board")
     status, body = call("GET", f"{API}/api/boards")
     ids = {b["id"] for b in body["boards"]}
-    check(
-        other["id"] not in ids and board["id"] in ids, "deleted board leaves the list"
-    )
+    check(other["id"] not in ids and board["id"] in ids, "deleted board leaves the list")
     status, _ = call("DELETE", f"{API}/api/boards/{other['id']}?forever=true")
     check(status == 204, "delete board for good from the trash")
 
@@ -431,7 +424,9 @@ if body["enabled"]:
             # The link keeps the address and port the caller used, through the proxy.
             check(found["url"] == f"{WEB}/?board={mine['id']}", "v1 links to the board")
             outline = key_get(f"/api/v1/boards/{mine['id']}")
-            check(outline["board"]["name"] == "smoke v1" and "frames" in outline, "v1 reads a board")
+            check(
+                outline["board"]["name"] == "smoke v1" and "frames" in outline, "v1 reads a board"
+            )
             plan = {
                 "id": "g",
                 "type": "module",
@@ -481,7 +476,9 @@ if body["enabled"]:
         def web_call(method: str, path: str, body: dict | None = None) -> int:
             data = json.dumps(body).encode() if body is not None else None
             request = urllib.request.Request(
-                f"{WEB}{path}", data=data, method=method,
+                f"{WEB}{path}",
+                data=data,
+                method=method,
                 headers={"content-type": "application/json"},
             )
             try:
@@ -505,7 +502,10 @@ if body["enabled"]:
         with urllib.request.urlopen(rpc, timeout=30) as response:
             listed = json.loads(response.read())
         names = {tool["name"] for tool in listed["result"]["tools"]}
-        check({"list_boards", "read_board", "read_gantt", "search_tasks"} <= names, "MCP lists its tools")
+        check(
+            {"list_boards", "read_board", "read_gantt", "search_tasks"} <= names,
+            "MCP lists its tools",
+        )
         try:
             urllib.request.urlopen(f"{WEB}/.well-known/oauth-protected-resource", timeout=30)
             found = 200

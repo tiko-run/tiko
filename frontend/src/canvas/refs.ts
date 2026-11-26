@@ -1,4 +1,6 @@
-import { resolveTask, type Task } from '@/api/tasks'
+import { ApiError } from '@/api/client'
+import { choosePrefix, resolveTask, type Task } from '@/api/tasks'
+import { askPrefix } from '@/canvas/prefixQuestion'
 import { OWN_KEY_PATTERNS, OWN_KEY_PREFIXES, OWN_LINK_PATTERNS } from '@/sources/registry'
 
 export const MAX_REFS = 50
@@ -66,19 +68,61 @@ export function pastedRefs(text: string): { refs: string[]; more: boolean } | nu
   return { refs: refs.slice(0, MAX_REFS), more: refs.length > MAX_REFS }
 }
 
-export async function resolveAll(refs: string[]): Promise<Resolved> {
-  const results: PromiseSettledResult<Task>[] = []
+type Settled = PromiseSettledResult<Task>
+
+async function settleAll(refs: string[], source?: string): Promise<Settled[]> {
+  const results: Settled[] = []
   let next = 0
   const worker = async () => {
     while (next < refs.length) {
       const i = next++
-      results[i] = await resolveTask(refs[i]).then(
+      results[i] = await resolveTask(refs[i], source).then(
         (value) => ({ status: 'fulfilled', value }) as const,
         (reason: unknown) => ({ status: 'rejected', reason }) as const,
       )
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, refs.length) }, worker))
+  return results
+}
+
+/** The prefix and the trackers of a bare key two of the person's trackers know. */
+function ambiguity(result: Settled): { prefix: string; sources: string[] } | null {
+  if (result.status !== 'rejected') return null
+  const error = result.reason
+  if (!(error instanceof ApiError) || error.code !== 'ambiguous_key') return null
+  const { prefix, sources } = error.details
+  return typeof prefix === 'string' && Array.isArray(sources)
+    ? { prefix, sources: sources.map(String) }
+    : null
+}
+
+/** Resolves every ref; a bare key whose prefix two trackers know is asked about once per prefix. */
+export async function resolveAll(refs: string[]): Promise<Resolved> {
+  const results = await settleAll(refs)
+  const byPrefix = new Map<string, { sources: string[]; at: number[] }>()
+  results.forEach((result, i) => {
+    const found = ambiguity(result)
+    if (!found) return
+    const group = byPrefix.get(found.prefix) ?? { sources: found.sources, at: [] }
+    group.at.push(i)
+    byPrefix.set(found.prefix, group)
+  })
+  for (const [prefix, { sources, at }] of byPrefix) {
+    const answer = await askPrefix({ prefix, key: refs[at[0]].toUpperCase(), sources })
+    if (!answer) {
+      const reason = new Error(`Pick where ${prefix} keys are from to add them.`)
+      at.forEach((i) => (results[i] = { status: 'rejected', reason }))
+      continue
+    }
+    // A choice that fails to save still adds the cards; the dialog asks again next time.
+    if (answer.remember) await choosePrefix(prefix, answer.source).catch(() => undefined)
+    const again = await settleAll(
+      at.map((i) => refs[i]),
+      answer.source,
+    )
+    at.forEach((i, j) => (results[i] = again[j]))
+  }
   const resolved: Resolved = { tasks: [], failed: [] }
   results.forEach((result, i) => {
     if (result.status === 'fulfilled') resolved.tasks.push(result.value)

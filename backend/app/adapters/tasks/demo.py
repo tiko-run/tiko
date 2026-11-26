@@ -135,6 +135,12 @@ class DemoTaskProvider:
             **_dates(key),
         )
 
+    def has_prefix(self, prefix: str) -> bool:
+        return any(key.rpartition("-")[0] == prefix for key in self._seed)
+
+    def key_for(self, identifier: str) -> str:
+        return identifier
+
     def resolve(self, key: str) -> Task:
         if key not in self._seed:
             raise TaskNotFound(f"{key} not found")

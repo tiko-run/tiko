@@ -47,6 +47,8 @@ class FakeJira:
         # The site's fields as GET /field lists them.
         self.fields: list[dict] = []
         self.requests: list[httpx.Request] = []
+        # Project keys beyond those of the issues, as GET /project/{key} finds them.
+        self.projects: set[str] = set()
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -84,6 +86,12 @@ class FakeJira:
             return httpx.Response(200, json=self.fields)
         if path.endswith("/myself"):
             return httpx.Response(200, json={"name": "alex", "displayName": "Alex Rivera"})
+        if "/rest/api/2/project/" in path:
+            key = path.rsplit("/", 1)[1]
+            known = self.projects | {k.rpartition("-")[0] for k in issues}
+            if key in known:
+                return httpx.Response(200, json={"key": key, "name": f"Project {key}"})
+            return httpx.Response(404, json={"errorMessages": ["No project could be found"]})
         if "/issue/" in path:
             key = path.rsplit("/", 1)[1]
             if key in issues:
