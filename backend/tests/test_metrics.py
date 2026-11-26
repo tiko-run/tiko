@@ -140,19 +140,23 @@ def test_the_metrics_port_answers_while_the_event_loop_is_busy(monkeypatch):
             while value(scrape(port, TOKEN)[1], 'tiko_live_sockets{kind="person"}') != 1:
                 assert time.monotonic() < deadline
                 time.sleep(0.02)
-            held, released = threading.Event(), threading.Event()
+            held, released, scraped = threading.Event(), threading.Event(), threading.Event()
 
+            # Busy until the scrape is in, so a slow machine cannot outlast it; the cap is past
+            # the scrape's own timeout, so a hung port still fails rather than passes.
             def hold() -> None:
                 held.set()
-                until = time.monotonic() + 1
-                while time.monotonic() < until:
+                until = time.monotonic() + 10
+                while not scraped.is_set() and time.monotonic() < until:
                     pass
                 released.set()
 
             admin.portal.start_task_soon(hold)
             assert held.wait(3)
             status, text = scrape(port, TOKEN)
-            assert status == 200 and not released.is_set()
+            busy = not released.is_set()
+            scraped.set()
+            assert status == 200 and busy
             assert value(text, "tiko_live_rooms") == 1
             assert "tiko_event_loop_lag_seconds_bucket" in text
             released.wait(3)

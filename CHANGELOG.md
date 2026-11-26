@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A parent row dragged out of a Gantt onto the board now takes its children along as cards and notes, in plan order, instead of leaving them behind in the plan.
 - A reminder no longer flies off its note when your AI agent moves both at once: a reminder now goes wherever its element goes, and the agent can hang it on another element, free it, or put a free one in a frame.
 - With `DATABASE_URL` pointing at a Postgres server of your own, Update now in About no longer runs with a backup of the unused local database and a rollback that would restore it instead of yours. It stops before it touches anything, and About says to back up your server and update with the installer.
 - Importing a board whose Gantt has stages with no type no longer warns that stages arrived without their types, and the import report shows one Planning button instead of one per note.
