@@ -62,7 +62,7 @@ export function GanttAdd({ disabled, onTasks, onPlain }: Props) {
           ))}
         </div>
         {source === 'tracker' ? (
-          <CardSources onAdd={onTasks} onDone={() => setOpen(false)} />
+          <CardSources onAdd={onTasks} onDone={() => setOpen(false)} listBelow />
         ) : (
           <PlainForm
             onAdd={(title) => {
