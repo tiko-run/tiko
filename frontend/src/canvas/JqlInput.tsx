@@ -21,13 +21,13 @@ const KEY_START = /^[A-Za-z][A-Za-z0-9_]*-/
 
 type Suggestion = { insert: string; label: string }
 
-/** Match count of a query, checked by Jira while the user pauses typing. */
-export function useJqlCount(jql: string, enabled: boolean) {
+/** Match count of a query, checked by its tracker while the user pauses typing. */
+export function useJqlCount(jql: string, enabled: boolean, source?: string) {
   const query = jql.trim()
   const debounced = useDebounced(query, COUNT_DELAY_MS)
   return useQuery({
-    queryKey: ['jql-count', debounced],
-    queryFn: () => searchTasks(debounced, 0),
+    queryKey: ['jql-count', source, debounced],
+    queryFn: () => searchTasks(debounced, 0, source),
     enabled: enabled && debounced !== '' && debounced === query,
     retry: false,
     staleTime: 30_000,
@@ -89,6 +89,8 @@ type Props = Omit<ComponentProps<typeof Textarea>, 'value' | 'onChange'> & {
   /** Earlier inputs offered while the field is empty. */
   recent?: string[]
   onPickRecent?: (input: string) => void
+  /** The tracker the query goes to, when not the instance's. */
+  source?: string
 }
 
 /** Growing JQL field with suggestions: Tab inserts, arrows move, Enter inserts after arrows or submits, Shift+Enter breaks the line. */
@@ -98,6 +100,7 @@ export function JqlInput({
   recent = [],
   onPickRecent,
   className,
+  source,
   ...props
 }: Props) {
   const input = useRef<HTMLTextAreaElement>(null)
@@ -108,8 +111,8 @@ export function JqlInput({
   const pendingCursor = useRef<number | null>(null)
 
   const vocabulary = useQuery({
-    queryKey: ['jql-vocabulary'],
-    queryFn: getJqlVocabulary,
+    queryKey: ['jql-vocabulary', source],
+    queryFn: () => getJqlVocabulary(source),
     staleTime: 10 * 60_000,
     retry: false,
   })
@@ -120,8 +123,8 @@ export function JqlInput({
   const asked = useDebounced(wanted, VALUE_DELAY_MS)
   const [askedField, askedToken = ''] = asked.split('\n')
   const values = useQuery({
-    queryKey: ['jql-values', asked],
-    queryFn: () => getJqlValues(askedField, askedToken.replace(/^"/, '')),
+    queryKey: ['jql-values', source, asked],
+    queryFn: () => getJqlValues(askedField, askedToken.replace(/^"/, ''), source),
     enabled: asked !== '',
     staleTime: 60_000,
     retry: false,

@@ -22,3 +22,11 @@ test('blank, repeated and odd entries are left out', () => {
   localStorage.setItem('tiko.card.recent', JSON.stringify([' DEMO-1', '', 'DEMO-1', 7]))
   expect(readRecentInputs()).toEqual(['DEMO-1'])
 })
+
+test('another tracker keeps its own list', () => {
+  localStorage.clear()
+  rememberInput('DEMO-1')
+  rememberInput('team = ENG', 'linear')
+  expect(readRecentInputs()).toEqual(['DEMO-1'])
+  expect(readRecentInputs('linear')).toEqual(['team = ENG'])
+})

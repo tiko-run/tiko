@@ -18,7 +18,8 @@ router = APIRouter(
 
 class SearchIn(BaseModel):
     source: Literal[tuple(SOURCES)]
-    # JQL for Jira; words of the title for CalDAV; quoted words for the demo tasks.
+    # JQL for Jira and Linear (or a Linear view link); words of the title for CalDAV; quoted
+    # words for the demo tasks.
     query: str = Field(default="", max_length=2000)
     # CalDAV only: include done tasks.
     done: bool = False
@@ -48,9 +49,11 @@ class FoundTask(BaseModel):
 
 class SearchOut(BaseModel):
     tasks: list[FoundTask]
+    # Linear gives no count past a page: then `total` counts what came back and `more` is true.
     total: int
     # True when `total` is the tracker's estimate, not an exact count.
     estimated: bool = False
+    more: bool = False
 
 
 def _found(task: Task) -> FoundTask:
@@ -84,5 +87,8 @@ def search(body: SearchIn, request: Request) -> SearchOut:
         raise ValidationFailed("query: enter a query")
     result = search_tasks(body.query, body.limit, providers[body.source], snapshots)
     return SearchOut(
-        tasks=[_found(t) for t in result.tasks], total=result.total, estimated=result.estimated
+        tasks=[_found(t) for t in result.tasks],
+        total=len(result.tasks) if result.total is None else result.total,
+        estimated=result.estimated,
+        more=result.more,
     )

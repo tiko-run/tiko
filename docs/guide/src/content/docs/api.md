@@ -165,6 +165,7 @@ curl -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
 | `source` | `query` takes |
 |---|---|
 | `jira` | JQL |
+| `linear` | The JQL of [Linear queries](../linear/#many-issues-by-a-query), or a saved view link. Linear gives no count past one page: then `total` counts what came back and `more` is true |
 | `caldav` | Words of the title |
 | `demo` | Quoted words, as the card tool does |
 

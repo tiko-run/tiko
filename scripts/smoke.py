@@ -92,6 +92,12 @@ check(
     "remember a key prefix",
 )
 status, _ = call("DELETE", f"{API}/api/me/key-prefixes/SMOKEPFX")
+# Without a Linear key of one's own, a Linear query asks to connect one instead of failing.
+if tracker.get("tokens", {}).get("linear") != "set":
+    status, body = call(
+        "POST", f"{API}/api/tasks/search", {"jql": "team = ENG", "limit": 0, "source": "linear"}
+    )
+    check(status == 422 and "Linear key" in body["error"]["message"], "linear query needs a key")
 status, left = call("GET", f"{API}/api/me/key-prefixes")
 check(
     status == 200 and all(c["prefix"] != "SMOKEPFX" for c in left["choices"]),

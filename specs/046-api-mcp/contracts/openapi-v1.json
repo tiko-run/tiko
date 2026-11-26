@@ -2565,6 +2565,11 @@
             "title": "Estimated",
             "type": "boolean"
           },
+          "more": {
+            "default": false,
+            "title": "More",
+            "type": "boolean"
+          },
           "tasks": {
             "items": {
               "$ref": "#/components/schemas/FoundTask"

@@ -1,15 +1,24 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
 from app.api import deps
 from app.domain.jql import JqlValue, JqlVocabulary
 from app.domain.ports import TaskProvider
+from app.domain.tasks import SOURCE_PATTERN
 
 router = APIRouter(prefix="/jql", tags=["jql"])
 
-Provider = Annotated[TaskProvider, Depends(deps.provider)]
+
+def _provider(
+    request: Request,
+    source: Annotated[str | None, Query(pattern=SOURCE_PATTERN)] = None,
+) -> TaskProvider:
+    return deps.query_provider(request, source)
+
+
+Provider = Annotated[TaskProvider, Depends(_provider)]
 
 
 class ValuesOut(BaseModel):

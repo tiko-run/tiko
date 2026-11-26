@@ -45,8 +45,10 @@ There are no queries for GitHub. Setup: [GitHub Issues](../github-issues/).
 | A link to an issue | `https://linear.app/your-workspace/issue/ENG-12/fix-the-thing` |
 | The workspace and the identifier | `your-workspace/ENG-12` |
 | Just the identifier | `ENG-12`, once you connected Linear |
+| A query, in the card tool's Linear tab | `team = ENG AND cycle in openSprints()` |
+| A saved view, in the same tab | `https://linear.app/your-workspace/view/my-cycle-0a1b2c3d4e5f` |
 
-A bare `ENG-12` goes to the tracker that knows `ENG`. When Jira and Linear both know it, tiko asks once; see [Bare identifiers](../linear/#bare-identifiers). Queries for Linear come later. Setup: [Linear](../linear/).
+A bare `ENG-12` goes to the tracker that knows `ENG`. When Jira and Linear both know it, tiko asks once; see [Bare identifiers](../linear/#bare-identifiers). The fields of a query: [Many issues by a query](../linear/#many-issues-by-a-query). Setup: [Linear](../linear/).
 
 ## CalDAV
 

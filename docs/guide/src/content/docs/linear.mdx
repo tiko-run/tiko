@@ -30,6 +30,34 @@ A bare `ENG-12` goes to the tracker that knows `ENG`: Linear when one of your te
 
 Your remembered choices are listed in **Settings → My tracker → Key prefixes**, where you switch or remove each one. Scripts and AI agents that add an ambiguous key are told to write `jira:ENG-12` or `linear:ENG-12` instead.
 
+## Many issues by a query
+
+Fill a board from a cycle, a project or a label in one go. Pick the card tool (`C`), open its **Linear** tab and write a query the way you would in Jira:
+
+```
+team = ENG AND cycle in openSprints() AND assignee = currentUser()
+text ~ "billing" AND updated > -2w
+```
+
+Suggestions offer the fields, then the teams, projects, cycles, statuses, labels and people of your workspace. Up to 50 issues come in at once, newest change first; when more match, the tool says so and you narrow the query. A link to a saved view in Linear works in the same field and adds the view's issues.
+
+| Field | Operators | Values |
+|---|---|---|
+| `team` | `=` `!=` `IN` `NOT IN` `~` | The team's key or name |
+| `project` | `=` `!=` `IN` `NOT IN` `~` `IS EMPTY` | Its name |
+| `cycle` | `=` `!=` `IN` `NOT IN` `IS EMPTY` | Its number or name, `openSprints()`, `nextSprint()` |
+| `status` | `=` `!=` `IN` `NOT IN` `~` | Your workflow state's name |
+| `statusCategory` | `=` `!=` `IN` `NOT IN` | `"To Do"`, `"In Progress"`, `Done` |
+| `assignee`, `reporter` | `=` `!=` `IN` `NOT IN` `~` `IS EMPTY` | A name or e-mail, `currentUser()` |
+| `labels` | `=` `!=` `IN` `NOT IN` `~` `IS EMPTY` | A label's name |
+| `priority` | `=` `!=` `IN` `NOT IN` | `Urgent`, `High`, `Medium`, `Low`, `"No priority"` |
+| `created`, `updated`, `due` | `>` `>=` `<` `<=` (`due` also `IS EMPTY`) | A date like `2026-11-30`, or `-2w`, `-3d`, `1M` from now |
+| `text` | `~` | Words in the title or the description |
+| `title` | `=` `!=` `~` | The title |
+| `key`, `parent` | `=` `!=` `IN` `NOT IN` (`parent` also `IS EMPTY`) | An identifier like `ENG-12` |
+
+Join conditions with `AND`, `OR` and parentheses. `labels != bug` also matches issues without labels, as Linear's own "is not" does. `NOT (…)` and `ORDER BY` are not read; a query tiko cannot read says where and what it expected.
+
 ## Read a card
 
 - **On the board:** the identifier like `ENG-12`, the title and the status, in the color of its kind: not started, in progress or done.
@@ -54,6 +82,5 @@ The card shows your workflow state by its own name. Its color comes from the kin
 
 ## Not yet
 
-- Adding many issues by a query.
 - Several Linear workspaces for one person.
 - Changing an issue from the board.

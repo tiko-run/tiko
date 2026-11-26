@@ -108,7 +108,6 @@ SOURCES: dict[str, Source] = {
             credential=LINEAR,
             token_url="https://api.linear.app",
             usage=LINEAR,
-            search=None,
             prefixes=True,
         ),
     )

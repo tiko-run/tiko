@@ -44,7 +44,7 @@ description: "Task list for Linear"
 
 ## Phase 3: Slice `feat/linear-query` — many issues by a query (US3)
 
-- [ ] T020 [US3] `domain/linear_query.py`: the JQL subset of FR-015 to Linear's filter, errors with position. One test per field, operator and function
-- [ ] T021 [US3] Adapter: `search` with the filter and a saved view link, `more`; vocabulary and values from the person's workspace. Tests on recorded answers
-- [ ] T022 [US3] `search` and the suggestion routes take `source: "linear"`; the card tool offers the query for Linear. Tests
-- [ ] T023 [US3] Check on the dev stack: a cycle query and a view link add their issues. `make check` green; guide (fields, operators, the `labels !=` note), `CHANGELOG.md`
+- [x] T020 [US3] `domain/linear_query.py`: the JQL subset of FR-015 to Linear's filter, errors with position. One test per field, operator and function
+- [x] T021 [US3] Adapter: `search` with the filter and a saved view link, `more`; vocabulary and values from the person's workspace. Tests on recorded answers
+- [x] T022 [US3] `search` and the suggestion routes take `source: "linear"`; the card tool offers the query for Linear. Tests
+- [x] T023 [US3] Check on the dev stack: a cycle query and a view link add their issues. `make check` green; guide (fields, operators, the `labels !=` note), `CHANGELOG.md`
