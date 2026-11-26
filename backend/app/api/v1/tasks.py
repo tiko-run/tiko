@@ -49,8 +49,8 @@ class FoundTask(BaseModel):
 
 class SearchOut(BaseModel):
     tasks: list[FoundTask]
-    # None when the tracker gives no count, as Linear does; `more` then says whether more match.
-    total: int | None
+    # Linear gives no count past a page: then `total` counts what came back and `more` is true.
+    total: int
     # True when `total` is the tracker's estimate, not an exact count.
     estimated: bool = False
     more: bool = False
@@ -88,7 +88,7 @@ def search(body: SearchIn, request: Request) -> SearchOut:
     result = search_tasks(body.query, body.limit, providers[body.source], snapshots)
     return SearchOut(
         tasks=[_found(t) for t in result.tasks],
-        total=result.total,
+        total=len(result.tasks) if result.total is None else result.total,
         estimated=result.estimated,
         more=result.more,
     )

@@ -71,6 +71,11 @@ _SEARCH = (
     "query($filter: IssueFilter, $first: Int) { issues(first: $first, filter: $filter,"
     " orderBy: updatedAt) { nodes {" + _ISSUE_FIELDS + "} " + _PAGE_INFO + " } }"
 )
+# Checking a query and counting it needs no more than the identifiers.
+_COUNT = (
+    "query($filter: IssueFilter, $first: Int) { issues(first: $first, filter: $filter)"
+    " { nodes { identifier } " + _PAGE_INFO + " } }"
+)
 _VIEW = (
     "query($id: String!, $first: Int) { customView(id: $id) { issues(first: $first,"
     " orderBy: updatedAt) { nodes {" + _ISSUE_FIELDS + "} " + _PAGE_INFO + " } } }"
@@ -212,8 +217,11 @@ class LinearApi:
         if self._blocked_until <= now:
             self._blocked_until = 0.0
 
-    def query(self, text: str, variables: dict | None = None) -> tuple[dict | None, list]:
-        """The answer's data and errors; raises on what no caller can use."""
+    def query(
+        self, text: str, variables: dict | None = None, typed: bool = False
+    ) -> tuple[dict | None, list]:
+        """The answer's data and errors; raises on what no caller can use. `typed`: the
+        variables carry what a person wrote, so a value Linear refuses is their mistake."""
         now = self._clock()
         if now < self._blocked_until:
             self._limited(self._blocked_until - now)
@@ -254,6 +262,8 @@ class LinearApi:
             self._limited(wait)
         if response.status_code >= 500:
             raise TrackerUnavailable(f"Linear returned {response.status_code}")
+        if typed and "INVALID_INPUT" in codes and not _not_found(errors):
+            raise InvalidJql("Linear did not accept a value in this query; check dates and keys.")
         self._keep(response, now)
         data = body.get("data")
         # Linear may answer part of a query with an error for the rest; a partial issue is not one.
@@ -447,7 +457,9 @@ class LinearProvider:
             if found is None:
                 raise InvalidJql("Linear has no view at this link that you can read.")
         else:
-            data, _ = self._api.query(_SEARCH, {"filter": to_filter(jql), "first": first})
+            text = _SEARCH if limit else _COUNT
+            variables = {"filter": to_filter(jql), "first": first}
+            data, _ = self._api.query(text, variables, typed=True)
             found = (data or {}).get("issues") or {}
         nodes = [
             n
@@ -511,9 +523,12 @@ class LinearProvider:
         return [JqlValue(value=v, label=label) for v, label in list(values.items())[:VALUES_SHOWN]]
 
 
+_KEYWORDS = {"AND", "OR", "NOT", "IN", "IS", "EMPTY", "NULL", "ORDER"}
+
+
 def _quoted(value: str) -> str:
     """A value as the query takes it: in quotes when it is more than one plain word."""
-    if re.fullmatch(r"[A-Za-z0-9_.@-]+", value):
+    if re.fullmatch(r"[A-Za-z0-9_.@-]+", value) and value.upper() not in _KEYWORDS:
         return value
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 

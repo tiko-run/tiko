@@ -3876,6 +3876,11 @@
             "type": "boolean",
             "title": "Estimated",
             "default": false
+          },
+          "more": {
+            "type": "boolean",
+            "title": "More",
+            "default": false
           }
         },
         "type": "object",

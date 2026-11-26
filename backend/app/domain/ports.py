@@ -52,7 +52,8 @@ class TaskProvider(Protocol):
         ...
 
     def search(self, jql: str, limit: int) -> SearchResult:
-        """Up to `limit` matching tasks and the total match count; raises InvalidJql."""
+        """Up to `limit` matching tasks and the match count when the tracker gives one;
+        raises InvalidJql."""
         ...
 
     def jql_vocabulary(self) -> JqlVocabulary:

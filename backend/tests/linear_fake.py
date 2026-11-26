@@ -42,6 +42,8 @@ class FakeLinear:
         self.requests: list[httpx.Request] = []
         # Saved views by slug id, with the identifiers they show.
         self.views: dict[str, list[str]] = {}
+        # Answer every search as Linear does a value it refuses.
+        self.reject_filter = False
         # The filters searches sent, newest last.
         self.filters: list[dict] = []
         # The person's team keys, answered a page of `team_page` at a time.
@@ -89,6 +91,12 @@ class FakeLinear:
             return self._answer({"data": {"customView": {"issues": self._page(ids, variables)}}})
         if "filter: $filter" in query:
             self.filters.append(variables["filter"])
+            if self.reject_filter:
+                error = {
+                    "message": "Argument Validation Error",
+                    "extensions": {"code": "INVALID_INPUT"},
+                }
+                return self._answer({"errors": [error], "data": None})
             return self._answer({"data": {"issues": self._page(list(self.issues), variables)}})
         if "workflowStates(" in query or "projects(" in query or "issueLabels(" in query:
             names = {

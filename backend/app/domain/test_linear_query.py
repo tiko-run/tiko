@@ -193,6 +193,14 @@ def test_the_spec_examples():
         ("team = currentUser()", "position 8", "a value"),
         ("text = billing", "position 6", "~"),
         ("project is full", "position 12", "EMPTY"),
+        ("created > 2026-02-30", "position 11", "a date"),
+        ("updated > -99999y", "position 11", "in days"),
+        ("due > -2h", "position 7", "in days"),
+        ('key = "foo bar"', "position 7", "a key like ENG-12"),
+        ("parent = ENG12", "position 10", "a key like ENG-12"),
+        ("assignee = EMPTY", "position 12", "IS EMPTY"),
+        ("labels in (EMPTY)", "position 12", "IS EMPTY"),
+        ("(" * 31 + "team = x" + ")" * 31, "position 31", "a simpler query"),
     ],
 )
 def test_a_mistake_says_where_and_what_was_expected(query, where, expected):

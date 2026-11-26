@@ -7,6 +7,7 @@ dependency and answers a mistake with where it is and what was expected.
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 
 from app.domain.errors import InvalidJql
 from app.domain.jql import JqlField, JqlVocabulary
@@ -106,18 +107,28 @@ def _scalar(op: str, values: list[Value], value: Callable[[Value], object] = lam
     return {plain[op]: value(values[0])}
 
 
-def _date(value: Value) -> str:
+# Further than this from now is a typo, and Linear refuses it.
+MAX_COUNT = 1000
+
+
+def _date(value: Value, days_only: bool = False) -> str:
+    expected = "a date like 2026-11-30 or -2w"
     if value.function:
-        raise _error(value.at, f"{value.text}() is not a date", "a date like 2026-11-30 or -2w")
+        raise _error(value.at, f"{value.text}() is not a date", expected)
     if match := _DAY.match(value.text):
         year, month, day = (int(part) for part in match.groups())
-        return f"{year:04d}-{month:02d}-{day:02d}"
+        try:
+            return date(year, month, day).isoformat()
+        except ValueError:
+            raise _error(value.at, f"{value.text} is not a day of the calendar", expected) from None
     if match := _RELATIVE.match(value.text):
         sign, count, unit = match.groups()
-        # Linear reads an ISO 8601 duration as a time relative to now.
         time = unit in "hm"
+        if int(count) > MAX_COUNT or (time and days_only):
+            raise _error(value.at, f"{value.text!r} is not a date here", f"{expected}, in days")
+        # Linear reads an ISO 8601 duration as a time relative to now.
         return f"{'-' if sign == '-' else ''}P{'T' if time else ''}{count}{unit.upper()}"
-    raise _error(value.at, f"{value.text!r} is not a date", "a date like 2026-11-30 or -2w")
+    raise _error(value.at, f"{value.text!r} is not a date", expected)
 
 
 _PRIORITY = {"no priority": 0, "none": 0, "urgent": 1, "high": 2, "medium": 3, "low": 4}
@@ -220,8 +231,17 @@ def _title(op: str, values: list[Value]) -> Filter:
     return {"title": {_COMPARE[op][0]: values[0].text}}
 
 
+_IDENTIFIER = re.compile(r"^[A-Z][A-Z0-9_]*-\d+$")
+
+
+def _identifier(value: Value) -> str:
+    if not _IDENTIFIER.match(value.text.upper()):
+        raise _error(value.at, f"{value.text!r} is not an issue key", "a key like ENG-12")
+    return value.text.upper()
+
+
 def _key(attr: Callable[[Filter], Filter]):
-    return lambda op, values: attr(_scalar(op, values, lambda v: v.text.upper()))
+    return lambda op, values: attr(_scalar(op, values, _identifier))
 
 
 @dataclass(frozen=True)
@@ -262,7 +282,10 @@ FIELDS: dict[str, Field] = {
     "created": Field("Created", _DATES, lambda op, vs: {"createdAt": _scalar(op, vs, _date)}),
     "updated": Field("Updated", _DATES, lambda op, vs: {"updatedAt": _scalar(op, vs, _date)}),
     "due": Field(
-        "Due date", _DATES, lambda op, vs: {"dueDate": _scalar(op, vs, _date)}, _null("dueDate")
+        "Due date",
+        _DATES,
+        lambda op, vs: {"dueDate": _scalar(op, vs, lambda v: _date(v, days_only=True))},
+        _null("dueDate"),
     ),
     "text": Field("Title or description", ("~",), _text),
     "title": Field("Title", ("=", "!=", "~"), _title),
@@ -317,10 +340,15 @@ def vocabulary() -> JqlVocabulary:
     )
 
 
+# Parentheses deeper than this are no query a person writes.
+MAX_DEPTH = 30
+
+
 class _Parser:
     def __init__(self, query: str) -> None:
         self.tokens = _tokens(query)
         self.i = 0
+        self.depth = 0
 
     @property
     def peek(self) -> Token:
@@ -368,8 +396,12 @@ class _Parser:
             raise _error(token.at, "NOT (…) is not read for Linear", "a field; use != or NOT IN")
         if token.text == "(" and token.kind == "punct":
             self.take()
+            self.depth += 1
+            if self.depth > MAX_DEPTH:
+                raise _error(token.at, "the parentheses go too deep", "a simpler query")
             found = self.either()
             self.expect(")", "a closing parenthesis")
+            self.depth -= 1
             return found
         return self.clause()
 
@@ -437,6 +469,8 @@ class _Parser:
             return Value(token.text, token.at)
         if token.kind != "word" or token.keyword in ("AND", "OR"):
             raise _error(token.at, f"found {token.text or 'the end'}", "a value")
+        if token.keyword in ("EMPTY", "NULL"):
+            raise _error(token.at, f"{token.text} is not a value", "IS EMPTY or IS NOT EMPTY")
         if self.peek.text == "(" and self.peek.kind == "punct":
             self.take()
             self.expect(")", "() after a function")

@@ -124,3 +124,24 @@ def test_api_v1_searches_linear(linear):
     body = found.json()
     assert [t["key"] for t in body["tasks"]] == ["acme/ENG-1", "acme/ENG-2"]
     assert body["more"] is False
+
+
+def test_a_value_linear_refuses_is_a_mistake_in_the_query(linear):
+    _, client, fake = linear
+    fake.reject_filter = True
+    refused = search(client, "team = ENG")
+    assert (refused.status_code, refused.json()["error"]["code"]) == (422, "invalid_jql")
+
+
+def test_a_count_asks_only_for_identifiers(linear):
+    _, client, fake = linear
+    search(client, "team = ENG", limit=0)
+    assert b"labels" not in fake.requests[-1].content
+
+
+def test_api_v1_counts_what_came_back_when_linear_gives_no_count(linear):
+    app, client, fake = linear
+    fake.issues = {f"ENG-{i}": issue(f"ENG-{i}") for i in range(1, 61)}
+    key = with_key(app, make_key(client)["token"])
+    body = key.post("/api/v1/tasks/search", json={"source": "linear", "query": "team = ENG"}).json()
+    assert (len(body["tasks"]), body["total"], body["more"]) == (50, 50, True)

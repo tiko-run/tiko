@@ -78,7 +78,7 @@ def test_beta_retry_after_is_read():
 
 def test_search_checks_the_query_then_reads_one_page():
     fake = FakeJiraCloud()
-    tasks, total, estimated = provider(fake).search("project = DEV", 10)
+    tasks, total, estimated, _ = provider(fake).search("project = DEV", 10)
     assert ([t.key for t in tasks], total, estimated) == (["DEV-1", "DEV-2"], 2, False)
     assert tracker_calls(fake) == ["/rest/api/3/jql/parse", "/rest/api/2/search/jql"]
 
@@ -86,7 +86,7 @@ def test_search_checks_the_query_then_reads_one_page():
 def test_search_past_the_page_is_an_estimate():
     fake = FakeJiraCloud({f"DEV-{n}": issue(f"DEV-{n}") for n in range(1, 151)})
     fake.estimate = 140
-    tasks, total, estimated = provider(fake).search("project = DEV", 50)
+    tasks, total, estimated, _ = provider(fake).search("project = DEV", 50)
     assert (len(tasks), total, estimated) == (50, 140, True)
 
 
@@ -98,7 +98,7 @@ def test_estimate_below_the_page_counts_the_page():
 
 def test_count_only_reads_ids():
     fake = FakeJiraCloud()
-    assert provider(fake).search("project = DEV", 0) == ([], 2, False)
+    assert provider(fake).search("project = DEV", 0) == ([], 2, False, False)
     search = next(r for r in fake.requests if r.url.path.endswith("/search/jql"))
     assert json.loads(search.content)["fields"] == ["id"]
 
