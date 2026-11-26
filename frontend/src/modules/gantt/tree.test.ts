@@ -10,6 +10,7 @@ import {
   indent,
   insertRow,
   liftRemove,
+  removeBranch,
   moveRows,
   moveSubtree,
   movingDepth,
@@ -132,6 +133,13 @@ describe('tree', () => {
   it('lifts children of a removed row one level up', () => {
     expect(shape(liftRemove(tree, 'B'))).toBe('A<- C<A D<A E<-')
     expect(shape(liftRemove(tree, 'A'))).toBe('B<- C<B D<- E<-')
+  })
+
+  it('removes a row with its whole branch and the links that touch it', () => {
+    expect(shape(removeBranch(tree, 'B'))).toBe('A<- D<A E<-')
+    expect(shape(removeBranch(tree, 'A'))).toBe('E<-')
+    const linked = { ...tree, links: [{ id: 'l', from: 'C', to: 'E' }] }
+    expect(removeBranch(linked, 'B').links).toEqual([])
   })
 
   it('inserts a new row next to the row above', () => {

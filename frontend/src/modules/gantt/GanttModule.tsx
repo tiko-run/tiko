@@ -103,6 +103,7 @@ import {
   addChild,
   indent,
   liftRemove,
+  removeBranch,
   foldAll,
   moveRows,
   movingRows,
@@ -416,7 +417,7 @@ export function GanttModule({
         event.preventDefault()
         event.stopPropagation()
         pickRows(new Set())
-        onChange([...selection].reduce((next, id) => liftRemove(next, id), content))
+        onChange([...selection].reduce((next, id) => removeBranch(next, id), content))
       }
     }
   })
@@ -559,7 +560,7 @@ export function GanttModule({
                       onTitle={(title) =>
                         onChange(updateRow(content, row.id, (r) => ({ ...r, title })))
                       }
-                      onRemove={() => onChange(liftRemove(content, row.id))}
+                      onRemove={() => onChange(removeBranch(content, row.id))}
                       onToggle={() =>
                         onChange(
                           updateRow(content, row.id, (r) => ({ ...r, collapsed: !r.collapsed })),

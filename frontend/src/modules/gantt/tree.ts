@@ -253,6 +253,19 @@ export function liftRemove(content: GanttContent, id: string): GanttContent {
   }
 }
 
+/** Removes a row with everything under it, and the links that touch any of them. */
+export function removeBranch(content: GanttContent, id: string): GanttContent {
+  const from = content.rows.findIndex((r) => r.id === id)
+  if (from < 0) return content
+  const end = subtreeEnd(content.rows, from)
+  const gone = new Set(content.rows.slice(from, end).map((r) => r.id))
+  return {
+    ...content,
+    rows: content.rows.filter((r) => !gone.has(r.id)),
+    links: content.links.filter((l) => !gone.has(l.from) && !gone.has(l.to)),
+  }
+}
+
 /** Moves a row and everything under it by whole days. */
 export function shiftBranch(content: GanttContent, id: string, days: number): GanttContent {
   const from = content.rows.findIndex((r) => r.id === id)

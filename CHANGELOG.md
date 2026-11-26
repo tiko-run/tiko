@@ -18,10 +18,14 @@ All notable changes to this project are documented here. The format follows [Kee
 - Your AI agent lays a board out right the first time: it puts cards, notes and frames exactly where it means to, fits a grid of cards to its frame, sorts them by key or status, and sizes the frame to what it holds. On a large board it reads only what it needs, such as the done cards outside frames. See [AI agents](https://docs.tiko.run/ai-agents/).
 - Rearranging a Gantt plan is no longer guesswork: while you drag a row, the other rows move aside and a gap shows where and at which level it will land. Near an edge the expanded view scrolls and the board pans, and Esc puts the row back. A row dropped into a collapsed row now opens it instead of vanishing from view. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).
 - Rearrange a Gantt plan in batches: select rows with Shift and Cmd-click or by dragging a box, then move them together in one drag, drop them on the board as cards and notes, or remove them with Delete. Backspace with rows selected no longer deletes the whole Gantt. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).
+- Removing a parent row from a Gantt now removes the rows under it too, instead of leaving them behind one level up. One Undo brings the whole branch back.
 - API keys, reminders and the Settings People page write dates in words (`Nov 16`, or `Nov 16, 2026` outside the current year) like the rest of the app, instead of `16.11.2026` and `16.11`. The reminder field still reads `25.10 15:00` as typed input.
 
 ### Fixed
 
+- A Gantt filter now finds a parent row by its own value: a goal owned by one team shows when you filter by that team, even when the rows under it belong to other teams.
+- `Enter` in the card field takes the suggestion you are typing toward, such as a field or a status, instead of sending the half-typed query. A finished word still sends it on the first `Enter`.
+- The list of recent inputs in a Gantt's Add opens under the field, so it no longer covers the tabs above it.
 - A parent row dragged out of a Gantt onto the board now takes its children along as cards and notes, in plan order, instead of leaving them behind in the plan.
 - A reminder no longer flies off its note when your AI agent moves both at once: a reminder now goes wherever its element goes, and the agent can hang it on another element, free it, or put a free one in a frame.
 - With `DATABASE_URL` pointing at a Postgres server of your own, Update now in About no longer runs with a backup of the unused local database and a rollback that would restore it instead of yours. It stops before it touches anything, and About says to back up your server and update with the installer.

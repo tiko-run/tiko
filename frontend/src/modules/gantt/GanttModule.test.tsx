@@ -239,12 +239,11 @@ test('rows nest under rows, show a summary bar and collapse', () => {
   expect(screen.queryByRole('slider', { name: 'Design review dates' })).toBeNull()
 })
 
-test('removing a parent keeps its children one level up', () => {
+test('removing a parent removes its children too', () => {
   renderGantt()
   fireEvent.click(screen.getByRole('button', { name: 'Indent Design review' }))
   fireEvent.click(screen.getByRole('button', { name: 'Remove DEMO-1' }))
-  expect(rows()).toEqual([expect.objectContaining({ id: 'b' })])
-  expect(rows()[0].parent).toBeUndefined()
+  expect(rows()).toEqual([])
 })
 
 test('a task row links to the tracker from its own button only', () => {
@@ -1670,8 +1669,8 @@ test('Delete removes the selected rows and never the Gantt', () => {
   document.addEventListener('keydown', heard, true)
   fireEvent.keyDown(document.body, { key: 'Backspace' })
   expect(heard).not.toHaveBeenCalled()
-  // a's child stays, one level up; the module is still on the board.
-  expect(rows().map((r) => [r.id, r.parent])).toEqual([['b', undefined]])
+  // a goes with its child; the module is still on the board.
+  expect(rows()).toEqual([])
   expect(latest).toHaveLength(1)
   // With nothing selected Backspace goes on to the board as before.
   fireEvent.keyDown(document.body, { key: 'Backspace' })
