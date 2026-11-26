@@ -99,6 +99,15 @@ describe('shownRows', () => {
     expect(ids(gantt({ f7: ['Q1'] }, { rows: closed }))).toEqual(['redesign', 'partner'])
   })
 
+  it('matches a parent by its own value when no child does', () => {
+    const owned = [
+      row('hyp', { values: { team: 'Legal' } }),
+      row('epic-a', { parent: 'hyp', values: { team: 'Mobile' } }),
+      row('epic-b', { parent: 'hyp', values: { team: 'Mobile' } }),
+    ]
+    expect(ids(gantt({ team: ['Legal'] }, { rows: owned }))).toEqual(['hyp'])
+  })
+
   it('shows nothing when nothing matches', () => {
     expect(ids(gantt({ f7: ['Q3'] }))).toEqual([])
   })
