@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toastError } from '@/lib/toast'
 import { CalDavForm } from '@/settings/sections/CalDavForm'
 import { SectionHeader } from '@/settings/sections/Section'
@@ -268,22 +269,24 @@ function KeyPrefixes({ provider }: { provider: string }) {
         {list.map(({ prefix, source }) => (
           <li key={prefix} className="flex items-center gap-2">
             <span className="w-24 truncate font-mono text-[13px]">{prefix}</span>
-            <div role="radiogroup" aria-label={`Tracker for ${prefix}`} className="flex gap-1">
+            <RadioGroup
+              aria-label={`Tracker for ${prefix}`}
+              value={source}
+              disabled={change.isPending}
+              onValueChange={(option) => change.mutate({ prefix, source: option })}
+              className="flex gap-4"
+            >
               {options(source).map((option) => (
-                <Button
+                <label
                   key={option}
-                  role="radio"
-                  aria-checked={option === source}
-                  size="sm"
-                  variant={option === source ? 'secondary' : 'ghost'}
-                  disabled={change.isPending}
-                  onClick={() => option !== source && change.mutate({ prefix, source: option })}
+                  className="flex cursor-pointer items-center gap-1.5 text-[13px]"
                 >
+                  <RadioGroupItem value={option} aria-label={sourceLabel(option)} />
                   <SourceMark source={option} />
                   {sourceLabel(option)}
-                </Button>
+                </label>
               ))}
-            </div>
+            </RadioGroup>
             <Button
               size="sm"
               variant="ghost"

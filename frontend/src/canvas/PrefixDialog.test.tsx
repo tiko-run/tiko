@@ -123,3 +123,15 @@ test('a second paste waits for the open question instead of failing', async () =
   expect(first()?.tasks.map((t) => t.key)).toEqual(['acme/CORE-5'])
   expect(second()?.tasks.map((t) => t.key)).toEqual(['APP-1'])
 })
+
+test('a question left open when the dialog goes away stops waiting', async () => {
+  stubTrackers()
+  const { unmount } = render(<PrefixDialog />)
+  const result = await resolving(['CORE-5'])
+  await screen.findByText('Where is CORE-5 from?')
+  unmount()
+  await waitFor(() => expect(result()).toBeDefined())
+  expect(result()?.failed.map((f) => f.ref)).toEqual(['CORE-5'])
+  render(<PrefixDialog />)
+  expect(screen.queryByText('Where is CORE-5 from?')).toBeNull()
+})

@@ -203,3 +203,15 @@ def test_a_demo_visitor_has_no_choices():
         guest.delete("/api/me/key-prefixes/CORE"),
     ):
         assert response.status_code == 403
+
+
+def test_the_prefix_cache_stays_bounded():
+    from app.adapters.tasks.jira_dc import PREFIX_ANSWERS, JiraPrefixes
+
+    now = [0.0]
+    cache = JiraPrefixes(lambda: now[0])
+    for i in range(PREFIX_ANSWERS * 2):
+        cache.put("site", f"P{i}", True)
+    assert len(cache._known) <= PREFIX_ANSWERS
+    assert cache.get("site", f"P{PREFIX_ANSWERS * 2 - 1}") is True
+    assert cache.lock("site", "P1") is cache.lock("site", "P1")

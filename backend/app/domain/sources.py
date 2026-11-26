@@ -221,7 +221,9 @@ def _by_prefix(
         return None
     prefix = identifier.rpartition("-")[0]
     # Only trackers a person connects with a credential of their own claim a bare key from the
-    # instance's tracker; the demo tasks every request can read never do.
+    # instance's tracker; the demo tasks every request can read never do. Such a tracker that
+    # cannot be asked claims nothing: while Linear is down a question on every Jira key would
+    # stop everyone, and `linear:ENG-12` still reaches it.
     known = [
         p
         for sid, p in providers.items()

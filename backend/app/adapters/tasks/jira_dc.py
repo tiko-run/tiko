@@ -30,6 +30,9 @@ DATE_TYPES = ("date", "datetime")
 # A project key a token's Jira knows, or does not, is asked again after this long.
 PREFIX_TTL_S = 3600
 PREFIX_MISS_TTL_S = 600
+# Answers kept across all people, and locks the lookups share.
+PREFIX_ANSWERS = 5000
+PREFIX_LOCKS = 64
 # A site's fields change only when an admin adds one.
 DATE_FIELDS_TTL_S = 600
 SEARCH_CHUNK = 500
@@ -77,21 +80,29 @@ class JiraPrefixes:
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
         self._known: dict[tuple[str, str], tuple[float, bool]] = {}
-        self._locks: dict[tuple[str, str], threading.Lock] = {}
         self._guard = threading.Lock()
+        # A fixed set of locks shared by hash: bounded, and never dropped while someone waits.
+        self._locks = [threading.Lock() for _ in range(PREFIX_LOCKS)]
 
     def lock(self, site: str, prefix: str) -> threading.Lock:
         """One lookup per project key at a time: keys pasted together share its answer."""
-        with self._guard:
-            return self._locks.setdefault((site, prefix), threading.Lock())
+        return self._locks[hash((site, prefix)) % PREFIX_LOCKS]
 
     def get(self, site: str, prefix: str) -> bool | None:
         cached = self._known.get((site, prefix))
         return cached[1] if cached and cached[0] > self._clock() else None
 
     def put(self, site: str, prefix: str, known: bool) -> None:
+        now = self._clock()
         ttl = PREFIX_TTL_S if known else PREFIX_MISS_TTL_S
-        self._known[(site, prefix)] = (self._clock() + ttl, known)
+        with self._guard:
+            if len(self._known) >= PREFIX_ANSWERS:
+                self._known = {k: v for k, v in self._known.items() if v[0] > now}
+            # Still full of live answers: the oldest half goes, so the cache stays bounded.
+            if len(self._known) >= PREFIX_ANSWERS:
+                kept = sorted(self._known.items(), key=lambda item: item[1][0])
+                self._known = dict(kept[len(kept) // 2 :])
+            self._known[(site, prefix)] = (now + ttl, known)
 
 
 def start_fields(fields: list[DateField], chosen: str | None) -> list[str]:
