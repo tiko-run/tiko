@@ -53,6 +53,27 @@ Reads the plan as the Gantt draws it, all rows at once, collapsed or filtered ou
 - With Planning on, a row carries its `stages`, with the type and the people on each, and the values of the columns the Gantt shows. Each comes with its id and name, since two people may share a name.
 - `milestones` and `links` complete the plan; a link means its `to` row starts after its `from` row ends.
 
+### Changing a plan
+
+A key that writes puts an empty Gantt on a board with `POST /api/v1/boards/<id>/modules` (`start`, `end`, and optionally `title`, `scale`, `x`, `y`, `id`), and changes one with a list of steps:
+
+```bash
+curl -X PATCH -H "Authorization: Bearer tiko_…" -H "Content-Type: application/json" \
+  https://tiko.example.com/api/v1/boards/<id>/modules/<gantt id> \
+  -d '{"steps": [
+    {"op": "add_row", "id": "pay", "title": "Payments"},
+    {"op": "add_row", "task": "DEMO-14", "parent": "pay"},
+    {"op": "update_row", "id": "search", "shift": 14}
+  ]}'
+```
+
+- Steps apply in order and all or none: if one fails, nothing changes, and the error names it, such as `step 2 (update_row): row search not found`.
+- `add_row` takes a `title` or a `task` (a key or a link), a `parent`, and `after`: a sibling's id, `null` for first, left out for last. Its own `id` lets later steps in the same call name it. A task row follows its tracker's dates; a task already in the plan is refused.
+- `update_row` changes `title`, `start`, `end`, `done`, `follow`, links a plain row to a `task`, sets `values` of the fields the Gantt shows as columns, and `shift` moves a row with its branch and stages by whole days. A row that follows its task takes no dates until `follow` is `false`; a row cut into stages takes `shift` instead.
+- `move_row` takes a row with its branch to another `parent` and place; `remove_row` lifts its children a level up, or takes them along with `branch: true`; `set_range` changes `start`, `end` and `scale`.
+- The answer holds the rows the call touched, the ids each step made, and in `kept` rows that stayed on their tracker's dates when their branch shifted.
+- A Gantt the key added is its own. Someone's hand-made plan needs a key with [full access](#full-access-and-saved-copies). Every change saves a copy of the board first, so **Saved copies** can put the plan back.
+
 ## Planning
 
 `GET /api/v1/planning` gives the lists the Gantts plan with: stage types, people with their teams and the time off still ahead, fields, and the workspace's days off from today on. Reference: [Read Planning](../reference/operations/read-planning/).

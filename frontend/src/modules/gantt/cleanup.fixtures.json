@@ -1,0 +1,297 @@
+[
+  {
+    "name": "a leaf spans its stages",
+    "before": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "a",
+          "title": "A",
+          "start": "2026-10-01",
+          "end": "2026-10-30",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            },
+            {
+              "id": "s2",
+              "type": "t",
+              "start": "2026-10-12",
+              "end": "2026-10-16",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    },
+    "after": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "a",
+          "title": "A",
+          "start": "2026-10-05",
+          "end": "2026-10-16",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            },
+            {
+              "id": "s2",
+              "type": "t",
+              "start": "2026-10-12",
+              "end": "2026-10-16",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    }
+  },
+  {
+    "name": "a plain leaf is done when all its stages are",
+    "before": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "a",
+          "title": "A",
+          "start": "2026-10-05",
+          "end": "2026-10-16",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": [],
+              "done": true
+            },
+            {
+              "id": "s2",
+              "type": "t",
+              "start": "2026-10-12",
+              "end": "2026-10-16",
+              "people": [],
+              "done": true
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "title": "B",
+          "start": "2026-10-05",
+          "end": "2026-10-09",
+          "done": true,
+          "stages": [
+            {
+              "id": "s3",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    },
+    "after": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "a",
+          "title": "A",
+          "start": "2026-10-05",
+          "end": "2026-10-16",
+          "done": true,
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": [],
+              "done": true
+            },
+            {
+              "id": "s2",
+              "type": "t",
+              "start": "2026-10-12",
+              "end": "2026-10-16",
+              "people": [],
+              "done": true
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "title": "B",
+          "start": "2026-10-05",
+          "end": "2026-10-09",
+          "stages": [
+            {
+              "id": "s3",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    }
+  },
+  {
+    "name": "a row cut into stages stops following",
+    "before": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "t",
+          "title": "",
+          "key": "DEMO-1",
+          "source": "demo",
+          "follow": true,
+          "start": "2026-10-05",
+          "end": "2026-10-09",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    },
+    "after": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "t",
+          "title": "",
+          "key": "DEMO-1",
+          "source": "demo",
+          "start": "2026-10-05",
+          "end": "2026-10-09",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        }
+      ],
+      "milestones": [],
+      "links": []
+    }
+  },
+  {
+    "name": "a parent keeps its own dates past its stages",
+    "before": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "p",
+          "title": "P",
+          "start": "2026-10-01",
+          "end": "2026-11-30",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "title": "C",
+          "parent": "p",
+          "start": "2026-10-05",
+          "end": "2026-10-09"
+        }
+      ],
+      "milestones": [],
+      "links": []
+    },
+    "after": {
+      "start": "2026-10-01",
+      "end": "2026-12-31",
+      "scale": "week",
+      "labelWidth": 160,
+      "rows": [
+        {
+          "id": "p",
+          "title": "P",
+          "start": "2026-10-01",
+          "end": "2026-11-30",
+          "stages": [
+            {
+              "id": "s1",
+              "type": "t",
+              "start": "2026-10-05",
+              "end": "2026-10-09",
+              "people": []
+            }
+          ]
+        },
+        {
+          "id": "c",
+          "title": "C",
+          "parent": "p",
+          "start": "2026-10-05",
+          "end": "2026-10-09"
+        }
+      ],
+      "milestones": [],
+      "links": []
+    }
+  }
+]

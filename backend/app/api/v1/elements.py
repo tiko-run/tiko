@@ -1,13 +1,14 @@
 import re
 import uuid
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field, model_validator
 
 from app.api import deps
+from app.api.v1 import planning
 from app.api.v1.boards import Board, boards_of, shape
 from app.api.v1.deps import (
     Key,
@@ -18,6 +19,7 @@ from app.api.v1.deps import (
     search_budget,
     write_budget,
 )
+from app.domain.api_gantt import Names, RowOut, gantt_view, tracker_span
 from app.domain.api_view import Element
 from app.domain.batch import (
     MAX_CARDS,
@@ -27,15 +29,18 @@ from app.domain.batch import (
     Batch,
     CardRef,
     Change,
+    GanttCall,
     NewElement,
+    NewGantt,
     Watch,
 )
 from app.domain.boards import BoardName, create_board, rename_board
 from app.domain.copies import Reason
 from app.domain.demo import board_limit
 from app.domain.errors import InvalidRef, NotApiElement, NotFound, TaskNotFound, ValidationFailed
+from app.domain.gantt_steps import MAX_STEPS, Context, Resolved, Step
 from app.domain.sources import SOURCES, route_ref, valid_key
-from app.domain.tasks import task_ref
+from app.domain.tasks import Task, task_ref
 
 router = APIRouter(prefix="/boards", tags=["writing"], dependencies=[Depends(write_budget)])
 
@@ -96,6 +101,33 @@ class CopyOut(BaseModel):
 
 class CopyList(BaseModel):
     copies: list[CopyOut]
+
+
+class GanttIn(BaseModel):
+    id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    title: str = Field(default="", max_length=200)
+    start: date
+    end: date
+    scale: Literal["day", "week", "month", "quarter"] = "week"
+    x: float | None = Field(default=None, ge=-1_000_000, le=1_000_000)
+    y: float | None = Field(default=None, ge=-1_000_000, le=1_000_000)
+
+
+class StepsIn(BaseModel):
+    steps: list[Step] = Field(min_length=1, max_length=MAX_STEPS)
+
+
+class Made(BaseModel):
+    step: int
+    id: str
+
+
+class GanttWritten(BaseModel):
+    # The rows the steps touched, as read_gantt reads them, in plan order.
+    rows: list[RowOut]
+    created: list[Made]
+    # Rows that follow their task and stayed on its dates when their branch shifted.
+    kept: list[str]
 
 
 class Written(BaseModel):
@@ -197,6 +229,69 @@ def restore_copy(board_id: str, copy_id: str, _: Writable, request: Request) -> 
     return Response(status_code=204)
 
 
+@router.post("/{board_id}/modules", status_code=201)
+def add_gantt(board_id: str, body: GanttIn, _: Writable, request: Request) -> Written:
+    """An empty Gantt on the board, at x/y or below what is there, as the web app adds one."""
+    new = NewGantt(id=body.id or uuid.uuid4().hex, **body.model_dump(exclude={"id"}))
+    return _write(board_id, Batch(new_gantt=new), request)
+
+
+@router.patch("/{board_id}/modules/{module_id}")
+def change_gantt(
+    board_id: str,
+    module_id: str,
+    body: StepsIn,
+    _: Writable,
+    person: KeyPerson,
+    key: Key,
+    request: Request,
+) -> GanttWritten:
+    """Steps on a Gantt, applied one after another and all or none. A Gantt a key added is its
+    own; a person's needs full access. tiko saves the board before every change to a plan."""
+    for step in body.steps:
+        if step.op == "add_row" and step.id is None:
+            step.id = uuid.uuid4().hex
+    asked = [(i, s.task) for i, s in enumerate(body.steps) if s.task is not None]
+    found = _tasks([ref for _, ref in asked], request) if asked else []
+    tasks = {
+        index: Resolved(key=card.key, source=card.source, span=_span(task))
+        for (index, _), (card, task) in zip(asked, found, strict=True)
+    }
+    plan = planning.read(person, key, request)
+    fields = {f.id for f in plan.fields if not f.archived} if plan.enabled else None
+    context = Context(today=date.today(), tasks=tasks, fields=fields)
+    batch = Batch(gantt=GanttCall(module=module_id, steps=body.steps, context=context))
+    applied = _applied(board_id, batch, request)
+    result = applied.gantt
+    assert result is not None
+    return GanttWritten(
+        rows=_rows(result.content, result.touched, request),
+        created=[Made(step=i, id=made) for i, made in sorted(result.created.items())],
+        kept=result.kept,
+    )
+
+
+def _span(task: Task) -> tuple[date, date] | None:
+    tracked = tracker_span(task)
+    return (tracked.start, tracked.end) if tracked else None
+
+
+def _rows(content: dict, touched: list[str], request: Request) -> list[RowOut]:
+    tracker = deps.tracker(request)
+    refs = [task_ref(r.get("source") or tracker, r["key"]) for r in content["rows"] if r.get("key")]
+    tasks = deps.snapshots(request).get_many(refs)
+    view = request.app.state.planning.view()
+    names = None
+    if view.enabled:
+        names = Names(
+            types={t.id: t.name for t in view.types},
+            people={p.id: p.name for p in view.people},
+            fields={f.id: f.name for f in view.fields},
+        )
+    wanted = set(touched)
+    return [r for r in gantt_view(content, tasks, tracker, names).rows if r.id in wanted]
+
+
 def copy_list(board_id: str, request: Request) -> CopyList:
     found = request.app.state.copies.list(board_id)
     return CopyList(
@@ -217,6 +312,13 @@ def restore(board_id: str, copy_id: str, request: Request) -> None:
 
 
 def _write(board_id: str, batch: Batch, request: Request, answer: bool = True) -> Written:
+    applied = _applied(board_id, batch, request)
+    if not answer:
+        return Written(elements=[], created=[])
+    return _answer(board_id, applied, request)
+
+
+def _applied(board_id: str, batch: Batch, request: Request) -> Applied:
     state = request.app.state
     person = deps.current_person(request)
     elements = state.api_elements
@@ -236,9 +338,7 @@ def _write(board_id: str, batch: Batch, request: Request, answer: bool = True) -
     now = datetime.now(UTC).isoformat(timespec="seconds")
     elements.add(board_id, applied.created, person.id, now)
     elements.remove(board_id, applied.removed)
-    if not answer:
-        return Written(elements=[], created=[])
-    return _answer(board_id, applied, request)
+    return applied
 
 
 def deps_key_full(request: Request) -> bool:
@@ -258,24 +358,35 @@ def _cards(adds: list[NewElement], request: Request) -> dict[str, CardRef]:
     wanted = [(e.id, e.ref) for e in adds if e.kind == "card"]
     if not wanted:
         return {}
-    if len(wanted) > MAX_CARDS:
+    found = _tasks([ref or "" for _, ref in wanted], request)
+    return {element_id: card for (element_id, _), (card, _) in zip(wanted, found, strict=True)}
+
+
+def _tasks(refs: list[str], request: Request) -> list[tuple[CardRef, Task]]:
+    """Each ref's task, asked of its tracker once per tracker and kept as a snapshot; a task
+    that is not there stops the whole call."""
+    if len(refs) > MAX_CARDS:
         raise ValidationFailed(f"At most {MAX_CARDS} cards a call.")
     search_budget(request)
     providers = deps.providers(request)
     tracker = deps.tracker(request)
-    found: dict[str, CardRef] = {}
-    for element_id, ref in wanted:
-        source, key = _parse(ref or "", providers, tracker, deps.prefix_choice(request))
-        found[element_id] = CardRef(source=source, key=key)
+    cards = [
+        CardRef(source=source, key=key)
+        for source, key in (
+            _parse(ref, providers, tracker, deps.prefix_choice(request)) for ref in refs
+        )
+    ]
     snapshots = deps.snapshots(request)
-    for source in {card.source for card in found.values()}:
-        keys = sorted({c.key for c in found.values() if c.source == source})
+    polled: dict[tuple[str, str], Task] = {}
+    for source in {card.source for card in cards}:
+        keys = sorted({c.key for c in cards if c.source == source})
         tasks = {task.key: task for task in providers[source].poll(keys)}
         missing = [k for k in keys if k not in tasks or tasks[k].state == "not_found"]
         if missing:
             raise TaskNotFound(f"{source} has no task {missing[0]} that you can see.")
         snapshots.put_many(list(tasks.values()))
-    return found
+        polled |= {(source, k): t for k, t in tasks.items()}
+    return [(card, polled[(card.source, card.key)]) for card in cards]
 
 
 def _not_past(moments: list[datetime | None]) -> None:

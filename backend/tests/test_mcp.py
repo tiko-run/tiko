@@ -182,9 +182,11 @@ WRITE_TOOLS = [
     "add_cards",
     "add_code",
     "add_frame",
+    "add_gantt",
     "add_notes",
     "add_reminder",
     "arrange",
+    "change_gantt",
     "connect",
     "create_board",
     "list_copies",
@@ -475,3 +477,48 @@ def test_a_full_key_tidies_people_work_and_restores_the_board(served):
     assert "restore_copy" not in call(url, writer, tool_names)
     nodes = {n["id"]: n for n in admin.get(f"/api/boards/{board_id}").json()["doc"]["nodes"]}
     assert nodes["n1"]["data"]["text"] == "Ask legal"
+
+
+def test_an_agent_makes_and_keeps_a_gantt_plan(served):
+    app, url, admin = served
+    board_id = board(admin)
+    token = make_key(admin, scope="write")["token"]
+
+    async def steps(client):
+        made = await client.call_tool(
+            "add_gantt",
+            {
+                "board": board_id,
+                "title": "Q1",
+                "start": "2026-10-01",
+                "end": "2026-12-31",
+                "id": "q1",
+            },
+        )
+        changed = await client.call_tool(
+            "change_gantt",
+            {
+                "board": board_id,
+                "gantt": "q1",
+                "steps": [
+                    {"op": "add_row", "id": "p", "title": "Payments"},
+                    {"op": "add_row", "task": "DEMO-2", "parent": "p"},
+                    {"op": "update_row", "id": "p", "shift": 7},
+                ],
+            },
+        )
+        broken = await client.call_tool(
+            "change_gantt",
+            {"board": board_id, "gantt": "q1", "steps": [{"op": "remove_row", "id": "nope"}]},
+        )
+        read = await client.call_tool("read_gantt", {"board": board_id, "gantt": "q1"})
+        return made, changed, broken, read
+
+    made, changed, broken, read = call(url, token, steps)
+    assert not made.is_error, made.content
+    assert made.structured_content["created"] == ["q1"]
+    assert not changed.is_error, changed.content
+    rows = changed.structured_content["rows"]
+    assert [r["id"] for r in rows][0] == "p" and rows[1]["key"] == "DEMO-2"
+    assert broken.is_error and "step 0 (remove_row): row nope not found" in broken.content[0].text
+    assert [r["id"] for r in read.structured_content["gantt"]["rows"]][0] == "p"

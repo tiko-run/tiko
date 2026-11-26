@@ -1,6 +1,8 @@
 """Steps on a Gantt plan (spec 056): the engine alone, on content as the web app saves it."""
 
+import json
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -88,7 +90,7 @@ def test_a_collapsed_parent_opens_for_a_new_child():
 
 
 def test_a_task_row_follows_its_tracker_and_is_planned_once():
-    task = Resolved("DEMO-14", "demo", (date(2026, 11, 2), date(2026, 11, 20)))
+    task = Resolved(key="DEMO-14", source="demo", span=(date(2026, 11, 2), date(2026, 11, 20)))
     result = run(PLAN, {"op": "add_row", "id": "t", "task": "DEMO-14"}, tasks={0: task})
     added = result.content["rows"][-1]
     assert added["key"] == "DEMO-14" and added["follow"] is True
@@ -96,7 +98,9 @@ def test_a_task_row_follows_its_tracker_and_is_planned_once():
     again = fails(result.content, {"op": "add_row", "id": "t2", "task": "DEMO-14"}, tasks={0: task})
     assert again == "step 0 (add_row): DEMO-14 is already in this plan as row t"
     dated = {"op": "add_row", "id": "t3", "task": "DEMO-15", "start": "2026-11-01"}
-    assert "set follow: false first" in fails(PLAN, dated, tasks={0: Resolved("DEMO-15", "demo")})
+    assert "set follow: false first" in fails(
+        PLAN, dated, tasks={0: Resolved(key="DEMO-15", source="demo")}
+    )
 
 
 def test_dates_follow_the_rules_of_the_web_app():
@@ -196,3 +200,17 @@ def test_set_range_is_checked_as_the_module_checks_it():
     result = run(PLAN, {"op": "set_range", "scale": "month", "end": "2027-03-31"})
     assert (result.content["scale"], result.content["end"]) == ("month", "2027-03-31")
     assert "end before start" in fails(PLAN, {"op": "set_range", "end": "2026-09-01"})
+
+
+CASES = json.loads(
+    (Path(__file__).parents[2] / "frontend/src/modules/gantt/cleanup.fixtures.json").read_text()
+)
+
+
+@pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
+def test_the_clean_up_matches_the_web_app(case):
+    from app.domain.gantt_steps import _Plan
+
+    work = _Plan(case["before"], Context(today=TODAY))
+    work.clean()
+    assert work.content == case["after"]

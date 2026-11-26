@@ -14,6 +14,8 @@ SIZES: dict[str, tuple[float, float]] = {
     "frame": (480, 320),
     "shape": (160, 100),
     "timer": (40, 40),
+    # A Gantt as the web app adds it (frontend/src/modules/gantt/index.ts).
+    "module": (960, 320),
 }
 GAP = 40
 PER_ROW = 4

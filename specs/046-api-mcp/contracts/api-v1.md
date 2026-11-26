@@ -199,6 +199,11 @@ Before a call by a `full` key changes the words of, or removes, people's work, t
 - `frame`: `{"id": "f1"}` for an existing frame, which grows to hold the cards; `{"title": "..."}` to make one below what is on the board; absent to lay the cards out below what is on the board.
 - Only the named cards move. Answers like adding elements: the moved cards and the frame, with a new frame in `created`.
 
+### Gantts (spec 056)
+
+- `POST /api/v1/boards/{id}/modules` (write) `{id?, title?, start, end, scale?, x?, y?}` → `201`, the elements answer. An empty Gantt at 960×320, below the board when x/y are left out. It cannot sit in a frame.
+- `PATCH /api/v1/boards/{id}/modules/{module}` (write) `{steps: [{op, ...}]}`, up to 200 steps → `{rows, created: [{step, id}], kept}`. Steps apply in order, all or none; a failing one answers `422` with `step N (op): …`. Ops: `add_row`, `update_row`, `move_row`, `remove_row`, `set_range`. `rows` are the rows the call touched, in `read_gantt`'s shape; `kept` lists rows that follow their task and stayed when their branch shifted. A Gantt the key's person added through the API is the key's; a person's Gantt needs full access (`not_api_element` otherwise). Every change saves a copy of the board first, unless the newest copy already holds the Gantt as it stands.
+
 ## Tasks
 
 ### `POST /api/v1/tasks/search`
@@ -233,6 +238,8 @@ Streamable HTTP, JSON answers, the same key as `Authorization: Bearer`. `/api/mc
 | `update_elements(board, changes)` | write | idempotent | `PATCH /elements` |
 | `arrange(board, cards, layout, frame?, new_frame?, columns?, order?, fit?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
 | `remove_elements(board, ids)` | write | destructive, idempotent | `POST /elements/remove` |
+| `add_gantt(board, start, end, title?, scale?, x?, y?, id?)` | write | idempotent with an id | `POST /modules` |
+| `change_gantt(board, gantt, steps)` | write | destructive | `PATCH /modules/{module}` |
 | `list_copies(board)` | write | read-only | `GET /copies` |
 | `restore_copy(board, copy)` | full | destructive, idempotent | `POST /copies/{copy}/restore` |
 

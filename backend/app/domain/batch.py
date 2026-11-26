@@ -6,12 +6,12 @@ applied whole or not at all.
 """
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.domain import layout
+from app.domain import gantt_steps, layout
 from app.domain.boards import LABEL_MAX, CodeLanguage, Opacity, ShapeKind, TextSize
 from app.domain.errors import (
     Conflict,
@@ -23,6 +23,7 @@ from app.domain.errors import (
     VoteRunning,
 )
 from app.domain.live import repaired
+from app.domain.modules import validate_module
 
 Stored = dict[str, dict[str, Any]]
 
@@ -246,6 +247,26 @@ class Watch(BaseModel):
     status: str
 
 
+class NewGantt(BaseModel):
+    """An empty Gantt the API puts on the board (spec 056)."""
+
+    id: str
+    title: str = Field(default="", max_length=200)
+    start: date
+    end: date
+    scale: Literal["day", "week", "month", "quarter"] = "week"
+    x: float | None = _PLACE
+    y: float | None = _PLACE
+
+
+class GanttCall(BaseModel):
+    """Steps on one Gantt, with what the route resolved for them."""
+
+    module: str
+    steps: list[gantt_steps.Step]
+    context: gantt_steps.Context
+
+
 class Batch(BaseModel):
     """What one API call asks of a board; ids of new elements are set before it is planned."""
 
@@ -265,6 +286,8 @@ class Batch(BaseModel):
     by: str | None = None
     # A saved copy of the board to put back instead of any change.
     restore: str | None = None
+    new_gantt: NewGantt | None = None
+    gantt: GanttCall | None = None
 
 
 class Applied(BaseModel):
@@ -273,6 +296,7 @@ class Applied(BaseModel):
     removed: list[str] = []
     # People's elements and arrows the call changes the words of or removes; a copy comes first.
     overwrote: list[str] = []
+    gantt: gantt_steps.Result | None = None
 
 
 def iso(moment: datetime) -> str:
@@ -735,6 +759,56 @@ class _Plan:
             groups.setdefault(status(card_id), []).append(card_id)
         return [groups[name] for name in sorted(groups)]
 
+    def gantt(self) -> None:
+        new = self.batch.new_gantt
+        if new is not None:
+            self._new_gantt(new)
+        call = self.batch.gantt
+        if call is None:
+            return
+        node = self.nodes.get(call.module)
+        if node is None or node["type"] != "module" or node["data"].get("kind") != "gantt":
+            raise NotFound(f"gantt {call.module} not found")
+        self._own(call.module, "change")
+        # A plan collects people's edits even when a key made it: every change keeps a way back.
+        if call.module not in self.applied.overwrote:
+            self.applied.overwrote.append(call.module)
+        result = gantt_steps.apply(node["data"]["content"], call.steps, call.context)
+        self._put(call.module, {**node, "data": {**node["data"], "content": result.content}})
+        self.applied.ids.append(call.module)
+        self.applied.gantt = result
+
+    def _new_gantt(self, new: NewGantt) -> None:
+        if new.id in self.nodes or new.id in self.edges:
+            if new.id not in self.mine:
+                raise Conflict(f"{new.id} is taken on this board.")
+            self.applied.ids.append(new.id)
+            return
+        try:
+            content = validate_module(
+                "gantt",
+                {"start": new.start.isoformat(), "end": new.end.isoformat(), "scale": new.scale},
+            )
+        except ValueError as invalid:
+            raise ValidationFailed(str(invalid)) from None
+        width, height = layout.SIZES["module"]
+        self.order += 1
+        self._put(
+            new.id,
+            {
+                "type": "module",
+                "place": {"x": new.x or 0.0, "y": new.y or 0.0},
+                "size": {"width": width, "height": height},
+                "order": self.order,
+                "data": {"kind": "gantt", "title": new.title, "content": content},
+            },
+        )
+        if new.x is None:
+            self._place(None, [new.id])
+        self.applied.ids.append(new.id)
+        self.applied.created.append(new.id)
+        self.mine.add(new.id)
+
     def check(self) -> None:
         """Refuses a board the repair would still change: the batch must stand as planned."""
         good, kept, notes = repaired(self.nodes, self.edges, self.before, self.changed, self.locked)
@@ -752,7 +826,8 @@ def plan(
     nodes: Stored, edges: Stored, batch: Batch, locked: frozenset[str] = frozenset()
 ) -> tuple[Stored, Stored, Applied]:
     """The board after `batch`, and what to answer with. Raises when the batch cannot stand."""
-    count = len(batch.adds) + len(batch.changes) + len(batch.removes)
+    steps = len(batch.gantt.steps) if batch.gantt else 0
+    count = len(batch.adds) + len(batch.changes) + len(batch.removes) + steps
     if count > MAX_ELEMENTS:
         raise ValidationFailed(f"At most {MAX_ELEMENTS} elements a call.")
     # A node the document could not read stays out; the board's repair would drop it anyway.
@@ -761,5 +836,6 @@ def plan(
     work.add()
     work.change()
     work.arrange()
+    work.gantt()
     work.check()
     return work.nodes, work.edges, work.applied

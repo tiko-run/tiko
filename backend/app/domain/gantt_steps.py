@@ -6,7 +6,6 @@ the web app runs on every change (`GanttModule.tsx`: detachEdited, fitLeaves, sy
 module's own validation.
 """
 
-from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any, Literal
 
@@ -74,8 +73,7 @@ class Step(BaseModel):
         return self
 
 
-@dataclass
-class Resolved:
+class Resolved(BaseModel):
     """A step's task as the tracker answered: its key, tracker and dates, if it has any."""
 
     key: str
@@ -83,17 +81,18 @@ class Resolved:
     span: tuple[date, date] | None = None
 
 
-@dataclass
-class Context:
+class Context(BaseModel):
+    """What the route resolved for the steps; it crosses to the room's process with them."""
+
     today: date
     # By step index.
-    tasks: dict[int, Resolved] = field(default_factory=dict)
+    tasks: dict[int, Resolved] = {}
     # Field ids this key may set values of; None when Planning is off.
     fields: set[str] | None = None
 
 
-@dataclass
-class Result:
+class Result(BaseModel):
+    # Normalized as the board stores it.
     content: dict[str, Any]
     # Rows the steps touched, in plan order at the end.
     touched: list[str]
@@ -411,11 +410,13 @@ def apply(content: dict[str, Any], steps: list[Step], context: Context) -> Resul
         try:
             getattr(plan, step.op)(index, step)
             plan.clean()
-            validate_module("gantt", plan.content)
+            stored = validate_module("gantt", plan.content)
         except _Failed as failed:
             raise ValidationFailed(f"step {index} ({step.op}): {failed}") from None
         except ValueError as invalid:
             reason = str(invalid).removeprefix("gantt: ")
             raise ValidationFailed(f"step {index} ({step.op}): {reason}") from None
+    if not steps:
+        stored = validate_module("gantt", plan.content)
     order = [r["id"] for r in plan.rows if r["id"] in plan.touched]
-    return Result(plan.content, order, plan.created, plan.kept)
+    return Result(content=stored, touched=order, created=plan.created, kept=plan.kept)
