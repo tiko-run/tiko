@@ -64,12 +64,49 @@ test('custom fields match by their label and insert their id', async () => {
   expect(field.value).toBe('cf[10020] ')
 })
 
-test('values come from Jira and Enter inserts only after arrows', async () => {
+test('values come from Jira and Enter completes a half-typed word', async () => {
   const field = renderField()
   type(field, 'status = In')
   await screen.findByRole('option', { name: /In Progress/ })
-  fireEvent.keyDown(field, { key: 'ArrowDown' })
   fireEvent.keyDown(field, { key: 'Enter' })
+  expect(field.value).toBe('status = "In Progress" ')
+})
+
+test('Shift+Enter breaks the line and an IME confirmation is left alone', async () => {
+  const field = renderField()
+  type(field, 'status = In')
+  await screen.findByRole('option', { name: /In Progress/ })
+  fireEvent.keyDown(field, { key: 'Enter', isComposing: true })
+  expect(field.value).toBe('status = In')
+  const shift = fireEvent.keyDown(field, { key: 'Enter', shiftKey: true })
+  expect(shift).toBe(true)
+  expect(field.value).toBe('status = In')
+})
+
+test('Enter submits when the word is already whole or nothing is typed after it', async () => {
+  const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
+  function Form() {
+    const [value, setValue] = useState('')
+    return (
+      <form onSubmit={onSubmit}>
+        <JqlInput aria-label="Query" value={value} onValueChange={setValue} />
+      </form>
+    )
+  }
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <Form />
+    </QueryClientProvider>,
+  )
+  const field = screen.getByLabelText('Query') as HTMLTextAreaElement
+  type(field, 'status')
+  await screen.findByRole('option', { name: 'status' })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  expect(onSubmit).toHaveBeenCalledOnce()
+  type(field, 'status = "In Progress" ')
+  await screen.findByRole('option', { name: 'AND' })
+  fireEvent.keyDown(field, { key: 'Enter' })
+  expect(onSubmit).toHaveBeenCalledTimes(2)
   expect(field.value).toBe('status = "In Progress" ')
 })
 

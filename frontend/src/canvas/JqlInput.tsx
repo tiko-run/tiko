@@ -21,6 +21,9 @@ const KEY_START = /^[A-Za-z][A-Za-z0-9_]*-/
 
 type Suggestion = { insert: string; label: string }
 
+const sameWord = (a: string, b: string) =>
+  a.replace(/^"|"$/g, '').toLowerCase() === b.replace(/^"|"$/g, '').toLowerCase()
+
 /** Match count of a query, checked by its tracker while the user pauses typing. */
 export function useJqlCount(jql: string, enabled: boolean, source?: string) {
   const query = jql.trim()
@@ -89,16 +92,19 @@ type Props = Omit<ComponentProps<typeof Textarea>, 'value' | 'onChange'> & {
   /** Earlier inputs offered while the field is empty. */
   recent?: string[]
   onPickRecent?: (input: string) => void
+  /** Opens the list under the field instead of above it. */
+  listBelow?: boolean
   /** The tracker the query goes to, when not the instance's. */
   source?: string
 }
 
-/** Growing JQL field with suggestions: Tab inserts, arrows move, Enter inserts after arrows or submits, Shift+Enter breaks the line. */
+/** Growing JQL field with suggestions: Tab inserts, arrows move, Enter completes a half-typed word or submits, Shift+Enter breaks the line. */
 export function JqlInput({
   value,
   onValueChange,
   recent = [],
   onPickRecent,
+  listBelow = false,
   className,
   source,
   ...props
@@ -173,8 +179,20 @@ export function JqlInput({
     onValueChange(next.text)
   }
 
+  // A half-typed word with a suggestion that completes it: Enter takes the suggestion, like any
+  // autocomplete. A finished word, or nothing typed yet, leaves Enter to send the query.
+  const completes =
+    open &&
+    !picking &&
+    context.kind !== 'none' &&
+    context.token !== '' &&
+    !items.some((item) => sameWord(item.insert, context.token))
+
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    const submit = event.key === 'Enter' && !event.shiftKey && !(open && navigated)
+    // Enter that confirms an IME composition belongs to the input method, not to the list.
+    if (event.nativeEvent.isComposing) return
+    const pick = navigated || (completes && !event.shiftKey)
+    const submit = event.key === 'Enter' && !event.shiftKey && !(open && pick)
     if (submit) {
       event.preventDefault()
       event.currentTarget.form?.requestSubmit()
@@ -186,7 +204,7 @@ export function JqlInput({
       const step = event.key === 'ArrowDown' ? 1 : -1
       setHighlight((active + step + items.length) % items.length)
       setNavigated(true)
-    } else if (event.key === 'Tab' || (event.key === 'Enter' && navigated)) {
+    } else if (event.key === 'Tab' || (event.key === 'Enter' && pick)) {
       event.preventDefault()
       apply(items[active])
     } else if (event.key === 'Escape') {
@@ -195,7 +213,7 @@ export function JqlInput({
   }
 
   return (
-    // The list floats above the field, so the popover keeps its size while suggestions change.
+    // The list floats over the form, above or below the field, so the popover keeps its size while suggestions change.
     <div className="relative">
       <Textarea
         {...props}
@@ -224,7 +242,10 @@ export function JqlInput({
       />
       {open && (
         <Scroller
-          className="bg-popover text-popover-foreground absolute right-0 bottom-full left-0 z-10 mb-1 rounded-md border shadow-md"
+          className={cn(
+            'bg-popover text-popover-foreground absolute right-0 left-0 z-10 rounded-md border shadow-md',
+            listBelow ? 'top-full mt-1' : 'bottom-full mb-1',
+          )}
           viewportClassName="max-h-64 p-1"
         >
           <ul

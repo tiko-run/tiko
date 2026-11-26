@@ -35,7 +35,7 @@ function inherited(byId: Map<string, Row>, row: Row, field: string) {
 }
 
 /** One field's values match any of them, different fields must all match. */
-function leafMatches(row: Row, filters: Filters, byId: Map<string, Row>, planning: PlanningState) {
+function rowMatches(row: Row, filters: Filters, byId: Map<string, Row>, planning: PlanningState) {
   const people = (row.stages ?? []).flatMap((stage) => stage.people)
   return Object.entries(filters).every(([key, wanted]) => {
     if (key === PERSON) return people.some((id) => wanted.includes(id))
@@ -54,9 +54,9 @@ export function shownRows(content: GanttContent, planning: PlanningState): TreeR
   if (!filters) return all
   const byId = new Map(content.rows.map((r) => [r.id, r]))
   const keep = new Set<string>()
-  content.rows.forEach((row, i) => {
-    const leaf = content.rows[i + 1]?.parent !== row.id
-    if (!leaf || !leafMatches(row, filters, byId, planning)) return
+  // A parent is tested too: a team often owns the whole item, while its children carry their own.
+  content.rows.forEach((row) => {
+    if (!rowMatches(row, filters, byId, planning)) return
     for (let at: Row | undefined = row; at && !keep.has(at.id);) {
       keep.add(at.id)
       at = at.parent ? byId.get(at.parent) : undefined

@@ -112,12 +112,15 @@ export function AddCardForm({
   onDone,
   source,
   placeholder = 'DEMO-1, DEMO-2',
+  listBelow,
 }: {
   onAdd: (tasks: Task[]) => void
   onDone: () => void
   /** The tracker a query goes to, when not the instance's. */
   source?: string
   placeholder?: string
+  /** Suggestions open under the field, for a form that opens downwards. */
+  listBelow?: boolean
 }) {
   const [input, setInput] = useState('')
   const [recent, setRecent] = useState(() => readRecentInputs(source))
@@ -178,6 +181,7 @@ export function AddCardForm({
         }}
         source={source}
         placeholder={placeholder}
+        listBelow={listBelow}
         autoComplete="off"
         spellCheck={false}
         autoFocus
@@ -232,9 +236,11 @@ type CardTab = 'keys' | 'linear' | 'caldav'
 export function CardSources({
   onAdd,
   onDone,
+  listBelow,
 }: {
   onAdd: (tasks: Task[]) => void
   onDone: () => void
+  listBelow?: boolean
 }) {
   const caldav = useQuery({ queryKey: ['caldav'], queryFn: getCalDav })
   const tracker = useQuery({ queryKey: ['tracker'], queryFn: getTracker })
@@ -244,7 +250,7 @@ export function CardSources({
     ...(tracker.data?.tokens.linear === 'set' ? [['linear', 'Linear'] as [CardTab, string]] : []),
     ...(caldav.data?.state === 'set' ? [['caldav', 'CalDAV'] as [CardTab, string]] : []),
   ]
-  if (tabs.length === 1) return <AddCardForm onAdd={onAdd} onDone={onDone} />
+  if (tabs.length === 1) return <AddCardForm onAdd={onAdd} onDone={onDone} listBelow={listBelow} />
   return (
     <div className="flex flex-col gap-2">
       <ToggleGroup
@@ -270,9 +276,10 @@ export function CardSources({
           onDone={onDone}
           source="linear"
           placeholder="team = ENG AND cycle in openSprints()"
+          listBelow={listBelow}
         />
       ) : (
-        <AddCardForm key="keys" onAdd={onAdd} onDone={onDone} />
+        <AddCardForm key="keys" onAdd={onAdd} onDone={onDone} listBelow={listBelow} />
       )}
     </div>
   )
