@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { getSettings } from '@/api/settings'
 import type { Task } from '@/api/tasks'
 import { keepOpenWhileSuggesting } from '@/canvas/JqlInput'
+import { keepOpenWhileAsking } from '@/canvas/prefixQuestion'
 import { CardSources } from '@/canvas/Toolbar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,7 @@ export function GanttAdd({ disabled, onTasks, onPlain }: Props) {
         align="start"
         className="flex w-96 flex-col gap-2 p-2"
         onEscapeKeyDown={keepOpenWhileSuggesting}
+        onInteractOutside={keepOpenWhileAsking}
       >
         <div role="tablist" className="bg-muted flex gap-0.5 rounded-md p-0.5">
           {(

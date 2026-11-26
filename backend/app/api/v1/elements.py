@@ -1,5 +1,6 @@
 import re
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -181,6 +182,22 @@ def arrange(board_id: str, body: ArrangeIn, _: Writable, request: Request) -> Wr
 def list_copies(board_id: str, _: Writable, request: Request) -> CopyList:
     """Copies of the board tiko saved before a key with full access changed people's work, and
     before each restore, newest first."""
+    return copy_list(board_id, request)
+
+
+@router.post(
+    "/{board_id}/copies/{copy_id}/restore",
+    status_code=204,
+    dependencies=[Depends(full_budget)],
+)
+def restore_copy(board_id: str, copy_id: str, _: Writable, request: Request) -> Response:
+    """Puts the board back as the copy has it, for everyone at once. The board as it is now is
+    saved first, so a restore can be undone the same way. Needs a key with full access."""
+    restore(board_id, copy_id, request)
+    return Response(status_code=204)
+
+
+def copy_list(board_id: str, request: Request) -> CopyList:
     found = request.app.state.copies.list(board_id)
     return CopyList(
         copies=[
@@ -192,19 +209,11 @@ def list_copies(board_id: str, _: Writable, request: Request) -> CopyList:
     )
 
 
-@router.post(
-    "/{board_id}/copies/{copy_id}/restore",
-    status_code=204,
-    dependencies=[Depends(full_budget)],
-)
-def restore_copy(board_id: str, copy_id: str, _: Writable, request: Request) -> Response:
-    """Puts the board back as the copy has it, for everyone at once. The board as it is now is
-    saved first, so a restore can be undone the same way. Needs a key with full access."""
+def restore(board_id: str, copy_id: str, request: Request) -> None:
     if request.app.state.copies.get(board_id, copy_id) is None:
         raise NotFound("copy not found")
     person = deps.current_person(request)
     request.app.state.live.apply(board_id, Batch(restore=copy_id, by=person.id))
-    return Response(status_code=204)
 
 
 def _write(board_id: str, batch: Batch, request: Request, answer: bool = True) -> Written:
@@ -256,7 +265,7 @@ def _cards(adds: list[NewElement], request: Request) -> dict[str, CardRef]:
     tracker = deps.tracker(request)
     found: dict[str, CardRef] = {}
     for element_id, ref in wanted:
-        source, key = _parse(ref or "", providers, tracker)
+        source, key = _parse(ref or "", providers, tracker, deps.prefix_choice(request))
         found[element_id] = CardRef(source=source, key=key)
     snapshots = deps.snapshots(request)
     for source in {card.source for card in found.values()}:
@@ -298,7 +307,9 @@ def _reminders(
     for element in watching:
         card_id = element.on
         if card_id is None:
-            source, key = _parse(element.ref or "", deps.providers(request), tracker)
+            source, key = _parse(
+                element.ref or "", deps.providers(request), tracker, deps.prefix_choice(request)
+            )
             matches = [i for i, (s, k) in shown.items() if (s or tracker, k) == (source, key)]
             if len(matches) != 1:
                 which = "no card" if not matches else "several cards"
@@ -308,7 +319,9 @@ def _reminders(
             raise ValidationFailed(f"{element.id}: a status reminder sits on a task card.")
         source, key = shown[card_id]
         if element.ref and element.on is not None:
-            wanted = _parse(element.ref, deps.providers(request), tracker)
+            wanted = _parse(
+                element.ref, deps.providers(request), tracker, deps.prefix_choice(request)
+            )
             if wanted != (source or tracker, key):
                 raise ValidationFailed(f"{element.id}: card {card_id} does not show {element.ref}.")
         status = element.status or _status_now(source or tracker, key, request)
@@ -329,11 +342,19 @@ def _status_now(source: str, key: str, request: Request) -> str:
     return found[0].status_name
 
 
-def _parse(ref: str, providers: dict, tracker: str) -> tuple[str, str]:
+def _parse(
+    ref: str,
+    providers: dict,
+    tracker: str,
+    chosen: Callable[[str], str | None] | None = None,
+) -> tuple[str, str]:
     if match := _EXPLICIT.match(ref.strip()):
         source, key = match.group(1), match.group(2)
+        # `linear:ENG-12` names the tracker of a bare key; the workspace is the person's own.
+        if source in providers and not valid_key(source, key):
+            source, key = route_ref(key, providers, tracker, source=source)
     else:
-        source, key = route_ref(ref, providers, tracker)
+        source, key = route_ref(ref, providers, tracker, chosen)
     if source not in providers:
         raise InvalidRef(f"This tiko does not read {source}.")
     if not valid_key(source, key):

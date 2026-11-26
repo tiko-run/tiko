@@ -9,7 +9,14 @@ from app.domain.caldav import CalDavSource, NoCalDav
 from app.domain.errors import Forbidden, JiraNotConfigured, ValidationFailed
 from app.domain.invites import Invites
 from app.domain.members import BoardRole, Members
-from app.domain.ports import BoardRepo, DemoTasks, LiveBoards, SnapshotRepo, TaskProvider
+from app.domain.ports import (
+    BoardRepo,
+    DemoTasks,
+    LiveBoards,
+    PrefixChoiceRepo,
+    SnapshotRepo,
+    TaskProvider,
+)
 from app.domain.public import PublicLinks
 from app.domain.refresh import RefreshService
 from app.domain.sessions import Sessions
@@ -74,6 +81,16 @@ def providers(request: Request) -> dict[str, TaskProvider]:
             jira = jira_not_connected(settings.base_url(), exc)
         found[jira.source_id] = jira
     return found
+
+
+def prefix_choices(request: Request) -> PrefixChoiceRepo:
+    return request.app.state.prefix_choices
+
+
+def prefix_choice(request: Request) -> Callable[[str], str | None]:
+    """The tracker the person chose for a key prefix two of their trackers know."""
+    person = current_person(request)
+    return lambda prefix: prefix_choices(request).get(person.id, prefix)
 
 
 def token_checks(request: Request) -> Mapping[str, Callable[[str], str]]:

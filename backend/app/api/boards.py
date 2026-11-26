@@ -15,6 +15,7 @@ from app.api.deps import (
     MembersDep,
     NotDemoVisitor,
 )
+from app.api.v1.elements import CopyList, copy_list, restore
 from app.domain import boards as service
 from app.domain.boards import BoardDoc, BoardName, BoardSummary, BoardView
 from app.domain.demo import board_limit
@@ -194,6 +195,21 @@ def delete_board(
 @router.post("/{board_id}/restore", status_code=204)
 def restore_board(board_id: str, person: CurrentPerson, boards: Boards) -> Response:
     service.restore_board(person, board_id, boards)
+    return Response(status_code=204)
+
+
+@router.get("/{board_id}/copies")
+def list_copies(board_id: str, _: CanEdit, request: Request) -> CopyList:
+    """Copies saved before a key with full access changed people's work, and before each
+    restore, newest first."""
+    return copy_list(board_id, request)
+
+
+@router.post("/{board_id}/copies/{copy_id}/restore", status_code=204)
+def restore_copy(board_id: str, copy_id: str, _: CanEdit, request: Request) -> Response:
+    """Puts the board back as the copy has it, for everyone at once; the board as it is now is
+    saved first."""
+    restore(board_id, copy_id, request)
     return Response(status_code=204)
 
 

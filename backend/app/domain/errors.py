@@ -32,6 +32,16 @@ class InvalidJql(DomainError):
     code = "invalid_jql"
 
 
+class AmbiguousKey(DomainError):
+    """A bare key whose prefix two of the person's trackers know, with no choice remembered."""
+
+    code = "ambiguous_key"
+
+    def __init__(self, message: str, prefix: str, sources: list[str]) -> None:
+        super().__init__(message)
+        self.details = {"prefix": prefix, "sources": sources}
+
+
 class HostMismatch(DomainError):
     code = "host_mismatch"
 

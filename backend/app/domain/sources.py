@@ -4,13 +4,14 @@ A new tracker is an adapter, one `Source` here and one line where `api/deps.py` 
 providers. Nothing else in `api/` or `domain/` asks which tracker a key belongs to.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 from urllib.parse import urlparse
 
-from app.domain.errors import DomainError, InvalidRef, ValidationFailed
-from app.domain.ports import SnapshotRepo, TaskProvider
+from app.domain.errors import AmbiguousKey, DomainError, InvalidRef, ValidationFailed
+from app.domain.ports import KnowsPrefixes, SnapshotRepo, TaskProvider
 from app.domain.tasks import (
     CALDAV,
     GITHUB,
@@ -63,6 +64,8 @@ class Source:
     readable_key: bool = True
     # How a search reaches it: a query in the tracker's terms, words of the title, or not at all.
     search: Literal["query", "titles"] | None = "query"
+    # Whether its keys start with a project or team key a bare key like `ENG-12` may name.
+    prefixes: bool = False
 
 
 SOURCES: dict[str, Source] = {
@@ -74,8 +77,9 @@ SOURCES: dict[str, Source] = {
             guest_link=_jira_link,
             credential="jira",
             usage="jira_dc",
+            prefixes=True,
         ),
-        Source(id="demo", name="the demo tracker", usage="demo"),
+        Source(id="demo", name="the demo tracker", usage="demo", prefixes=True),
         Source(
             id=CALDAV,
             name="CalDAV",
@@ -105,6 +109,7 @@ SOURCES: dict[str, Source] = {
             token_url="https://api.linear.app",
             usage=LINEAR,
             search=None,
+            prefixes=True,
         ),
     )
 }
@@ -124,6 +129,20 @@ def readable_key(source: str | None) -> bool:
 def guest_link(source: str, key: str, base_url: str | None) -> str:
     found = SOURCES.get(source)
     return found.guest_link(key, base_url) if found else ""
+
+
+PREFIX_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,29}$")
+
+
+def prefix_choice(prefix: str, source: str) -> tuple[str, str]:
+    """A remembered choice as stored: a key prefix and a tracker whose keys have one."""
+    prefix = prefix.strip().upper()
+    if not PREFIX_RE.match(prefix):
+        raise ValidationFailed("prefix: expected a project or team key like ENG")
+    found = SOURCES.get(source)
+    if found is None or not found.prefixes:
+        raise ValidationFailed(f"source: {source} has no key prefixes")
+    return prefix, source
 
 
 def credential_kinds() -> list[str]:
@@ -149,21 +168,97 @@ def jira_not_connected(base_url: str | None, reason: DomainError) -> NotConnecte
     )
 
 
-def route_ref(ref: str, providers: dict[str, TaskProvider], default_source: str) -> tuple[str, str]:
+def route_ref(
+    ref: str,
+    providers: dict[str, TaskProvider],
+    default_source: str,
+    chosen: Callable[[str], str | None] | None = None,
+    source: str | None = None,
+) -> tuple[str, str]:
     """The tracker and the key a typed ref or a link names: a link or key only one tracker
-    uses goes to it on any instance, everything else to the instance's tracker."""
-    for source in SOURCES.values():
-        if source.own_ref and source.id in providers and (key := source.own_ref(ref)):
-            return source.id, key
+    uses goes to it on any instance; a bare key to the tracker that knows its prefix, or the
+    one the person chose; everything else to the instance's tracker."""
+    if source is not None:
+        return _named(ref, source, providers, default_source)
+    for found in SOURCES.values():
+        if found.own_ref and found.id in providers and (key := found.own_ref(ref)):
+            return found.id, key
     if default_source not in providers:
         raise InvalidRef(f"This tiko does not read {default_source}.")
+    if claim := _by_prefix(ref, providers, default_source, chosen):
+        return claim
     return default_source, parse_ref(ref, providers[default_source].base_host)
 
 
+def _named(
+    ref: str, source: str, providers: dict[str, TaskProvider], default_source: str
+) -> tuple[str, str]:
+    """A ref sent with the tracker it belongs to, as after the prefix dialog."""
+    provider = providers.get(source)
+    if provider is None:
+        raise InvalidRef(f"This tiko does not read {source}.")
+    found = SOURCES.get(source)
+    if found and found.own_ref and (key := found.own_ref(ref)):
+        return source, key
+    if source == default_source:
+        return source, parse_ref(ref, provider.base_host)
+    identifier = ref.strip().upper()
+    if isinstance(provider, KnowsPrefixes) and KEY_RE.match(identifier):
+        return source, provider.key_for(identifier)
+    raise InvalidRef(f"{ref} is not a {found.name if found else source} task.")
+
+
+def _by_prefix(
+    ref: str,
+    providers: dict[str, TaskProvider],
+    default_source: str,
+    chosen: Callable[[str], str | None] | None,
+) -> tuple[str, str] | None:
+    """The tracker of a bare key like `ENG-12` when a tracker besides the instance's knows the
+    prefix; None leaves it to the instance's tracker, with no question asked of any."""
+    identifier = ref.strip().upper()
+    if not KEY_RE.match(identifier):
+        return None
+    prefix = identifier.rpartition("-")[0]
+    # Only trackers a person connects with a credential of their own claim a bare key from the
+    # instance's tracker; the demo tasks every request can read never do. Such a tracker that
+    # cannot be asked claims nothing: while Linear is down a question on every Jira key would
+    # stop everyone, and `linear:ENG-12` still reaches it.
+    known = [
+        p
+        for sid, p in providers.items()
+        if sid != default_source
+        and sid in SOURCES
+        and SOURCES[sid].credential
+        and isinstance(p, KnowsPrefixes)
+        and p.has_prefix(prefix)
+    ]
+    if not known:
+        return None
+    default = providers[default_source]
+    # A tracker that could not be asked may still know the prefix, so it stays a choice.
+    default_knows = default.has_prefix(prefix) if isinstance(default, KnowsPrefixes) else False
+    claims: dict[str, KnowsPrefixes] = {p.source_id: p for p in known}
+    if default_knows is not False and isinstance(default, KnowsPrefixes):
+        claims = {default_source: default, **claims}
+    pick = next(iter(claims)) if len(claims) == 1 else (chosen(prefix) if chosen else None)
+    if pick in claims:
+        return pick, claims[pick].key_for(identifier)
+    names = " and ".join(SOURCES[s].name if s in SOURCES else s for s in claims)
+    # The short form: `linear:ENG-12` takes the person's own workspace, with no request here.
+    refs = " or ".join(f"{s}:{identifier}" for s in claims)
+    raise AmbiguousKey(f"{prefix} is known to {names}: write {refs}.", prefix, list(claims))
+
+
 def resolve_task(
-    ref: str, providers: dict[str, TaskProvider], default_source: str, snapshots: SnapshotRepo
+    ref: str,
+    providers: dict[str, TaskProvider],
+    default_source: str,
+    snapshots: SnapshotRepo,
+    chosen: Callable[[str], str | None] | None = None,
+    source: str | None = None,
 ) -> Task:
-    source, key = route_ref(ref, providers, default_source)
+    source, key = route_ref(ref, providers, default_source, chosen, source)
     task = providers[source].resolve(key)
     snapshots.put_many([task])
     return task

@@ -1,6 +1,7 @@
 import hashlib
 import html
 import re
+import threading
 import time
 from collections.abc import Callable
 from typing import NamedTuple
@@ -26,6 +27,12 @@ FIELDS = ["summary", "status", "issuetype", "assignee", "priority", "updated", D
 # in the order they are tried.
 START_NAMES = ("start date", "target start")
 DATE_TYPES = ("date", "datetime")
+# A project key a token's Jira knows, or does not, is asked again after this long.
+PREFIX_TTL_S = 3600
+PREFIX_MISS_TTL_S = 600
+# Answers kept across all people, and locks the lookups share.
+PREFIX_ANSWERS = 5000
+PREFIX_LOCKS = 64
 # A site's fields change only when an admin adds one.
 DATE_FIELDS_TTL_S = 600
 SEARCH_CHUNK = 500
@@ -65,6 +72,37 @@ class JiraDateFields:
 
     def put(self, base_url: str, fields: list[DateField]) -> None:
         self._sites[base_url] = (time.monotonic() + DATE_FIELDS_TTL_S, fields)
+
+
+class JiraPrefixes:
+    """Which project keys each token's Jira knows, kept across the providers built per request."""
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        self._clock = clock
+        self._known: dict[tuple[str, str], tuple[float, bool]] = {}
+        self._guard = threading.Lock()
+        # A fixed set of locks shared by hash: bounded, and never dropped while someone waits.
+        self._locks = [threading.Lock() for _ in range(PREFIX_LOCKS)]
+
+    def lock(self, site: str, prefix: str) -> threading.Lock:
+        """One lookup per project key at a time: keys pasted together share its answer."""
+        return self._locks[hash((site, prefix)) % PREFIX_LOCKS]
+
+    def get(self, site: str, prefix: str) -> bool | None:
+        cached = self._known.get((site, prefix))
+        return cached[1] if cached and cached[0] > self._clock() else None
+
+    def put(self, site: str, prefix: str, known: bool) -> None:
+        now = self._clock()
+        ttl = PREFIX_TTL_S if known else PREFIX_MISS_TTL_S
+        with self._guard:
+            if len(self._known) >= PREFIX_ANSWERS:
+                self._known = {k: v for k, v in self._known.items() if v[0] > now}
+            # Still full of live answers: the oldest half goes, so the cache stays bounded.
+            if len(self._known) >= PREFIX_ANSWERS:
+                kept = sorted(self._known.items(), key=lambda item: item[1][0])
+                self._known = dict(kept[len(kept) // 2 :])
+            self._known[(site, prefix)] = (now + ttl, known)
 
 
 def start_fields(fields: list[DateField], chosen: str | None) -> list[str]:
@@ -149,19 +187,44 @@ class JiraDcProvider:
         credentials: Callable[[], JiraCredentials],
         client: httpx.Client,
         date_fields: JiraDateFields | None = None,
+        prefixes: JiraPrefixes | None = None,
     ) -> None:
         self._credentials = credentials
         self._client = client
         self._vocabulary: tuple[str, float, JqlVocabulary] | None = None
         self._date_fields = date_fields or JiraDateFields()
+        self._prefixes = prefixes or JiraPrefixes()
+
+    def _site(self) -> str:
+        """The site and the token's hash, never the token: what one token sees stays its own."""
+        creds = self._credentials()
+        token = hashlib.sha256(creds.token.get_secret_value().encode()).hexdigest()[:16]
+        return f"{creds.base_url} {token}"
+
+    def has_prefix(self, prefix: str) -> bool | None:
+        """Whether the token sees a project with this key; None when Jira could not be asked."""
+        site = self._site()
+        with self._prefixes.lock(site, prefix):
+            cached = self._prefixes.get(site, prefix)
+            if cached is not None:
+                return cached
+            try:
+                _, response = self._request("GET", f"/rest/api/2/project/{quote(prefix)}")
+            except (JiraUnauthorized, JiraRateLimited, JiraUnavailable):
+                return None
+            if response.status_code not in (200, 404):
+                return None
+            known = response.status_code == 200
+            self._prefixes.put(site, prefix, known)
+            return known
+
+    def key_for(self, identifier: str) -> str:
+        return identifier
 
     def date_fields(self) -> list[DateField]:
         """The site's date fields this token sees; none when Jira does not list them, so tasks
         still load."""
-        creds = self._credentials()
-        # The token's hash, never the token, keys the cache: one person's fields stay theirs.
-        token = hashlib.sha256(creds.token.get_secret_value().encode()).hexdigest()[:16]
-        site = f"{creds.base_url} {token}"
+        site = self._site()
         cached = self._date_fields.get(site)
         if cached is not None:
             return cached

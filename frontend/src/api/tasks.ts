@@ -28,11 +28,35 @@ export const taskSchema = z.object({
 
 export type Task = z.infer<typeof taskSchema>
 
-export function resolveTask(ref: string) {
+/** `source` names the tracker of a bare key whose prefix two trackers know. */
+export function resolveTask(ref: string, source?: string) {
   return fetchJson('/api/tasks/resolve', z.object({ task: taskSchema }), {
     method: 'POST',
-    body: JSON.stringify({ ref }),
+    body: JSON.stringify(source ? { ref, source } : { ref }),
   }).then((body) => body.task)
+}
+
+const prefixChoicesSchema = z.object({
+  choices: z.array(z.object({ prefix: z.string(), source: z.string() })),
+})
+export type PrefixChoices = z.infer<typeof prefixChoicesSchema>
+
+/** Which tracker a bare key goes to when two of the person's trackers know its prefix. */
+export function getPrefixChoices() {
+  return fetchJson('/api/me/key-prefixes', prefixChoicesSchema)
+}
+
+export function choosePrefix(prefix: string, source: string) {
+  return fetchJson(`/api/me/key-prefixes/${encodeURIComponent(prefix)}`, prefixChoicesSchema, {
+    method: 'PUT',
+    body: JSON.stringify({ source }),
+  })
+}
+
+export function forgetPrefix(prefix: string) {
+  return fetchJson(`/api/me/key-prefixes/${encodeURIComponent(prefix)}`, z.null(), {
+    method: 'DELETE',
+  })
 }
 
 export function searchTasks(jql: string, limit: number) {

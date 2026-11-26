@@ -40,6 +40,9 @@ class FakeLinear:
         self.headers: dict[str, str] = {}
         self.status: int | None = None
         self.requests: list[httpx.Request] = []
+        # The person's team keys, answered a page of `team_page` at a time.
+        self.teams = ["ENG"]
+        self.team_page = 250
 
     def _answer(self, body: dict, status: int = 200) -> httpx.Response:
         return httpx.Response(status, json=body, headers=self.headers)
@@ -59,6 +62,13 @@ class FakeLinear:
         if "viewer" in query:
             org = {"name": "Acme", "urlKey": WORKSPACE, "previousUrlKeys": ["acme-old"]}
             return self._answer({"data": {"viewer": {"name": "Ada Lovelace"}, "organization": org}})
+        if "teams(" in query:
+            start = int(variables.get("after") or 0)
+            page = self.teams[start : start + self.team_page]
+            more = start + self.team_page < len(self.teams)
+            info = {"hasNextPage": more, "endCursor": str(start + self.team_page) if more else None}
+            nodes = [{"key": k} for k in page]
+            return self._answer({"data": {"teams": {"nodes": nodes, "pageInfo": info}}})
         if "issues(" in query:
             found = [self.issues[i] for i in variables["ids"] if i in self.issues]
             return self._answer({"data": {"issues": {"nodes": found}}})

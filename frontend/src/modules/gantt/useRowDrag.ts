@@ -173,7 +173,8 @@ export function useRowDrag({
       d.target?.fits === target?.fits &&
       d.target?.aboveId === target?.aboveId &&
       d.outside === outside &&
-      store.layout?.hidden.size === lifted.length
+      store.layout?.hidden.size === lifted.length &&
+      store.ghost?.count === moving.size
     d.target = target
     d.outside = outside
     d.rowsKey = rowsKey
@@ -182,7 +183,8 @@ export function useRowDrag({
       rows: lifted,
       startDepth: d.startDepth,
       outside,
-      count: d.ids.length,
+      // Rows under a picked parent go too, folded ones included.
+      count: moving.size,
     })
     // The ghost appears with the first layout: place it as soon as it is there.
     place()

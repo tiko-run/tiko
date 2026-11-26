@@ -18,4 +18,4 @@ description: "Task list for a key with full rights and saved copies"
 
 ## Phase 2: Slice `feat/board-copies`
 
-- [ ] T008 Board menu: Saved copies, list and restore with a confirmation; ships in the same release as phase 1
+- [x] T008 Board menu: Saved copies, list and restore with a confirmation; ships in the same release as phase 1

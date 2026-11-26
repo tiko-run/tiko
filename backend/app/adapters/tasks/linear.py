@@ -2,6 +2,7 @@
 
 import math
 import re
+import threading
 import time
 from collections.abc import Callable
 from typing import NoReturn
@@ -10,6 +11,7 @@ import httpx
 
 from app.adapters.tasks.readers import PersonalReaders
 from app.domain.errors import (
+    DomainError,
     LinearRejected,
     TaskNotFound,
     TrackerRateLimited,
@@ -59,6 +61,14 @@ _ISSUES = (
 )
 _ISSUE = "query($id: String!) { issue(id: $id) {" + _ISSUE_FIELDS + "} }"
 _VIEWER = "{ viewer { name } organization { name urlKey previousUrlKeys } }"
+_TEAMS = (
+    "query($after: String) { teams(first: 250, after: $after) {"
+    " nodes { key } pageInfo { hasNextPage endCursor } } }"
+)
+# Pages of teams read at most, so a broken cursor cannot loop.
+TEAM_PAGES = 20
+# After Linear failed to list the teams, bare keys skip it for this long.
+TEAMS_RETRY_S = 60
 
 _CATEGORY: dict[str, StatusCategory] = {
     "triage": "new",
@@ -224,6 +234,11 @@ class LinearProvider:
         self._clock = clock
         # The workspace's slug and its old ones, with when they were read.
         self._workspaces: tuple[set[str], float] = (set(), 0.0)
+        self._slug = ""
+        # The person's team keys, with when they were read.
+        self._teams: tuple[set[str], float] = (set(), 0.0)
+        self._teams_lock = threading.Lock()
+        self._teams_failed_until = 0.0
         # By a card's identifier: the last answer, when it was read (ISO) and when (clock).
         self._seen: dict[str, tuple[dict, str, float]] = {}
         # A card's identifier after its issue moved to another team: the issue's new one.
@@ -239,6 +254,7 @@ class LinearProvider:
         except (KeyError, TypeError) as exc:
             raise TrackerUnavailable("Linear returned an unexpected response.") from exc
         self._workspaces = ({str(s).lower() for s in slugs}, self._clock())
+        self._slug = str(org["urlKey"]).lower()
         return {"viewer": viewer, "organization": org}
 
     def _mine(self, workspace: str) -> bool:
@@ -247,6 +263,44 @@ class LinearProvider:
             self._viewer()
             slugs = self._workspaces[0]
         return workspace in slugs
+
+    def has_prefix(self, prefix: str) -> bool | None:
+        """Whether one of the person's teams has this key; None when Linear could not be asked."""
+        # Keys pasted together are resolved at once: one read of the teams serves them all.
+        with self._teams_lock:
+            now = self._clock()
+            if now < self._teams_failed_until:
+                return None
+            teams, read_at = self._teams
+            if not read_at or now - read_at > VIEWER_S:
+                try:
+                    teams = self._team_keys()
+                except DomainError:
+                    # Every bare key would wait for Linear again; a Jira key goes on meanwhile.
+                    self._teams_failed_until = now + TEAMS_RETRY_S
+                    return None
+                self._teams = (teams, self._clock())
+        return prefix in teams
+
+    def _team_keys(self) -> set[str]:
+        keys: set[str] = set()
+        after = None
+        for _ in range(TEAM_PAGES):
+            data, _ = self._api.query(_TEAMS, {"after": after})
+            page = (data or {}).get("teams") or {}
+            keys |= {
+                t["key"] for t in page.get("nodes") or [] if isinstance(t, dict) and t.get("key")
+            }
+            info = page.get("pageInfo") or {}
+            after = info.get("endCursor")
+            if not info.get("hasNextPage") or not after:
+                break
+        return keys
+
+    def key_for(self, identifier: str) -> str:
+        if not self._slug or self._clock() - self._workspaces[1] > VIEWER_S:
+            self._viewer()
+        return f"{self._slug}/{identifier}"
 
     def check(self) -> str:
         data = self._viewer()

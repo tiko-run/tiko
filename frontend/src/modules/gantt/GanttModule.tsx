@@ -105,6 +105,7 @@ import {
   liftRemove,
   foldAll,
   moveRows,
+  movingRows,
   outdent,
   shiftBranch,
   branchSpan,
@@ -312,15 +313,17 @@ export function GanttModule({
       ),
     )
   }
-  // Rows dropped on the board go in a column from the drop point, in plan order.
+  // Rows dropped on the board go in a column from the drop point, in plan order; a parent takes
+  // its branch along, as it does when dragged inside the plan.
   const eject = (ids: string[], screen: XYPosition) => {
     const zoom = getZoom()
+    const { moving } = movingRows(content.rows, ids)
     let next = content
     // Where the next one starts; a card hangs from its point, a note is centred on it.
     let top: number | null = null
-    ids.forEach((id) => {
-      const row = content.rows.find((r) => r.id === id)
-      if (!row) return
+    content.rows.forEach((row) => {
+      if (!moving.has(row.id)) return
+      const id = row.id
       const task = rowTask(row)
       const half = (EJECTED.note / 2) * zoom
       const y = top === null ? screen.y : task ? top : top + half

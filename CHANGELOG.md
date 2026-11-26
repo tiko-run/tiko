@@ -6,8 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
-- Let your AI agent keep the whole board, not just what it added: a key with full access renames your frames, fixes the words of notes and clears old elements on boards you can edit. tiko saves a copy of the board before the key changes people's work, and the board goes back to it in one call. An admin turns it on in Settings → Sharing. See [API keys](https://docs.tiko.run/api-keys/).
-- Put your Linear issues on a board: paste an issue's link and it becomes a live card with its status, priority, labels, project and cycle, read with your own Linear API key. Teammates see a card only with a key of their own, and guests of a public link see just its identifier. See [Linear](https://docs.tiko.run/linear/).
+- Let your AI agent keep the whole board, not just what it added: a key with full access renames your frames, fixes the words of notes and clears old elements on boards you can edit. tiko saves a copy of the board before the key changes people's work, and you put the board back from Saved copies in the board menu, no agent needed. An admin turns it on in Settings → Sharing. See [API keys](https://docs.tiko.run/api-keys/).
+- Put your Linear issues on a board: paste an issue's link and it becomes a live card with its status, priority, labels, project and cycle, read with your own Linear API key. Teammates see a card only with a key of their own, and guests of a public link see just its identifier. Typing just `ENG-12` works too: it goes to the tracker that knows `ENG`, and when Jira and Linear both do, tiko asks once and can remember your answer. See [Linear](https://docs.tiko.run/linear/).
 - Say what an arrow means, "blocks" or "waits for API", right on the arrow: double-click it and type. The label rides along when things move, slides along the arrow when two of them crowd one spot, stays level on any bend, and takes a fill and a size from the bar above it. Search finds labels, and your scripts and AI agent can read and write them on the arrows they draw. See [Arrow labels](https://docs.tiko.run/on-the-board/#arrow-labels).
 
 ### Changed
@@ -18,6 +18,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- A parent row dragged out of a Gantt onto the board now takes its children along as cards and notes, in plan order, instead of leaving them behind in the plan.
 - A reminder no longer flies off its note when your AI agent moves both at once: a reminder now goes wherever its element goes, and the agent can hang it on another element, free it, or put a free one in a frame.
 - With `DATABASE_URL` pointing at a Postgres server of your own, Update now in About no longer runs with a backup of the unused local database and a rollback that would restore it instead of yours. It stops before it touches anything, and About says to back up your server and update with the installer.
 - Importing a board whose Gantt has stages with no type no longer warns that stages arrived without their types, and the import report shows one Planning button instead of one per note.

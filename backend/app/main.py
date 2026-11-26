@@ -31,7 +31,7 @@ from app.adapters.tasks.caldav import CalDavReaders, Resolver, resolve_host
 from app.adapters.tasks.demo import DemoTaskProvider
 from app.adapters.tasks.github import GitHubReaders
 from app.adapters.tasks.jira_cloud import JiraCloudProvider
-from app.adapters.tasks.jira_dc import JiraDateFields, JiraDcProvider
+from app.adapters.tasks.jira_dc import JiraDateFields, JiraDcProvider, JiraPrefixes
 from app.adapters.tasks.jira_kind import find_kind
 from app.adapters.tasks.linear import LinearReaders
 from app.adapters.updater.http import HttpUpdater, ensure_token
@@ -402,6 +402,7 @@ def create_app(
     register_error_handlers(app)
 
     app.state.snapshots = storage.SnapshotRepo(db)
+    app.state.prefix_choices = storage.PrefixChoiceRepo(db)
     box = FernetSecretBox(key) if key else NullSecretBox()
     app.state.refresher = RefreshService()
 
@@ -461,10 +462,11 @@ def create_app(
     app.state.demo = DemoTaskProvider(storage.DemoStatusRepo(db) if settings.tiko_demo else None)
 
     jira_date_fields = JiraDateFields()
+    jira_prefixes = JiraPrefixes()
 
     def jira(creds: JiraCredentials) -> JiraDcProvider:
         kind = JiraCloudProvider if creds.kind == "cloud" else JiraDcProvider
-        return kind(lambda: creds, client, jira_date_fields)
+        return kind(lambda: creds, client, jira_date_fields, jira_prefixes)
 
     # Built per request from the signed-in person's own token.
     app.state.jira = jira

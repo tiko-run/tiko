@@ -10,6 +10,7 @@ import { NoWorkspace } from '@/auth/NoWorkspace'
 import { NewPassword } from '@/auth/NewPassword'
 import { SignIn } from '@/auth/SignIn'
 import { SettingsDialog } from '@/settings/SettingsDialog'
+import { PrefixDialog } from '@/canvas/PrefixDialog'
 import { AboutButton } from '@/board/AboutButton'
 import { GettingStarted } from '@/onboarding/GettingStarted'
 import { UpdateBanner } from '@/board/UpdateBanner'
@@ -270,6 +271,7 @@ export default function App() {
       {signedIn && <UpdatedNotice />}
       {serverAdmin && <UpdateBanner />}
       {signedIn && <SettingsDialog />}
+      {signedIn && <PrefixDialog />}
     </main>
   )
 }

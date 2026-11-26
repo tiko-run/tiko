@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.config import Settings
+from app.domain.workspaces import current_workspace
 from app.main import create_app
 from tests.conftest import signed_in
 from tests.test_files import picture
@@ -114,6 +115,13 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
             f"/api/boards/{board_id}/votes/{round_id}/ballot", json={"element": "note", "delta": 1}
         )
     )
+    # Copies come from a key with full access, which a demo instance offers none of.
+    token_ws = current_workspace.set(me["workspace"]["id"])
+    try:
+        copies = client.app.state.copies
+        copy_id = copies.add(board_id, client.app.state.boards.get(board_id).doc, None, "key")
+    finally:
+        current_workspace.reset(token_ws)
     trashed = ok(client.post("/api/boards", json={"name": f"trashed-{tag}"}))["id"]
     assert client.delete(f"/api/boards/{trashed}").is_success
     return {
@@ -130,9 +138,11 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         "file_id": file_id,
         "sticker_id": sticker["id"],
         "round_id": round_id,
+        "copy_id": copy_id,
         # A demo instance offers no API keys, so there is none to aim at.
         "key_id": "none",
         "code": "1f525",
+        "prefix": "CORE",
         "token": token,
         "workspace": me["workspace"]["id"],
         "markers": [
@@ -245,7 +255,7 @@ def test_nothing_of_a_trashed_board_reaches_anyone(app):
         own["server"] = client is admin
         target = {name: "nope" for name in ("person_id", "off_id", "type_id", "field_id")}
         target |= {"view_id": "nope", "invite_id": "nope", "key": "DEMO-1", "file_id": "nope"}
-        target |= {"sticker_id": "nope", "round_id": "nope", "code": "1f525"}
+        target |= {"sticker_id": "nope", "round_id": "nope", "copy_id": "nope", "code": "1f525"}
         target |= own | {"markers": ["trashed-board", "note-trashed", board, token]}
         owner_like = client in (ann, admin)
 
