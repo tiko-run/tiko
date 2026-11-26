@@ -21,7 +21,7 @@ from app.domain.errors import (
     ValidationFailed,
 )
 from app.domain.jql import JqlValue, JqlVocabulary
-from app.domain.linear_query import to_filter, vocabulary
+from app.domain.linear_query import KEYWORDS, to_filter, vocabulary
 from app.domain.tasks import (
     LINEAR,
     MAX_SEARCH,
@@ -189,6 +189,23 @@ def _not_found(errors: list) -> bool:
     )
 
 
+def _refused(errors: list) -> str:
+    """Which part of a query Linear refused, and why, from its validation errors."""
+    path: list[str] = []
+    reason = ""
+    for error in errors:
+        found = ((error.get("extensions") or {}).get("validationErrors") or [None])[0]
+        while isinstance(found, dict):
+            path.append(str(found.get("property", "")))
+            constraints = found.get("constraints") or {}
+            reason = next(iter(constraints.values()), reason) if constraints else reason
+            found = (found.get("children") or [None])[0]
+        if path:
+            break
+    where = ".".join(p for p in path if p) or "a value"
+    return f"Linear did not accept {where} in this query" + (f": {reason}." if reason else ".")
+
+
 class LinearApi:
     """GraphQL requests with one API key, kept inside the limits Linear reports."""
 
@@ -263,7 +280,7 @@ class LinearApi:
         if response.status_code >= 500:
             raise TrackerUnavailable(f"Linear returned {response.status_code}")
         if typed and "INVALID_INPUT" in codes and not _not_found(errors):
-            raise InvalidJql("Linear did not accept a value in this query; check dates and keys.")
+            raise InvalidJql(_refused(errors))
         self._keep(response, now)
         data = body.get("data")
         # Linear may answer part of a query with an error for the rest; a partial issue is not one.
@@ -523,12 +540,9 @@ class LinearProvider:
         return [JqlValue(value=v, label=label) for v, label in list(values.items())[:VALUES_SHOWN]]
 
 
-_KEYWORDS = {"AND", "OR", "NOT", "IN", "IS", "EMPTY", "NULL", "ORDER"}
-
-
 def _quoted(value: str) -> str:
     """A value as the query takes it: in quotes when it is more than one plain word."""
-    if re.fullmatch(r"[A-Za-z0-9_.@-]+", value) and value.upper() not in _KEYWORDS:
+    if re.fullmatch(r"[A-Za-z0-9_.@-]+", value) and value.upper() not in KEYWORDS:
         return value
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 

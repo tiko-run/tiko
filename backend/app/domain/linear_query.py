@@ -292,14 +292,19 @@ FIELDS: dict[str, Field] = {
     "key": Field("Key", _LIST, _key(lambda c: {"id": c})),
     "parent": Field("Parent", _LIST, _key(lambda c: {"parent": {"id": c}}), _null("parent")),
 }
-# Jira's other names for the same fields.
-FIELDS["category"] = FIELDS["statuscategory"]
-FIELDS["creator"] = FIELDS["reporter"]
-FIELDS["label"] = FIELDS["labels"]
-FIELDS["duedate"] = FIELDS["due"]
-FIELDS["summary"] = FIELDS["title"]
-FIELDS["issuekey"] = FIELDS["key"]
-FIELDS["sprint"] = FIELDS["cycle"]
+# Jira's other names for the same fields, so a query copied from Jira reads here too.
+FIELD_NAMES = {
+    "category": "statuscategory",
+    "creator": "reporter",
+    "label": "labels",
+    "duedate": "due",
+    "summary": "title",
+    "issuekey": "key",
+    "sprint": "cycle",
+}
+FIELDS.update({alias: FIELDS[name] for alias, name in FIELD_NAMES.items()})
+# Words a value must be quoted to stand for.
+KEYWORDS = {"AND", "OR", "NOT", "IN", "IS", "EMPTY", "NULL", "ORDER"}
 _SHOWN = (
     "team",
     "project",

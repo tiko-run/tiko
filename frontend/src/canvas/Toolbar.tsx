@@ -76,12 +76,15 @@ export function isJql(input: string) {
 
 const WHAT_YOU_CAN_ADD = 'https://docs.tiko.run/what-you-can-add/'
 
+// How many matches a count reads before it stops counting: the server's MAX_SEARCH.
+const COUNTED = 100
+
 // A saved Linear view adds its issues the way a query does.
 const LINEAR_VIEW = /^https?:\/\/linear\.app\/[\w-]+\/view\/\S+$/i
 
 function matchCount(total: number | null, estimated: boolean, more: boolean) {
   if (total === null) {
-    return more ? `More than 100 tasks match, the first ${MAX_REFS} are added.` : ''
+    return more ? `More than ${COUNTED} tasks match, the first ${MAX_REFS} are added.` : ''
   }
   const tasks = `${estimated ? 'About ' : ''}${total} ${total === 1 ? 'task matches' : 'tasks match'}`
   return `${tasks}${total > MAX_REFS ? `, the first ${MAX_REFS} are added` : ''}.`

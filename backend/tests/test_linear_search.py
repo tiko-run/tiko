@@ -145,3 +145,22 @@ def test_api_v1_counts_what_came_back_when_linear_gives_no_count(linear):
     key = with_key(app, make_key(client)["token"])
     body = key.post("/api/v1/tasks/search", json={"source": "linear", "query": "team = ENG"}).json()
     assert (len(body["tasks"]), body["total"], body["more"]) == (50, 50, True)
+
+
+def test_linear_says_which_value_it_refused():
+    from app.adapters.tasks.linear import _refused
+
+    error = {
+        "extensions": {
+            "code": "INVALID_INPUT",
+            "validationErrors": [
+                {
+                    "property": "id",
+                    "children": [
+                        {"property": "eq", "children": [], "constraints": {"x": "eq must be a key"}}
+                    ],
+                }
+            ],
+        }
+    }
+    assert _refused([error]) == "Linear did not accept id.eq in this query: eq must be a key."
