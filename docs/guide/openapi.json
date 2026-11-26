@@ -652,6 +652,111 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "Writing"
+        ],
+        "summary": "Change Gantt",
+        "description": "Steps on a Gantt, applied one after another and all or none. A Gantt a key added is its\nown; a person's needs full access. tiko saves the board before every change to a plan.",
+        "operationId": "change-gantt",
+        "security": [
+          {
+            "API key": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "board_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Board Id"
+            }
+          },
+          {
+            "name": "module_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Module Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GanttWritten"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No key, or a key that stopped working",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key may not do this, or keys are switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not among what the key reaches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over a budget; see Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request does not match the schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/boards/{board_id}/elements": {
@@ -1161,6 +1266,104 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "401": {
+            "description": "No key, or a key that stopped working",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key may not do this, or keys are switched off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not among what the key reaches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Over a budget; see Retry-After",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request does not match the schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boards/{board_id}/modules": {
+      "post": {
+        "tags": [
+          "Writing"
+        ],
+        "summary": "Add Gantt",
+        "description": "An empty Gantt on the board, at x/y or below what is there, as the web app adds one.",
+        "operationId": "add-gantt",
+        "security": [
+          {
+            "API key": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "board_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Board Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GanttIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Written"
+                }
+              }
+            }
           },
           "401": {
             "description": "No key, or a key that stopped working",
@@ -2786,6 +2989,81 @@
         "title": "FrameRef",
         "description": "An existing frame by `id`, or a new one below the board by `title`."
       },
+      "GanttIn": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": ""
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "scale": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "quarter"
+            ],
+            "title": "Scale",
+            "default": "week"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000000.0,
+                "minimum": -1000000.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1000000.0,
+                "minimum": -1000000.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "GanttIn"
+      },
       "GanttOut": {
         "properties": {
           "start": {
@@ -2834,6 +3112,38 @@
           "links"
         ],
         "title": "GanttOut"
+      },
+      "GanttWritten": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RowOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "created": {
+            "items": {
+              "$ref": "#/components/schemas/Made"
+            },
+            "type": "array",
+            "title": "Created"
+          },
+          "kept": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Kept"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "created",
+          "kept"
+        ],
+        "title": "GanttWritten"
       },
       "KeyOut": {
         "properties": {
@@ -2894,6 +3204,24 @@
           "to"
         ],
         "title": "LinkOut"
+      },
+      "Made": {
+        "properties": {
+          "step": {
+            "type": "integer",
+            "title": "Step"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "id"
+        ],
+        "title": "Made"
       },
       "MeOut": {
         "properties": {
@@ -4019,6 +4347,305 @@
           "people"
         ],
         "title": "StageOut"
+      },
+      "Step": {
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "add_row",
+              "update_row",
+              "move_row",
+              "remove_row",
+              "set_range",
+              "add_stage",
+              "update_stage",
+              "remove_stage",
+              "add_milestone",
+              "update_milestone",
+              "remove_milestone",
+              "link",
+              "unlink"
+            ],
+            "title": "Op"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "shift": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1096.0,
+                "minimum": -1096.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shift"
+          },
+          "follow": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow"
+          },
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 100,
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "propertyNames": {
+                  "maxLength": 40,
+                  "minLength": 1
+                },
+                "type": "object",
+                "maxProperties": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Values"
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch"
+          },
+          "scale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "day",
+                  "week",
+                  "month",
+                  "quarter"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scale"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "people": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "People"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "op"
+        ],
+        "title": "Step",
+        "description": "One step: an `op` and the fields that op takes."
+      },
+      "StepsIn": {
+        "properties": {
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/Step"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "steps"
+        ],
+        "title": "StepsIn"
       },
       "TaskOut": {
         "properties": {

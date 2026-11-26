@@ -19,6 +19,7 @@ from app.api.v1 import boards, deps, elements, planning, tasks
 from app.api.v1.boards import BoardList, BoardOutline, BoardPage
 from app.api.v1.planning import PlanningOut
 from app.api.v1.tasks import SearchIn, SearchOut
+from app.domain import gantt_steps
 from app.domain.api_gantt import narrow
 from app.domain.api_keys import KeyIdentity
 from app.domain.api_view import Kind
@@ -602,6 +603,64 @@ def create(app: FastAPI) -> TikoMCP:
             ctx,
             board,
             lambda request: elements.arrange(board, body, None, request).model_dump(by_alias=True),
+        )
+
+    @server.tool(annotations=_MAKES)
+    def add_gantt(
+        ctx: Context,
+        board: Annotated[str, _BOARD],
+        start: Annotated[date, Field(description="First day the plan shows.")],
+        end: Annotated[date, Field(description="Last day the plan shows.")],
+        title: Annotated[str, Field(max_length=200)] = "",
+        scale: Literal["day", "week", "month", "quarter"] = "week",
+        x: Annotated[
+            float | None, Field(description="Left edge; left out, below the board.")
+        ] = None,
+        y: float | None = None,
+        id: Annotated[str | None, _ID] = None,  # noqa: A002 - the name the API uses
+    ) -> dict[str, Any]:
+        """Puts an empty Gantt plan on a board. Fill it with change_gantt. Give your own id so a
+        retry does not add a second one."""
+        body = elements.GanttIn(id=id, title=title, start=start, end=end, scale=scale, x=x, y=y)
+        return write(
+            ctx,
+            board,
+            lambda request: elements.add_gantt(board, body, None, request).model_dump(
+                by_alias=True
+            ),
+        )
+
+    @server.tool(annotations=_REMOVES.model_copy(update={"idempotentHint": False}))
+    def change_gantt(
+        ctx: Context,
+        board: Annotated[str, _BOARD],
+        gantt: Annotated[str, Field(description="The gantt's id from read_board.")],
+        steps: Annotated[
+            list[gantt_steps.Step],
+            Field(min_length=1, max_length=gantt_steps.MAX_STEPS),
+        ],
+    ) -> dict[str, Any]:
+        """Changes a Gantt plan with steps applied in order, all or none; an error names the
+        failing step. Rows, by the ids read_gantt gives or ids your earlier steps gave:
+        add_row (id, title or task as a key or link, parent, after: a sibling's id, null for
+        first, left out for last; start/end, follow), update_row (id; title, task, start, end,
+        shift in days for the row with its branch, follow, done, values by field id from
+        read_planning, shown as columns), move_row (id, parent: null for the top level, after),
+        remove_row (id; branch: true removes what is under it, otherwise it moves up a level),
+        set_range (start, end, scale). Plan: add_stage (row, type, start, end, people; ids
+        from read_planning), update_stage (id; type, start, end, people, done), remove_stage,
+        add_milestone (date, title), update_milestone, remove_milestone, link and unlink (from,
+        to: `to` waits for `from`). A row with `dates: tracker` follows its task: set
+        follow: false before giving it dates. At most 50 steps name a task. A key changes a
+        Gantt it added; a person's needs full access. tiko saves a copy of the board first
+        (see list_copies); calls in a row with no one else's edit between share that copy."""
+        body = elements.StepsIn(steps=steps)
+        return write(
+            ctx,
+            board,
+            lambda request: elements.change_gantt(
+                board, gantt, body, None, deps.person(request), deps.key(request), request
+            ).model_dump(mode="json"),
         )
 
     @server.tool(annotations=_READ_ONLY)
