@@ -30,11 +30,12 @@ function stubTrackers() {
       return Response.json({ choices: [{ prefix: 'CORE', source: body.source }] })
     }
     const ref = body.ref ?? ''
-    if (ref.toUpperCase().startsWith('CORE') && !body.source) {
+    const prefix = ref.toUpperCase().split('-')[0]
+    if (['CORE', 'APP'].includes(prefix) && !body.source) {
       const error = {
         code: 'ambiguous_key',
-        message: 'CORE is known to Jira and Linear',
-        prefix: 'CORE',
+        message: `${prefix} is known to Jira and Linear`,
+        prefix,
         sources: ['jira', 'linear'],
       }
       return Response.json({ error }, { status: 409 })
@@ -91,4 +92,34 @@ test('without the dialog on screen an ambiguous key just fails', async () => {
   stubTrackers()
   const { failed } = await resolveAll(['CORE-5'])
   expect(failed.map((f) => f.ref)).toEqual(['CORE-5'])
+})
+
+test('a paste with two shared prefixes asks twice, one after the other', async () => {
+  stubTrackers()
+  render(<PrefixDialog />)
+  const result = await resolving(['CORE-5', 'APP-1', 'CORE-6'])
+  await screen.findByText('Where is CORE-5 from?')
+  fireEvent.click(screen.getByRole('button', { name: /Jira/ }))
+  await screen.findByText('Where is APP-1 from?')
+  fireEvent.click(screen.getByRole('button', { name: /Linear/ }))
+  await waitFor(() => expect(result()).toBeDefined())
+  expect(result()?.tasks.map((t) => `${t.source}:${t.key}`)).toEqual([
+    'jira:CORE-5',
+    'linear:acme/APP-1',
+    'jira:CORE-6',
+  ])
+})
+
+test('a second paste waits for the open question instead of failing', async () => {
+  stubTrackers()
+  render(<PrefixDialog />)
+  const first = await resolving(['CORE-5'])
+  const second = await resolving(['APP-1'])
+  await screen.findByText('Where is CORE-5 from?')
+  fireEvent.click(screen.getByRole('button', { name: /Linear/ }))
+  await screen.findByText('Where is APP-1 from?')
+  fireEvent.click(screen.getByRole('button', { name: /Jira/ }))
+  await waitFor(() => expect(second()).toBeDefined())
+  expect(first()?.tasks.map((t) => t.key)).toEqual(['acme/CORE-5'])
+  expect(second()?.tasks.map((t) => t.key)).toEqual(['APP-1'])
 })

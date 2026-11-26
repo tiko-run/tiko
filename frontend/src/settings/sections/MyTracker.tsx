@@ -245,8 +245,8 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
 
 /** The remembered answers of the prefix dialog: where a bare key with each prefix goes. */
 function KeyPrefixes({ provider }: { provider: string }) {
-  // A bare key is either the instance's tracker's or Linear's.
-  const options = [provider, 'linear']
+  // A bare key is the instance's tracker's or Linear's; a stored choice stays one of them.
+  const options = (source: string) => [...new Set([provider, 'linear', source])]
   const queryClient = useQueryClient()
   const choices = useQuery({ queryKey: ['key-prefixes'], queryFn: getPrefixChoices })
   const change = useMutation({
@@ -269,7 +269,7 @@ function KeyPrefixes({ provider }: { provider: string }) {
           <li key={prefix} className="flex items-center gap-2">
             <span className="w-24 truncate font-mono text-[13px]">{prefix}</span>
             <div role="radiogroup" aria-label={`Tracker for ${prefix}`} className="flex gap-1">
-              {options.map((option) => (
+              {options(source).map((option) => (
                 <Button
                   key={option}
                   role="radio"

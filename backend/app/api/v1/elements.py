@@ -1,5 +1,6 @@
 import re
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -333,7 +334,12 @@ def _status_now(source: str, key: str, request: Request) -> str:
     return found[0].status_name
 
 
-def _parse(ref: str, providers: dict, tracker: str, chosen=None) -> tuple[str, str]:
+def _parse(
+    ref: str,
+    providers: dict,
+    tracker: str,
+    chosen: Callable[[str], str | None] | None = None,
+) -> tuple[str, str]:
     if match := _EXPLICIT.match(ref.strip()):
         source, key = match.group(1), match.group(2)
         # `linear:ENG-12` names the tracker of a bare key; the workspace is the person's own.

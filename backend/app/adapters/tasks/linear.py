@@ -2,6 +2,7 @@
 
 import math
 import re
+import threading
 import time
 from collections.abc import Callable
 from typing import NoReturn
@@ -66,6 +67,8 @@ _TEAMS = (
 )
 # Pages of teams read at most, so a broken cursor cannot loop.
 TEAM_PAGES = 20
+# After Linear failed to list the teams, bare keys skip it for this long.
+TEAMS_RETRY_S = 60
 
 _CATEGORY: dict[str, StatusCategory] = {
     "triage": "new",
@@ -234,6 +237,8 @@ class LinearProvider:
         self._slug = ""
         # The person's team keys, with when they were read.
         self._teams: tuple[set[str], float] = (set(), 0.0)
+        self._teams_lock = threading.Lock()
+        self._teams_failed_until = 0.0
         # By a card's identifier: the last answer, when it was read (ISO) and when (clock).
         self._seen: dict[str, tuple[dict, str, float]] = {}
         # A card's identifier after its issue moved to another team: the issue's new one.
@@ -261,13 +266,20 @@ class LinearProvider:
 
     def has_prefix(self, prefix: str) -> bool | None:
         """Whether one of the person's teams has this key; None when Linear could not be asked."""
-        teams, read_at = self._teams
-        if not read_at or self._clock() - read_at > VIEWER_S:
-            try:
-                teams = self._team_keys()
-            except DomainError:
+        # Keys pasted together are resolved at once: one read of the teams serves them all.
+        with self._teams_lock:
+            now = self._clock()
+            if now < self._teams_failed_until:
                 return None
-            self._teams = (teams, self._clock())
+            teams, read_at = self._teams
+            if not read_at or now - read_at > VIEWER_S:
+                try:
+                    teams = self._team_keys()
+                except DomainError:
+                    # Every bare key would wait for Linear again; a Jira key goes on meanwhile.
+                    self._teams_failed_until = now + TEAMS_RETRY_S
+                    return None
+                self._teams = (teams, self._clock())
         return prefix in teams
 
     def _team_keys(self) -> set[str]:

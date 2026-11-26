@@ -57,10 +57,29 @@ def asked(fake, part: str) -> int:
 
 def test_without_linear_a_bare_key_goes_to_jira_with_no_extra_request(both):
     _, client, jira, linear = both
+    # DEMO is also a prefix of the demo tasks every request can read: they never claim it.
+    jira.issues["DEMO-5"] = issue("DEMO-5")
     jira.requests.clear()
     assert card(resolve(client, "CORE-5")) == ("jira", "CORE-5")
+    assert card(resolve(client, "DEMO-5")) == ("jira", "DEMO-5")
     assert linear.requests == []
     assert asked(jira, "/project/") == 0
+
+
+def test_the_demo_tasks_never_claim_a_bare_key_from_jira(both):
+    _, client, jira, _ = both
+    connect(client)
+    jira.issues["DEMO-5"] = issue("DEMO-5")
+    assert card(resolve(client, "DEMO-5")) == ("jira", "DEMO-5")
+
+
+def test_a_linear_that_cannot_list_its_teams_is_skipped_for_a_while(both):
+    _, client, _, linear = both
+    connect(client)
+    linear.status = 500
+    for _ in range(3):
+        assert card(resolve(client, "DEV-1")) == ("jira", "DEV-1")
+    assert len(linear.requests) - asked(linear, "viewer") == 1
 
 
 def test_a_prefix_only_linear_knows_goes_to_linear(both):
@@ -89,7 +108,7 @@ def test_a_prefix_both_know_asks_until_chosen(both):
         "CORE",
         ["jira", "linear"],
     )
-    assert "jira:CORE-5 or linear:acme/CORE-5" in error["message"]
+    assert "jira:CORE-5 or linear:CORE-5" in error["message"]
     assert card(resolve(client, "CORE-5", "linear")) == ("linear", "acme/CORE-5")
     assert card(resolve(client, "CORE-5", "jira")) == ("jira", "CORE-5")
 

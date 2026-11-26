@@ -220,11 +220,16 @@ def _by_prefix(
     if not KEY_RE.match(identifier):
         return None
     prefix = identifier.rpartition("-")[0]
-    # Only the trackers a person connected can answer: without one nothing is asked.
+    # Only trackers a person connects with a credential of their own claim a bare key from the
+    # instance's tracker; the demo tasks every request can read never do.
     known = [
         p
         for sid, p in providers.items()
-        if sid != default_source and isinstance(p, KnowsPrefixes) and p.has_prefix(prefix)
+        if sid != default_source
+        and sid in SOURCES
+        and SOURCES[sid].credential
+        and isinstance(p, KnowsPrefixes)
+        and p.has_prefix(prefix)
     ]
     if not known:
         return None
@@ -238,7 +243,8 @@ def _by_prefix(
     if pick in claims:
         return pick, claims[pick].key_for(identifier)
     names = " and ".join(SOURCES[s].name if s in SOURCES else s for s in claims)
-    refs = " or ".join(f"{s}:{p.key_for(identifier)}" for s, p in claims.items())
+    # The short form: `linear:ENG-12` takes the person's own workspace, with no request here.
+    refs = " or ".join(f"{s}:{identifier}" for s in claims)
     raise AmbiguousKey(f"{prefix} is known to {names}: write {refs}.", prefix, list(claims))
 
 

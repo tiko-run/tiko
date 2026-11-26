@@ -1,6 +1,7 @@
 import hashlib
 import html
 import re
+import threading
 import time
 from collections.abc import Callable
 from typing import NamedTuple
@@ -76,6 +77,13 @@ class JiraPrefixes:
     def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
         self._clock = clock
         self._known: dict[tuple[str, str], tuple[float, bool]] = {}
+        self._locks: dict[tuple[str, str], threading.Lock] = {}
+        self._guard = threading.Lock()
+
+    def lock(self, site: str, prefix: str) -> threading.Lock:
+        """One lookup per project key at a time: keys pasted together share its answer."""
+        with self._guard:
+            return self._locks.setdefault((site, prefix), threading.Lock())
 
     def get(self, site: str, prefix: str) -> bool | None:
         cached = self._known.get((site, prefix))
@@ -185,18 +193,19 @@ class JiraDcProvider:
     def has_prefix(self, prefix: str) -> bool | None:
         """Whether the token sees a project with this key; None when Jira could not be asked."""
         site = self._site()
-        cached = self._prefixes.get(site, prefix)
-        if cached is not None:
-            return cached
-        try:
-            _, response = self._request("GET", f"/rest/api/2/project/{quote(prefix)}")
-        except (JiraUnauthorized, JiraRateLimited, JiraUnavailable):
-            return None
-        if response.status_code not in (200, 404):
-            return None
-        known = response.status_code == 200
-        self._prefixes.put(site, prefix, known)
-        return known
+        with self._prefixes.lock(site, prefix):
+            cached = self._prefixes.get(site, prefix)
+            if cached is not None:
+                return cached
+            try:
+                _, response = self._request("GET", f"/rest/api/2/project/{quote(prefix)}")
+            except (JiraUnauthorized, JiraRateLimited, JiraUnavailable):
+                return None
+            if response.status_code not in (200, 404):
+                return None
+            known = response.status_code == 200
+            self._prefixes.put(site, prefix, known)
+            return known
 
     def key_for(self, identifier: str) -> str:
         return identifier
