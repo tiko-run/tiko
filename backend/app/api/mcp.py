@@ -216,7 +216,10 @@ def create(app: FastAPI) -> TikoMCP:
         ctx: Context,
         source: Annotated[
             Literal[tuple(s.id for s in SOURCES.values() if s.search)],
-            Field(description="The tracker: jira takes JQL, caldav words of the title."),
+            Field(
+                description="The tracker: jira and linear take JQL (linear also a saved view"
+                " link), caldav words of the title."
+            ),
         ],
         query: Annotated[str, Field(description="The search in that tracker's terms.")],
         done: Annotated[bool, Field(description="CalDAV: include done tasks.")] = False,

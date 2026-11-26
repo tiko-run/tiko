@@ -40,9 +40,18 @@ class FakeLinear:
         self.headers: dict[str, str] = {}
         self.status: int | None = None
         self.requests: list[httpx.Request] = []
+        # Saved views by slug id, with the identifiers they show.
+        self.views: dict[str, list[str]] = {}
+        # The filters searches sent, newest last.
+        self.filters: list[dict] = []
         # The person's team keys, answered a page of `team_page` at a time.
         self.teams = ["ENG"]
         self.team_page = 250
+
+    def _page(self, ids: list[str], variables: dict) -> dict:
+        first = variables.get("first") or 50
+        nodes = [self.issues[i] for i in ids if i in self.issues]
+        return {"nodes": nodes[:first], "pageInfo": {"hasNextPage": len(nodes) > first}}
 
     def _answer(self, body: dict, status: int = 200) -> httpx.Response:
         return httpx.Response(status, json=body, headers=self.headers)
@@ -69,6 +78,34 @@ class FakeLinear:
             info = {"hasNextPage": more, "endCursor": str(start + self.team_page) if more else None}
             nodes = [{"key": k} for k in page]
             return self._answer({"data": {"teams": {"nodes": nodes, "pageInfo": info}}})
+        if "customView(" in query:
+            ids = self.views.get(variables["id"])
+            if ids is None:
+                error = {
+                    "message": "Entity not found: CustomView",
+                    "extensions": {"code": "INPUT_ERROR"},
+                }
+                return self._answer({"errors": [error], "data": None})
+            return self._answer({"data": {"customView": {"issues": self._page(ids, variables)}}})
+        if "filter: $filter" in query:
+            self.filters.append(variables["filter"])
+            return self._answer({"data": {"issues": self._page(list(self.issues), variables)}})
+        if "workflowStates(" in query or "projects(" in query or "issueLabels(" in query:
+            names = {
+                "workflowStates": ["In Progress", "In Review"],
+                "projects": ["Billing"],
+                "issueLabels": ["bug", "Backend"],
+            }
+            name = next(n for n in names if f"{n}(" in query)
+            found = [
+                {"name": v} for v in names[name] if variables.get("p", "").lower() in v.lower()
+            ]
+            return self._answer({"data": {name: {"nodes": found}}})
+        if "users(" in query:
+            return self._answer({"data": {"users": {"nodes": [{"name": "Ada Lovelace"}]}}})
+        if "cycles(" in query:
+            nodes = [{"number": 12, "name": "Cycle 12"}, {"number": 13, "name": None}]
+            return self._answer({"data": {"cycles": {"nodes": nodes}}})
         if "issues(" in query:
             found = [self.issues[i] for i in variables["ids"] if i in self.issues]
             return self._answer({"data": {"issues": {"nodes": found}}})

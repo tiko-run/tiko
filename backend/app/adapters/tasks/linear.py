@@ -12,6 +12,7 @@ import httpx
 from app.adapters.tasks.readers import PersonalReaders
 from app.domain.errors import (
     DomainError,
+    InvalidJql,
     LinearRejected,
     TaskNotFound,
     TrackerRateLimited,
@@ -19,8 +20,12 @@ from app.domain.errors import (
     TrackerUnreachable,
     ValidationFailed,
 )
+from app.domain.jql import JqlValue, JqlVocabulary
+from app.domain.linear_query import to_filter, vocabulary
 from app.domain.tasks import (
     LINEAR,
+    MAX_SEARCH,
+    SearchResult,
     StatusCategory,
     Task,
     TaskLabel,
@@ -61,6 +66,42 @@ _ISSUES = (
 )
 _ISSUE = "query($id: String!) { issue(id: $id) {" + _ISSUE_FIELDS + "} }"
 _VIEWER = "{ viewer { name } organization { name urlKey previousUrlKeys } }"
+_PAGE_INFO = "pageInfo { hasNextPage }"
+_SEARCH = (
+    "query($filter: IssueFilter, $first: Int) { issues(first: $first, filter: $filter,"
+    " orderBy: updatedAt) { nodes {" + _ISSUE_FIELDS + "} " + _PAGE_INFO + " } }"
+)
+_VIEW = (
+    "query($id: String!, $first: Int) { customView(id: $id) { issues(first: $first,"
+    " orderBy: updatedAt) { nodes {" + _ISSUE_FIELDS + "} " + _PAGE_INFO + " } } }"
+)
+# A saved view: `linear.app/<workspace>/view/<name>-<slug id>`.
+_VIEW_LINK = re.compile(
+    r"^https?://linear\.app/([a-z0-9-]+)/view/(?:[a-z0-9-]*-)?([0-9a-f]{12})(?:[/?#].*)?$",
+    re.IGNORECASE,
+)
+# What the query box suggests as values, read from the person's workspace.
+_VALUES = {
+    "team": (
+        "teams",
+        "key name",
+        "{or: [{key: {containsIgnoreCase: $p}}, {name: {containsIgnoreCase: $p}}]}",
+    ),
+    "project": ("projects", "name", "{name: {containsIgnoreCase: $p}}"),
+    "status": ("workflowStates", "name", "{name: {containsIgnoreCase: $p}}"),
+    "labels": ("issueLabels", "name", "{name: {containsIgnoreCase: $p}}"),
+    "assignee": (
+        "users",
+        "name",
+        "{or: [{name: {containsIgnoreCase: $p}}, {displayName: {containsIgnoreCase: $p}}]}",
+    ),
+    "cycle": ("cycles", "number name", "{isPast: {eq: false}}"),
+}
+_FIXED_VALUES = {
+    "statuscategory": ["To Do", "In Progress", "Done"],
+    "priority": ["Urgent", "High", "Medium", "Low", "No priority"],
+}
+VALUES_SHOWN = 20
 _TEAMS = (
     "query($after: String) { teams(first: 250, after: $after) {"
     " nodes { key } pageInfo { hasNextPage endCursor } } }"
@@ -389,10 +430,92 @@ class LinearProvider:
                 )
         return found
 
-    def _no_query(self, *_: object) -> NoReturn:
-        raise ValidationFailed("Linear has no query here yet: add a card by its link.")
+    def _slug_now(self) -> str:
+        if not self._slug or self._clock() - self._workspaces[1] > VIEWER_S:
+            self._viewer()
+        return self._slug
 
-    search = jql_vocabulary = jql_values = _no_query
+    def search(self, jql: str, limit: int) -> SearchResult:
+        """Issues of a query or a saved view, newest change first; Linear gives no count."""
+        # Asked only to check a query and count it: up to a page of matches.
+        first = limit or MAX_SEARCH
+        if view := _VIEW_LINK.match(jql.strip()):
+            if not self._mine(view.group(1).lower()):
+                raise InvalidJql("This view is in another Linear workspace.")
+            data, _ = self._api.query(_VIEW, {"id": view.group(2).lower(), "first": first})
+            found = ((data or {}).get("customView") or {}).get("issues")
+            if found is None:
+                raise InvalidJql("Linear has no view at this link that you can read.")
+        else:
+            data, _ = self._api.query(_SEARCH, {"filter": to_filter(jql), "first": first})
+            found = (data or {}).get("issues") or {}
+        nodes = [
+            n
+            for n in found.get("nodes") or []
+            if isinstance(n, dict) and isinstance(n.get("identifier"), str)
+        ]
+        more = bool((found.get("pageInfo") or {}).get("hasNextPage"))
+        slug = self._slug_now()
+        tasks = []
+        for issue in nodes[:limit]:
+            self._keep(issue["identifier"], issue)
+            tasks.append(_task(f"{slug}/{issue['identifier']}", issue))
+        return SearchResult(tasks, None if more else len(nodes), more=more)
+
+    def jql_vocabulary(self) -> JqlVocabulary:
+        return vocabulary()
+
+    def jql_values(self, field: str, prefix: str) -> list[JqlValue]:
+        name = field.lower()
+        name = {
+            "reporter": "assignee",
+            "creator": "assignee",
+            "label": "labels",
+            "sprint": "cycle",
+        }.get(name, name)
+        if name in _FIXED_VALUES:
+            words = [w for w in _FIXED_VALUES[name] if w.lower().startswith(prefix.lower())]
+            return [JqlValue(value=_quoted(w), label=w) for w in words]
+        if name not in _VALUES:
+            return []
+        collection, fields, where = _VALUES[name]
+        typed = "$p" in where
+        head = "query($p: String!) " if typed else ""
+        text = f"{head}{{ {collection}(first: 50, filter: {where}) {{ nodes {{ {fields} }} }} }}"
+        data, _ = self._api.query(text, {"p": prefix} if typed else {})
+        nodes = ((data or {}).get(collection) or {}).get("nodes") or []
+        values: dict[str, str] = {}
+        if name == "assignee" and "currentuser()".startswith(prefix.lower()):
+            values["currentUser()"] = "Me"
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            if name == "team" and node.get("key"):
+                values.setdefault(
+                    node["key"], f"{node['key']} · {node.get('name') or ''}".strip(" ·")
+                )
+            elif name == "cycle" and node.get("number") is not None:
+                if (
+                    str(node["number"]).startswith(prefix)
+                    or prefix.lower() in (node.get("name") or "").lower()
+                ):
+                    values.setdefault(
+                        str(node["number"]), node.get("name") or f"Cycle {node['number']}"
+                    )
+            elif node.get("name"):
+                values.setdefault(_quoted(node["name"]), node["name"])
+        if name == "cycle":
+            for word in ("openSprints()", "nextSprint()"):
+                if word.lower().startswith(prefix.lower()):
+                    values.setdefault(word, word)
+        return [JqlValue(value=v, label=label) for v, label in list(values.items())[:VALUES_SHOWN]]
+
+
+def _quoted(value: str) -> str:
+    """A value as the query takes it: in quotes when it is more than one plain word."""
+    if re.fullmatch(r"[A-Za-z0-9_.@-]+", value):
+        return value
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 class LinearReaders:

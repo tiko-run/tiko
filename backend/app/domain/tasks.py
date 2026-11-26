@@ -170,9 +170,11 @@ MAX_SEARCH = 100
 
 class SearchResult(NamedTuple):
     tasks: list[Task]
-    total: int
+    # None when the tracker gives no count, as Linear does; `more` then says whether more match.
+    total: int | None
     # Jira Cloud only estimates a count past the first page.
     estimated: bool = False
+    more: bool = False
 
 
 def search_tasks(

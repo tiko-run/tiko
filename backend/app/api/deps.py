@@ -138,6 +138,17 @@ def provider(request: Request) -> TaskProvider:
     return providers(request)[tracker(request)]
 
 
+def query_provider(request: Request, source: str | None = None) -> TaskProvider:
+    """The tracker a query names, or the request's own; one without a query is refused."""
+    if source is None:
+        return provider(request)
+    found = SOURCES.get(source)
+    readers = providers(request)
+    if found is None or found.search != "query" or source not in readers:
+        raise ValidationFailed(f"source: {source} takes no query here")
+    return readers[source]
+
+
 def owner(request: Request) -> str:
     return current_person(request).id
 
