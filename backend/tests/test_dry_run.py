@@ -111,13 +111,16 @@ def test_a_dry_run_on_an_open_board_reaches_no_tab(app, admin, full):
     try:
         with sockets.websocket_connect(f"/api/boards/{board_id}/live", headers=headers) as socket:
             tab = Tab(socket)
-            assert board_id in app.state.live._rooms
+            room = app.state.live._rooms[board_id]
+            last, state = room.last, room.live.state()
             dry = key.post(
                 f"/api/v1/boards/{board_id}/elements/remove",
                 json={"ids": ["n2", "f1"], "dry_run": True},
             )
             assert dry.status_code == 200, dry.json()
             assert {"n2", "f1"} <= tab.ids()
+            # Not even the room's own check ran: its document and saved board are as they were.
+            assert room.last is last and room.live.state() == state
             assert app.state.copies.list(board_id) == []
     finally:
         sockets.__exit__(None, None, None)

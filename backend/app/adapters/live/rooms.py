@@ -44,6 +44,7 @@ from app.domain.live import (
     LiveDoc,
     Stored,
     from_board,
+    repaired,
     to_json,
 )
 from app.domain.members import role_on
@@ -312,6 +313,14 @@ class Room:
         for connection in self.connections:
             connection.push(message)
 
+    def _repaired_view(self) -> tuple[Stored, Stored]:
+        locked = self.locked
+        if self.locked_until is not None and time.time() >= self.locked_until:
+            locked = frozenset()
+        nodes, edges = self.live.read()
+        good, kept, _ = repaired(nodes, edges, from_board(self.last)[0], None, locked)
+        return good, kept
+
     def check(self) -> None:
         """Repairs what the last merges broke; `last` is the board as it will be saved."""
         if self._check_timer:
@@ -396,6 +405,12 @@ class Room:
         try:
             if batch.restore is not None:
                 return await self._restore(batch, locked)
+            if batch.dry:
+                # Planned on the board as the next check will leave it, which is not run: a
+                # dry run writes nothing to the document, so open tabs see nothing.
+                nodes, edges = self.live.checked() or self._repaired_view()
+                planned, kept, applied = plan(nodes, edges, batch, locked)
+                return _dry(applied, planned, kept)
             # A copy awaits the database, and a tab may change the board meanwhile: the batch is
             # planned again on what the board then holds, until the newest copy has it all.
             for _ in range(_COPY_TRIES):
@@ -403,8 +418,6 @@ class Room:
                 self.check()
                 nodes, edges = self.live.checked() or self.live.read()
                 planned, kept, applied = plan(nodes, edges, batch, locked)
-                if batch.dry:
-                    return _dry(applied, planned, kept)
                 copy_id = None
                 if applied.overwrote:
                     copy_id = await self._copied(nodes, edges, applied, batch)

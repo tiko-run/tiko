@@ -239,11 +239,11 @@ Streamable HTTP, JSON answers, the same key as `Authorization: Bearer`. `/api/mc
 | `add_notes(board, notes: [{text, color?, kind?, id?, x?, y?, w?, h?}], frame?)` | write | idempotent where ids are given | `POST /elements`, kind `note` or `text` |
 | `add_frame(board, title, id?, x?, y?, w?, h?)` | write | idempotent with an id | `POST /elements`, kind `frame` |
 | `connect(board, start, end, label?, id?)` | write | idempotent with an id | `POST /elements`, kind `arrow` |
-| `update_elements(board, changes)` | write | idempotent | `PATCH /elements` |
-| `arrange(board, cards, layout, frame?, new_frame?, columns?, order?, fit?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
+| `update_elements(board, changes, dry_run?)` | write | idempotent | `PATCH /elements` |
+| `arrange(board, cards, layout, frame?, new_frame?, columns?, order?, fit?, dry_run?)` | write | — (a frame by title is made anew on a retry) | `POST /arrange` |
 | `remove_elements(board, ids, dry_run?)` | write | destructive, idempotent; answers `{removed, overwrote, dry_run}` | `POST /elements/remove` |
 | `add_gantt(board, start, end, title?, scale?, x?, y?, id?)` | write | idempotent with an id | `POST /modules` |
-| `change_gantt(board, gantt, steps)` | write | destructive | `PATCH /modules/{module}` |
+| `change_gantt(board, gantt, steps, dry_run?)` | write | destructive | `PATCH /modules/{module}` |
 | `list_copies(board)` | write | read-only | `GET /copies` |
 | `restore_copy(board, copy)` | full | destructive, idempotent | `POST /copies/{copy}/restore` |
 
