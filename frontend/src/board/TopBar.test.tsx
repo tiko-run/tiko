@@ -267,3 +267,19 @@ test('a board without copies has no Saved copies item', async () => {
   expect(screen.queryByRole('menuitem', { name: 'Saved copies…' })).toBeNull()
   vi.unstubAllGlobals()
 })
+
+test('a copy saved while the board is open shows up when the board menu opens', async () => {
+  let saved: object[] = []
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
+    url === '/api/boards/a/copies'
+      ? Response.json({ copies: saved })
+      : new Response(null, { status: 204 }),
+  )
+  vi.stubGlobal('fetch', fetch)
+  renderBar()
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/boards/a/copies', expect.anything()))
+  saved = [{ id: 'c1', saved_at: '2026-11-20T09:30:00Z', by: 'Admin', reason: 'key', elements: 3 }]
+  fireEvent.keyDown(screen.getByRole('button', { name: /Q4 goals/ }), { key: 'Enter' })
+  expect(await screen.findByRole('menuitem', { name: 'Saved copies…' })).toBeInTheDocument()
+  vi.unstubAllGlobals()
+})

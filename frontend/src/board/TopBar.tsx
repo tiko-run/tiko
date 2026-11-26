@@ -137,11 +137,12 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
   }).data
   const hasVotes = Boolean(votes?.past.length)
   // Copies exist only on boards a key with full access touched: no item for everyone else.
-  const copies = useQuery({
+  const copiesQuery = useQuery({
     queryKey: copiesKey(boardId),
     queryFn: () => listCopies(boardId),
     enabled: Boolean(current && canEdit(current.my_role)),
-  }).data
+  })
+  const copies = copiesQuery.data
   const [copiesOpen, setCopiesOpen] = useState(false)
   // A demo visitor has no account yet: nothing to share with, no password to come back by.
   const demoUntil = me?.demo_expires_at
@@ -393,7 +394,8 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
         <RenameBoardForm board={current} onDone={() => setRenaming(false)} />
       ) : (
         current && (
-          <DropdownMenu>
+          // A key may save the first copy while the board is open: asked again on every open.
+          <DropdownMenu onOpenChange={(open) => open && void copiesQuery.refetch()}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="max-w-64 text-[14px] font-normal">
                 <span className="truncate">{current.name}</span>
@@ -485,6 +487,7 @@ export function TopBar({ boards, others = [], current, renameOnOpen = false }: P
       <SignUpDialog open={signingUp} onOpenChange={setSigningUp} />
       {current && copies && (
         <SavedCopiesDialog
+          key={current.id}
           board={current}
           copies={copies}
           open={copiesOpen}
