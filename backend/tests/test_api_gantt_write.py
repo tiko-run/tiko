@@ -101,6 +101,10 @@ def test_a_full_key_changes_a_persons_gantt_after_a_copy(app, admin):
     assert [(r["id"], r.get("parent")) for r in rows] == [("p", None), ("c", "p")]
     (saved,) = copies(key, board_id)
     assert saved["reason"] == "key"
+    # A second call with nobody else's edit between shares that copy.
+    again = steps(key, board_id, "g1", {"op": "update_row", "id": "c", "shift": 7})
+    assert again.status_code == 200, again.json()
+    assert [c["id"] for c in copies(key, board_id)] == [saved["id"]]
 
 
 def test_a_failing_step_names_itself_and_changes_nothing(app, admin):
@@ -144,7 +148,10 @@ def test_a_gantt_open_in_a_tab_takes_steps_and_the_tab_sees_them(app, admin):
             tab.sync()
             content = tab.live.read()[0]["g1"]["data"]["content"]
             assert [r["id"] for r in content["rows"]] == ["p", "n"]
-            assert len(copies(key, board_id)) == 1
+            (saved,) = copies(key, board_id)
+            again = steps(key, board_id, "g1", {"op": "update_row", "id": "n", "shift": 7})
+            assert again.status_code == 200, again.json()
+            assert [c["id"] for c in copies(key, board_id)] == [saved["id"]]
     finally:
         sockets.__exit__(None, None, None)
 
@@ -178,3 +185,25 @@ def test_milestones_and_links_through_rest(app, admin):
     assert staged.status_code == 200, staged.json()
     (row,) = staged.json()["rows"]
     assert row["stages"][0]["type"]["id"] == types[0]["id"]
+
+
+def test_a_missing_task_names_its_step_and_a_gantt_takes_x_and_y_together(app, admin):
+    board_id = board(admin, "Plan", {"nodes": [], "edges": []})
+    key = with_key(app, make_key(admin, scope="write")["token"])
+    half = key.post(
+        f"/api/v1/boards/{board_id}/modules",
+        json={"id": "q1", "start": "2026-10-01", "end": "2026-12-31", "y": 500},
+    )
+    assert half.status_code == 422
+    key.post(
+        f"/api/v1/boards/{board_id}/modules",
+        json={"id": "q1", "start": "2026-10-01", "end": "2026-12-31"},
+    )
+    missing = steps(
+        key,
+        board_id,
+        "q1",
+        {"op": "add_row", "id": "a", "title": "A"},
+        {"op": "add_row", "task": "DEMO-9999"},
+    )
+    assert missing.json()["error"]["message"].startswith("step 1 (add_row): ")

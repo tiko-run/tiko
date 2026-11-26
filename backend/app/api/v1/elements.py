@@ -112,6 +112,12 @@ class GanttIn(BaseModel):
     x: float | None = Field(default=None, ge=-1_000_000, le=1_000_000)
     y: float | None = Field(default=None, ge=-1_000_000, le=1_000_000)
 
+    @model_validator(mode="after")
+    def _placed(self) -> "GanttIn":
+        if (self.x is None) != (self.y is None):
+            raise ValueError("give x and y together, or neither")
+        return self
+
 
 class StepsIn(BaseModel):
     steps: list[Step] = Field(min_length=1, max_length=MAX_STEPS)
@@ -252,7 +258,8 @@ def change_gantt(
         if step.op in ("add_row", "add_stage", "add_milestone", "link") and step.id is None:
             step.id = uuid.uuid4().hex
     asked = [(i, s.task) for i, s in enumerate(body.steps) if s.task is not None]
-    found = _tasks([ref for _, ref in asked], request) if asked else []
+    labels = [f"step {i} ({body.steps[i].op}): " for i, _ in asked]
+    found = _tasks([ref for _, ref in asked], request, labels) if asked else []
     tasks = {
         index: Resolved(key=card.key, source=card.source, span=_span(task))
         for (index, _), (card, task) in zip(asked, found, strict=True)
@@ -371,11 +378,13 @@ def _cards(adds: list[NewElement], request: Request) -> dict[str, CardRef]:
     return {element_id: card for (element_id, _), (card, _) in zip(wanted, found, strict=True)}
 
 
-def _tasks(refs: list[str], request: Request) -> list[tuple[CardRef, Task]]:
+def _tasks(
+    refs: list[str], request: Request, labels: list[str] | None = None
+) -> list[tuple[CardRef, Task]]:
     """Each ref's task, asked of its tracker once per tracker and kept as a snapshot; a task
-    that is not there stops the whole call."""
+    that is not there stops the whole call, named by its label when one is given."""
     if len(refs) > MAX_CARDS:
-        raise ValidationFailed(f"At most {MAX_CARDS} cards a call.")
+        raise ValidationFailed(f"At most {MAX_CARDS} tasks a call.")
     search_budget(request)
     providers = deps.providers(request)
     tracker = deps.tracker(request)
@@ -392,7 +401,14 @@ def _tasks(refs: list[str], request: Request) -> list[tuple[CardRef, Task]]:
         tasks = {task.key: task for task in providers[source].poll(keys)}
         missing = [k for k in keys if k not in tasks or tasks[k].state == "not_found"]
         if missing:
-            raise TaskNotFound(f"{source} has no task {missing[0]} that you can see.")
+            where = ""
+            if labels:
+                where = next(
+                    label
+                    for label, card in zip(labels, cards, strict=True)
+                    if (card.source, card.key) == (source, missing[0])
+                )
+            raise TaskNotFound(f"{where}{source} has no task {missing[0]} that you can see.")
         snapshots.put_many(list(tasks.values()))
         polled |= {(source, k): t for k, t in tasks.items()}
     return [(card, polled[(card.source, card.key)]) for card in cards]

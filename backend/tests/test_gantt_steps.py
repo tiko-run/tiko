@@ -310,3 +310,30 @@ def test_milestones_and_links():
     assert "row nope not found" in fails(
         PLAN, {"op": "link", "id": "l3", "from": "a", "to": "nope"}
     )
+
+
+def test_a_required_field_given_as_null_is_missing():
+    with pytest.raises(ValueError, match="remove_row needs id"):
+        Step(op="remove_row", id=None)
+    # Optional ones still take null: first under the top level.
+    assert Step(op="move_row", id="a", parent=None, after=None).after is None
+
+
+def test_stage_removal_and_archived_ids_keep_the_rules():
+    stages = [
+        {"id": "s1", "type": "old", "start": "2026-10-05", "end": "2026-10-06", "people": ["gone"]},
+        {"id": "s2", "type": "design", "start": "2026-10-07", "end": "2026-10-09", "people": []},
+    ]
+    content = plan(row("g"), row("a", "g", stages=stages, start="2026-10-05"))
+    # s1 keeps its archived type and person; s2 may not take them up.
+    kept = run(content, {"op": "update_stage", "id": "s1", "done": True}, **PLANNED)
+    assert kept.content["rows"][1]["stages"][0]["type"] == "old"
+    assert "stage type old not found" in fails(
+        content, {"op": "update_stage", "id": "s2", "type": "old"}, **PLANNED
+    )
+    assert "person gone not found" in fails(
+        content, {"op": "update_stage", "id": "s2", "people": ["gone"]}, **PLANNED
+    )
+    assert "Planning is off" in fails(content, {"op": "remove_stage", "id": "s1"})
+    parent = plan(row("p", stages=stages[:1]), row("c", "p"))
+    assert "hidden" in fails(parent, {"op": "remove_stage", "id": "s1"}, **PLANNED)

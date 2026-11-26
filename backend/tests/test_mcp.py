@@ -501,7 +501,13 @@ def test_an_agent_makes_and_keeps_a_gantt_plan(served):
                 "board": board_id,
                 "gantt": "q1",
                 "steps": [
-                    {"op": "add_row", "id": "p", "title": "Payments"},
+                    {
+                        "op": "add_row",
+                        "id": "p",
+                        "title": "Payments",
+                        "start": "2026-10-05",
+                        "end": "2026-10-09",
+                    },
                     {"op": "add_row", "task": "DEMO-2", "parent": "p"},
                     {"op": "update_row", "id": "p", "shift": 7},
                 ],
@@ -521,4 +527,6 @@ def test_an_agent_makes_and_keeps_a_gantt_plan(served):
     rows = changed.structured_content["rows"]
     assert [r["id"] for r in rows][0] == "p" and rows[1]["key"] == "DEMO-2"
     assert broken.is_error and "step 0 (remove_row): row nope not found" in broken.content[0].text
-    assert [r["id"] for r in read.structured_content["gantt"]["rows"]][0] == "p"
+    payments = read.structured_content["gantt"]["rows"][0]
+    assert payments["id"] == "p"
+    assert (payments["start"], payments["end"]) == ("2026-10-12", "2026-10-16")

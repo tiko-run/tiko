@@ -86,8 +86,8 @@ class Step(BaseModel):
     parent: str | None = Field(default=None, max_length=40)
     # A sibling to land after; null for first under the parent, left out for last.
     after: str | None = Field(default=None, max_length=40)
-    start: date | None = None
-    end: date | None = None
+    start: date_ | None = None
+    end: date_ | None = None
     shift: int | None = Field(default=None, ge=-1096, le=1096)
     follow: bool | None = None
     done: bool | None = None
@@ -115,7 +115,8 @@ class Step(BaseModel):
         extra = given - _FIELDS[self.op]
         if extra:
             raise ValueError(f"{self.op} takes no {', '.join(sorted(extra))}")
-        missing = _NEEDS[self.op] - given
+        # A required field given as null is as good as missing.
+        missing = {name for name in _NEEDS[self.op] if getattr(self, name) is None}
         if missing:
             raise ValueError(f"{self.op} needs {', '.join(sorted(missing))}")
         if self.op == "add_row" and (self.title is None) == (self.task is None):
@@ -441,14 +442,18 @@ class _Plan:
                     return i, j
         raise _Failed(f"stage {stage_id} not found")
 
-    def _planned_ids(self, step: Step, row: dict[str, Any] | None = None) -> None:
-        types, people = self.context.types, self.context.people
-        if types is None or people is None:
+    def _planning_on(self) -> None:
+        if self.context.types is None or self.context.people is None:
             raise _Failed("Planning is off, so rows have no stages")
-        kept = {s["type"] for s in row.get("stages") or []} if row else set()
+
+    def _planned_ids(self, step: Step, stage: dict[str, Any] | None = None) -> None:
+        """New ids must be usable; the stage's own may stay as they are, archived or not."""
+        self._planning_on()
+        types, people = self.context.types or set(), self.context.people or set()
+        kept = {stage["type"]} if stage else set()
         if step.type is not None and step.type not in types and step.type not in kept:
             raise _Failed(f"stage type {step.type} not found")
-        had = {p for s in (row.get("stages") or []) for p in s.get("people", [])} if row else set()
+        had = set(stage.get("people", [])) if stage else set()
         for person in step.people or []:
             if person not in people and person not in had:
                 raise _Failed(f"person {person} not found")
@@ -482,7 +487,7 @@ class _Plan:
         at, j = self._stage(step.id)
         if self.rows[at]["id"] in self._parents():
             raise _Failed("a parent's stages are hidden; change them on its rows")
-        self._planned_ids(step, self.rows[at])
+        self._planned_ids(step, self.rows[at]["stages"][j])
         stages = [dict(s) for s in self.rows[at]["stages"]]
         stage = stages[j]
         given = step.model_fields_set
@@ -503,7 +508,10 @@ class _Plan:
 
     def remove_stage(self, _: int, step: Step) -> None:
         assert step.id is not None
+        self._planning_on()
         at, j = self._stage(step.id)
+        if self.rows[at]["id"] in self._parents():
+            raise _Failed("a parent's stages are hidden; change them on its rows")
         stages = [s for k, s in enumerate(self.rows[at]["stages"]) if k != j]
         row = dict(self.rows[at])
         if stages:

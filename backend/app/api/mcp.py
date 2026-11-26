@@ -605,7 +605,7 @@ def create(app: FastAPI) -> TikoMCP:
             lambda request: elements.arrange(board, body, None, request).model_dump(by_alias=True),
         )
 
-    @server.tool(annotations=_ADDS)
+    @server.tool(annotations=_MAKES)
     def add_gantt(
         ctx: Context,
         board: Annotated[str, _BOARD],
@@ -619,7 +619,8 @@ def create(app: FastAPI) -> TikoMCP:
         y: float | None = None,
         id: Annotated[str | None, _ID] = None,  # noqa: A002 - the name the API uses
     ) -> dict[str, Any]:
-        """Puts an empty Gantt plan on a board. Fill it with change_gantt."""
+        """Puts an empty Gantt plan on a board. Fill it with change_gantt. Give your own id so a
+        retry does not add a second one."""
         body = elements.GanttIn(id=id, title=title, start=start, end=end, scale=scale, x=x, y=y)
         return write(
             ctx,
@@ -650,8 +651,9 @@ def create(app: FastAPI) -> TikoMCP:
         from read_planning), update_stage (id; type, start, end, people, done), remove_stage,
         add_milestone (date, title), update_milestone, remove_milestone, link and unlink (from,
         to: `to` waits for `from`). A row with `dates: tracker` follows its task: set
-        follow: false before giving it dates. A key changes a Gantt it added; a person's needs
-        full access. tiko saves a copy of the board first (see list_copies)."""
+        follow: false before giving it dates. At most 50 steps name a task. A key changes a
+        Gantt it added; a person's needs full access. tiko saves a copy of the board first
+        (see list_copies); calls in a row with no one else's edit between share that copy."""
         body = elements.StepsIn(steps=steps)
         return write(
             ctx,
