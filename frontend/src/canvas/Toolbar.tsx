@@ -39,6 +39,7 @@ import { ModulePicker } from '@/modules/ModulePicker'
 import { MODULES } from '@/modules/registry'
 import { useCommands } from '@/search/commands'
 import { JqlInput, keepOpenWhileSuggesting, useJqlCount } from '@/canvas/JqlInput'
+import { keepOpenWhileAsking } from '@/canvas/prefixQuestion'
 import { SHORTCUTS, useShortcut, withShortcut } from '@/lib/shortcuts'
 import { useAutoTour } from '@/onboarding/start'
 import { readRecentInputs, rememberInput } from '@/lib/recent-inputs'
@@ -434,6 +435,7 @@ export function Toolbar({
           sideOffset={10}
           className="w-96 p-2"
           onEscapeKeyDown={keepOpenWhileSuggesting}
+          onInteractOutside={keepOpenWhileAsking}
         >
           <CardSources onAdd={onAddCards} onDone={() => setOpen(false)} />
         </PopoverContent>

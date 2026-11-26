@@ -33,7 +33,7 @@ backend/app/domain/linear_query.py      slice 3: JQL subset → Linear IssueFilt
 backend/app/domain/ports.py             slice 2: TaskProvider.has_prefix; PrefixChoices repo port
 backend/app/adapters/tasks/readers.py   slice 0: PersonalReaders (digest, idle drop, lock), NotConnected stand-in
 backend/app/adapters/tasks/linear.py    slice 1: LinearApi, LinearProvider; slice 3: vocabulary, values, search
-backend/app/adapters/storage/           slice 2: key_prefix_choices table, migration 014
+backend/app/adapters/storage/           slice 2: key_prefix_choices table, migration 015
 backend/app/api/deps.py, main.py        slice 0: providers() loops over personal and open sources
 backend/app/api/me.py                   slice 0: tokens map, checks by source; slice 2: /api/me/key-prefixes
 backend/app/api/v1/*, api/mcp.py        slice 0: read SOURCES; slice 2: ambiguous keys

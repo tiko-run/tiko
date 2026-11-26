@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 const apiErrorSchema = z.object({
-  error: z.object({ code: z.string(), message: z.string() }),
+  error: z.looseObject({ code: z.string(), message: z.string() }),
 })
 
 /** Fired when the session is gone, for example after a sign-out everywhere. */
@@ -12,11 +12,19 @@ export class ApiError extends Error {
   readonly code: string
   /** Seconds from the Retry-After header, when the server sent one. */
   readonly retryAfter?: number
+  /** What else the error body carries, such as the trackers of an ambiguous key. */
+  readonly details: Record<string, unknown>
 
-  constructor(code: string, message: string, retryAfter?: number) {
+  constructor(
+    code: string,
+    message: string,
+    retryAfter?: number,
+    details: Record<string, unknown> = {},
+  ) {
     super(message)
     this.code = code
     this.retryAfter = retryAfter
+    this.details = details
   }
 }
 
@@ -38,7 +46,12 @@ export async function fetchJson<T>(path: string, schema: z.ZodType<T>, init?: Re
       window.dispatchEvent(new Event(PASSWORD_CHANGE_EVENT))
     }
     throw parsed.success
-      ? new ApiError(parsed.data.error.code, parsed.data.error.message, retryAfter)
+      ? new ApiError(
+          parsed.data.error.code,
+          parsed.data.error.message,
+          retryAfter,
+          parsed.data.error,
+        )
       : new ApiError('http_error', `request failed with status ${response.status}`)
   }
   return schema.parse(body)

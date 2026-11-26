@@ -36,10 +36,10 @@ description: "Task list for Linear"
 
 ## Phase 2: Slice `feat/linear-keys` — bare keys and the prefix dialog (US2)
 
-- [ ] T015 [P] [US2] `TaskProvider.has_prefix`: Jira by one project lookup with the person's token (DC and Cloud), cached; Linear from paged team keys; demo its own; others no. Tests with fake Jira and Linear
-- [ ] T016 [P] [US2] `PrefixChoices` port, `key_prefix_choices` table and migration 014, `/api/me/key-prefixes`. Tests, demo visitor refused
-- [ ] T017 [US2] `route_ref` by prefix, `source` in the resolve body, `409 ambiguous_key`; API v1 and MCP follow. Tests: the four routing cases; a person without Linear sends no extra request (SC-004)
-- [ ] T018 [P] [US2] The dialog in `resolveAll` (once per prefix, remember box, link to Settings, Gantt popover stays open) and the Key prefixes list in My tracker. Tests
+- [x] T015 [P] [US2] `TaskProvider.has_prefix`: Jira by one project lookup with the person's token (DC and Cloud), cached; Linear from paged team keys; demo its own; others no. Tests with fake Jira and Linear
+- [x] T016 [P] [US2] `PrefixChoices` port, `key_prefix_choices` table and migration 015, `/api/me/key-prefixes`. Tests, demo visitor refused
+- [x] T017 [US2] `route_ref` by prefix, `source` in the resolve body, `409 ambiguous_key`; API v1 and MCP follow. Tests: the four routing cases; a person without Linear sends no extra request (SC-004)
+- [x] T018 [P] [US2] The dialog in `resolveAll` (once per prefix, remember box, link to Settings, Gantt popover stays open) and the Key prefixes list in My tracker. Tests
 - [ ] T019 [US2] Check on the dev stack: a bare key of the test workspace, a prefix shared with the demo Jira, the remembered choice. `make check`, `make smoke` green; guide, `CHANGELOG.md`
 
 ## Phase 3: Slice `feat/linear-query` — many issues by a query (US3)

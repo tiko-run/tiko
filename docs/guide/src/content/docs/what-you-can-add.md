@@ -44,8 +44,9 @@ There are no queries for GitHub. Setup: [GitHub Issues](../github-issues/).
 |---|---|
 | A link to an issue | `https://linear.app/your-workspace/issue/ENG-12/fix-the-thing` |
 | The workspace and the identifier | `your-workspace/ENG-12` |
+| Just the identifier | `ENG-12`, once you connected Linear |
 
-Bare identifiers and queries for Linear come later. Setup: [Linear](../linear/).
+A bare `ENG-12` goes to the tracker that knows `ENG`. When Jira and Linear both know it, tiko asks once; see [Bare identifiers](../linear/#bare-identifiers). Queries for Linear come later. Setup: [Linear](../linear/).
 
 ## CalDAV
 

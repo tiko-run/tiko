@@ -22,7 +22,13 @@ A Linear key reads one workspace. Linear counts 2,500 requests and 3,000,000 com
 
 ## Add a card
 
-Copy the link of an issue in Linear and paste it on the board with `⌘V` (`Ctrl+V`), or pick the card tool (`C`) and paste the link there, or type it as `your-workspace/ENG-12`. Several at once work too. All the forms are in [What you can add](../what-you-can-add/#linear).
+Copy the link of an issue in Linear and paste it on the board with `⌘V` (`Ctrl+V`), or pick the card tool (`C`) and paste the link there. Typing just `ENG-12` works too, and so does `your-workspace/ENG-12`. Several at once work too. All the forms are in [What you can add](../what-you-can-add/#linear).
+
+## Bare identifiers
+
+A bare `ENG-12` goes to the tracker that knows `ENG`: Linear when one of your teams has that key, Jira when it is one of its projects. When both know it, tiko asks where `ENG-12` is from, once per prefix in a paste of many. Tick **Remember for ENG** and the next `ENG` key goes there without a question.
+
+Your remembered choices are listed in **Settings → My tracker → Key prefixes**, where you switch or remove each one. Scripts and AI agents that add an ambiguous key are told to write `jira:ENG-12` or `linear:ENG-12` instead.
 
 ## Read a card
 
@@ -48,6 +54,6 @@ The card shows your workflow state by its own name. Its color comes from the kin
 
 ## Not yet
 
-- Bare identifiers like `ENG-12` typed without a link, and adding many issues by a query.
+- Adding many issues by a query.
 - Several Linear workspaces for one person.
 - Changing an issue from the board.

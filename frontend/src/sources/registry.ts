@@ -33,6 +33,8 @@ type Source = {
   linkPattern?: string
   /** What a person connects to read it: an account, or a token of their own. */
   credential?: 'account' | 'key'
+  /** What the prefix of a bare key like `ENG-12` names in it, said in the prefix dialog. */
+  prefixNoun?: string
   token?: TokenForm
 }
 
@@ -41,7 +43,7 @@ const LINEAR_ID = '[A-Za-z][A-Za-z0-9_]*-[1-9]\\d*'
 
 /** The trackers tiko reads tasks from, as the web app names and marks them. */
 const SOURCES: Record<string, Source> = {
-  jira: { name: 'Jira', mark: jiraMark },
+  jira: { name: 'Jira', mark: jiraMark, prefixNoun: 'a project' },
   github: {
     name: 'GitHub',
     mark: githubMark,
@@ -73,6 +75,7 @@ const SOURCES: Record<string, Source> = {
     mark: linearMark,
     markDark: linearMarkDark,
     credential: 'key',
+    prefixNoun: 'a team',
     // Without its workspace: `ENG-12`.
     shortKey: (key) => key.slice(key.indexOf('/') + 1),
     keyPattern: { prefix: '[a-z0-9][a-z0-9-]*/[A-Z][A-Z0-9_]*-', number: '[1-9]\\d*' },
@@ -92,6 +95,11 @@ const SOURCES: Record<string, Source> = {
 
 export function sourceName(id: string) {
   return SOURCES[id]?.name ?? 'the tracker'
+}
+
+/** What a key prefix names in the tracker: "a project" in Jira, "a team" in Linear. */
+export function prefixNoun(id: string) {
+  return SOURCES[id]?.prefixNoun ?? 'a prefix'
 }
 
 export function sourceMark(id: string) {
