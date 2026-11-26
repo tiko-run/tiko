@@ -16,4 +16,4 @@ description: "Task list for an agent that keeps a Gantt plan"
 
 ## Phase 2: Slice `feat/api-gantt-plan`
 
-- [ ] T006 Stages, milestones, links
+- [x] T006 Stages, milestones, links

@@ -2683,6 +2683,18 @@
             ],
             "title": "Branch"
           },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
           "done": {
             "anyOf": [
               {
@@ -2717,6 +2729,18 @@
             ],
             "title": "Follow"
           },
+          "from": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
           "id": {
             "anyOf": [
               {
@@ -2736,7 +2760,15 @@
               "update_row",
               "move_row",
               "remove_row",
-              "set_range"
+              "set_range",
+              "add_stage",
+              "update_stage",
+              "remove_stage",
+              "add_milestone",
+              "update_milestone",
+              "remove_milestone",
+              "link",
+              "unlink"
             ],
             "title": "Op",
             "type": "string"
@@ -2752,6 +2784,34 @@
               }
             ],
             "title": "Parent"
+          },
+          "people": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "People"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
           },
           "scale": {
             "anyOf": [
@@ -2818,6 +2878,30 @@
               }
             ],
             "title": "Title"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
           },
           "values": {
             "anyOf": [

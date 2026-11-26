@@ -7,25 +7,56 @@ module's own validation.
 """
 
 from datetime import date, timedelta
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domain.errors import ValidationFailed
 from app.domain.modules import validate_module
-from app.domain.modules.gantt import MAX_VALUES, FieldId, ItemId, Title, Value
+from app.domain.modules.gantt import (
+    MAX_STAGE_PEOPLE,
+    MAX_VALUES,
+    FieldId,
+    ItemId,
+    Title,
+    Value,
+)
 
+# `date` is also a step's field: a milestone's day.
+date_ = date
 MAX_STEPS = 200
 MAX_ROWS = 200
 NEW_DAYS = 6
 
-Op = Literal["add_row", "update_row", "move_row", "remove_row", "set_range"]
+Op = Literal[
+    "add_row",
+    "update_row",
+    "move_row",
+    "remove_row",
+    "set_range",
+    "add_stage",
+    "update_stage",
+    "remove_stage",
+    "add_milestone",
+    "update_milestone",
+    "remove_milestone",
+    "link",
+    "unlink",
+]
 _FIELDS: dict[str, set[str]] = {
     "add_row": {"id", "title", "task", "parent", "after", "start", "end", "follow", "done"},
     "update_row": {"id", "title", "task", "start", "end", "shift", "follow", "done", "values"},
     "move_row": {"id", "parent", "after"},
     "remove_row": {"id", "branch"},
     "set_range": {"start", "end", "scale"},
+    "add_stage": {"id", "row", "type", "start", "end", "people"},
+    "update_stage": {"id", "type", "start", "end", "people", "done"},
+    "remove_stage": {"id"},
+    "add_milestone": {"id", "date", "title"},
+    "update_milestone": {"id", "date", "title"},
+    "remove_milestone": {"id"},
+    "link": {"id", "from_", "to"},
+    "unlink": {"from_", "to"},
 }
 _NEEDS: dict[str, set[str]] = {
     "add_row": set(),
@@ -33,6 +64,14 @@ _NEEDS: dict[str, set[str]] = {
     "move_row": {"id"},
     "remove_row": {"id"},
     "set_range": set(),
+    "add_stage": {"row", "type", "start", "end"},
+    "update_stage": {"id"},
+    "remove_stage": {"id"},
+    "add_milestone": {"date"},
+    "update_milestone": {"id"},
+    "remove_milestone": {"id"},
+    "link": {"from_", "to"},
+    "unlink": {"from_", "to"},
 }
 
 
@@ -56,6 +95,19 @@ class Step(BaseModel):
     values: dict[FieldId, Value | None] | None = Field(default=None, max_length=MAX_VALUES)
     branch: bool | None = None
     scale: Literal["day", "week", "month", "quarter"] | None = None
+    # A stage's row, type (from read_planning) and people.
+    row: str | None = Field(default=None, max_length=40)
+    type: str | None = Field(default=None, max_length=40)
+    people: list[Annotated[str, Field(max_length=40)]] | None = Field(
+        default=None, max_length=MAX_STAGE_PEOPLE
+    )
+    # A milestone's day.
+    date: date_ | None = None
+    # A link: `to` waits for `from`.
+    from_: str | None = Field(default=None, alias="from", max_length=40)
+    to: str | None = Field(default=None, max_length=40)
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 
     @model_validator(mode="after")
     def _fits(self) -> "Step":
@@ -87,8 +139,10 @@ class Context(BaseModel):
     today: date
     # By step index.
     tasks: dict[int, Resolved] = {}
-    # Field ids this key may set values of; None when Planning is off.
+    # Ids this key may use anew; None when Planning is off.
     fields: set[str] | None = None
+    types: set[str] | None = None
+    people: set[str] | None = None
 
 
 class Result(BaseModel):
@@ -379,6 +433,145 @@ class _Plan:
             self.content["end"] = _iso(step.end)
         if step.scale is not None:
             self.content["scale"] = step.scale
+
+    def _stage(self, stage_id: str) -> tuple[int, int]:
+        for i, row in enumerate(self.rows):
+            for j, stage in enumerate(row.get("stages") or []):
+                if stage["id"] == stage_id:
+                    return i, j
+        raise _Failed(f"stage {stage_id} not found")
+
+    def _planned_ids(self, step: Step, row: dict[str, Any] | None = None) -> None:
+        types, people = self.context.types, self.context.people
+        if types is None or people is None:
+            raise _Failed("Planning is off, so rows have no stages")
+        kept = {s["type"] for s in row.get("stages") or []} if row else set()
+        if step.type is not None and step.type not in types and step.type not in kept:
+            raise _Failed(f"stage type {step.type} not found")
+        had = {p for s in (row.get("stages") or []) for p in s.get("people", [])} if row else set()
+        for person in step.people or []:
+            if person not in people and person not in had:
+                raise _Failed(f"person {person} not found")
+
+    def _sort_stages(self, at: int, stages: list[dict[str, Any]]) -> None:
+        self.rows[at] = {**self.rows[at], "stages": sorted(stages, key=lambda s: s["start"])}
+        self.touched.add(self.rows[at]["id"])
+
+    def add_stage(self, index: int, step: Step) -> None:
+        assert step.row is not None and step.start and step.end
+        if step.id is None:
+            raise _Failed("add_stage needs an id")
+        if any(s["id"] == step.id for r in self.rows for s in r.get("stages") or []):
+            raise _Failed(f"stage {step.id} already exists")
+        at = self._index(step.row)
+        if self.rows[at]["id"] in self._parents():
+            raise _Failed("a parent's stages are hidden; add them to its rows")
+        self._planned_ids(step)
+        stage = {
+            "id": step.id,
+            "type": step.type,
+            "start": _iso(step.start),
+            "end": _iso(step.end),
+            "people": list(step.people or []),
+        }
+        self._sort_stages(at, [*(self.rows[at].get("stages") or []), stage])
+        self.created[index] = step.id
+
+    def update_stage(self, _: int, step: Step) -> None:
+        assert step.id is not None
+        at, j = self._stage(step.id)
+        if self.rows[at]["id"] in self._parents():
+            raise _Failed("a parent's stages are hidden; change them on its rows")
+        self._planned_ids(step, self.rows[at])
+        stages = [dict(s) for s in self.rows[at]["stages"]]
+        stage = stages[j]
+        given = step.model_fields_set
+        if step.type is not None:
+            stage["type"] = step.type
+        if step.start is not None:
+            stage["start"] = _iso(step.start)
+        if step.end is not None:
+            stage["end"] = _iso(step.end)
+        if "people" in given:
+            stage["people"] = list(step.people or [])
+        if "done" in given:
+            if step.done:
+                stage["done"] = True
+            else:
+                stage.pop("done", None)
+        self._sort_stages(at, stages)
+
+    def remove_stage(self, _: int, step: Step) -> None:
+        assert step.id is not None
+        at, j = self._stage(step.id)
+        stages = [s for k, s in enumerate(self.rows[at]["stages"]) if k != j]
+        row = dict(self.rows[at])
+        if stages:
+            row["stages"] = stages
+        else:
+            row.pop("stages", None)
+        self.rows[at] = row
+        self.touched.add(row["id"])
+
+    def _milestone(self, milestone_id: str) -> int:
+        for i, milestone in enumerate(self.content.get("milestones", [])):
+            if milestone["id"] == milestone_id:
+                return i
+        raise _Failed(f"milestone {milestone_id} not found")
+
+    def add_milestone(self, index: int, step: Step) -> None:
+        assert step.date is not None
+        if step.id is None:
+            raise _Failed("add_milestone needs an id")
+        milestones = list(self.content.get("milestones", []))
+        if any(m["id"] == step.id for m in milestones):
+            raise _Failed(f"milestone {step.id} already exists")
+        milestones.append({"id": step.id, "date": _iso(step.date), "title": step.title or ""})
+        self.content["milestones"] = milestones
+        self.created[index] = step.id
+
+    def update_milestone(self, _: int, step: Step) -> None:
+        assert step.id is not None
+        milestones = [dict(m) for m in self.content.get("milestones", [])]
+        milestone = milestones[self._milestone(step.id)]
+        if step.date is not None:
+            milestone["date"] = _iso(step.date)
+        if "title" in step.model_fields_set:
+            milestone["title"] = step.title or ""
+        self.content["milestones"] = milestones
+
+    def remove_milestone(self, _: int, step: Step) -> None:
+        assert step.id is not None
+        at = self._milestone(step.id)
+        self.content["milestones"] = [
+            m for i, m in enumerate(self.content.get("milestones", [])) if i != at
+        ]
+
+    def link(self, index: int, step: Step) -> None:
+        assert step.from_ is not None and step.to is not None
+        if step.id is None:
+            raise _Failed("link needs an id")
+        for end in (step.from_, step.to):
+            self._index(end)
+        if any(
+            link["from"] == step.from_ and link["to"] == step.to for link in self.content["links"]
+        ):
+            raise _Failed(f"{step.to} already waits for {step.from_}")
+        self.content["links"] = [
+            *self.content["links"],
+            {"id": step.id, "from": step.from_, "to": step.to},
+        ]
+        self.created[index] = step.id
+        self.touched.update((step.from_, step.to))
+
+    def unlink(self, _: int, step: Step) -> None:
+        links = self.content["links"]
+        kept = [
+            link for link in links if not (link["from"] == step.from_ and link["to"] == step.to)
+        ]
+        if len(kept) == len(links):
+            raise _Failed(f"{step.to} does not wait for {step.from_}")
+        self.content["links"] = kept
 
     def clean(self) -> None:
         """The web app's clean-up after every change: a row cut into stages stops following,

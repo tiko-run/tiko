@@ -214,3 +214,99 @@ def test_the_clean_up_matches_the_web_app(case):
     work = _Plan(case["before"], Context(today=TODAY))
     work.clean()
     assert work.content == case["after"]
+
+
+PLANNED = {"fields": set(), "types": {"design", "build"}, "people": {"mira", "ann"}}
+
+
+def test_stages_are_added_kept_in_order_and_the_leaf_spans_them():
+    result = run(
+        PLAN,
+        {
+            "op": "add_stage",
+            "id": "s2",
+            "row": "a",
+            "type": "build",
+            "start": "2026-10-19",
+            "end": "2026-10-30",
+            "people": ["ann"],
+        },
+        {
+            "op": "add_stage",
+            "id": "s1",
+            "row": "a",
+            "type": "design",
+            "start": "2026-10-12",
+            "end": "2026-10-16",
+            "people": ["mira"],
+        },
+        **PLANNED,
+    )
+    row = result.content["rows"][1]
+    assert [s["id"] for s in row["stages"]] == ["s1", "s2"]
+    assert (row["start"], row["end"]) == ("2026-10-12", "2026-10-30")
+    assert result.created == {0: "s2", 1: "s1"}
+
+
+def test_a_stage_is_ticked_and_a_plain_leaf_is_done_with_all_its_stages():
+    content = run(
+        PLAN,
+        {
+            "op": "add_stage",
+            "id": "s1",
+            "row": "a",
+            "type": "design",
+            "start": "2026-10-12",
+            "end": "2026-10-16",
+        },
+        **PLANNED,
+    ).content
+    ticked = run(content, {"op": "update_stage", "id": "s1", "done": True}, **PLANNED)
+    row = ticked.content["rows"][1]
+    assert row["stages"][0]["done"] is True and row["done"] is True
+    gone = run(ticked.content, {"op": "remove_stage", "id": "s1"}, **PLANNED)
+    assert "stages" not in gone.content["rows"][1]
+
+
+def test_stage_rules():
+    step = {
+        "op": "add_stage",
+        "row": "a",
+        "type": "design",
+        "start": "2026-10-12",
+        "end": "2026-10-16",
+        "id": "s1",
+    }
+    assert "Planning is off" in fails(PLAN, step)
+    assert "hidden" in fails(PLAN, step | {"row": "g"}, **PLANNED)
+    assert "stage type qa not found" in fails(PLAN, step | {"type": "qa"}, **PLANNED)
+    assert "person zed not found" in fails(PLAN, step | {"people": ["zed"]}, **PLANNED)
+    overlap = run(PLAN, step, **PLANNED).content
+    clash = step | {"id": "s2", "start": "2026-10-14", "end": "2026-10-20"}
+    assert "overlap" in fails(overlap, clash, **PLANNED)
+
+
+def test_milestones_and_links():
+    result = run(
+        PLAN,
+        {"op": "add_milestone", "id": "m1", "date": "2026-11-30", "title": "Beta"},
+        {"op": "update_milestone", "id": "m1", "title": "Public beta"},
+        {"op": "link", "id": "l1", "from": "a", "to": "x"},
+    )
+    assert result.content["milestones"] == [
+        {"id": "m1", "date": "2026-11-30", "title": "Public beta"}
+    ]
+    assert result.content["links"] == [{"id": "l1", "from": "a", "to": "x"}]
+    assert "already waits" in fails(
+        result.content, {"op": "link", "id": "l2", "from": "a", "to": "x"}
+    )
+    unlinked = run(
+        result.content,
+        {"op": "unlink", "from": "a", "to": "x"},
+        {"op": "remove_milestone", "id": "m1"},
+    )
+    assert unlinked.content["links"] == [] and unlinked.content["milestones"] == []
+    assert "does not wait" in fails(PLAN, {"op": "unlink", "from": "a", "to": "x"})
+    assert "row nope not found" in fails(
+        PLAN, {"op": "link", "id": "l3", "from": "a", "to": "nope"}
+    )

@@ -147,3 +147,34 @@ def test_a_gantt_open_in_a_tab_takes_steps_and_the_tab_sees_them(app, admin):
             assert len(copies(key, board_id)) == 1
     finally:
         sockets.__exit__(None, None, None)
+
+
+def test_milestones_and_links_through_rest(app, admin):
+    board_id = board(admin, "Plan", {"nodes": [], "edges": []})
+    key = with_key(app, make_key(admin, scope="write")["token"])
+    key.post(
+        f"/api/v1/boards/{board_id}/modules",
+        json={"id": "q1", "start": "2026-10-01", "end": "2026-12-31"},
+    )
+    answer = steps(
+        key,
+        board_id,
+        "q1",
+        {"op": "add_row", "id": "a", "title": "API"},
+        {"op": "add_row", "id": "b", "title": "Client"},
+        {"op": "link", "from": "a", "to": "b"},
+        {"op": "add_milestone", "date": "2026-12-01", "title": "Beta"},
+    )
+    assert answer.status_code == 200, answer.json()
+    assert [m["step"] for m in answer.json()["created"]] == [0, 1, 2, 3]
+    read = plan(key, board_id, "q1")
+    assert read["links"] == [{"from": "a", "to": "b"}]
+    assert read["milestones"][0]["title"] == "Beta"
+    stage = {"op": "add_stage", "row": "a", "type": "t", "start": "2026-10-05", "end": "2026-10-09"}
+    unknown = steps(key, board_id, "q1", stage)
+    assert unknown.json()["error"]["message"] == "step 0 (add_stage): stage type t not found"
+    types = key.get("/api/v1/planning").json()["types"]
+    staged = steps(key, board_id, "q1", stage | {"type": types[0]["id"]})
+    assert staged.status_code == 200, staged.json()
+    (row,) = staged.json()["rows"]
+    assert row["stages"][0]["type"]["id"] == types[0]["id"]

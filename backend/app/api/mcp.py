@@ -646,7 +646,10 @@ def create(app: FastAPI) -> TikoMCP:
         shift in days for the row with its branch, follow, done, values by field id from
         read_planning, shown as columns), move_row (id, parent: null for the top level, after),
         remove_row (id; branch: true removes what is under it, otherwise it moves up a level),
-        set_range (start, end, scale). A row with `dates: tracker` follows its task: set
+        set_range (start, end, scale). Plan: add_stage (row, type, start, end, people; ids
+        from read_planning), update_stage (id; type, start, end, people, done), remove_stage,
+        add_milestone (date, title), update_milestone, remove_milestone, link and unlink (from,
+        to: `to` waits for `from`). A row with `dates: tracker` follows its task: set
         follow: false before giving it dates. A key changes a Gantt it added; a person's needs
         full access. tiko saves a copy of the board first (see list_copies)."""
         body = elements.StepsIn(steps=steps)

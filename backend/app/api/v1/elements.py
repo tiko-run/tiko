@@ -249,7 +249,7 @@ def change_gantt(
     """Steps on a Gantt, applied one after another and all or none. A Gantt a key added is its
     own; a person's needs full access. tiko saves the board before every change to a plan."""
     for step in body.steps:
-        if step.op == "add_row" and step.id is None:
+        if step.op in ("add_row", "add_stage", "add_milestone", "link") and step.id is None:
             step.id = uuid.uuid4().hex
     asked = [(i, s.task) for i, s in enumerate(body.steps) if s.task is not None]
     found = _tasks([ref for _, ref in asked], request) if asked else []
@@ -258,8 +258,17 @@ def change_gantt(
         for (index, _), (card, task) in zip(asked, found, strict=True)
     }
     plan = planning.read(person, key, request)
-    fields = {f.id for f in plan.fields if not f.archived} if plan.enabled else None
-    context = Context(today=date.today(), tasks=tasks, fields=fields)
+
+    def usable(items) -> set[str] | None:
+        return {i.id for i in items if not i.archived} if plan.enabled else None
+
+    context = Context(
+        today=date.today(),
+        tasks=tasks,
+        fields=usable(plan.fields),
+        types=usable(plan.types),
+        people=usable(plan.people),
+    )
     batch = Batch(gantt=GanttCall(module=module_id, steps=body.steps, context=context))
     applied = _applied(board_id, batch, request)
     result = applied.gantt

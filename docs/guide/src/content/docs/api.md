@@ -71,6 +71,8 @@ curl -X PATCH -H "Authorization: Bearer tiko_…" -H "Content-Type: application/
 - `add_row` takes a `title` or a `task` (a key or a link), a `parent`, and `after`: a sibling's id, `null` for first, left out for last. Its own `id` lets later steps in the same call name it. A task row follows its tracker's dates; a task already in the plan is refused.
 - `update_row` changes `title`, `start`, `end`, `done`, `follow`, links a plain row to a `task`, sets `values` of the fields the Gantt shows as columns, and `shift` moves a row with its branch and stages by whole days. A row that follows its task takes no dates until `follow` is `false`; a row cut into stages takes `shift` instead.
 - `move_row` takes a row with its branch to another `parent` and place; `remove_row` lifts its children a level up, or takes them along with `branch: true`; `set_range` changes `start`, `end` and `scale`.
+- With Planning on, `add_stage` cuts a row into stages (`row`, `type`, `start`, `end`, `people`, with ids from Planning), `update_stage` changes one or ticks it `done`, `remove_stage` takes it away. A row cut into stages spans them, as on screen; a parent's stages are hidden, so they go on its rows.
+- `add_milestone`, `update_milestone` and `remove_milestone` keep the plan's milestones; `link` and `unlink` take `from` and `to`, where `to` waits for `from`.
 - The answer holds the rows the call touched, the ids each step made, and in `kept` rows that stayed on their tracker's dates when their branch shifted.
 - A Gantt the key added is its own. Someone's hand-made plan needs a key with [full access](#full-access-and-saved-copies). Every change saves a copy of the board first, so **Saved copies** can put the plan back.
 

@@ -4357,7 +4357,15 @@
               "update_row",
               "move_row",
               "remove_row",
-              "set_range"
+              "set_range",
+              "add_stage",
+              "update_stage",
+              "remove_stage",
+              "add_milestone",
+              "update_milestone",
+              "remove_milestone",
+              "link",
+              "unlink"
             ],
             "title": "Op"
           },
@@ -4536,6 +4544,82 @@
               }
             ],
             "title": "Scale"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "people": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "People"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To"
           }
         },
         "type": "object",
