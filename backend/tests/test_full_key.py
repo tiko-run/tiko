@@ -225,3 +225,31 @@ def test_a_copy_past_its_days_does_not_spare_a_new_one(app, full):
         )
     remove(key, board_id, "n2")
     assert len(copies(key, board_id)) == 2
+
+
+def test_a_full_key_removes_a_gantt_a_tab_wrote_with_one_copy(app, admin):
+    from tests.test_live import Tab
+    from tests.test_mcp import gantt_node
+
+    allow(admin)
+    board_id = board(admin, "Plan", PEOPLE)
+    key = with_key(app, make_key(admin, scope="full")["token"])
+    # As the web app writes it: no `collapsed`, which a parsed copy fills in.
+    row = {"id": "a", "title": "Payments", "start": "2026-10-05", "end": "2026-10-09"}
+    gantt = gantt_node("g1", [row], y=600) | {"width": 960, "height": 320}
+    headers = {"cookie": f"tiko_session={admin.cookies.get('tiko_session')}"}
+    sockets = TestClient(app)
+    sockets.__enter__()
+    try:
+        with sockets.websocket_connect(f"/api/boards/{board_id}/live", headers=headers) as socket:
+            tab = Tab(socket)
+            tab.add(gantt, order=5)
+            assert "g1" in tab.ids()
+            renamed = change(key, board_id, {"id": "f1", "title": "Goals"})
+            assert renamed.status_code == 200, renamed.json()
+            removed = remove(key, board_id, "g1")
+            assert removed.status_code == 204, removed.json()
+            assert "g1" not in tab.ids()
+            assert len(copies(key, board_id)) == 1
+    finally:
+        sockets.__exit__(None, None, None)
