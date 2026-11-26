@@ -1698,6 +1698,21 @@ test('a selection dropped on the board becomes cards and notes in a column', () 
   screenBox.mockRestore()
 })
 
+test('a parent dragged out to the board takes its branch along', () => {
+  const screenBox = placeOnScreen()
+  const host = renderGantt(
+    {},
+    plan([plain('a'), { ...plain('b'), parent: 'a' }, { ...plain('c'), parent: 'b' }, plain('d')]),
+  )
+  pressRow('a', 0)
+  moveTo(1500, 900)
+  expect(screen.getByText('3 rows to the board')).toBeTruthy()
+  release(1500, 900)
+  expect(host.ejectNote.mock.calls.map((call) => call[0])).toEqual(['Row a', 'Row b', 'Row c'])
+  expect(rows().map((r) => r.id)).toEqual(['d'])
+  screenBox.mockRestore()
+})
+
 test('selected rows are options in a list of rows', () => {
   const screenBox = placeOnScreen()
   renderGantt({}, plan([plain('a'), plain('b')]))
