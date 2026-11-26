@@ -72,6 +72,17 @@ test('values come from Jira and Enter completes a half-typed word', async () => 
   expect(field.value).toBe('status = "In Progress" ')
 })
 
+test('Shift+Enter breaks the line and an IME confirmation is left alone', async () => {
+  const field = renderField()
+  type(field, 'status = In')
+  await screen.findByRole('option', { name: /In Progress/ })
+  fireEvent.keyDown(field, { key: 'Enter', isComposing: true })
+  expect(field.value).toBe('status = In')
+  const shift = fireEvent.keyDown(field, { key: 'Enter', shiftKey: true })
+  expect(shift).toBe(true)
+  expect(field.value).toBe('status = In')
+})
+
 test('Enter submits when the word is already whole or nothing is typed after it', async () => {
   const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
   function Form() {

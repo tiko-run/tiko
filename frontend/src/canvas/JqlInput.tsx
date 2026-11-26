@@ -189,7 +189,9 @@ export function JqlInput({
     !items.some((item) => sameWord(item.insert, context.token))
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    const pick = navigated || completes
+    // Enter that confirms an IME composition belongs to the input method, not to the list.
+    if (event.nativeEvent.isComposing) return
+    const pick = navigated || (completes && !event.shiftKey)
     const submit = event.key === 'Enter' && !event.shiftKey && !(open && pick)
     if (submit) {
       event.preventDefault()
