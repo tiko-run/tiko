@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { relativeTime } from '@/lib/time'
+import { relativeTime, shortDate } from '@/lib/time'
 
 const now = Date.parse('2026-10-05T12:00:00Z')
 
@@ -14,4 +14,11 @@ test('formats past times in the largest whole unit', () => {
 test('returns null for a missing or broken date', () => {
   expect(relativeTime(null, now)).toBeNull()
   expect(relativeTime('not a date', now)).toBeNull()
+})
+
+test('writes the day in words and adds the year outside the current one', () => {
+  const noon = (year: number) => new Date(year, 10, 16, 12).getTime()
+  expect(shortDate(noon(2026), noon(2026))).toBe('Nov 16')
+  expect(shortDate(noon(2027), noon(2026))).toBe('Nov 16, 2027')
+  expect(shortDate(noon(2025), noon(2026))).toBe('Nov 16, 2025')
 })

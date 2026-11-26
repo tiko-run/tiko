@@ -28,3 +28,16 @@ export function timeLeft(purgeAt: string, now = Date.now()): string {
   const days = Math.ceil((Date.parse(purgeAt) - now) / DAY_MS)
   return days <= 1 ? 'Goes today' : `${days} days left`
 }
+
+const monthDay = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
+const monthDayYear = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
+
+/** The day in words: "Nov 16", with the year ("Nov 16, 2026") outside the current one. */
+export function shortDate(at: number, now = Date.now()): string {
+  const sameYear = new Date(at).getFullYear() === new Date(now).getFullYear()
+  return (sameYear ? monthDay : monthDayYear).format(at)
+}
