@@ -77,8 +77,7 @@ def holds(latest: Latest | None, nodes: Stored, edges: Stored, ids: list[str]) -
     key wrote it after that copy: then no work of people's is missing from every copy."""
     if latest is None:
         return False
-    kept, kept_edges = from_board(latest.doc)
-    kept_nodes = {i: _shape(i, node) for i, node in kept.items()}
+    kept_nodes, kept_edges = from_board(latest.doc)
     written = latest.written
     for element_id in ids:
         if element_id in edges:
@@ -89,8 +88,10 @@ def holds(latest: Latest | None, nodes: Stored, edges: Stored, ids: list[str]) -
             ):
                 return False
             continue
+        # Only the ids asked for: parsing a whole board stalls the room's loop on a large one.
         now = _shape(element_id, nodes.get(element_id))
-        if now not in (kept_nodes.get(element_id), written.nodes.get(element_id)):
+        kept = _shape(element_id, kept_nodes.get(element_id))
+        if now not in (kept, written.nodes.get(element_id)):
             return False
     return True
 
@@ -108,5 +109,13 @@ def same(latest: Latest | None, nodes: Stored, edges: Stored) -> bool:
     if latest is None:
         return False
     kept_nodes, kept_edges = from_board(latest.doc)
-    now = {k: _shape(k, v) for k, v in nodes.items() if v is not None}
-    return {k: _shape(k, v) for k, v in kept_nodes.items()} == now and kept_edges == edges
+    now = {k: v for k, v in nodes.items() if v is not None}
+    if kept_nodes.keys() != now.keys() or kept_edges.keys() != edges.keys():
+        return False
+    # Raw first, parsed only where they differ: a restore runs this on the room's loop.
+    return all(
+        _plain(kept_nodes[k]) == _plain(v) or _shape(k, kept_nodes[k]) == _shape(k, v)
+        for k, v in now.items()
+    ) and all(
+        kept_edges[k] == v or _edge(k, kept_edges[k]) == _edge(k, v) for k, v in edges.items()
+    )
