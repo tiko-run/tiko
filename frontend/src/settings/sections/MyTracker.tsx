@@ -18,7 +18,7 @@ import { CalDavForm } from '@/settings/sections/CalDavForm'
 import { SectionHeader } from '@/settings/sections/Section'
 import { didOnboarding } from '@/onboarding/done'
 import { SourceMark } from '@/sources/SourceMark'
-import { TOKEN_SOURCES, sourceName } from '@/sources/registry'
+import { TOKEN_SOURCES, sourceLabel } from '@/sources/registry'
 
 const ATLASSIAN_TOKENS = 'https://id.atlassian.com/manage-profile/security/api-tokens'
 
@@ -243,10 +243,10 @@ function TokenForm({ tracker }: { tracker: Tracker }) {
   )
 }
 
-const PREFIX_SOURCES = ['jira', 'linear']
-
 /** The remembered answers of the prefix dialog: where a bare key with each prefix goes. */
-function KeyPrefixes() {
+function KeyPrefixes({ provider }: { provider: string }) {
+  // A bare key is either the instance's tracker's or Linear's.
+  const options = [provider, 'linear']
   const queryClient = useQueryClient()
   const choices = useQuery({ queryKey: ['key-prefixes'], queryFn: getPrefixChoices })
   const change = useMutation({
@@ -269,7 +269,7 @@ function KeyPrefixes() {
           <li key={prefix} className="flex items-center gap-2">
             <span className="w-24 truncate font-mono text-[13px]">{prefix}</span>
             <div role="radiogroup" aria-label={`Tracker for ${prefix}`} className="flex gap-1">
-              {PREFIX_SOURCES.map((option) => (
+              {options.map((option) => (
                 <Button
                   key={option}
                   role="radio"
@@ -280,7 +280,7 @@ function KeyPrefixes() {
                   onClick={() => option !== source && change.mutate({ prefix, source: option })}
                 >
                   <SourceMark source={option} />
-                  {sourceName(option)}
+                  {sourceLabel(option)}
                 </Button>
               ))}
             </div>
@@ -344,7 +344,7 @@ export function MyTracker() {
           <CalDavForm />
         </fieldset>
       )}
-      {tracker.data && <KeyPrefixes />}
+      {tracker.data && <KeyPrefixes provider={tracker.data.provider} />}
     </div>
   )
 }

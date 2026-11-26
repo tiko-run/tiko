@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { openSettings } from '@/settings/store'
 import { SourceMark } from '@/sources/SourceMark'
-import { prefixNoun, sourceName } from '@/sources/registry'
+import { prefixNoun, sourceLabel, sourceName } from '@/sources/registry'
 
 function listed(parts: string[]) {
   return parts.length < 3
@@ -47,7 +47,7 @@ export function PrefixDialog() {
           {sources.map((source) => (
             <Button key={source} variant="outline" onClick={() => pick(source)}>
               <SourceMark source={source} />
-              {sourceName(source)}
+              {sourceLabel(source)}
             </Button>
           ))}
         </div>

@@ -97,6 +97,12 @@ export function sourceName(id: string) {
   return SOURCES[id]?.name ?? 'the tracker'
 }
 
+/** The name on its own, as on a button: "The demo tracker". */
+export function sourceLabel(id: string) {
+  const name = sourceName(id)
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 /** What a key prefix names in the tracker: "a project" in Jira, "a team" in Linear. */
 export function prefixNoun(id: string) {
   return SOURCES[id]?.prefixNoun ?? 'a prefix'

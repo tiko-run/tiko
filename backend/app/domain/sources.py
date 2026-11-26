@@ -79,7 +79,7 @@ SOURCES: dict[str, Source] = {
             usage="jira_dc",
             prefixes=True,
         ),
-        Source(id="demo", name="the demo tracker", usage="demo"),
+        Source(id="demo", name="the demo tracker", usage="demo", prefixes=True),
         Source(
             id=CALDAV,
             name="CalDAV",
