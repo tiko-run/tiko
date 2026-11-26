@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Your AI agent lays a board out right the first time: it puts cards, notes and frames exactly where it means to, fits a grid of cards to its frame, sorts them by key or status, and sizes the frame to what it holds. On a large board it reads only what it needs, such as the done cards outside frames. See [AI agents](https://docs.tiko.run/ai-agents/).
 - Rearranging a Gantt plan is no longer guesswork: while you drag a row, the other rows move aside and a gap shows where and at which level it will land. Near an edge the expanded view scrolls and the board pans, and Esc puts the row back. A row dropped into a collapsed row now opens it instead of vanishing from view. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).
 - Rearrange a Gantt plan in batches: select rows with Shift and Cmd-click or by dragging a box, then move them together in one drag, drop them on the board as cards and notes, or remove them with Delete. Backspace with rows selected no longer deletes the whole Gantt. See [Arrange rows](https://docs.tiko.run/gantt/#arrange-rows).
+- API keys, reminders and the Settings People page write dates in words (`Nov 16`, or `Nov 16, 2026` outside the current year) like the rest of the app, instead of `16.11.2026` and `16.11`. The reminder field still reads `25.10 15:00` as typed input.
 
 ### Fixed
 

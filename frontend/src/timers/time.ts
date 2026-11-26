@@ -1,3 +1,5 @@
+import { shortDate } from '@/lib/time'
+
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
@@ -230,21 +232,19 @@ const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const pad = (n: number) => String(n).padStart(2, '0')
 
 // The UI is English whatever the browser locale; the time zone is the user's.
-/** The moment as "Sun, 25.10.2026, 15:30". */
-export function formatDue(at: number) {
-  const d = new Date(at)
-  const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`
-  return `${WEEKDAY_NAMES[d.getDay()]}, ${date}, ${formatClock(at)}`
+/** The moment as "Sun, Oct 25, 15:30", with the year outside the current one: "Sun, Oct 25, 2027, 15:30". */
+export function formatDue(at: number, now = Date.now()) {
+  return `${WEEKDAY_NAMES[new Date(at).getDay()]}, ${shortDate(at, now)}, ${formatClock(at)}`
 }
 
 /**
- * What a suggestion does not say itself: the clock and the day of a duration ("Tue 20.10, 15:30",
- * just "15:30" today), only the date of an input with a clock ("20.10", nothing today).
+ * What a suggestion does not say itself: the clock and the day of a duration ("Tue Oct 20, 15:30",
+ * just "15:30" today), only the date of an input with a clock ("Oct 20", nothing today).
  */
 export function suggestionNote({ input, at }: Suggestion, now: number) {
   const d = new Date(at)
   const today = d.toDateString() === new Date(now).toDateString()
-  const date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`
+  const date = shortDate(at, now)
   if (input.includes(':')) return today ? '' : date
   return today ? formatClock(at) : `${WEEKDAY_NAMES[d.getDay()]} ${date}, ${formatClock(at)}`
 }

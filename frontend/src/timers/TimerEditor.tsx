@@ -121,14 +121,14 @@ export function TimerEditor({ data, holder, task, onChange, onDelete }: Props) {
         ? unfinished
           ? 'Keep typing or pick a suggestion. Tab takes the first one.'
           : typed.error
-        : `Goes off ${formatDue(typed.at)} · in ${formatLeftLong(typed.at - now)}. Press Enter to set.`
+        : `Goes off ${formatDue(typed.at, now)} · in ${formatLeftLong(typed.at - now)}. Press Enter to set.`
       : at === null
         ? 'Waiting.'
         : state === 'fired'
-          ? `Went off ${formatDue(at)}${series}.`
+          ? `Went off ${formatDue(at, now)}${series}.`
           : state === 'done'
-            ? `Done. Was set for ${formatDue(at)}.`
-            : `Goes off ${formatDue(at)} · in ${formatLeftLong(at - now)}${series}.`
+            ? `Done. Was set for ${formatDue(at, now)}.`
+            : `Goes off ${formatDue(at, now)} · in ${formatLeftLong(at - now)}${series}.`
 
   const setMode = (mode: 'time' | 'status') => {
     if (mode === 'status' && task) onChange(watchStatus(data, task, task.status))

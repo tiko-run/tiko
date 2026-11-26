@@ -4,6 +4,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { Toaster } from '@/components/ui/sonner'
 import { ApiKeys } from '@/settings/sections/ApiKeys'
 
+// The year is left out of a date in the current year, so the fixtures follow the clock.
+const YEAR = new Date().getFullYear()
 const DAY_MS = 24 * 3600 * 1000
 const inDays = (days: number) => new Date(Date.now() + days * DAY_MS - 60_000).toISOString()
 
@@ -13,9 +15,9 @@ const agentKey = {
   scope: 'read',
   boards: null,
   prefix: 'Ab3x',
-  created_at: '2026-11-01T10:00:00+00:00',
+  created_at: new Date(YEAR, 5, 15, 12).toISOString(),
   expires_at: inDays(30),
-  last_used_on: '2026-11-08',
+  last_used_on: `${YEAR}-06-20`,
 }
 const oldKey = {
   ...agentKey,
@@ -23,6 +25,7 @@ const oldKey = {
   name: 'Old script',
   boards: ['b1', 'b2'],
   prefix: 'Zz90',
+  created_at: new Date(YEAR - 1, 11, 30, 12).toISOString(),
   expires_at: inDays(-1),
   last_used_on: null,
 }
@@ -78,12 +81,14 @@ test('lists keys with their reach, expiry and last use', async () => {
   expect(row).toHaveTextContent('tiko_Ab3x…')
   expect(row).toHaveTextContent('All boards')
   expect(row).toHaveTextContent('Expires in 30 days')
-  expect(row).toHaveTextContent('Last used 08.11.2026')
+  expect(row).toHaveTextContent('Last used Jun 20')
+  expect(row).toHaveTextContent('Created Jun 15')
   expect(row).toHaveTextContent('Read')
   const old = screen.getByText('Old script').closest('li')!
   expect(old).toHaveTextContent('2 boards')
   expect(old).toHaveTextContent('Expired')
   expect(old).toHaveTextContent('Never used')
+  expect(old).toHaveTextContent(`Created Dec 30, ${YEAR - 1}`)
 })
 
 test('creates a read key for chosen boards and shows its token once', async () => {

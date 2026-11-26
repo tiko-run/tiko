@@ -77,8 +77,12 @@ describe('formatting', () => {
   })
 
   it('shows the moment in English with a 24-hour clock', () => {
-    expect(formatDue(local(10, 25, 15, 30))).toBe('Sun, 25.10.2026, 15:30')
-    expect(formatDue(local(10, 8, 9, 5))).toBe('Thu, 08.10.2026, 09:05')
+    expect(formatDue(local(10, 25, 15, 30), NOW)).toBe('Sun, Oct 25, 15:30')
+    expect(formatDue(local(10, 8, 9, 5), NOW)).toBe('Thu, Oct 8, 09:05')
+  })
+
+  it('writes the due moment with the day in words, and the year outside the current one', () => {
+    expect(formatDue(local(1, 3, 9, 5, 2027), NOW)).toBe('Sun, Jan 3, 2027, 09:05')
   })
 })
 
@@ -133,7 +137,7 @@ describe('suggestWhen', () => {
   it('notes only what the suggestion does not say', () => {
     const note = (input: string) => suggestionNote(suggestWhen(input, NOW)[0], NOW)
     expect(note('3')).toBe('11:03')
-    expect(note('tues')).toBe('13.10')
+    expect(note('tues')).toBe('Oct 13')
     expect(note('15:')).toBe('')
   })
 

@@ -22,7 +22,7 @@ function when(timer: TimerEntry, now: number) {
   if (timer.state === 'fired') return `Went off at ${formatClock(timer.at!)}`
   if (timer.state === 'done') return 'Done'
   if (timer.at === null) return 'Waiting'
-  const at = sameDay(timer.at, now) ? formatClock(timer.at) : formatDue(timer.at)
+  const at = sameDay(timer.at, now) ? formatClock(timer.at) : formatDue(timer.at, now)
   return `in ${formatLeft(timer.at - now)} · ${at}`
 }
 

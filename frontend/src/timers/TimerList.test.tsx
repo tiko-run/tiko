@@ -48,7 +48,7 @@ test('the panel stays open on a jump and closes with Esc', () => {
   fireEvent.click(screen.getByText('Ping QA'))
   expect(onOpen).toHaveBeenCalledWith('b')
   expect(screen.getByText('in 28m · 11:28 · on DEMO-1')).toBeInTheDocument()
-  expect(screen.getByText('in 2d · Fri, 09.10.2026, 11:00')).toBeInTheDocument()
+  expect(screen.getByText('in 2d · Fri, Oct 9, 11:00')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   expect(onDone).toHaveBeenCalledWith('a')
   expect(screen.getByRole('dialog', { name: 'Reminders' })).toBeInTheDocument()
