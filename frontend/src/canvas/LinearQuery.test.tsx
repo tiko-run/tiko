@@ -23,7 +23,7 @@ function task(key: string) {
 }
 
 function show(linear: 'set' | 'none', found: { total: number | null; more: boolean }) {
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     if (url === '/api/me/tracker') {
       return Response.json({
         provider: 'jira',
