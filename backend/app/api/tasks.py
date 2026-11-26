@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -7,13 +8,15 @@ from app.api import deps
 from app.domain.caldav import CalDavSource, FindTasksIn, ListTasks
 from app.domain.ports import SnapshotRepo, TaskProvider
 from app.domain.sources import resolve_task
-from app.domain.tasks import MAX_SEARCH, Task, search_tasks
+from app.domain.tasks import MAX_SEARCH, SOURCE_PATTERN, Task, search_tasks
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 class ResolveIn(BaseModel):
     ref: str = Field(max_length=500)
+    # The tracker a bare key belongs to, picked when two trackers know its prefix.
+    source: str | None = Field(default=None, pattern=SOURCE_PATTERN)
 
 
 class ResolveOut(BaseModel):
@@ -49,8 +52,10 @@ def resolve(
     providers: Annotated[dict[str, TaskProvider], Depends(deps.providers)],
     tracker: Annotated[str, Depends(deps.tracker)],
     snapshots: Annotated[SnapshotRepo, Depends(deps.snapshots)],
+    chosen: Annotated[Callable[[str], str | None], Depends(deps.prefix_choice)],
 ) -> ResolveOut:
-    return ResolveOut(task=resolve_task(body.ref, providers, tracker, snapshots))
+    task = resolve_task(body.ref, providers, tracker, snapshots, chosen, body.source)
+    return ResolveOut(task=task)
 
 
 @router.post("/caldav")

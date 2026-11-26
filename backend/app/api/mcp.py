@@ -63,7 +63,10 @@ _Y = Field(default=None, description="Top edge on the board, also inside a frame
 
 
 class CardIn(BaseModel):
-    ref: str = Field(description="A task key such as PROJ-12, a link to the task, or caldav:<uid>.")
+    ref: str = Field(
+        description="A task key such as PROJ-12, a link to the task, linear:<workspace>/ENG-12"
+        " or caldav:<uid>. A bare key whose prefix two trackers know needs jira: or linear:."
+    )
     id: str | None = Field(default=None, description="Your own id for the card.")
     x: float | None = _X
     y: float | None = _Y

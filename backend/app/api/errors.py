@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.domain.errors import (
     AccountDisabled,
+    AmbiguousKey,
     BoardLimit,
     Conflict,
     DemoFull,
@@ -57,6 +58,7 @@ _STATUS = {
     DependencyUnavailable: 503,
     VersionConflict: 409,
     InvalidRef: 422,
+    AmbiguousKey: 409,
     InvalidJql: 422,
     HostMismatch: 422,
     TaskNotFound: 404,
@@ -117,9 +119,10 @@ def register_error_handlers(app: FastAPI) -> None:
     async def domain_error(_: Request, exc: DomainError) -> JSONResponse:
         retry_after = getattr(exc, "retry_after", None)
         headers = {"retry-after": str(retry_after)} if retry_after else None
-        return JSONResponse(
-            error_body(exc.code, exc.message), status_code=_status(exc), headers=headers
-        )
+        body = error_body(exc.code, exc.message)
+        # What a client needs to act on the error, such as the trackers to choose from.
+        body["error"].update(getattr(exc, "details", {}))
+        return JSONResponse(body, status_code=_status(exc), headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def request_invalid(_: Request, exc: RequestValidationError) -> JSONResponse:

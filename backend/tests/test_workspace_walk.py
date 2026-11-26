@@ -133,6 +133,7 @@ def fill(client: TestClient, tag: str, day: str) -> dict:
         # A demo instance offers no API keys, so there is none to aim at.
         "key_id": "none",
         "code": "1f525",
+        "prefix": "CORE",
         "token": token,
         "workspace": me["workspace"]["id"],
         "markers": [
